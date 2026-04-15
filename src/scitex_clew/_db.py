@@ -52,16 +52,16 @@ class VerificationDB(VerificationQueryMixin, ChainMixin):
             Path to database file. Resolution order:
             1. Explicit db_path argument
             2. SCITEX_CLEW_DB_PATH environment variable
-            3. {project_root}/scitex/clew.db where project_root is found by
-               walking up from cwd until a .git / pyproject.toml is found;
-               falls back to cwd if no root marker is found.
+            3. {project_root}/.scitex/clew/db.sqlite where project_root is
+               found by walking up from cwd until a .git / pyproject.toml is
+               found; falls back to cwd if no root marker is found.
         """
         if db_path is None:
             env_path = os.environ.get("SCITEX_CLEW_DB_PATH")
             if env_path:
                 db_path = Path(env_path)
             else:
-                db_path = _find_project_root() / "scitex" / "clew.db"
+                db_path = _find_project_root() / ".scitex" / "clew" / "db.sqlite"
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
@@ -448,7 +448,7 @@ def set_db(db_path: Union[str, Path]) -> VerificationDB:
     Parameters
     ----------
     db_path : str or Path
-        Path to database file (e.g. "./scitex/clew.db" for project-relative).
+        Path to database file (e.g. "./.scitex/clew/db.sqlite" for project-relative).
 
     Returns
     -------
