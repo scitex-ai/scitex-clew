@@ -5,13 +5,16 @@
 
 from __future__ import annotations
 
-from typing import List, Literal, Optional
+from typing import Any, Literal
 
 from .._chain import VerificationLevel, verify_run
 from .._db import get_db
+from .._groupers._base import FileEntry
+from .._groupers._spec import resolve_spec
 from ._json import format_path
 from ._mermaid_nodes import (
     add_file_nodes,
+    add_grouped_nodes,
     add_script_node,
     append_class_definitions,
 )
@@ -72,17 +75,30 @@ def generate_simple_dag(
         lines.append(f"    {parent} --> {curr}")
 
 
+def _files_dict_to_entries(files: dict, role: str, session_id: str) -> list:
+    return [
+        FileEntry(path=p, hash=h, role=role, session_id=session_id)
+        for p, h in files.items()
+    ]
+
+
 def generate_detailed_dag(
     lines: list,
     runs_data: list,
     show_hashes: bool = False,
     path_mode: PathMode = "name",
+    grouper: Any | None = None,
 ) -> None:
-    """Generate detailed DAG with input/output files and verification status."""
+    """Generate detailed DAG with input/output files and verification status.
+
+    ``grouper`` accepts a callable, a dict spec, or ``None``. When non-None,
+    per-session file lists are passed through the grouper to collapse
+    related files into group nodes (each carrying a Merkle root).
+    """
     from ._json import verify_file_hash
 
-    file_nodes = {}
-    failed_files = set()
+    node_ids: dict = {}
+    failed_files: set = set()
     runs_data = list(reversed(runs_data))
 
     for data in runs_data:
@@ -94,11 +110,12 @@ def generate_detailed_dag(
 
     for data in runs_data:
         inputs = data["inputs"]
-        outputs = data["outputs"]
         has_failed_input = any(fpath in failed_files for fpath in inputs.keys())
         if has_failed_input:
-            for fpath in outputs.keys():
+            for fpath in data["outputs"].keys():
                 failed_files.add(fpath)
+
+    group_fn = resolve_spec(grouper) if grouper is not None else None
 
     for i, data in enumerate(runs_data):
         sid = data["session_id"]
@@ -108,41 +125,41 @@ def generate_detailed_dag(
         outputs = data["outputs"]
 
         has_failed_input = any(fpath in failed_files for fpath in inputs.keys())
-
         add_script_node(
             lines, i, sid, run, verification, path_mode, show_hashes, has_failed_input
         )
         is_rerun = verification.is_verified_from_scratch
-        add_file_nodes(
-            lines,
-            f"script_{i}",
-            inputs,
-            file_nodes,
-            show_hashes,
-            path_mode,
-            "input",
-            False,
-            failed_files,
-        )
-        add_file_nodes(
-            lines,
-            f"script_{i}",
-            outputs,
-            file_nodes,
-            show_hashes,
-            path_mode,
-            "output",
-            is_rerun,
-            failed_files,
-        )
+        script_id = f"script_{i}"
+
+        if group_fn is None:
+            add_file_nodes(
+                lines, script_id, inputs, node_ids, show_hashes, path_mode,
+                "input", False, failed_files,
+            )
+            add_file_nodes(
+                lines, script_id, outputs, node_ids, show_hashes, path_mode,
+                "output", is_rerun, failed_files,
+            )
+        else:
+            in_entries = _files_dict_to_entries(inputs, "input", sid)
+            out_entries = _files_dict_to_entries(outputs, "output", sid)
+            add_grouped_nodes(
+                lines, script_id, group_fn(in_entries), node_ids, show_hashes,
+                path_mode, "input", False, failed_files,
+            )
+            add_grouped_nodes(
+                lines, script_id, group_fn(out_entries), node_ids, show_hashes,
+                path_mode, "output", is_rerun, failed_files,
+            )
 
 
 def generate_multi_target_dag(
-    target_files: Optional[List[str]] = None,
+    target_files: list[str] | None = None,
     claims: bool = False,
     show_files: bool = True,
     show_hashes: bool = False,
     path_mode: PathMode = "name",
+    grouper: Any | None = None,
 ) -> str:
     """Generate Mermaid diagram for a multi-target DAG."""
     lines = ["graph TD"]
@@ -185,7 +202,7 @@ def generate_multi_target_dag(
         )
 
     if show_files:
-        generate_detailed_dag(lines, runs_data, show_hashes, path_mode)
+        generate_detailed_dag(lines, runs_data, show_hashes, path_mode, grouper=grouper)
     else:
         generate_simple_dag(
             lines,

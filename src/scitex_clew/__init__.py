@@ -57,24 +57,49 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Internal imports (hidden from public API, still importable via full path)
 # ---------------------------------------------------------------------------
+from . import groupers  # public: scitex_clew.groupers
 from ._chain import (
     ChainVerification as _ChainVerification,
+)
+from ._chain import (
     DAGVerification as _DAGVerification,
+)
+from ._chain import (
     FileVerification as _FileVerification,
+)
+from ._chain import (
     RunVerification as _RunVerification,
+)
+from ._chain import (
     VerificationLevel as _VerificationLevel,
+)
+from ._chain import (
     VerificationStatus as _VerificationStatus,
+)
+from ._chain import (
     get_status as _get_status,
+)
+from ._chain import (
     verify_chain as _verify_chain,
+)
+from ._chain import (
     verify_file as _verify_file,
+)
+from ._chain import (
     verify_run as _verify_run,
 )
 from ._claim import (
     Claim as _Claim,
+)
+from ._claim import (
     add_claim,
-    format_claims as _format_claims,
     list_claims,
     verify_claim,
+)
+from ._claim import (
+    format_claims as _format_claims,
+)
+from ._claim import (
     verify_claims_dag as _verify_claims_dag,
 )
 from ._dag import verify_dag as _verify_dag
@@ -84,9 +109,15 @@ from ._db import set_db as _set_db
 from ._examples import init_examples
 from ._hash import (
     combine_hashes as _combine_hashes,
+)
+from ._hash import (
     hash_directory,
     hash_file,
+)
+from ._hash import (
     hash_files as _hash_files,
+)
+from ._hash import (
     verify_hash as _verify_hash,
 )
 from ._registry import ClewRegistry as _ClewRegistry
@@ -97,20 +128,44 @@ from ._stamp import Stamp as _Stamp
 from ._stamp import check_stamp, list_stamps, stamp
 from ._tracker import (
     SessionTracker as _SessionTracker,
+)
+from ._tracker import (
     get_tracker as _get_tracker,
+)
+from ._tracker import (
     set_tracker as _set_tracker,
+)
+from ._tracker import (
     start_tracking as _start_tracking,
+)
+from ._tracker import (
     stop_tracking as _stop_tracking,
 )
 from ._visualize import (
     format_chain_verification as _format_chain_verification,
+)
+from ._visualize import (
     format_list as _format_list,
+)
+from ._visualize import (
     format_run_detailed as _format_run_detailed,
+)
+from ._visualize import (
     format_run_verification as _format_run_verification,
+)
+from ._visualize import (
     format_status as _format_status,
+)
+from ._visualize import (
     generate_html_dag as _generate_html_dag,
+)
+from ._visualize import (
     generate_mermaid_dag as _generate_mermaid_dag,
+)
+from ._visualize import (
     print_verification_summary as _print_verification_summary,
+)
+from ._visualize import (
     render_dag as _render_dag,
 )
 
@@ -191,6 +246,7 @@ def mermaid(
     target_file=None,
     target_files=None,
     claims=False,
+    grouper=None,
     **kwargs,
 ):
     """Generate a Mermaid DAG diagram.
@@ -205,12 +261,20 @@ def mermaid(
         Multiple target files (multi-target DAG).
     claims : bool, optional
         If True, build DAG from all registered claims.
+    grouper : callable | dict | None, optional
+        File grouping strategy. Callable or JSON/dict spec (see
+        ``scitex_clew.groupers.resolve_spec``). If ``None``, falls back to
+        ``.scitex/clew/config.yaml`` (key ``grouper``) if present.
     """
+    if grouper is None:
+        from ._groupers._config import load_project_config
+        grouper = load_project_config().get("grouper")
     return _generate_mermaid_dag(
         session_id=session_id,
         target_file=target_file,
         target_files=target_files,
         claims=claims,
+        grouper=grouper,
         **kwargs,
     )
 
@@ -288,6 +352,8 @@ __all__ = [
     "hash_directory",
     # Visualization
     "mermaid",
+    # Grouping API
+    "groupers",
     # Examples
     "init_examples",
 ]
