@@ -7,13 +7,38 @@ allowed-tools: mcp__scitex__clew_*
 
 Hash-based verification tracking for reproducible science. Zero dependencies (pure stdlib + sqlite3). Auto-integrates with `@stx.session` and `stx.io` when scitex is present.
 
+## Installation & import (two equivalent paths)
+
+The same module is reachable via two install paths. Both forms work at
+runtime; which one a user has depends on their install choice.
+
+```python
+# Standalone — pip install scitex-clew
+import scitex_clew
+scitex_clew.status(...)
+
+# Umbrella — pip install scitex
+import scitex.clew
+scitex.clew.status(...)
+```
+
+`pip install scitex-clew` alone does NOT expose the `scitex` namespace;
+`import scitex.clew` raises `ModuleNotFoundError`. To use the
+`scitex.clew` form, also `pip install scitex`.
+
+See [../../general/02_interface-python-api.md] for the ecosystem-wide
+rule and empirical verification table.
+
 ## Sub-skills
 
-* [quick-start.md](quick-start.md) — Basic API, session tracking, first verification
-* [cli-commands.md](cli-commands.md) — CLI reference (`clew status`, `clew verify`, etc.)
-* [mcp-tools-for-ai-agents.md](mcp-tools-for-ai-agents.md) — MCP tool reference for AI agents
-* [common-workflows.md](common-workflows.md) — Claims, DAG patterns, stamps, reproducibility
-* [grouping.md](grouping.md) — Collapse related files into DAG nodes with Merkle roots
+### Core
+* [01_quick-start.md](01_quick-start.md) — Basic API, session tracking, first verification
+* [02_grouping.md](02_grouping.md) — Collapse related files into DAG nodes with Merkle roots
+
+### Workflows
+* [10_common-workflows.md](10_common-workflows.md) — Claims, DAG patterns, stamps, reproducibility
+* [11_cli-commands.md](11_cli-commands.md) — CLI reference (`clew status`, `clew verify`, etc.)
+* [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — MCP tool reference for AI agents
 
 ## MCP Tools
 
