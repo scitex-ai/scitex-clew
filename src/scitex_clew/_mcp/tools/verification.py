@@ -47,7 +47,7 @@ def register_tools(mcp: FastMCP) -> None:
         limit: int = 50,
         status_filter: Optional[str] = None,
     ) -> str:
-        """List all tracked runs with verification status.
+        """List every tracked session run (script execution) with its current hash-verification status — answers "what experiments have I run?" and "which ones are still reproducible?". Use when the user asks to show runs, list sessions, or audit pipeline history.
 
         Parameters
         ----------
@@ -202,7 +202,7 @@ def register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     async def clew_status() -> str:
-        """Show verification status summary (like git status).
+        """Git-status-like summary of the whole verification database — counts of verified, mismatched (files changed since the run), and missing (files deleted) sessions. Use when the user asks "what's changed?", "is my pipeline still reproducible?", or "show reproducibility status".
 
         Returns
         -------
@@ -215,7 +215,7 @@ def register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     async def clew_stats() -> str:
-        """Show verification database statistics.
+        """Return raw database statistics — total sessions, total files tracked, storage size, oldest/newest run. Use when the user asks how many runs/sessions/files are tracked, or wants database-level metrics.
 
         Returns
         -------

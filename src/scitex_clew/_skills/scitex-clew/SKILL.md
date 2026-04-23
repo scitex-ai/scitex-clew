@@ -1,5 +1,5 @@
 ---
-description: Hash-based reproducibility verification for scientific pipelines. Use when verifying session runs, tracing provenance chains, auditing full DAGs, registering manuscript claims, or creating temporal stamps.
+description: Hash-based reproducibility verification for scientific pipelines — SHA-256 fingerprints every input/output file, builds a provenance DAG, and rechecks hashes on demand (git-status-like). Use whenever the user asks to "verify a run", "check if results are reproducible", "did this pipeline change?", "trace where this figure came from", "audit the DAG", "rerun the whole pipeline and compare", "register a manuscript claim", "link a figure to its source session", "stamp a file's provenance", or "show the Mermaid DAG of my experiments". Drop-in replacement for ad-hoc `md5sum` logs, `dvc status`, Snakemake hash tracking, and manual "did I rerun this?" checks. Zero-dependency pure-stdlib; auto-integrates with `@stx.session` and `stx.io.save/load`.
 allowed-tools: mcp__scitex__clew_*
 ---
 
