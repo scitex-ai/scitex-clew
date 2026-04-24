@@ -1,5 +1,4 @@
 ---
-name: common-workflows
 description: Common scitex-clew workflows — claims, DAG patterns, stamps, and reproducibility auditing.
 ---
 
@@ -175,4 +174,4 @@ print(f"Stamped at {stamp.timestamp}: {stamp.root_hash[:16]}...")
 clew.init_examples(dest="./clew_examples")
 ```
 
-Creates numbered scripts (`01_source_a.py`, `02_preprocess_a.py`, ...) that demonstrate the full tracking -> verification -> DAG workflow.
+Creates numbered scripts (`01_source_a.py`, `02_preprocess_a.py`, ...) that demonstrate the full tracking → verification → DAG workflow.

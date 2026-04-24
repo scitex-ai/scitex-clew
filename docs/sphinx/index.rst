@@ -37,6 +37,7 @@ labyrinth, Clew serves two purposes:
    :caption: Concepts
 
    concepts
+   grouping
    cli
    mcp
 

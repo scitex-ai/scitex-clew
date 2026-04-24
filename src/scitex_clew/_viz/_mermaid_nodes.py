@@ -8,6 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
+from .._groupers._base import FileEntry, Group
 from ._json import file_to_node_id, format_path, verify_file_hash
 
 PathMode = Literal["name", "relative", "absolute"]
@@ -138,6 +139,130 @@ def add_file_nodes(
             lines.append(f"    {file_id} --> {script_id}")
         else:
             lines.append(f"    {script_id} --> {file_id}")
+
+
+def add_grouped_nodes(
+    lines: list,
+    script_id: str,
+    items: list,
+    node_ids: dict,
+    show_hashes: bool,
+    path_mode: PathMode,
+    role: str,
+    is_script_rerun_verified: bool = False,
+    failed_files: set = None,
+) -> None:
+    """Add file-or-group nodes and connections.
+
+    ``items`` is a list mixing ``FileEntry`` and ``Group`` objects produced
+    by a grouper. File entries render identically to ``add_file_nodes``;
+    groups render as a single node labeled with member count and Merkle
+    root, with aggregate verification status.
+    """
+    failed_files = failed_files or set()
+
+    for item in items:
+        if isinstance(item, Group):
+            _add_group_node(
+                lines,
+                script_id,
+                item,
+                node_ids,
+                show_hashes,
+                path_mode,
+                role,
+                is_script_rerun_verified,
+                failed_files,
+            )
+        else:  # FileEntry
+            _add_single_file_node(
+                lines,
+                script_id,
+                item,
+                node_ids,
+                show_hashes,
+                path_mode,
+                role,
+                is_script_rerun_verified,
+                failed_files,
+            )
+
+
+def _add_single_file_node(
+    lines,
+    script_id,
+    entry: FileEntry,
+    node_ids,
+    show_hashes,
+    path_mode,
+    role,
+    is_rerun,
+    failed_files,
+):
+    fpath = entry.path
+    stored_hash = entry.hash
+    display_name = format_path(fpath, path_mode)
+    file_id = file_to_node_id(fpath)
+    icon = get_file_icon(fpath)
+
+    if file_id not in node_ids:
+        ok = verify_file_hash(fpath, stored_hash)
+        is_failed = fpath in failed_files or not ok
+        if is_failed:
+            cls, badge = "file_bad", "✗"
+        elif role == "output" and is_rerun:
+            cls, badge = "file_rerun", "✓✓"
+        else:
+            cls, badge = "file_ok", "✓"
+        hash_display = f"<br/>{stored_hash[:8]}..." if show_hashes else ""
+        lines.append(
+            f'    {file_id}[("{badge} {icon} {display_name}{hash_display}")]:::{cls}'
+        )
+        node_ids[file_id] = ("file", fpath)
+
+    if role == "input":
+        lines.append(f"    {file_id} --> {script_id}")
+    else:
+        lines.append(f"    {script_id} --> {file_id}")
+
+
+def _add_group_node(
+    lines,
+    script_id,
+    group: Group,
+    node_ids,
+    show_hashes,
+    path_mode,
+    role,
+    is_rerun,
+    failed_files,
+):
+    group_id = f"group_{group.root_hash[:12]}"
+    if group_id not in node_ids:
+        any_failed = any(m.path in failed_files for m in group.members)
+        if not any_failed:
+            any_failed = not all(
+                verify_file_hash(m.path, m.hash) for m in group.members
+            )
+        if any_failed:
+            cls, badge = "file_bad", "⚠"
+        elif role == "output" and is_rerun:
+            cls, badge = "file_rerun", "✓✓"
+        else:
+            cls, badge = "file_ok", "✓"
+        icon = "🗂️"
+        hash_display = (
+            f"<br/>root={group.root_hash[:8]}..." if show_hashes else ""
+        )
+        lines.append(
+            f'    {group_id}[/"{badge} {icon} {group.label}{hash_display}"\\]:::{cls}'
+        )
+        node_ids[group_id] = ("group", group.root_hash)
+
+    if role == "input":
+        lines.append(f"    {group_id} --> {script_id}")
+    else:
+        lines.append(f"    {script_id} --> {group_id}")
 
 
 # EOF

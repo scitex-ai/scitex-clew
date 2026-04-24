@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Tests for the minimized clew public API surface."""
 
+import types
+
 import scitex_clew as clew
 
 
 class TestPublicAPI:
-    """Verify __all__ contains exactly 19 public names."""
+    """Verify __all__ contains the expected public names."""
 
     def test_all_count(self):
-        assert len(clew.__all__) == 19
+        assert len(clew.__all__) == 20
 
     def test_all_names(self):
         expected = {
@@ -30,13 +32,18 @@ class TestPublicAPI:
             "hash_file",
             "hash_directory",
             "mermaid",
+            "groupers",
             "init_examples",
         }
         assert set(clew.__all__) == expected
 
     def test_all_names_are_callable(self):
+        # Modules in __all__ are namespace exports, not callables.
         for name in clew.__all__:
-            assert callable(getattr(clew, name)), f"{name} is not callable"
+            obj = getattr(clew, name)
+            assert callable(obj) or isinstance(obj, types.ModuleType), (
+                f"{name} is not callable or a module"
+            )
 
 
 class TestBackwardCompat:

@@ -74,6 +74,33 @@ This classification turns the DAG into a navigable map of the research project. 
 
 <p align="center"><sub><b>Table 2.</b> Three verification modes. Each mode supports both <b>cache verification</b> (millisecond hash comparison) and <b>re-run verification</b> (sandbox re-execution with <code>rerun_dag</code> / <code>rerun_claims</code>).</sub></p>
 
+### Grouping for Readable DAGs
+
+Large pipelines emit many per-patient / per-fold files. The grouping API collapses related files into a single DAG node while preserving every underlying hash via a **Merkle root** — aggregate verification remains cryptographically meaningful.
+
+```python
+from scitex_clew.groupers import pattern_grouper, auto, compose
+import scitex_clew as clew
+
+clew.mermaid(claims=True, grouper=compose(
+    pattern_grouper(r"P\d{2}"),   # collapse P01, P02, ..., P15
+    auto(),                        # sensible directory + bundle fallbacks
+))
+```
+
+Project default via `<project_root>/.scitex/clew/config.yaml` (auto-loaded):
+
+```yaml
+grouper:
+  type: compose
+  steps:
+    - {type: pattern, regex: 'P\d{2}'}
+    - {type: directory, min_size: 10}
+    - {type: auto}
+```
+
+The same JSON/dict schema works across Python, CLI (`--grouper`), MCP (`{"grouper": {...}}`), and the YAML config file. See the [grouping skill](src/scitex_clew/_skills/scitex-clew/grouping.md).
+
 ## Installation
 
 Requires Python >= 3.10. **Zero dependencies** — pure stdlib + sqlite3.
@@ -110,7 +137,7 @@ rerun_result = clew.rerun("session_20250301_143022")
 </p>
 <p align="center"><sub><b>Figure 1.</b> Example DAG visualization. Green nodes indicate verified sessions; red nodes indicate hash mismatches. Clew traces the dependency graph backward from target files to raw data sources.</sub></p>
 
-## Three Interfaces
+## Four Interfaces
 
 <details>
 <summary><strong>Python API</strong></summary>
@@ -179,6 +206,28 @@ clew mcp start
 ```
 
 > **[Full MCP specification](https://scitex-clew.readthedocs.io/)**
+
+</details>
+
+<details>
+<summary><strong>Skills — for AI Agent Discovery</strong></summary>
+
+<br>
+
+Skills provide workflow-oriented guides that AI agents query to discover capabilities and usage patterns.
+
+```bash
+clew skills list              # List available skill pages
+clew skills get SKILL         # Show main skill page
+scitex-dev skills export --package scitex-clew  # Export to Claude Code
+```
+
+| Skill | Content |
+|-------|---------|
+| `quick-start` | Basic API, session tracking, first verification |
+| `cli-commands` | CLI reference (`clew status`, `clew verify`, etc.) |
+| `mcp-tools-for-ai-agents` | MCP tool reference for AI agents |
+| `common-workflows` | Claims, DAG patterns, stamps, reproducibility |
 
 </details>
 

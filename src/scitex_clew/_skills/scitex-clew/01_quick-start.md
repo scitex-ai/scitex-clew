@@ -1,5 +1,4 @@
 ---
-name: quick-start
 description: Basic scitex-clew API, session tracking, and first verification run.
 ---
 

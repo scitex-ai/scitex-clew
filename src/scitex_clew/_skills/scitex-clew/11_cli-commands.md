@@ -1,5 +1,4 @@
 ---
-name: cli-commands
 description: CLI reference for the clew command (requires pip install scitex-clew[cli]).
 ---
 

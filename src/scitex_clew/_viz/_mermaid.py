@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List, Literal, Optional, Union
+from typing import Literal
 
 from .._chain import verify_chain
 from .._db import get_db
@@ -25,14 +25,15 @@ PathMode = Literal["name", "relative", "absolute"]
 
 
 def generate_mermaid_dag(
-    session_id: Optional[str] = None,
-    target_file: Optional[str] = None,
-    target_files: Optional[List[str]] = None,
+    session_id: str | None = None,
+    target_file: str | None = None,
+    target_files: list[str] | None = None,
     claims: bool = False,
     max_depth: int = 10,
     show_files: bool = True,
     show_hashes: bool = False,
     path_mode: PathMode = "name",
+    grouper=None,
 ) -> str:
     """
     Generate Mermaid diagram for verification DAG.
@@ -61,6 +62,11 @@ def generate_mermaid_dag(
     str
         Mermaid diagram code
     """
+    if grouper is None:
+        from .._groupers._config import load_project_config
+
+        grouper = load_project_config().get("grouper")
+
     # Multi-target DAG mode
     if target_files or claims:
         return generate_multi_target_dag(
@@ -69,6 +75,7 @@ def generate_mermaid_dag(
             show_files=show_files,
             show_hashes=show_hashes,
             path_mode=path_mode,
+            grouper=grouper,
         )
 
     db = get_db()
@@ -90,7 +97,7 @@ def generate_mermaid_dag(
     runs_data = collect_runs_data(chain_ids, db)
 
     if show_files:
-        generate_detailed_dag(lines, runs_data, show_hashes, path_mode)
+        generate_detailed_dag(lines, runs_data, show_hashes, path_mode, grouper=grouper)
     else:
         generate_simple_dag(lines, runs_data, chain_ids, path_mode)
 
@@ -99,13 +106,14 @@ def generate_mermaid_dag(
 
 
 def generate_html_dag(
-    session_id: Optional[str] = None,
-    target_file: Optional[str] = None,
-    target_files: Optional[List[str]] = None,
+    session_id: str | None = None,
+    target_file: str | None = None,
+    target_files: list[str] | None = None,
     claims: bool = False,
     title: str = "Verification DAG",
     show_hashes: bool = False,
     path_mode: PathMode = "name",
+    grouper=None,
 ) -> str:
     """Generate interactive HTML visualization for verification DAG."""
     mermaid_code = generate_mermaid_dag(
@@ -115,19 +123,21 @@ def generate_html_dag(
         claims=claims,
         show_hashes=show_hashes,
         path_mode=path_mode,
+        grouper=grouper,
     )
     return get_html_template(title, mermaid_code)
 
 
 def render_dag(
-    output_path: Union[str, Path],
-    session_id: Optional[str] = None,
-    target_file: Optional[str] = None,
-    target_files: Optional[List[str]] = None,
+    output_path: str | Path,
+    session_id: str | None = None,
+    target_file: str | None = None,
+    target_files: list[str] | None = None,
     claims: bool = False,
     title: str = "Verification DAG",
     show_hashes: bool = False,
     path_mode: PathMode = "name",
+    grouper=None,
 ) -> Path:
     """
     Render verification DAG to file (HTML, PNG, SVG, JSON, or MMD).
@@ -169,6 +179,7 @@ def render_dag(
             title=title,
             show_hashes=show_hashes,
             path_mode=path_mode,
+            grouper=grouper,
         )
         output_path.write_text(content)
 
@@ -180,6 +191,7 @@ def render_dag(
             claims=claims,
             show_hashes=show_hashes,
             path_mode=path_mode,
+            grouper=grouper,
         )
         output_path.write_text(content)
 
@@ -201,6 +213,7 @@ def render_dag(
             claims=claims,
             show_hashes=show_hashes,
             path_mode=path_mode,
+            grouper=grouper,
         )
         import subprocess
         import tempfile
