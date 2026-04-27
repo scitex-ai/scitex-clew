@@ -38,14 +38,14 @@ dependencies = []
 cli = [
     "click>=8.0.0",
 ]
+mcp = [
+    "fastmcp>=2.0.0",
+]
 dev = [
     "click>=8.0.0",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "scitex-dev",
-]
-mcp = [
-    "fastmcp>=2.0.0",
 ]
 docs = [
     "sphinx>=7.0",
@@ -54,7 +54,11 @@ docs = [
     "sphinx-copybutton>=0.5",
     "sphinx-autodoc-typehints>=1.25",
 ]
-all = []
+all = [
+    "scitex-clew[cli]",
+    "scitex-clew[mcp]",
+]
+
 [project.scripts]
 clew = "scitex_clew._cli:main"
 [project.entry-points."scitex_dev.docs"]
