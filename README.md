@@ -6,6 +6,17 @@
 
 # SciTeX Clew (<code>scitex-clew</code>)
 
+<!-- scitex-badges:start -->
+[![PyPI](https://img.shields.io/pypi/v/scitex-clew.svg)](https://pypi.org/project/scitex-clew/)
+[![Python](https://img.shields.io/pypi/pyversions/scitex-clew.svg)](https://pypi.org/project/scitex-clew/)
+[![Tests](https://github.com/ywatanabe1989/scitex-clew/actions/workflows/test.yml/badge.svg)](https://github.com/ywatanabe1989/scitex-clew/actions/workflows/test.yml)
+[![Install Test](https://github.com/ywatanabe1989/scitex-clew/actions/workflows/install-test.yml/badge.svg)](https://github.com/ywatanabe1989/scitex-clew/actions/workflows/install-test.yml)
+[![Coverage](https://codecov.io/gh/ywatanabe1989/scitex-clew/graph/badge.svg)](https://codecov.io/gh/ywatanabe1989/scitex-clew)
+[![Docs](https://readthedocs.org/projects/scitex-clew/badge/?version=latest)](https://scitex-clew.readthedocs.io/en/latest/)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+<!-- scitex-badges:end -->
+
+
 <p align="center">
   <a href="https://scitex.ai">
     <img src="docs/scitex-logo-blue-cropped.png" alt="SciTeX" width="400">
