@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-clew"
-version = "0.2.5"
+version = "0.2.6"
 description = "Verifiable knowledge graph for scientific experiments"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -65,6 +65,8 @@ clew = "scitex_clew._cli:main"
 [project.entry-points."scitex_dev.docs"]
 scitex-clew = "scitex_clew"
 [project.entry-points."scitex_dev.skills"]
+scitex-clew = "scitex_clew"
+
 [project.entry-points."scitex_linter.plugins"]
 clew = "scitex_clew._linter_plugin:get_plugin"
 [project.urls]
