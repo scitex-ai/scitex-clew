@@ -43,6 +43,16 @@ Public API (19 functions)::
 
 from __future__ import annotations
 
+try:
+    from importlib.metadata import version as _v, PackageNotFoundError
+    try:
+        __version__ = _v("scitex-clew")
+    except PackageNotFoundError:
+        __version__ = "0.0.0+local"
+    del _v, PackageNotFoundError
+except ImportError:  # pragma: no cover — only on ancient Pythons
+    __version__ = "0.0.0+local"
+
 # ---------------------------------------------------------------------------
 # Optional decorator from scitex-dev (graceful fallback)
 # ---------------------------------------------------------------------------
@@ -329,6 +339,7 @@ Stamp = _Stamp
 # Public API — only these 19 names show in dir() and tab-completion
 # ---------------------------------------------------------------------------
 __all__ = [
+    "__version__",
     # Verification
     "status",
     "run",
