@@ -1,0 +1,329 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quickstart &mdash; SciTeX Clew v0.2.8</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=b01fafc3"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Concepts" href="concepts.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SciTeX Clew
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#basic-installation">Basic Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#with-cli-support">With CLI Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#with-mcp-server">With MCP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#all-optional-dependencies">All Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#development-installation">Development Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cli">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mcp-server">MCP Server</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grouping.html">Grouping</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#built-in-groupers">Built-in groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#spec-schema">Spec schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#custom-groupers">Custom groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#merkle-roots">Merkle roots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#grouping-invariants">Grouping invariants</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#core-commands">Core Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#introspection">Introspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#mcp-subcommands">MCP Subcommands</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mcp.html">MCP Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#starting-the-server">Starting the Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#mcp-client-configuration">MCP Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#available-tools">Available Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#diagnostics">Diagnostics</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/scitex_clew.html">scitex_clew</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.chain"><code class="docutils literal notranslate"><span class="pre">chain()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.dag"><code class="docutils literal notranslate"><span class="pre">dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun"><code class="docutils literal notranslate"><span class="pre">rerun()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun_dag"><code class="docutils literal notranslate"><span class="pre">rerun_dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#example-1-basic-verification">Example 1: Basic Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#example-2-chain-verification">Example 2: Chain Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#example-3-mermaid-diagram">Example 3: Mermaid Diagram</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SciTeX Clew</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Quickstart</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/ywatanabe1989/scitex-clew/blob/main/docs/sphinx/quickstart.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="quickstart">
+<h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h1>
+<section id="python-api">
+<h2>Python API<a class="headerlink" href="#python-api" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">clew</span>
+
+<span class="c1"># Check verification status</span>
+<span class="n">status</span> <span class="o">=</span> <span class="n">clew</span><span class="o">.</span><span class="n">status</span><span class="p">()</span>
+
+<span class="c1"># List tracked runs</span>
+<span class="n">runs</span> <span class="o">=</span> <span class="n">clew</span><span class="o">.</span><span class="n">list_runs</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1"># Verify a specific session</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">clew</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;SESSION_ID&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Verified: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">is_verified</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Trace provenance chain</span>
+<span class="n">chain</span> <span class="o">=</span> <span class="n">clew</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="s2">&quot;/path/to/output.csv&quot;</span><span class="p">)</span>
+
+<span class="c1"># Full DAG verification</span>
+<span class="n">dag</span> <span class="o">=</span> <span class="n">clew</span><span class="o">.</span><span class="n">dag</span><span class="p">([</span><span class="s2">&quot;/path/to/target.csv&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</section>
+<section id="five-node-classes">
+<h2>Five Node Classes<a class="headerlink" href="#five-node-classes" title="Link to this heading"></a></h2>
+<p>Every node in the DAG is classified into one of five semantic roles:</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text"><strong>Table 1.</strong> Five node classes. Classification is inferred automatically from file extensions and session roles, or set explicitly via <code class="docutils literal notranslate"><span class="pre">set_node_class()</span></code>.</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 30.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>Role</p></th>
+<th class="head"><p>Examples</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Source</strong></p></td>
+<td><p>Data acquisition scripts</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">01_download.py</span></code>, <code class="docutils literal notranslate"><span class="pre">collect.sh</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Input</strong></p></td>
+<td><p>Raw data and configuration</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">raw_data.csv</span></code>, <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Processing</strong></p></td>
+<td><p>Transform and analysis scripts</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">03_analyze.py</span></code>, <code class="docutils literal notranslate"><span class="pre">train.R</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Output</strong></p></td>
+<td><p>Intermediate and final data products</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">results.csv</span></code>, <code class="docutils literal notranslate"><span class="pre">figure1.png</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Claim</strong></p></td>
+<td><p>Manuscript assertions tied to evidence</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Fig</span> <span class="pre">1</span> <span class="pre">shows</span> <span class="pre">p&lt;0.05&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;Table</span> <span class="pre">2&quot;</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>The key operation is <strong>backpropagation from claims to sources</strong>: starting from a
+manuscript assertion (claim), Clew traces backward through outputs, processing
+scripts, and inputs to the original raw data — verifying every hash along the way.</p>
+</section>
+<section id="three-verification-modes">
+<h2>Three Verification Modes<a class="headerlink" href="#three-verification-modes" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text"><strong>Table 2.</strong> Three verification modes. Each supports both cache verification (millisecond hash comparison) and re-run verification (sandbox re-execution).</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+<col style="width: 30.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>Scope</p></th>
+<th class="head"><p>API</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Project</strong></p></td>
+<td><p>Entire pipeline</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">clew.dag()</span></code></p></td>
+<td><p>Verifies every session recorded in the database in topological order. A navigation map for ongoing project monitoring. <em>“Is the whole project intact?”</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Files</strong></p></td>
+<td><p>Specific outputs</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">clew.dag([&quot;output.csv&quot;])</span></code></p></td>
+<td><p>Traces backward from target files through their dependency chain. <em>“Can I trust this specific file?”</em></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Claims</strong></p></td>
+<td><p>Manuscript assertions</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">clew.verify_claim(&quot;Fig</span> <span class="pre">1&quot;)</span></code></p></td>
+<td><p>Verifies individual claims linked to source sessions. <em>“Is this figure still backed by the data?”</em></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="cli">
+<h2>CLI<a class="headerlink" href="#cli" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Overview</span>
+clew<span class="w"> </span>status
+
+<span class="c1"># List runs</span>
+clew<span class="w"> </span>list<span class="w"> </span>--limit<span class="w"> </span><span class="m">10</span>
+
+<span class="c1"># Verify a session</span>
+clew<span class="w"> </span>verify<span class="w"> </span>SESSION_ID
+
+<span class="c1"># Generate Mermaid diagram</span>
+clew<span class="w"> </span>mermaid
+
+<span class="c1"># List Python APIs</span>
+clew<span class="w"> </span>list-python-apis<span class="w"> </span>-v
+
+<span class="c1"># List MCP tools</span>
+clew<span class="w"> </span>mcp<span class="w"> </span>list-tools<span class="w"> </span>-v
+</pre></div>
+</div>
+</section>
+<section id="mcp-server">
+<h2>MCP Server<a class="headerlink" href="#mcp-server" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Start standalone MCP server</span>
+clew<span class="w"> </span>mcp<span class="w"> </span>start
+
+<span class="c1"># Check MCP health</span>
+clew<span class="w"> </span>mcp<span class="w"> </span>doctor
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="concepts.html" class="btn btn-neutral float-right" title="Concepts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

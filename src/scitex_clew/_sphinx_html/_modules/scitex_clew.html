@@ -1,0 +1,585 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scitex_clew &mdash; SciTeX Clew v0.2.8</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=b01fafc3"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            SciTeX Clew
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#basic-installation">Basic Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#with-cli-support">With CLI Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#with-mcp-server">With MCP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#all-optional-dependencies">All Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#development-installation">Development Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#cli">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#mcp-server">MCP Server</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../concepts.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../grouping.html">Grouping</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../grouping.html#built-in-groupers">Built-in groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../grouping.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../grouping.html#spec-schema">Spec schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../grouping.html#custom-groupers">Custom groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../grouping.html#merkle-roots">Merkle roots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../grouping.html#grouping-invariants">Grouping invariants</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cli.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli.html#core-commands">Core Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli.html#introspection">Introspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli.html#mcp-subcommands">MCP Subcommands</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../mcp.html">MCP Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../mcp.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mcp.html#starting-the-server">Starting the Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mcp.html#mcp-client-configuration">MCP Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mcp.html#available-tools">Available Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mcp.html#diagnostics">Diagnostics</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api/scitex_clew.html">scitex_clew</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.chain"><code class="docutils literal notranslate"><span class="pre">chain()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.dag"><code class="docutils literal notranslate"><span class="pre">dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.rerun"><code class="docutils literal notranslate"><span class="pre">rerun()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.rerun_dag"><code class="docutils literal notranslate"><span class="pre">rerun_dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#example-1-basic-verification">Example 1: Basic Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#example-2-chain-verification">Example 2: Chain Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#example-3-mermaid-diagram">Example 3: Mermaid Diagram</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">SciTeX Clew</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">scitex_clew</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scitex_clew</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">scitex-clew — Hash-based verification for reproducible science.</span>
+
+<span class="sd">Standalone package. Zero dependencies (pure stdlib + sqlite3).</span>
+<span class="sd">When used with scitex, integration is automatic via @stx.session + stx.io.</span>
+
+<span class="sd">Public API (19 functions)::</span>
+
+<span class="sd">    import scitex_clew as clew</span>
+
+<span class="sd">    # Verification</span>
+<span class="sd">    clew.status()                      # git-status-like overview</span>
+<span class="sd">    clew.run(session_id)               # verify one run (hash check)</span>
+<span class="sd">    clew.chain(target_file)            # trace file → source chain</span>
+<span class="sd">    clew.dag(targets)                  # verify full DAG</span>
+<span class="sd">    clew.rerun(target)                 # re-execute &amp; compare (sandbox)</span>
+<span class="sd">    clew.rerun_dag(targets)            # rerun full DAG in topo order</span>
+<span class="sd">    clew.rerun_claims()                # rerun all claim-backing sessions</span>
+<span class="sd">    clew.list_runs(limit=100)          # list tracked runs</span>
+<span class="sd">    clew.stats()                       # database statistics</span>
+
+<span class="sd">    # Claims</span>
+<span class="sd">    clew.add_claim(...)                # register manuscript assertion</span>
+<span class="sd">    clew.list_claims(...)              # list registered claims</span>
+<span class="sd">    clew.verify_claim(...)             # verify a specific claim</span>
+
+<span class="sd">    # Stamping</span>
+<span class="sd">    clew.stamp(...)                    # create temporal proof</span>
+<span class="sd">    clew.list_stamps(...)              # list stamps</span>
+<span class="sd">    clew.check_stamp(...)              # verify a stamp</span>
+
+<span class="sd">    # Hashing</span>
+<span class="sd">    clew.hash_file(path)               # SHA256 of a file</span>
+<span class="sd">    clew.hash_directory(path)          # SHA256 of all files in dir</span>
+
+<span class="sd">    # Visualization</span>
+<span class="sd">    clew.mermaid(...)                  # generate Mermaid DAG diagram</span>
+
+<span class="sd">    # Examples</span>
+<span class="sd">    clew.init_examples(dest)           # scaffold example pipeline</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">version</span> <span class="k">as</span> <span class="n">_v</span><span class="p">,</span> <span class="n">PackageNotFoundError</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">__version__</span> <span class="o">=</span> <span class="n">_v</span><span class="p">(</span><span class="s2">&quot;scitex-clew&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">PackageNotFoundError</span><span class="p">:</span>
+        <span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.0.0+local&quot;</span>
+    <span class="k">del</span> <span class="n">_v</span><span class="p">,</span> <span class="n">PackageNotFoundError</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover — only on ancient Pythons</span>
+    <span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.0.0+local&quot;</span>
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Optional decorator from scitex-dev (graceful fallback)</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">scitex_dev.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">supports_return_as</span> <span class="k">as</span> <span class="n">_supports_return_as</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_supports_return_as</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">fn</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Internal imports (hidden from public API, still importable via full path)</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">groupers</span>  <span class="c1"># public: scitex_clew.groupers</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ChainVerification</span> <span class="k">as</span> <span class="n">_ChainVerification</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DAGVerification</span> <span class="k">as</span> <span class="n">_DAGVerification</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FileVerification</span> <span class="k">as</span> <span class="n">_FileVerification</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">RunVerification</span> <span class="k">as</span> <span class="n">_RunVerification</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">VerificationLevel</span> <span class="k">as</span> <span class="n">_VerificationLevel</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">VerificationStatus</span> <span class="k">as</span> <span class="n">_VerificationStatus</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_status</span> <span class="k">as</span> <span class="n">_get_status</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">verify_chain</span> <span class="k">as</span> <span class="n">_verify_chain</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">verify_file</span> <span class="k">as</span> <span class="n">_verify_file</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">verify_run</span> <span class="k">as</span> <span class="n">_verify_run</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Claim</span> <span class="k">as</span> <span class="n">_Claim</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">add_claim</span><span class="p">,</span>
+    <span class="n">list_claims</span><span class="p">,</span>
+    <span class="n">verify_claim</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">format_claims</span> <span class="k">as</span> <span class="n">_format_claims</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">verify_claims_dag</span> <span class="k">as</span> <span class="n">_verify_claims_dag</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._dag</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_dag</span> <span class="k">as</span> <span class="n">_verify_dag</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerificationDB</span> <span class="k">as</span> <span class="n">_VerificationDB</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span> <span class="k">as</span> <span class="n">_get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">set_db</span> <span class="k">as</span> <span class="n">_set_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._examples</span><span class="w"> </span><span class="kn">import</span> <span class="n">init_examples</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._hash</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">combine_hashes</span> <span class="k">as</span> <span class="n">_combine_hashes</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._hash</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">hash_directory</span><span class="p">,</span>
+    <span class="n">hash_file</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._hash</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">hash_files</span> <span class="k">as</span> <span class="n">_hash_files</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._hash</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">verify_hash</span> <span class="k">as</span> <span class="n">_verify_hash</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClewRegistry</span> <span class="k">as</span> <span class="n">_ClewRegistry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_registry</span> <span class="k">as</span> <span class="n">_get_registry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._rerun</span><span class="w"> </span><span class="kn">import</span> <span class="n">rerun_claims</span><span class="p">,</span> <span class="n">rerun_dag</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._rerun</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_by_rerun</span> <span class="k">as</span> <span class="n">_verify_by_rerun</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._stamp</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stamp</span> <span class="k">as</span> <span class="n">_Stamp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._stamp</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_stamp</span><span class="p">,</span> <span class="n">list_stamps</span><span class="p">,</span> <span class="n">stamp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SessionTracker</span> <span class="k">as</span> <span class="n">_SessionTracker</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_tracker</span> <span class="k">as</span> <span class="n">_get_tracker</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">set_tracker</span> <span class="k">as</span> <span class="n">_set_tracker</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">start_tracking</span> <span class="k">as</span> <span class="n">_start_tracking</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">stop_tracking</span> <span class="k">as</span> <span class="n">_stop_tracking</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">format_chain_verification</span> <span class="k">as</span> <span class="n">_format_chain_verification</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">format_list</span> <span class="k">as</span> <span class="n">_format_list</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">format_run_detailed</span> <span class="k">as</span> <span class="n">_format_run_detailed</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">format_run_verification</span> <span class="k">as</span> <span class="n">_format_run_verification</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">format_status</span> <span class="k">as</span> <span class="n">_format_status</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">generate_html_dag</span> <span class="k">as</span> <span class="n">_generate_html_dag</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">generate_mermaid_dag</span> <span class="k">as</span> <span class="n">_generate_mermaid_dag</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">print_verification_summary</span> <span class="k">as</span> <span class="n">_print_verification_summary</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">render_dag</span> <span class="k">as</span> <span class="n">_render_dag</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Public convenience API</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="list_runs">
+<a class="viewcode-back" href="../api/scitex_clew.html#scitex_clew.list_runs">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_runs</span><span class="p">(</span><span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;List tracked runs.&quot;&quot;&quot;</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">_get_db</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">list_runs</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="status">
+<a class="viewcode-back" href="../api/scitex_clew.html#scitex_clew.status">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">status</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get verification status summary (like git status).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_get_status</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="run">
+<a class="viewcode-back" href="../api/scitex_clew.html#scitex_clew.run">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">from_scratch</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify a specific run.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    session_id : str</span>
+<span class="sd">        Session identifier</span>
+<span class="sd">    from_scratch : bool, optional</span>
+<span class="sd">        If True, re-execute the script and verify outputs (slow but thorough).</span>
+<span class="sd">        If False, only compare hashes (fast).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">from_scratch</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_verify_by_rerun</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_verify_run</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="chain">
+<a class="viewcode-back" href="../api/scitex_clew.html#scitex_clew.chain">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">chain</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify the dependency chain for a target file.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_verify_chain</span><span class="p">(</span><span class="n">target</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="stats">
+<a class="viewcode-back" href="../api/scitex_clew.html#scitex_clew.stats">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">stats</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get database statistics.&quot;&quot;&quot;</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">_get_db</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">stats</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="dag">
+<a class="viewcode-back" href="../api/scitex_clew.html#scitex_clew.dag">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dag</span><span class="p">(</span><span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">claims</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify the DAG for multiple targets or all claims.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">claims</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_verify_claims_dag</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">_verify_dag</span><span class="p">(</span><span class="n">targets</span> <span class="ow">or</span> <span class="p">[])</span></div>
+
+
+
+<div class="viewcode-block" id="rerun">
+<a class="viewcode-back" href="../api/scitex_clew.html#scitex_clew.rerun">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">rerun</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span> <span class="n">cleanup</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Re-execute a session in a sandbox and compare outputs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target : str or list[str]</span>
+<span class="sd">        Session ID, script path, or artifact path.</span>
+<span class="sd">    timeout : int, optional</span>
+<span class="sd">        Maximum execution time in seconds (default: 300).</span>
+<span class="sd">    cleanup : bool, optional</span>
+<span class="sd">        Remove sandbox outputs after verification (default: True).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_verify_by_rerun</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="n">cleanup</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="mermaid">
+<a class="viewcode-back" href="../api/scitex_clew.html#scitex_clew.mermaid">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">mermaid</span><span class="p">(</span>
+    <span class="n">session_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">target_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">target_files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">claims</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">grouper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate a Mermaid DAG diagram.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    session_id : str, optional</span>
+<span class="sd">        Start from this session.</span>
+<span class="sd">    target_file : str, optional</span>
+<span class="sd">        Start from the session that produced this file.</span>
+<span class="sd">    target_files : list of str, optional</span>
+<span class="sd">        Multiple target files (multi-target DAG).</span>
+<span class="sd">    claims : bool, optional</span>
+<span class="sd">        If True, build DAG from all registered claims.</span>
+<span class="sd">    grouper : callable | dict | None, optional</span>
+<span class="sd">        File grouping strategy. Callable or JSON/dict spec (see</span>
+<span class="sd">        ``scitex_clew.groupers.resolve_spec``). If ``None``, falls back to</span>
+<span class="sd">        ``.scitex/clew/config.yaml`` (key ``grouper``) if present.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">grouper</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._groupers._config</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_project_config</span>
+        <span class="n">grouper</span> <span class="o">=</span> <span class="n">load_project_config</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;grouper&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_generate_mermaid_dag</span><span class="p">(</span>
+        <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
+        <span class="n">target_file</span><span class="o">=</span><span class="n">target_file</span><span class="p">,</span>
+        <span class="n">target_files</span><span class="o">=</span><span class="n">target_files</span><span class="p">,</span>
+        <span class="n">claims</span><span class="o">=</span><span class="n">claims</span><span class="p">,</span>
+        <span class="n">grouper</span><span class="o">=</span><span class="n">grouper</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Accessible but not in __all__ (for advanced use / backward compat)</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="n">get_db</span> <span class="o">=</span> <span class="n">_get_db</span>
+<span class="n">set_db</span> <span class="o">=</span> <span class="n">_set_db</span>
+<span class="n">verify_run</span> <span class="o">=</span> <span class="n">_verify_run</span>
+<span class="n">verify_chain</span> <span class="o">=</span> <span class="n">_verify_chain</span>
+<span class="n">verify_dag</span> <span class="o">=</span> <span class="n">_verify_dag</span>
+<span class="n">verify_file</span> <span class="o">=</span> <span class="n">_verify_file</span>
+<span class="n">verify_by_rerun</span> <span class="o">=</span> <span class="n">_verify_by_rerun</span>
+<span class="n">verify_claims_dag</span> <span class="o">=</span> <span class="n">_verify_claims_dag</span>
+<span class="n">get_status</span> <span class="o">=</span> <span class="n">_get_status</span>
+<span class="n">generate_mermaid_dag</span> <span class="o">=</span> <span class="n">_generate_mermaid_dag</span>
+<span class="n">get_tracker</span> <span class="o">=</span> <span class="n">_get_tracker</span>
+<span class="n">set_tracker</span> <span class="o">=</span> <span class="n">_set_tracker</span>
+<span class="n">start_tracking</span> <span class="o">=</span> <span class="n">_start_tracking</span>
+<span class="n">stop_tracking</span> <span class="o">=</span> <span class="n">_stop_tracking</span>
+<span class="n">get_registry</span> <span class="o">=</span> <span class="n">_get_registry</span>
+<span class="n">format_claims</span> <span class="o">=</span> <span class="n">_format_claims</span>
+<span class="n">format_status</span> <span class="o">=</span> <span class="n">_format_status</span>
+<span class="n">format_list</span> <span class="o">=</span> <span class="n">_format_list</span>
+<span class="n">format_run_verification</span> <span class="o">=</span> <span class="n">_format_run_verification</span>
+<span class="n">format_run_detailed</span> <span class="o">=</span> <span class="n">_format_run_detailed</span>
+<span class="n">format_chain_verification</span> <span class="o">=</span> <span class="n">_format_chain_verification</span>
+<span class="n">print_verification_summary</span> <span class="o">=</span> <span class="n">_print_verification_summary</span>
+<span class="n">generate_html_dag</span> <span class="o">=</span> <span class="n">_generate_html_dag</span>
+<span class="n">render_dag</span> <span class="o">=</span> <span class="n">_render_dag</span>
+<span class="n">combine_hashes</span> <span class="o">=</span> <span class="n">_combine_hashes</span>
+<span class="n">hash_files</span> <span class="o">=</span> <span class="n">_hash_files</span>
+<span class="n">verify_hash</span> <span class="o">=</span> <span class="n">_verify_hash</span>
+<span class="n">verify_run_from_scratch</span> <span class="o">=</span> <span class="n">_verify_by_rerun</span>
+
+<span class="c1"># Class/type names</span>
+<span class="n">VerificationDB</span> <span class="o">=</span> <span class="n">_VerificationDB</span>
+<span class="n">SessionTracker</span> <span class="o">=</span> <span class="n">_SessionTracker</span>
+<span class="n">ClewRegistry</span> <span class="o">=</span> <span class="n">_ClewRegistry</span>
+<span class="n">VerificationStatus</span> <span class="o">=</span> <span class="n">_VerificationStatus</span>
+<span class="n">VerificationLevel</span> <span class="o">=</span> <span class="n">_VerificationLevel</span>
+<span class="n">FileVerification</span> <span class="o">=</span> <span class="n">_FileVerification</span>
+<span class="n">RunVerification</span> <span class="o">=</span> <span class="n">_RunVerification</span>
+<span class="n">ChainVerification</span> <span class="o">=</span> <span class="n">_ChainVerification</span>
+<span class="n">DAGVerification</span> <span class="o">=</span> <span class="n">_DAGVerification</span>
+<span class="n">Claim</span> <span class="o">=</span> <span class="n">_Claim</span>
+<span class="n">Stamp</span> <span class="o">=</span> <span class="n">_Stamp</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Public API — only these 19 names show in dir() and tab-completion</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;__version__&quot;</span><span class="p">,</span>
+    <span class="c1"># Verification</span>
+    <span class="s2">&quot;status&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;run&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;chain&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;dag&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;rerun&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;rerun_dag&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;rerun_claims&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;list_runs&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;stats&quot;</span><span class="p">,</span>
+    <span class="c1"># Claims</span>
+    <span class="s2">&quot;add_claim&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;list_claims&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;verify_claim&quot;</span><span class="p">,</span>
+    <span class="c1"># Stamping</span>
+    <span class="s2">&quot;stamp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;list_stamps&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;check_stamp&quot;</span><span class="p">,</span>
+    <span class="c1"># Hashing</span>
+    <span class="s2">&quot;hash_file&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;hash_directory&quot;</span><span class="p">,</span>
+    <span class="c1"># Visualization</span>
+    <span class="s2">&quot;mermaid&quot;</span><span class="p">,</span>
+    <span class="c1"># Grouping API</span>
+    <span class="s2">&quot;groupers&quot;</span><span class="p">,</span>
+    <span class="c1"># Examples</span>
+    <span class="s2">&quot;init_examples&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="c1"># EOF</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
