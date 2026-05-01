@@ -104,8 +104,6 @@ Requires Python >= 3.10. **Zero dependencies** — pure stdlib + sqlite3.
 pip install scitex-clew
 ```
 
-> **SciTeX users**: `pip install scitex` already includes Clew. Tracking is automatic via `@scitex.session` + `scitex.io`.
-
 ## Quickstart
 
 ```python
@@ -228,7 +226,9 @@ scitex-dev skills export --package scitex-clew  # Export to Claude Code
 
 ## Part of SciTeX
 
-Clew is part of [**SciTeX**](https://scitex.ai). When used inside the SciTeX framework, tracking is automatic:
+`scitex-clew` is part of [**SciTeX**](https://scitex.ai). Install via
+the umbrella with `pip install scitex[clew]` to use as
+`scitex.clew` (Python) or `scitex clew ...` (CLI).
 
 ```python
 import scitex
