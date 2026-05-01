@@ -138,7 +138,7 @@ rerun_result = clew.rerun("session_20250301_143022")
 
 ## Four Interfaces
 
-<details>
+<details open>
 <summary><strong>Python API</strong></summary>
 
 <br>
