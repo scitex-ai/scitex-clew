@@ -190,6 +190,9 @@ class TestRegisterAllTools:
             "clew_dag",
             "clew_rerun_dag",
             "clew_rerun_claims",
+            # §5 audit-mcp-tools — skills introspection
+            "clew_skills_list",
+            "clew_skills_get",
         }
         assert set(tools.keys()) == expected
 
