@@ -1,70 +1,63 @@
 #!/usr/bin/env python3
-"""Chain verification - trace provenance of a file.
+"""Chain verification - trace provenance of a file via @stx.session.
 
-This example demonstrates dependency chain tracing:
+Demonstrates dependency chain tracing:
 1. Initialize bundled example data
 2. Verify the full dependency DAG
 3. Print chain details
 
-Run this script to see:
-- Complete dependency chain for a target file
-- Which sessions produced the file
-- Verification status of each step
+Usage:
+    python 02_chain_verification.py
 """
 
 from pathlib import Path
 
+import scitex as stx
 import scitex_clew as clew
 
-OUT_DIR = Path(__file__).parent / "02_chain_verification_out"
 
-
-def main():
+@stx.session
+def main(
+    CONFIG=stx.session.INJECTED,
+    logger=stx.session.INJECTED,
+):
     """Run chain verification example."""
-    OUT_DIR.mkdir(exist_ok=True)
+    OUT = Path(CONFIG.SDIR_OUT)
 
-    print("Initializing example pipeline...")
+    logger.info("Initializing example pipeline...")
     clew.init_examples("/tmp/clew_example")
-    print()
 
-    print("=== Chain Verification ===")
-    print("Verifying the full dependency DAG...")
-    print()
+    logger.info("=== Chain Verification ===")
+    logger.info("Verifying the full dependency DAG...")
 
-    # Verify the full DAG with claims support
     result = clew.dag(claims=True)
 
-    print(f"DAG Verification Result:")
-    print(
+    logger.info("DAG Verification Result:")
+    logger.info(
         f"  Overall Status: {result.status.value if hasattr(result, 'status') else 'unknown'}"
     )
-    print(
+    logger.info(
         f"  Is Verified: {result.is_verified if hasattr(result, 'is_verified') else 'unknown'}"
     )
-    print()
 
-    # Print runs in the DAG
     if hasattr(result, "runs") and result.runs:
-        print(f"  Total Runs: {len(result.runs)}")
+        logger.info(f"  Total Runs: {len(result.runs)}")
         for run in result.runs:
             badge = "✓" if run.is_verified else "✗"
             session_id = run.session_id[:12]
-            print(f"    {badge} {session_id}")
+            logger.info(f"    {badge} {session_id}")
     else:
-        print("  No runs tracked yet.")
-        print(
+        logger.info("  No runs tracked yet.")
+        logger.info(
             "  Run '00_run_all.sh' in /tmp/clew_example to generate pipeline outputs."
         )
-    print()
 
-    # Show edges/dependencies if available
     if hasattr(result, "edges") and result.edges:
-        print(f"  Total Dependencies: {len(result.edges)}")
+        logger.info(f"  Total Dependencies: {len(result.edges)}")
     else:
-        print("  No dependencies tracked yet.")
+        logger.info("  No dependencies tracked yet.")
 
-    # Save report
-    report_path = OUT_DIR / "chain_report.txt"
+    report_path = OUT / "chain_report.txt"
     with open(report_path, "w") as f:
         f.write(
             f"DAG Status: {result.status.value if hasattr(result, 'status') else 'unknown'}\n"
@@ -72,12 +65,10 @@ def main():
         f.write(
             f"Verified: {result.is_verified if hasattr(result, 'is_verified') else 'unknown'}\n"
         )
-    print(f"\nReport saved to: {report_path}")
+    logger.info(f"Report saved to: {report_path}")
 
     return 0
 
 
 if __name__ == "__main__":
     main()
-
-# EOF
