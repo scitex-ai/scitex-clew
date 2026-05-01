@@ -1,0 +1,300 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grouping &mdash; SciTeX Clew v0.2.8</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=b01fafc3"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="CLI Reference" href="cli.html" />
+    <link rel="prev" title="Concepts" href="concepts.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SciTeX Clew
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#basic-installation">Basic Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#with-cli-support">With CLI Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#with-mcp-server">With MCP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#all-optional-dependencies">All Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#development-installation">Development Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#cli">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#mcp-server">MCP Server</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Grouping</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#built-in-groupers">Built-in groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#spec-schema">Spec schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#custom-groupers">Custom groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#merkle-roots">Merkle roots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#grouping-invariants">Grouping invariants</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#core-commands">Core Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#introspection">Introspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#mcp-subcommands">MCP Subcommands</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mcp.html">MCP Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#starting-the-server">Starting the Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#mcp-client-configuration">MCP Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#available-tools">Available Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#diagnostics">Diagnostics</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/scitex_clew.html">scitex_clew</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.chain"><code class="docutils literal notranslate"><span class="pre">chain()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.dag"><code class="docutils literal notranslate"><span class="pre">dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun"><code class="docutils literal notranslate"><span class="pre">rerun()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun_dag"><code class="docutils literal notranslate"><span class="pre">rerun_dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#example-1-basic-verification">Example 1: Basic Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#example-2-chain-verification">Example 2: Chain Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#example-3-mermaid-diagram">Example 3: Mermaid Diagram</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SciTeX Clew</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Grouping</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/ywatanabe1989/scitex-clew/blob/main/docs/sphinx/grouping.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="grouping">
+<h1>Grouping<a class="headerlink" href="#grouping" title="Link to this heading"></a></h1>
+<p>Large pipelines emit many per-patient, per-fold, or per-seizure files. A raw
+DAG drawing all of them is unreadable. The grouping API collapses related
+files into a single visual node while <strong>preserving every underlying hash</strong>
+via a Merkle root — aggregate verification remains cryptographically
+meaningful.</p>
+<section id="built-in-groupers">
+<h2>Built-in groupers<a class="headerlink" href="#built-in-groupers" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">identity()</span></code></p></td>
+<td><p>No grouping — every file its own node</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">drop_all_files()</span></code></p></td>
+<td><p>Scripts-only DAG (no file nodes)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pattern_grouper(regex)</span></code></p></td>
+<td><p>Collapse files whose basenames match after replacing <code class="docutils literal notranslate"><span class="pre">regex</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">directory_grouper(min_size=10,</span> <span class="pre">depth=1)</span></code></p></td>
+<td><p>Collapse ≥N files under a shared parent directory</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">session_bundle_grouper(max_files=3)</span></code></p></td>
+<td><p>Bundle per-role outputs that exceed <code class="docutils literal notranslate"><span class="pre">max_files</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">auto()</span></code></p></td>
+<td><p>Pattern → directory → bundle with sensible defaults</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">compose(*groupers)</span></code></p></td>
+<td><p>Apply in order (first wins per file)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="python-api">
+<h2>Python API<a class="headerlink" href="#python-api" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">clew</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scitex_clew.groupers</span><span class="w"> </span><span class="kn">import</span> <span class="n">pattern_grouper</span><span class="p">,</span> <span class="n">auto</span><span class="p">,</span> <span class="n">compose</span>
+
+<span class="c1"># callable</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">mermaid</span><span class="p">(</span><span class="n">claims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">grouper</span><span class="o">=</span><span class="n">pattern_grouper</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;P\d</span><span class="si">{2}</span><span class="s2">&quot;</span><span class="p">))</span>
+
+<span class="c1"># JSON/dict spec</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">mermaid</span><span class="p">(</span><span class="n">claims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">grouper</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;auto&quot;</span><span class="p">})</span>
+
+<span class="c1"># fall back to .scitex/clew/config.yaml</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">mermaid</span><span class="p">(</span><span class="n">claims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="spec-schema">
+<h2>Spec schema<a class="headerlink" href="#spec-schema" title="Link to this heading"></a></h2>
+<p>The same <code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:</span> <span class="pre">...,</span> <span class="pre">**kwargs}</span></code> shape works across Python, CLI
+(<code class="docutils literal notranslate"><span class="pre">--grouper</span></code>), MCP (<code class="docutils literal notranslate"><span class="pre">{&quot;grouper&quot;:</span> <span class="pre">{...}}</span></code>), and the YAML config:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># &lt;project_root&gt;/.scitex/clew/config.yaml</span>
+<span class="nt">grouper</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">compose</span>
+<span class="w">  </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">pattern</span><span class="p p-Indicator">,</span><span class="nt"> regex</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;P\d{2}&#39;</span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">pattern</span><span class="p p-Indicator">,</span><span class="nt"> regex</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;fold_\d+&#39;</span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">directory</span><span class="p p-Indicator">,</span><span class="nt"> min_size</span><span class="p">:</span><span class="w"> </span><span class="nv">10</span><span class="p p-Indicator">,</span><span class="nt"> depth</span><span class="p">:</span><span class="w"> </span><span class="nv">2</span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">session_bundle</span><span class="p p-Indicator">,</span><span class="nt"> max_files</span><span class="p">:</span><span class="w"> </span><span class="nv">3</span><span class="p p-Indicator">}</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">clew.mermaid()</span></code> and <code class="docutils literal notranslate"><span class="pre">clew.render_dag()</span></code> auto-load this file by walking
+upward from CWD. Explicit <code class="docutils literal notranslate"><span class="pre">grouper=</span></code> argument wins.</p>
+</section>
+<section id="custom-groupers">
+<h2>Custom groupers<a class="headerlink" href="#custom-groupers" title="Link to this heading"></a></h2>
+<p>For logic not expressible via built-ins:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scitex_clew.groupers</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_grouper</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">my_factory</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_g</span><span class="p">(</span><span class="n">entries</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>   <span class="c1"># list[FileEntry | Group]</span>
+    <span class="k">return</span> <span class="n">_g</span>
+
+<span class="n">register_grouper</span><span class="p">(</span><span class="s2">&quot;mine&quot;</span><span class="p">,</span> <span class="n">my_factory</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Spec escape hatch (not honored in MCP for safety):</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">grouper</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">custom</span><span class="p p-Indicator">,</span><span class="nt"> import</span><span class="p">:</span><span class="w"> </span><span class="nv">mypkg.groupers</span><span class="p p-Indicator">:</span><span class="nv">factory</span><span class="p p-Indicator">}</span>
+</pre></div>
+</div>
+</section>
+<section id="merkle-roots">
+<h2>Merkle roots<a class="headerlink" href="#merkle-roots" title="Link to this heading"></a></h2>
+<p>Every <code class="xref py py-class docutils literal notranslate"><span class="pre">scitex_clew.groupers.Group</span></code> carries <code class="docutils literal notranslate"><span class="pre">root_hash</span></code> = SHA-256
+over sorted member hashes. A group renders <code class="docutils literal notranslate"><span class="pre">✓</span></code> only if <strong>all</strong> members
+verify; <code class="docutils literal notranslate"><span class="pre">⚠</span></code> otherwise. Individual hashes are never discarded —
+<code class="docutils literal notranslate"><span class="pre">clew.dag(format=&quot;json&quot;)</span></code> always exports every file.</p>
+</section>
+<section id="grouping-invariants">
+<h2>Grouping invariants<a class="headerlink" href="#grouping-invariants" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Grouping never crosses session boundaries.</p></li>
+<li><p>Groups are role-homogeneous (<code class="docutils literal notranslate"><span class="pre">input</span></code> and <code class="docutils literal notranslate"><span class="pre">output</span></code> never mix).</p></li>
+<li><p>Collapsing is always lossless at the data level; only visual density changes.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="concepts.html" class="btn btn-neutral float-left" title="Concepts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cli.html" class="btn btn-neutral float-right" title="CLI Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

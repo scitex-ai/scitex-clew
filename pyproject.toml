@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-clew"
-version = "0.2.5"
+version = "0.2.8"
 description = "Verifiable knowledge graph for scientific experiments"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -24,7 +24,6 @@ keywords = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU Affero General Public License v3",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -33,19 +32,22 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
 ]
-dependencies = []
+dependencies = [
+    "scitex",
+]
 [project.optional-dependencies]
 cli = [
     "click>=8.0.0",
 ]
+mcp = [
+    "fastmcp>=2.0.0",
+]
 dev = [
+    "fastmcp",
     "click>=8.0.0",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "scitex-dev",
-]
-mcp = [
-    "fastmcp>=2.0.0",
 ]
 docs = [
     "sphinx>=7.0",
@@ -54,12 +56,18 @@ docs = [
     "sphinx-copybutton>=0.5",
     "sphinx-autodoc-typehints>=1.25",
 ]
-all = []
+all = [
+    "scitex-clew[cli]",
+    "scitex-clew[mcp]",
+]
+
 [project.scripts]
 clew = "scitex_clew._cli:main"
 [project.entry-points."scitex_dev.docs"]
 scitex-clew = "scitex_clew"
 [project.entry-points."scitex_dev.skills"]
+scitex-clew = "scitex_clew"
+
 [project.entry-points."scitex_linter.plugins"]
 clew = "scitex_clew._linter_plugin:get_plugin"
 [project.urls]

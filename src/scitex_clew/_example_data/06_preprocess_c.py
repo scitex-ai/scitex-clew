@@ -6,7 +6,10 @@
 
 from pathlib import Path
 
-import scitex as stx
+try:
+    import scitex as stx
+except ImportError:
+    stx = None
 
 SCRIPT_DIR = Path(__file__).parent
 OUTPUT_DIR = SCRIPT_DIR / "05_source_c_out"

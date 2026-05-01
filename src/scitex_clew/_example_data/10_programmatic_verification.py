@@ -6,7 +6,10 @@
 
 from pathlib import Path
 
-import scitex as stx
+try:
+    import scitex as stx
+except ImportError:
+    stx = None
 from scitex import verify
 
 SCRIPT_DIR = Path(__file__).parent

@@ -86,7 +86,7 @@ def register_tools(mcp: FastMCP) -> None:
     async def clew_run(
         session_or_path: str,
     ) -> str:
-        """Verify a specific session run by checking all file hashes.
+        """Re-hash every tracked input/output of a single session and compare against the recorded SHA-256 fingerprints — answers "did this run's files change since?" per-file. Drop-in replacement for hand-rolled `md5sum -c` logs. Use whenever the user asks to "verify this session", "check if these outputs are still reproducible", "has my figure.pdf changed since the run?", "audit session X", or passes either a session ID (`2025Y-11M-…`) or a file path to locate its parent session. Returns per-file status (OK / MISMATCHED / MISSING) with expected vs. current hashes.
 
         Parameters
         ----------
@@ -149,7 +149,7 @@ def register_tools(mcp: FastMCP) -> None:
     async def clew_chain(
         target_file: str,
     ) -> str:
-        """Verify the dependency chain for a target file.
+        """Walk the full provenance chain backwards from a target file — every upstream session whose outputs contributed to this file gets re-hashed and reported. Answers "how was this figure produced, and is every step still reproducible?". Use whenever the user asks to "trace where this file came from", "show the provenance of figure.pdf", "audit the lineage of results.csv", "is this result still valid?", or before trusting a final output. Returns the chain length and any upstream sessions that drifted.
 
         Traces back through all sessions that contributed to producing
         the target file and verifies each one.
@@ -233,7 +233,7 @@ def register_tools(mcp: FastMCP) -> None:
         target_files: Optional[str] = None,
         claims: bool = False,
     ) -> str:
-        """Generate Mermaid diagram for verification DAG.
+        """Emit a Mermaid diagram of the provenance DAG — scripts → outputs → downstream scripts — ready to paste into Markdown, GitHub, Notion, Obsidian, or the manuscript. Use whenever the user asks to "visualize the pipeline DAG", "draw my experiment dependencies", "show a Mermaid of this session", "build the DAG for the whole manuscript", or "diagram how figure X was made". Start from a specific `session_id`, a `target_file`, multiple comma-separated `target_files`, or pass `claims=True` to diagram every manuscript claim's backing session.
 
         Parameters
         ----------
@@ -286,7 +286,7 @@ def register_tools(mcp: FastMCP) -> None:
         target_files: Optional[str] = None,
         claims: bool = False,
     ) -> str:
-        """Verify full DAG for multiple targets or claims.
+        """Verify every session in the upstream DAG for a set of target files (or every manuscript claim's backing session) by re-hashing recorded inputs/outputs — the strongest hash-only check of whether an entire downstream pipeline is still reproducible. Use when the user asks to "verify the whole pipeline", "check if all figures are still valid", "audit the DAG for claims", "am I safe to submit?", or passes a comma-separated list of final outputs. For actual re-execution (not just hashing), use `clew_rerun_dag` instead.
 
         Parameters
         ----------
@@ -319,7 +319,7 @@ def register_tools(mcp: FastMCP) -> None:
         target_files: Optional[str] = None,
         timeout: int = 300,
     ) -> str:
-        """Re-execute entire DAG in topological order and compare outputs.
+        """ACTUALLY re-run every script in the DAG in topological order in a sandbox, re-hash the outputs, and compare against recorded fingerprints — the gold-standard reproducibility check. Originals are never overwritten. Drop-in replacement for manual "delete outputs and rerun all scripts" scripts, `dvc repro`, Snakemake `--forceall` dry-checks. Use when the user asks to "rerun the whole pipeline and compare", "fully re-verify from scratch", "prove it's reproducible end-to-end", "bit-for-bit rerun everything", or before a final submission. Much slower than `clew_dag` — only use when hash-only verification isn't enough.
 
         Each session is re-executed in a sandbox — original outputs are
         never overwritten. This is the most thorough verification mode.
@@ -354,7 +354,7 @@ def register_tools(mcp: FastMCP) -> None:
         claim_type: Optional[str] = None,
         timeout: int = 300,
     ) -> str:
-        """Re-execute all sessions backing manuscript claims.
+        """Re-run every session that backs a `\\vclaim{}` in the manuscript — ensures the p-value / statistic / figure each claim cites still emerges from the recorded pipeline. Use whenever the user asks to "verify my claims are still reproducible", "rerun the analyses behind my vclaims", "re-execute claim-backing sessions", "audit the paper's numerical claims from scratch", or before a revision/resubmission where reviewers might challenge specific statistics. Filter by `file_path` (which manuscript) or `claim_type` (statistic / figure / table / text / value).
 
         Traces each claim to its source session, builds the upstream DAG,
         and reruns every session in a sandbox.
