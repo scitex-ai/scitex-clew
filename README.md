@@ -16,22 +16,6 @@
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 <!-- scitex-badges:end -->
 
-
-<p align="center">
-  <a href="https://scitex.ai">
-    <img src="docs/scitex-logo-blue-cropped.png" alt="SciTeX" width="400">
-  </a>
-</p>
-
-<p align="center"><b>Verifiable knowledge graph for scientific experiments</b></p>
-
-<p align="center">
-  <a href="https://badge.fury.io/py/scitex-clew"><img src="https://badge.fury.io/py/scitex-clew.svg" alt="PyPI version"></a>
-  <a href="https://scitex-clew.readthedocs.io/"><img src="https://readthedocs.org/projects/scitex-clew/badge/?version=latest" alt="Documentation"></a>
-  <a href="https://github.com/ywatanabe1989/scitex-clew/actions/workflows/test.yml"><img src="https://github.com/ywatanabe1989/scitex-clew/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
-  <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg" alt="License: AGPL-3.0"></a>
-</p>
-
 <p align="center">
   <a href="https://scitex-clew.readthedocs.io/">Full Documentation</a> · <code>pip install scitex-clew</code>
 </p>
@@ -221,7 +205,7 @@ clew mcp start
 </details>
 
 <details>
-<summary><strong>Skills — for AI Agent Discovery</strong></summary>
+<summary><strong>Skills</strong></summary>
 
 <br>
 
