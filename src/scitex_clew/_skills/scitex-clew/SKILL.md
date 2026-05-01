@@ -15,42 +15,23 @@ tags: [scitex-clew, scitex-package]
 
 # scitex-clew
 
-> **Interfaces:** Python ⭐⭐ · CLI ⭐⭐⭐ (primary) · MCP ⭐⭐ · Skills ⭐⭐ · Hook — · HTTP —
-
 Hash-based verification tracking for reproducible science. Zero dependencies (pure stdlib + sqlite3). Auto-integrates with `@stx.session` and `stx.io` when scitex is present.
 
-## Installation & import (two equivalent paths)
+## Installation & import
 
-The same module is reachable via two install paths. Both forms work at
-runtime; which one a user has depends on their install choice.
+`pip install scitex-clew` exposes `import scitex_clew`. To also reach
+`import scitex.clew`, additionally `pip install scitex` (umbrella).
+Both forms call the same module. See `../../general/02_interface-python-api.md`.
 
 ```python
-# Standalone — pip install scitex-clew
-import scitex_clew
+import scitex_clew                  # standalone
 scitex_clew.status(...)
-
-# Umbrella — pip install scitex
-import scitex.clew
-scitex.clew.status(...)
 ```
-
-`pip install scitex-clew` alone does NOT expose the `scitex` namespace;
-`import scitex.clew` raises `ModuleNotFoundError`. To use the
-`scitex.clew` form, also `pip install scitex`.
-
-See [../../general/02_interface-python-api.md] for the ecosystem-wide
-rule and empirical verification table.
 
 ## Sub-skills
 
-### Core
-* [01_quick-start.md](01_quick-start.md) — Basic API, session tracking, first verification
-* [02_grouping.md](02_grouping.md) — Collapse related files into DAG nodes with Merkle roots
-
-### Workflows
-* [10_common-workflows.md](10_common-workflows.md) — Claims, DAG patterns, stamps, reproducibility
-* [11_cli-commands.md](11_cli-commands.md) — CLI reference (`clew status`, `clew verify`, etc.)
-* [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — MCP tool reference for AI agents
+* [01_quick-start.md](01_quick-start.md), [02_grouping.md](02_grouping.md) — basics + DAG-node grouping
+* [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — workflows + CLI + MCP refs
 
 ## MCP Tools
 
