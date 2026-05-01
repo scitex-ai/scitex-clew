@@ -10,10 +10,12 @@ class TestPublicAPI:
     """Verify __all__ contains the expected public names."""
 
     def test_all_count(self):
-        assert len(clew.__all__) == 20
+        # 20 public names + canonical __version__ string (per PA201)
+        assert len(clew.__all__) == 21
 
     def test_all_names(self):
         expected = {
+            "__version__",
             "status",
             "run",
             "chain",
@@ -38,9 +40,13 @@ class TestPublicAPI:
         assert set(clew.__all__) == expected
 
     def test_all_names_are_callable(self):
-        # Modules in __all__ are namespace exports, not callables.
+        # Modules in __all__ are namespace exports; __version__ is a string;
+        # everything else must be callable.
         for name in clew.__all__:
             obj = getattr(clew, name)
+            if name == "__version__":
+                assert isinstance(obj, str), f"{name} should be a version string"
+                continue
             assert callable(obj) or isinstance(obj, types.ModuleType), (
                 f"{name} is not callable or a module"
             )
