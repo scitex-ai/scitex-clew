@@ -29,7 +29,7 @@ class TestFindExamplesDir:
 
     def test_bundled_example_data_used_if_exists(self):
         bundled = (
-            Path(__file__).resolve().parent.parent
+            Path(__file__).resolve().parents[2]
             / "src"
             / "scitex_clew"
             / "_example_data"
