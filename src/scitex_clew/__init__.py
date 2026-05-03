@@ -45,6 +45,7 @@ from __future__ import annotations
 
 try:
     from importlib.metadata import version as _v, PackageNotFoundError
+
     try:
         __version__ = _v("scitex-clew")
     except PackageNotFoundError:
@@ -58,8 +59,10 @@ except ImportError:  # pragma: no cover — only on ancient Pythons
 # ---------------------------------------------------------------------------
 try:
     from scitex_dev.decorators import supports_return_as as _supports_return_as
-except ImportError:
-
+except Exception:
+    # Broad catch (not just ImportError): scitex-dev may import optional ML
+    # libs whose runtime-init can fail with VersionError / RuntimeError.
+    # Fall back to a no-op decorator regardless.
     def _supports_return_as(fn):
         return fn
 
@@ -106,6 +109,7 @@ from ._claim import (
     list_claims,
     verify_claim,
 )
+from ._register_intermediate import register_intermediate
 from ._claim import (
     format_claims as _format_claims,
 )
@@ -278,6 +282,7 @@ def mermaid(
     """
     if grouper is None:
         from ._groupers._config import load_project_config
+
         grouper = load_project_config().get("grouper")
     return _generate_mermaid_dag(
         session_id=session_id,
@@ -354,6 +359,7 @@ __all__ = [
     "add_claim",
     "list_claims",
     "verify_claim",
+    "register_intermediate",
     # Stamping
     "stamp",
     "list_stamps",
