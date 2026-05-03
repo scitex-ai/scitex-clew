@@ -36,6 +36,10 @@ Call `clew_dag(target_files=<final answer path>)` and read the returned `is_veri
 
 This is the closure check. An answer with an unverified DAG is by construction unreproducible — even if the value happens to be correct, no third party (or your future self) can trace why.
 
+### Emit the final answer and stop
+
+Once the closure check passes, you MUST emit the final answer in the exact format the harness expects (typically `ANSWERS: {"q1": "...", "q5": "..."}` as a single line on stdout, or the equivalent format your task specifies) and then stop calling tools. Registering the chain is necessary but not sufficient — without an emitted final answer, the trial returns no result. Treat "I have computed and registered everything" and "I have produced the answer" as two distinct steps; do not finish at the first.
+
 ## What you get for following this discipline
 
 Cache hits on identical inputs. The first run of `mygene.querymany` for a given gene list takes 87 seconds; the second returns in 8 seconds because the hash of the input list resolves to a cached output. Generalize this pattern to every external API call, every long-running computation, every parameter sweep. Re-runs of identical pipelines collapse from minutes to milliseconds.
