@@ -32,9 +32,13 @@ scitex_clew.status(...)
 
 ## Sub-skills
 
-* [01_quick-start.md](01_quick-start.md), [02_grouping.md](02_grouping.md) — basics + DAG-node grouping
-* [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — workflows + CLI + MCP refs
-* [20_agentic-reasoning.md](20_agentic-reasoning.md) — when-to-call discipline for AI agents using Clew as an active reasoning substrate (v2 framing)
+* [01_installation.md](01_installation.md) — pip install + verify
+* [02_quick-start.md](02_quick-start.md) — minimal usage
+* [03_python-api.md](03_python-api.md) — public callables
+* [04_cli-reference.md](04_cli-reference.md) — `clew` subcommands
+* [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — workflows + CLI detail + MCP refs
+* [20_env-vars.md](20_env-vars.md), [14_grouping.md](14_grouping.md) — env vars + DAG-node grouping
+* [21_agentic-reasoning.md](21_agentic-reasoning.md) — when-to-call discipline for AI agents using Clew as an active reasoning substrate (v2 framing)
 
 ## MCP Tools
 
@@ -66,4 +70,4 @@ clew skills get SKILL    # Get a specific skill page
 
 ## Environment
 
-- [13_env-vars.md](13_env-vars.md) — SCITEX_* env vars read by scitex-clew at runtime
+See [20_env-vars.md](20_env-vars.md) — SCITEX_* env vars read by scitex-clew at runtime.
