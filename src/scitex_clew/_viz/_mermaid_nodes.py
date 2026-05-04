@@ -91,7 +91,7 @@ def add_script_node(
     hash_display = f"<br/>{script_hash[:8]}..." if show_hashes and script_hash else ""
     lines.append(
         f'    {node_id}["{badge} {icon} {script_name}'
-        f'<br/>({short_id}){hash_display}"]:::{status_class}'
+        f'<br/>(RUN: {short_id}){hash_display}"]:::{status_class}'
     )
 
 
@@ -251,9 +251,7 @@ def _add_group_node(
         else:
             cls, badge = "file_ok", "✓"
         icon = "🗂️"
-        hash_display = (
-            f"<br/>root={group.root_hash[:8]}..." if show_hashes else ""
-        )
+        hash_display = f"<br/>root={group.root_hash[:8]}..." if show_hashes else ""
         lines.append(
             f'    {group_id}[/"{badge} {icon} {group.label}{hash_display}"\\]:::{cls}'
         )
