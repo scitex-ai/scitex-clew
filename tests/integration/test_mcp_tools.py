@@ -193,6 +193,15 @@ class TestRegisterAllTools:
             # §5 audit-mcp-tools — skills introspection
             "clew_skills_list",
             "clew_skills_get",
+            # F1 — claim/hash/stamp wrappers
+            "clew_claim_add",
+            "clew_claim_list",
+            "clew_claim_verify",
+            "clew_hash_file",
+            "clew_hash_directory",
+            "clew_stamp",
+            "clew_list_stamps",
+            "clew_check_stamp",
         }
         assert set(tools.keys()) == expected
 
