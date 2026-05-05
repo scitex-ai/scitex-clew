@@ -10,8 +10,8 @@ class TestPublicAPI:
     """Verify __all__ contains the expected public names."""
 
     def test_all_count(self):
-        # 20 public names + canonical __version__ string (per PA201)
-        assert len(clew.__all__) == 21
+        # 21 public names + canonical __version__ string (per PA201)
+        assert len(clew.__all__) == 22
 
     def test_all_names(self):
         expected = {
@@ -28,6 +28,7 @@ class TestPublicAPI:
             "add_claim",
             "list_claims",
             "verify_claim",
+            "register_intermediate",
             "stamp",
             "list_stamps",
             "check_stamp",
