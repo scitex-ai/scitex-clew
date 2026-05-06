@@ -33,7 +33,6 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "scitex",
 ]
 [project.optional-dependencies]
 cli = [
