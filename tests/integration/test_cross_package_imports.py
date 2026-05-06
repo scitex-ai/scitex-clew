@@ -15,12 +15,10 @@ import pytest
 
 # ===== AUTO-GENERATED: cross-package imports =====
 CROSS_PACKAGE_IMPORTS = [
-    'scitex',
-    'scitex.clew',
-    'scitex.logging',
     'scitex_dev._cli._completion',
     'scitex_dev.cli',
     'scitex_dev.decorators',
+    'scitex_logging',
 ]
 # ===== END AUTO-GENERATED =====
 
