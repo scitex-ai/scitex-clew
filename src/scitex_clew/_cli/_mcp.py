@@ -170,8 +170,22 @@ def start_server() -> None:
     mcp_server.run()
 
 
-@mcp.command("installation")
-def installation() -> None:
+@mcp.command(
+    "installation", hidden=True, context_settings={"ignore_unknown_options": True}
+)
+@click.pass_context
+def installation_deprecated(ctx) -> None:
+    """(deprecated) Renamed to `install`."""
+    click.echo(
+        "error: `clew mcp installation` was renamed to `clew mcp install`.\n"
+        "Re-run with: clew mcp install",
+        err=True,
+    )
+    ctx.exit(2)
+
+
+@mcp.command("install")
+def install() -> None:
     """Show installation instructions for MCP server integration."""
     click.echo("Install scitex-clew with MCP support:")
     click.echo()
