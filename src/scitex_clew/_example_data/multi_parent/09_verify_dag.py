@@ -67,7 +67,7 @@ def _demo_claims():
 
 def _demo_render():
     """Render the DAG to HTML."""
-    from scitex.clew import render_dag
+    from scitex_clew import render_dag
 
     fig1 = str(SCRIPT_DIR / "08_make_figures_out" / "figure1.png")
     fig2 = str(SCRIPT_DIR / "08_make_figures_out" / "figure2.png")
