@@ -381,29 +381,25 @@ else:
                 f"  [{ficon}] {r.session_id} ({r.status.value})  {r.script_path or ''}"
             )
 
-    @main.command("completion")
-    @click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))
-    def completion(shell: str):
-        """Generate shell completion script.
-
-        \b
-        Usage:
-          eval "$(clew completion bash)"
-          eval "$(clew completion zsh)"
-          clew completion fish | source
-        """
-        import os
-        import subprocess
-
-        env = os.environ.copy()
-        env["_CLEW_COMPLETE"] = f"{shell}_source"
-        result = subprocess.run(
-            ["clew"],
-            env=env,
-            capture_output=True,
-            text=True,
+    # §1a: install-shell-completion + print-shell-completion are registered
+    # via scitex_dev._cli._completion.attach_shell_completion(...) at the
+    # bottom of this module. The legacy `completion <SHELL>` positional
+    # form is preserved here as a hidden deprecated redirect.
+    @main.command(
+        "completion-legacy",
+        hidden=True,
+        context_settings={"ignore_unknown_options": True, "allow_extra_args": True},
+    )
+    @click.pass_context
+    def completion_legacy(ctx):
+        """(deprecated) Use `install-shell-completion` or `print-shell-completion`."""
+        click.echo(
+            "error: `clew completion <SHELL>` was split into:\n"
+            "  clew install-shell-completion --shell <bash|zsh|fish>\n"
+            "  clew print-shell-completion   --shell <bash|zsh|fish>",
+            err=True,
         )
-        click.echo(result.stdout)
+        ctx.exit(2)
 
     # -----------------------------------------------------------------------
     # Register integration / claim / hash / stamp commands
@@ -431,5 +427,13 @@ else:
         from scitex_dev.cli import skills_click_group
 
         main.add_command(skills_click_group(package="scitex-clew"))
+    except ImportError:
+        pass
+
+    # §1a: install-shell-completion + print-shell-completion (canonical leaves)
+    try:
+        from scitex_dev._cli._completion import attach_shell_completion
+
+        attach_shell_completion(main, prog_name="scitex-clew")
     except ImportError:
         pass
