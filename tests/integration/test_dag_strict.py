@@ -141,19 +141,104 @@ def chain_capsule(isolated_db, tmp_path):
 class TestVerifyDagStrictHappy:
     """When everything matches, status is OK and no claims are invalidated."""
 
-    def test_strict_ok(self, chain_capsule):
+    def test_strict_ok_payload_status_ok(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
         from scitex_clew import dag
-
+        # Act
+        # Act
         payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
-
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["status"] == "OK"
+
+    def test_strict_ok_payload_is_verified_is_true(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["is_verified"] is True
+
+    def test_strict_ok_payload_failed_node_is_none(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["failed_node"] is None
+
+    def test_strict_ok_payload_root_cause_is_none(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["root_cause"] is None
+
+    def test_strict_ok_payload_invalidated_claims(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["invalidated_claims"] == []
-        # Both claims should still be valid.
+
+    def test_strict_ok_chain_capsule_claim_mid_id_in_payload_still_valid_claims(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert chain_capsule["claim_mid_id"] in payload["still_valid_claims"]
+
+    def test_strict_ok_chain_capsule_claim_leaf_id_in_payload_still_valid_claims(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert chain_capsule["claim_leaf_id"] in payload["still_valid_claims"]
+
 
 
 class TestVerifyDagStrictFail:
@@ -162,49 +247,181 @@ class TestVerifyDagStrictFail:
     def _corrupt(self, path: Path):
         path.write_bytes(path.read_bytes() + b"\n# CORRUPTED\n")
 
-    def test_strict_fail_status_and_attribution(self, chain_capsule):
+    def test_strict_fail_status_and_attribution_payload_status_fail(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
         from scitex_clew import dag
-
         self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
         payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
-
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["status"] == "FAIL"
+
+    def test_strict_fail_status_and_attribution_payload_is_verified_is_false(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["is_verified"] is False
+
+    def test_strict_fail_status_and_attribution_payload_failed_node_is_not_none(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["failed_node"] is not None
+
+    def test_strict_fail_status_and_attribution_payload_root_cause_is_not_none(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["root_cause"] is not None
 
-        # Root cause should be the corrupted upstream input file.
+    def test_strict_fail_status_and_attribution_path_payload_root_cause_path_resolve_chain_capsule_raw_resol(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert (
             Path(payload["root_cause"]["path"]).resolve()
             == chain_capsule["raw"].resolve()
         )
 
-    def test_strict_fail_invalidates_downstream_claim(self, chain_capsule):
+
+    def test_strict_fail_invalidates_downstream_claim_chain_capsule_claim_mid_id_in_payload_invalidated_claims(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
         from scitex_clew import dag
-
         self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
         payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
-
-        # Both claims pass through sessA (which directly consumes the
-        # corrupted raw.csv) so both should be invalidated.
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert chain_capsule["claim_mid_id"] in payload["invalidated_claims"]
+
+    def test_strict_fail_invalidates_downstream_claim_chain_capsule_claim_leaf_id_in_payload_invalidated_claims(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert chain_capsule["claim_leaf_id"] in payload["invalidated_claims"]
-        # And NOT in still-valid.
+
+    def test_strict_fail_invalidates_downstream_claim_chain_capsule_claim_mid_id_not_in_payload_still_valid_claims(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert chain_capsule["claim_mid_id"] not in payload["still_valid_claims"]
+
+    def test_strict_fail_invalidates_downstream_claim_chain_capsule_claim_leaf_id_not_in_payload_still_valid_claim(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert chain_capsule["claim_leaf_id"] not in payload["still_valid_claims"]
 
-    def test_strict_fail_no_targets_via_claims_flag(self, chain_capsule):
-        """Same outcome when invoked via claims=True instead of targets."""
-        from scitex_clew import dag
 
+    def test_strict_fail_no_targets_via_claims_flag_payload_status_fail(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
         self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
         payload = dag(claims=True, strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["status"] == "FAIL"
+
+    def test_strict_fail_no_targets_via_claims_flag_chain_capsule_claim_mid_id_in_payload_invalidated_claims(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew import dag
+        self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
+        payload = dag(claims=True, strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert chain_capsule["claim_mid_id"] in payload["invalidated_claims"]
 
-    def test_unrelated_claim_remains_valid(self, chain_capsule, tmp_path, isolated_db):
-        """A claim whose source has no overlap with the failed DAG must stay valid."""
-        # Independent file unrelated to the chain.
+
+    def test_unrelated_claim_remains_valid_payload_status_fail(self, chain_capsule, tmp_path, isolated_db):
+        # Arrange
+        # Arrange
+        # Arrange
         other = tmp_path / "independent.csv"
         other.write_text("standalone\n")
         sid_c = "2026Y-05M-05D-13h00m00s_SessC"
@@ -216,7 +433,6 @@ class TestVerifyDagStrictFail:
             outputs={other: hash_file(other)},
         )
         from scitex_clew import add_claim, dag
-
         paper = tmp_path / "paper.tex"
         c_other = add_claim(
             file_path=str(paper),
@@ -226,13 +442,84 @@ class TestVerifyDagStrictFail:
             source_file=str(other),
             source_session=sid_c,
         )
-
         self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
         payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
-
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["status"] == "FAIL"
+
+    def test_unrelated_claim_remains_valid_c_other_claim_id_in_payload_still_valid_claim(self, chain_capsule, tmp_path, isolated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        other = tmp_path / "independent.csv"
+        other.write_text("standalone\n")
+        sid_c = "2026Y-05M-05D-13h00m00s_SessC"
+        _add_run_with_files(
+            isolated_db,
+            sid_c,
+            script="/scripts/sessC.py",
+            inputs={},
+            outputs={other: hash_file(other)},
+        )
+        from scitex_clew import add_claim, dag
+        paper = tmp_path / "paper.tex"
+        c_other = add_claim(
+            file_path=str(paper),
+            claim_type="value",
+            line_number=99,
+            claim_value="independent=1",
+            source_file=str(other),
+            source_session=sid_c,
+        )
+        self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert c_other.claim_id in payload["still_valid_claims"]
+
+    def test_unrelated_claim_remains_valid_c_other_claim_id_not_in_payload_invalidated_claims(self, chain_capsule, tmp_path, isolated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        other = tmp_path / "independent.csv"
+        other.write_text("standalone\n")
+        sid_c = "2026Y-05M-05D-13h00m00s_SessC"
+        _add_run_with_files(
+            isolated_db,
+            sid_c,
+            script="/scripts/sessC.py",
+            inputs={},
+            outputs={other: hash_file(other)},
+        )
+        from scitex_clew import add_claim, dag
+        paper = tmp_path / "paper.tex"
+        c_other = add_claim(
+            file_path=str(paper),
+            claim_type="value",
+            line_number=99,
+            claim_value="independent=1",
+            source_file=str(other),
+            source_session=sid_c,
+        )
+        self._corrupt(chain_capsule["raw"])
+        # Act
+        # Act
+        payload = dag(targets=[str(chain_capsule["leaf"])], strict=True)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert c_other.claim_id not in payload["invalidated_claims"]
+
 
 
 # ---------------------------------------------------------------------------
@@ -241,11 +528,16 @@ class TestVerifyDagStrictFail:
 
 
 class TestStrictDagViaCLI:
-    def test_dag_strict_json_emits_attribution(self, runner, chain_capsule):
+    def test_dag_strict_json_emits_attribution_result_exit_code_equals_n_0(self, runner, chain_capsule):
         # corrupt then call CLI
+        # Arrange
+        # Arrange
+        # Arrange
         chain_capsule["raw"].write_bytes(
             chain_capsule["raw"].read_bytes() + b"\nbreak\n"
         )
+        # Act
+        # Act
         result = runner.invoke(
             main,
             [
@@ -256,13 +548,166 @@ class TestStrictDagViaCLI:
                 str(chain_capsule["leaf"]),
             ],
         )
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert result.exit_code == 0, result.output
+
+    def test_dag_strict_json_emits_attribution_payload_status_fail_result_exit_code_equals_n_0(self, runner, chain_capsule):
+        # corrupt then call CLI
+        # Arrange
+        # Arrange
+        chain_capsule["raw"].write_bytes(
+            chain_capsule["raw"].read_bytes() + b"\nbreak\n"
+        )
+        # Act
+        result = runner.invoke(
+            main,
+            [
+                "dag",
+                "--strict",
+                "--json",
+                "--target",
+                str(chain_capsule["leaf"]),
+            ],
+        )
+        # Act
+        # Assert
+        # Assert
+        assert result.exit_code == 0, result.output
+
+    def test_dag_strict_json_emits_attribution_payload_status_fail_payload_status_fail(self, runner, chain_capsule):
+        # corrupt then call CLI
+        # Arrange
+        # Arrange
+        chain_capsule["raw"].write_bytes(
+            chain_capsule["raw"].read_bytes() + b"\nbreak\n"
+        )
+        # Act
+        result = runner.invoke(
+            main,
+            [
+                "dag",
+                "--strict",
+                "--json",
+                "--target",
+                str(chain_capsule["leaf"]),
+            ],
+        )
+        # Assert
         assert result.exit_code == 0, result.output
         payload = json.loads(result.output)
+        # Act
+        # Assert
         assert payload["status"] == "FAIL"
+
+
+    def test_dag_strict_json_emits_attribution_payload_failed_node_is_not_none_result_exit_code_equals_n_0(self, runner, chain_capsule):
+        # corrupt then call CLI
+        # Arrange
+        # Arrange
+        chain_capsule["raw"].write_bytes(
+            chain_capsule["raw"].read_bytes() + b"\nbreak\n"
+        )
+        # Act
+        result = runner.invoke(
+            main,
+            [
+                "dag",
+                "--strict",
+                "--json",
+                "--target",
+                str(chain_capsule["leaf"]),
+            ],
+        )
+        # Act
+        # Assert
+        # Assert
+        assert result.exit_code == 0, result.output
+
+    def test_dag_strict_json_emits_attribution_payload_failed_node_is_not_none_payload_failed_node_is_not_none(self, runner, chain_capsule):
+        # corrupt then call CLI
+        # Arrange
+        # Arrange
+        chain_capsule["raw"].write_bytes(
+            chain_capsule["raw"].read_bytes() + b"\nbreak\n"
+        )
+        # Act
+        result = runner.invoke(
+            main,
+            [
+                "dag",
+                "--strict",
+                "--json",
+                "--target",
+                str(chain_capsule["leaf"]),
+            ],
+        )
+        # Assert
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        # Act
+        # Assert
         assert payload["failed_node"] is not None
+
+
+    def test_dag_strict_json_emits_attribution_payload_root_cause_is_not_none_result_exit_code_equals_n_0(self, runner, chain_capsule):
+        # corrupt then call CLI
+        # Arrange
+        # Arrange
+        chain_capsule["raw"].write_bytes(
+            chain_capsule["raw"].read_bytes() + b"\nbreak\n"
+        )
+        # Act
+        result = runner.invoke(
+            main,
+            [
+                "dag",
+                "--strict",
+                "--json",
+                "--target",
+                str(chain_capsule["leaf"]),
+            ],
+        )
+        # Act
+        # Assert
+        # Assert
+        assert result.exit_code == 0, result.output
+
+    def test_dag_strict_json_emits_attribution_payload_root_cause_is_not_none_payload_root_cause_is_not_none(self, runner, chain_capsule):
+        # corrupt then call CLI
+        # Arrange
+        # Arrange
+        chain_capsule["raw"].write_bytes(
+            chain_capsule["raw"].read_bytes() + b"\nbreak\n"
+        )
+        # Act
+        result = runner.invoke(
+            main,
+            [
+                "dag",
+                "--strict",
+                "--json",
+                "--target",
+                str(chain_capsule["leaf"]),
+            ],
+        )
+        # Assert
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        # Act
+        # Assert
         assert payload["root_cause"] is not None
 
-    def test_dag_strict_ok_when_uncorrupted(self, runner, chain_capsule):
+
+
+    def test_dag_strict_ok_when_uncorrupted_result_exit_code_equals_n_0(self, runner, chain_capsule):
+        # Arrange
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = runner.invoke(
             main,
             [
@@ -273,9 +718,53 @@ class TestStrictDagViaCLI:
                 str(chain_capsule["leaf"]),
             ],
         )
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert result.exit_code == 0, result.output
+
+    def test_dag_strict_ok_when_uncorrupted_payload_status_ok_result_exit_code_equals_n_0(self, runner, chain_capsule):
+        # Arrange
+        # Arrange
+        # Act
+        result = runner.invoke(
+            main,
+            [
+                "dag",
+                "--strict",
+                "--json",
+                "--target",
+                str(chain_capsule["leaf"]),
+            ],
+        )
+        # Act
+        # Assert
+        # Assert
+        assert result.exit_code == 0, result.output
+
+    def test_dag_strict_ok_when_uncorrupted_payload_status_ok_payload_status_ok(self, runner, chain_capsule):
+        # Arrange
+        # Arrange
+        # Act
+        result = runner.invoke(
+            main,
+            [
+                "dag",
+                "--strict",
+                "--json",
+                "--target",
+                str(chain_capsule["leaf"]),
+            ],
+        )
+        # Assert
         assert result.exit_code == 0, result.output
         payload = json.loads(result.output)
+        # Act
+        # Assert
         assert payload["status"] == "OK"
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -284,36 +773,68 @@ class TestStrictDagViaCLI:
 
 
 class TestStrictDagViaMCP:
-    def test_mcp_clew_dag_strict_param(self, chain_capsule):
+    def test_mcp_clew_dag_strict_param_payload_status_fail(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
         pytest.importorskip("fastmcp")
         from fastmcp import FastMCP
-
         from scitex_clew._mcp.tools.verification import register_tools
-
         m = FastMCP(name="t-strict")
         register_tools(m)
-
         # corrupt mid-chain
         chain_capsule["raw"].write_bytes(
             chain_capsule["raw"].read_bytes() + b"\nbreak\n"
         )
-
         from scitex_clew._mcp import get_tools_sync
-
         tools = get_tools_sync(m)
         if isinstance(tools, dict):
             tdict = tools
         else:
             tdict = {t.name: t for t in tools}
-
         fn = tdict["clew_dag"].fn
-
         import asyncio
-
         out = asyncio.run(fn(target_files=str(chain_capsule["leaf"]), strict=True))
+        # Act
+        # Act
         payload = json.loads(out)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["status"] == "FAIL"
+
+    def test_mcp_clew_dag_strict_param_payload_root_cause_is_not_none(self, chain_capsule):
+        # Arrange
+        # Arrange
+        # Arrange
+        pytest.importorskip("fastmcp")
+        from fastmcp import FastMCP
+        from scitex_clew._mcp.tools.verification import register_tools
+        m = FastMCP(name="t-strict")
+        register_tools(m)
+        # corrupt mid-chain
+        chain_capsule["raw"].write_bytes(
+            chain_capsule["raw"].read_bytes() + b"\nbreak\n"
+        )
+        from scitex_clew._mcp import get_tools_sync
+        tools = get_tools_sync(m)
+        if isinstance(tools, dict):
+            tdict = tools
+        else:
+            tdict = {t.name: t for t in tools}
+        fn = tdict["clew_dag"].fn
+        import asyncio
+        out = asyncio.run(fn(target_files=str(chain_capsule["leaf"]), strict=True))
+        # Act
+        # Act
+        payload = json.loads(out)
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert payload["root_cause"] is not None
+
 
 
 # EOF

@@ -51,67 +51,294 @@ def skills_tmp(tmp_path: Path):
 # ----- clew_skills_list ---------------------------------------------------- #
 
 
-def test_skills_list_excludes_skill_md(skills_tmp, monkeypatch):
+def test_skills_list_excludes_skill_md_out_success_is_true(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
     mcp = FastMCP(name="clew-test")
     _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
     out = json.loads(_get_tool(mcp, "clew_skills_list")())
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert out["success"] is True
+
+
+def test_skills_list_excludes_skill_md_out_package_scitex_clew(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
+    mcp = FastMCP(name="clew-test")
+    _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
+    out = json.loads(_get_tool(mcp, "clew_skills_list")())
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert out["package"] == "scitex-clew"
+
+
+def test_skills_list_excludes_skill_md_skill_not_in_out_skills(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
+    mcp = FastMCP(name="clew-test")
+    _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
+    out = json.loads(_get_tool(mcp, "clew_skills_list")())
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert "SKILL" not in out["skills"]
+
+
+def test_skills_list_excludes_skill_md_set_out_skills_01_quick_start_02_grouping_10_advanced(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
+    mcp = FastMCP(name="clew-test")
+    _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
+    out = json.loads(_get_tool(mcp, "clew_skills_list")())
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert set(out["skills"]) == {"01_quick-start", "02_grouping", "10_advanced"}
 
 
+
+
 def test_skills_list_returns_sorted(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
     mcp = FastMCP(name="clew-test")
     _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
     out = json.loads(_get_tool(mcp, "clew_skills_list")())
+    # Assert
+    # Assert
     assert out["skills"] == sorted(out["skills"])
 
 
-def test_skills_list_empty_dir(tmp_path, monkeypatch):
+def test_skills_list_empty_dir_out_success_is_true(tmp_path, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
     mcp = FastMCP(name="clew-test")
     _register_against_dir(mcp, monkeypatch, tmp_path)
+    # Act
+    # Act
     out = json.loads(_get_tool(mcp, "clew_skills_list")())
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert out["success"] is True
+
+
+def test_skills_list_empty_dir_out_skills(tmp_path, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
+    mcp = FastMCP(name="clew-test")
+    _register_against_dir(mcp, monkeypatch, tmp_path)
+    # Act
+    # Act
+    out = json.loads(_get_tool(mcp, "clew_skills_list")())
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert out["skills"] == []
 
 
-def test_skills_list_handles_missing_dir(tmp_path, monkeypatch):
-    """Pointing at a non-existent dir → success with empty list (glob no-ops)."""
+
+
+def test_skills_list_handles_missing_dir_out_success_is_true(tmp_path, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
     mcp = FastMCP(name="clew-test")
     _register_against_dir(mcp, monkeypatch, tmp_path / "doesnotexist")
+    # Act
+    # Act
     out = json.loads(_get_tool(mcp, "clew_skills_list")())
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert out["success"] is True
+
+
+def test_skills_list_handles_missing_dir_out_skills(tmp_path, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
+    mcp = FastMCP(name="clew-test")
+    _register_against_dir(mcp, monkeypatch, tmp_path / "doesnotexist")
+    # Act
+    # Act
+    out = json.loads(_get_tool(mcp, "clew_skills_list")())
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert out["skills"] == []
+
+
 
 
 # ----- clew_skills_get ----------------------------------------------------- #
 
 
-def test_skills_get_returns_content(skills_tmp, monkeypatch):
+def test_skills_get_returns_content_out_success_is_true(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
     mcp = FastMCP(name="clew-test")
     _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
     out = json.loads(_get_tool(mcp, "clew_skills_get")(name="01_quick-start"))
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert out["success"] is True
+
+
+def test_skills_get_returns_content_out_package_scitex_clew(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
+    mcp = FastMCP(name="clew-test")
+    _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
+    out = json.loads(_get_tool(mcp, "clew_skills_get")(name="01_quick-start"))
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert out["package"] == "scitex-clew"
+
+
+def test_skills_get_returns_content_out_name_01_quick_start(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
+    mcp = FastMCP(name="clew-test")
+    _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
+    out = json.loads(_get_tool(mcp, "clew_skills_get")(name="01_quick-start"))
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert out["name"] == "01_quick-start"
+
+
+def test_skills_get_returns_content_quick_start_in_out_content(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
+    mcp = FastMCP(name="clew-test")
+    _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
+    out = json.loads(_get_tool(mcp, "clew_skills_get")(name="01_quick-start"))
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert "Quick Start" in out["content"]
+
+
+def test_skills_get_returns_content_body_1_in_out_content(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
+    mcp = FastMCP(name="clew-test")
+    _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
+    out = json.loads(_get_tool(mcp, "clew_skills_get")(name="01_quick-start"))
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert "body-1" in out["content"]
 
 
-def test_skills_get_unknown_name(skills_tmp, monkeypatch):
+
+
+def test_skills_get_unknown_name_out_success_is_false(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
     mcp = FastMCP(name="clew-test")
     _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
     out = json.loads(_get_tool(mcp, "clew_skills_get")(name="nonexistent"))
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert out["success"] is False
+
+
+def test_skills_get_unknown_name_unknown_skill_in_out_error(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
+    mcp = FastMCP(name="clew-test")
+    _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
+    out = json.loads(_get_tool(mcp, "clew_skills_get")(name="nonexistent"))
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert "unknown skill" in out["error"]
-    # Available list is mentioned in the error.
+
+
+def test_skills_get_unknown_name_n_01_quick_start_in_out_error(skills_tmp, monkeypatch):
+    # Arrange
+    # Arrange
+    # Arrange
+    mcp = FastMCP(name="clew-test")
+    _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
+    # Act
+    out = json.loads(_get_tool(mcp, "clew_skills_get")(name="nonexistent"))
+    # Act
+    # Assert
+    # Assert
+    # Assert
     assert "01_quick-start" in out["error"]
+
+
 
 
 def test_skills_get_payload_round_trip(skills_tmp, monkeypatch):
     """Returned content must equal the literal file contents byte-for-byte."""
+    # Arrange
     mcp = FastMCP(name="clew-test")
     _register_against_dir(mcp, monkeypatch, skills_tmp)
+    # Act
     out = json.loads(_get_tool(mcp, "clew_skills_get")(name="10_advanced"))
+    # Assert
     assert out["content"] == (skills_tmp / "10_advanced.md").read_text()

@@ -129,44 +129,101 @@ class TestRegisterTools:
         return m
 
     def test_clew_list_registered(self, mcp):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
+        # Assert
         assert "clew_list_runs" in tools
 
     def test_clew_run_registered(self, mcp):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
+        # Assert
         assert "clew_run" in tools
 
     def test_clew_chain_registered(self, mcp):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
+        # Assert
         assert "clew_chain" in tools
 
     def test_clew_status_registered(self, mcp):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
+        # Assert
         assert "clew_status" in tools
 
     def test_clew_stats_registered(self, mcp):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
+        # Assert
         assert "clew_stats" in tools
 
     def test_clew_mermaid_registered(self, mcp):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
+        # Assert
         assert "clew_mermaid" in tools
 
     def test_clew_dag_registered(self, mcp):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
+        # Assert
         assert "clew_dag" in tools
 
     def test_clew_rerun_dag_registered(self, mcp):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
+        # Assert
         assert "clew_rerun_dag" in tools
 
     def test_clew_rerun_claims_registered(self, mcp):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
+        # Assert
         assert "clew_rerun_claims" in tools
 
     def test_nine_tools_total(self, mcp):
         """Exactly 9 tools should be registered."""
+        # Arrange
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
         assert len(tools) == 9
 
 
@@ -174,12 +231,16 @@ class TestRegisterAllTools:
     """register_all_tools() delegates to verification.register_tools."""
 
     def test_register_all_tools_populates_same_tools(self):
+        # Arrange
+        # Arrange
         from fastmcp import FastMCP
         from scitex_clew._mcp.tools import register_all_tools
 
         m = FastMCP(name="test-all-tools")
         register_all_tools(m)
         tools = _get_tools_dict(m)
+        # Act
+        # Act
         expected = {
             "clew_list_runs",
             "clew_run",
@@ -203,12 +264,17 @@ class TestRegisterAllTools:
             "clew_list_stamps",
             "clew_check_stamp",
         }
+        # Assert
+        # Assert
         assert set(tools.keys()) == expected
 
     def test_register_all_tools_callable_import(self):
         """register_all_tools is importable from the tools package."""
+        # Arrange
+        # Act
         from scitex_clew._mcp.tools import register_all_tools
 
+        # Assert
         assert callable(register_all_tools)
 
 
@@ -221,37 +287,87 @@ class TestMCPServer:
     """The server module exposes a pre-configured FastMCP instance."""
 
     def test_mcp_object_exists(self):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         from scitex_clew._mcp.server import mcp
 
+        # Assert
+        # Assert
         assert mcp is not None
 
-    def test_mcp_name(self):
+    def test_mcp_name_mcp_name_equals_scitex_clew(self):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         from scitex_clew._mcp.server import mcp
 
+        # Assert
+        # Assert
         assert mcp.name == "scitex-clew"
 
     def test_mcp_has_tools(self):
+        # Arrange
+        # Arrange
         from scitex_clew._mcp.server import mcp
 
+        # Act
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
+        # Assert
         assert len(tools) > 0
 
     def test_mcp_has_clew_status(self):
+        # Arrange
+        # Arrange
         from scitex_clew._mcp.server import mcp
 
+        # Act
+        # Act
         tools = _get_tools_dict(mcp)
+        # Assert
+        # Assert
         assert "clew_status" in tools
 
-    def test_mcp_instructions_not_empty(self):
+    def test_mcp_instructions_not_empty_instructions_is_not_none(self):
+        # Arrange
+        # Arrange
+        # Arrange
         from scitex_clew._mcp.server import mcp
-
         # FastMCP stores instructions at mcp.instructions or similar
         # Presence of the attribute is sufficient
+        # Act
+        # Act
         instructions = getattr(mcp, "instructions", None) or getattr(
             mcp, "_instructions", None
         )
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert instructions is not None
+
+    def test_mcp_instructions_not_empty_len_instructions_0(self):
+        # Arrange
+        # Arrange
+        # Arrange
+        from scitex_clew._mcp.server import mcp
+        # FastMCP stores instructions at mcp.instructions or similar
+        # Presence of the attribute is sufficient
+        # Act
+        # Act
+        instructions = getattr(mcp, "instructions", None) or getattr(
+            mcp, "_instructions", None
+        )
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert len(instructions) > 0
+
 
 
 # ---------------------------------------------------------------------------
@@ -263,6 +379,8 @@ class TestJsonHelper:
     """_json() is an internal helper — verify it via the output of each tool."""
 
     def test_json_output_is_valid_json(self, populated_db):
+        # Arrange
+        # Arrange
         from fastmcp import FastMCP
         from scitex_clew._mcp.tools.verification import register_tools
 
@@ -271,18 +389,28 @@ class TestJsonHelper:
         fn = _get_tool_fn(mcp, "clew_stats")
         result = _run(fn())
         # Must be valid JSON
+        # Act
+        # Act
         parsed = json.loads(result)
+        # Assert
+        # Assert
         assert isinstance(parsed, dict)
 
     def test_json_output_is_indented(self, populated_db):
+        # Arrange
+        # Arrange
         from fastmcp import FastMCP
         from scitex_clew._mcp.tools.verification import register_tools
 
         mcp = FastMCP(name="t")
         register_tools(mcp)
         fn = _get_tool_fn(mcp, "clew_stats")
+        # Act
+        # Act
         result = _run(fn())
         # indent=2 means the output contains newlines and spaces
+        # Assert
+        # Assert
         assert "\n" in result
 
 
@@ -301,43 +429,150 @@ class TestClewStatusTool:
         register_tools(mcp)
         return _get_tool_fn(mcp, "clew_status")
 
-    def test_returns_string(self, tool_fn):
+    def test_returns_string_result_is_str(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _run(tool_fn())
+        # Assert
+        # Assert
         assert isinstance(result, str)
 
     def test_returns_valid_json(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert isinstance(result, dict)
 
     def test_has_verified_count(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert "verified_count" in result
 
     def test_has_mismatch_count(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert "mismatch_count" in result
 
     def test_has_missing_count(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert "missing_count" in result
 
-    def test_counts_are_integers(self, tool_fn):
+    def test_counts_are_integers_isinstance_result_verified_count_int(self, tool_fn):
+        # Arrange
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert isinstance(result["verified_count"], int)
+
+    def test_counts_are_integers_isinstance_result_mismatch_count_int(self, tool_fn):
+        # Arrange
+        # Arrange
+        # Act
+        # Arrange
+        # Act
+        result = _parse(_run(tool_fn()))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert isinstance(result["mismatch_count"], int)
+
+    def test_counts_are_integers_isinstance_result_missing_count_int(self, tool_fn):
+        # Arrange
+        # Arrange
+        # Act
+        # Arrange
+        # Act
+        result = _parse(_run(tool_fn()))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert isinstance(result["missing_count"], int)
 
-    def test_empty_db_all_zeros(self, isolated_db):
+
+    def test_empty_db_all_zeros_result_verified_count_0(self, isolated_db):
+        # Arrange
+        # Arrange
+        # Arrange
         from fastmcp import FastMCP
         from scitex_clew._mcp.tools.verification import register_tools
-
         mcp = FastMCP(name="t")
         register_tools(mcp)
         fn = _get_tool_fn(mcp, "clew_status")
+        # Act
+        # Act
         result = _parse(_run(fn()))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["verified_count"] == 0
+
+    def test_empty_db_all_zeros_result_mismatch_count_0(self, isolated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        from fastmcp import FastMCP
+        from scitex_clew._mcp.tools.verification import register_tools
+        mcp = FastMCP(name="t")
+        register_tools(mcp)
+        fn = _get_tool_fn(mcp, "clew_status")
+        # Act
+        # Act
+        result = _parse(_run(fn()))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["mismatch_count"] == 0
+
+    def test_empty_db_all_zeros_result_missing_count_0(self, isolated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        from fastmcp import FastMCP
+        from scitex_clew._mcp.tools.verification import register_tools
+        mcp = FastMCP(name="t")
+        register_tools(mcp)
+        fn = _get_tool_fn(mcp, "clew_status")
+        # Act
+        # Act
+        result = _parse(_run(fn()))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["missing_count"] == 0
+
 
 
 # ---------------------------------------------------------------------------
@@ -355,38 +590,80 @@ class TestClewStatsTool:
         register_tools(mcp)
         return _get_tool_fn(mcp, "clew_stats")
 
-    def test_returns_string(self, tool_fn):
+    def test_returns_string_result_is_str(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _run(tool_fn())
+        # Assert
+        # Assert
         assert isinstance(result, str)
 
     def test_returns_valid_json(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert isinstance(result, dict)
 
     def test_has_total_runs(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert "total_runs" in result
 
     def test_total_runs_is_one(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert result["total_runs"] == 1
 
     def test_has_success_runs(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert "success_runs" in result
 
     def test_has_db_path(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert "db_path" in result
 
     def test_empty_db_total_runs_zero(self, isolated_db):
+        # Arrange
+        # Arrange
         from fastmcp import FastMCP
         from scitex_clew._mcp.tools.verification import register_tools
 
         mcp = FastMCP(name="t")
         register_tools(mcp)
         fn = _get_tool_fn(mcp, "clew_stats")
+        # Act
+        # Act
         result = _parse(_run(fn()))
+        # Assert
+        # Assert
         assert result["total_runs"] == 0
 
 
@@ -405,58 +682,142 @@ class TestClewListTool:
         register_tools(mcp)
         return _get_tool_fn(mcp, "clew_list_runs")
 
-    def test_returns_string(self, tool_fn):
+    def test_returns_string_result_is_str(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _run(tool_fn())
+        # Assert
+        # Assert
         assert isinstance(result, str)
 
     def test_returns_valid_json(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert isinstance(result, dict)
 
     def test_has_count_key(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert "count" in result
 
     def test_has_runs_key(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert "runs" in result
 
     def test_runs_is_list(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert isinstance(result["runs"], list)
 
     def test_count_equals_one(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert result["count"] == 1
 
-    def test_run_has_session_id(self, tool_fn, populated_db):
+    def test_run_has_session_id_session_id_in_run(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Arrange
         result = _parse(_run(tool_fn()))
+        # Act
+        # Act
         run = result["runs"][0]
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "session_id" in run
+
+    def test_run_has_session_id_run_session_id_populated_db_session_id(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        result = _parse(_run(tool_fn()))
+        # Act
+        # Act
+        run = result["runs"][0]
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert run["session_id"] == populated_db["session_id"]
 
+
     def test_run_has_verification_status(self, tool_fn):
+        # Arrange
+        # Arrange
         result = _parse(_run(tool_fn()))
+        # Act
+        # Act
         run = result["runs"][0]
+        # Assert
+        # Assert
         assert "verification_status" in run
 
     def test_run_has_is_verified(self, tool_fn):
+        # Arrange
+        # Arrange
         result = _parse(_run(tool_fn()))
+        # Act
+        # Act
         run = result["runs"][0]
+        # Assert
+        # Assert
         assert "is_verified" in run
 
     def test_run_has_script_path(self, tool_fn):
+        # Arrange
+        # Arrange
         result = _parse(_run(tool_fn()))
+        # Act
+        # Act
         run = result["runs"][0]
+        # Assert
+        # Assert
         assert "script_path" in run
 
     def test_run_has_db_status(self, tool_fn):
+        # Arrange
+        # Arrange
         result = _parse(_run(tool_fn()))
+        # Act
+        # Act
         run = result["runs"][0]
+        # Assert
+        # Assert
         assert "db_status" in run
 
-    def test_limit_parameter(self, isolated_db):
+    def test_limit_parameter_result_count_2(self, isolated_db):
         """limit parameter restricts number of returned runs."""
+        # Arrange
         db = isolated_db
         for i in range(5):
             db.add_run(f"sess_{i:03d}", f"/script_{i}.py")
@@ -468,37 +829,94 @@ class TestClewListTool:
         mcp = FastMCP(name="t")
         register_tools(mcp)
         fn = _get_tool_fn(mcp, "clew_list_runs")
+        # Act
         result = _parse(_run(fn(limit=2)))
+        # Assert
         assert result["count"] == 2
 
-    def test_status_filter_success(self, isolated_db):
-        """status_filter='success' returns only successful runs."""
+    def test_status_filter_success_result_count_1(self, isolated_db):
+        # Arrange
+        # Arrange
+        # Arrange
         db = isolated_db
         db.add_run("sess_ok", "/script.py")
         db.finish_run("sess_ok", status="success")
         db.add_run("sess_fail", "/script.py")
         db.finish_run("sess_fail", status="failed")
-
         from fastmcp import FastMCP
         from scitex_clew._mcp.tools.verification import register_tools
-
         mcp = FastMCP(name="t")
         register_tools(mcp)
         fn = _get_tool_fn(mcp, "clew_list_runs")
+        # Act
+        # Act
         result = _parse(_run(fn(status_filter="success")))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["count"] == 1
+
+    def test_status_filter_success_result_runs_0_db_status_success(self, isolated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        db = isolated_db
+        db.add_run("sess_ok", "/script.py")
+        db.finish_run("sess_ok", status="success")
+        db.add_run("sess_fail", "/script.py")
+        db.finish_run("sess_fail", status="failed")
+        from fastmcp import FastMCP
+        from scitex_clew._mcp.tools.verification import register_tools
+        mcp = FastMCP(name="t")
+        register_tools(mcp)
+        fn = _get_tool_fn(mcp, "clew_list_runs")
+        # Act
+        # Act
+        result = _parse(_run(fn(status_filter="success")))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["runs"][0]["db_status"] == "success"
 
-    def test_empty_db_count_zero(self, isolated_db):
+
+    def test_empty_db_count_zero_result_count_0(self, isolated_db):
+        # Arrange
+        # Arrange
+        # Arrange
         from fastmcp import FastMCP
         from scitex_clew._mcp.tools.verification import register_tools
-
         mcp = FastMCP(name="t")
         register_tools(mcp)
         fn = _get_tool_fn(mcp, "clew_list_runs")
+        # Act
+        # Act
         result = _parse(_run(fn()))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["count"] == 0
+
+    def test_empty_db_count_zero_result_runs(self, isolated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        from fastmcp import FastMCP
+        from scitex_clew._mcp.tools.verification import register_tools
+        mcp = FastMCP(name="t")
+        register_tools(mcp)
+        fn = _get_tool_fn(mcp, "clew_list_runs")
+        # Act
+        # Act
+        result = _parse(_run(fn()))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["runs"] == []
+
 
 
 # ---------------------------------------------------------------------------
@@ -516,94 +934,229 @@ class TestClewRunTool:
         register_tools(mcp)
         return _get_tool_fn(mcp, "clew_run")
 
-    def test_returns_string(self, tool_fn, populated_db):
+    def test_returns_string_result_is_str(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _run(tool_fn(session_or_path=populated_db["session_id"]))
+        # Assert
+        # Assert
         assert isinstance(result, str)
 
     def test_returns_valid_json(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert isinstance(result, dict)
 
     def test_has_session_id(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert result["session_id"] == populated_db["session_id"]
 
-    def test_has_status(self, tool_fn, populated_db):
+    def test_has_status_status_in_result(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert "status" in result
 
     def test_has_is_verified(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert "is_verified" in result
 
     def test_has_files_key(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert "files" in result
 
     def test_files_is_list(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert isinstance(result["files"], list)
 
     def test_file_entry_has_path(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
-        for f in result["files"]:
-            assert "path" in f
+        # Assert
+        # Assert
+        assert all('path' in f for f in result['files'])
 
     def test_file_entry_has_role(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
-        for f in result["files"]:
-            assert "role" in f
+        # Assert
+        # Assert
+        assert all('role' in f for f in result['files'])
 
     def test_file_entry_has_status(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
-        for f in result["files"]:
-            assert "status" in f
+        # Assert
+        # Assert
+        assert all('status' in f for f in result['files'])
 
     def test_file_entry_has_is_verified(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
-        for f in result["files"]:
-            assert "is_verified" in f
+        # Assert
+        # Assert
+        assert all('is_verified' in f for f in result['files'])
 
     def test_has_mismatched_count(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert "mismatched_count" in result
 
     def test_has_missing_count(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert "missing_count" in result
 
-    def test_verified_run_has_no_mismatches(self, tool_fn, populated_db):
+    def test_verified_run_has_no_mismatches_result_mismatched_count_0(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["mismatched_count"] == 0
+
+    def test_verified_run_has_no_mismatches_result_missing_count_0(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Act
+        # Arrange
+        # Act
+        result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["missing_count"] == 0
 
+
     def test_nonexistent_session_returns_unknown_status(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path="no_such_session_xyz")))
+        # Assert
+        # Assert
         assert result["status"] == "unknown"
 
-    def test_nonexistent_file_path_returns_error(self, tool_fn, tmp_path):
+    def test_nonexistent_file_path_returns_error_status_in_result(self, tool_fn, tmp_path):
+        # Arrange
+        # Arrange
+        # Arrange
         nonexistent = str(tmp_path / "does_not_exist.csv")
+        # Act
+        # Act
         result = _parse(_run(tool_fn(session_or_path=nonexistent)))
-        # The path does not exist on disk, so the tool treats it as a session id
-        # which also doesn't exist → status "unknown"
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "status" in result
+
+    def test_nonexistent_file_path_returns_error_result_status_unknown(self, tool_fn, tmp_path):
+        # Arrange
+        # Arrange
+        # Arrange
+        nonexistent = str(tmp_path / "does_not_exist.csv")
+        # Act
+        # Act
+        result = _parse(_run(tool_fn(session_or_path=nonexistent)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["status"] == "unknown"
+
 
     def test_file_path_resolves_to_session(self, tool_fn, populated_db):
         """Passing a real file path that is an output finds the session."""
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
         result = _parse(_run(tool_fn(session_or_path=output_path)))
+        # Assert
         assert result["session_id"] == populated_db["session_id"]
 
     def test_file_path_not_in_db_returns_error(self, tool_fn, tmp_path):
         """An existing file not tracked by any session returns an error dict."""
+        # Arrange
         unknown_file = tmp_path / "unknown.txt"
         unknown_file.write_text("not tracked")
+        # Act
         result = _parse(_run(tool_fn(session_or_path=str(unknown_file))))
+        # Assert
         assert "error" in result
 
     def test_has_script_path(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_or_path=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert "script_path" in result
 
 
@@ -623,54 +1176,190 @@ class TestClewChainTool:
         return _get_tool_fn(mcp, "clew_chain")
 
     def test_nonexistent_file_returns_error(self, tool_fn, tmp_path):
+        # Arrange
+        # Arrange
         nonexistent = str(tmp_path / "does_not_exist.csv")
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_file=nonexistent)))
+        # Assert
+        # Assert
         assert "error" in result
 
-    def test_nonexistent_file_error_has_target_file(self, tool_fn, tmp_path):
+    def test_nonexistent_file_error_has_target_file_target_file_in_result(self, tool_fn, tmp_path):
+        # Arrange
+        # Arrange
+        # Arrange
         target = str(tmp_path / "missing.csv")
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_file=target)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "target_file" in result
+
+    def test_nonexistent_file_error_has_target_file_result_target_file_target(self, tool_fn, tmp_path):
+        # Arrange
+        # Arrange
+        # Arrange
+        target = str(tmp_path / "missing.csv")
+        # Act
+        # Act
+        result = _parse(_run(tool_fn(target_file=target)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["target_file"] == target
 
-    def test_existing_untracked_file_returns_unknown_status(self, tool_fn, tmp_path):
-        """A file that exists but has no associated session gives unknown status."""
+
+    def test_existing_untracked_file_returns_unknown_status_status_in_result(self, tool_fn, tmp_path):
+        # Arrange
+        # Arrange
+        # Arrange
         untracked = tmp_path / "untracked.txt"
         untracked.write_text("data")
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_file=str(untracked))))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "status" in result
+
+    def test_existing_untracked_file_returns_unknown_status_result_status_unknown(self, tool_fn, tmp_path):
+        # Arrange
+        # Arrange
+        # Arrange
+        untracked = tmp_path / "untracked.txt"
+        untracked.write_text("data")
+        # Act
+        # Act
+        result = _parse(_run(tool_fn(target_file=str(untracked))))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert result["status"] == "unknown"
 
-    def test_tracked_output_returns_chain(self, tool_fn, populated_db):
+
+    def test_tracked_output_returns_chain_target_file_in_result(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_file=output_path)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "target_file" in result
+
+    def test_tracked_output_returns_chain_status_in_result(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
+        result = _parse(_run(tool_fn(target_file=output_path)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "status" in result
+
+    def test_tracked_output_returns_chain_is_verified_in_result(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
+        result = _parse(_run(tool_fn(target_file=output_path)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "is_verified" in result
+
+    def test_tracked_output_returns_chain_runs_in_result(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
+        result = _parse(_run(tool_fn(target_file=output_path)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "runs" in result
+
+    def test_tracked_output_returns_chain_chain_length_in_result(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
+        result = _parse(_run(tool_fn(target_file=output_path)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "chain_length" in result
 
+
     def test_tracked_output_chain_length_gte_one(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_file=output_path)))
+        # Assert
+        # Assert
         assert result["chain_length"] >= 1
 
     def test_tracked_output_has_failed_runs_count(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_file=output_path)))
+        # Assert
+        # Assert
         assert "failed_runs_count" in result
 
     def test_run_entries_have_session_id(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_file=output_path)))
-        for r in result["runs"]:
-            assert "session_id" in r
+        # Assert
+        # Assert
+        assert all('session_id' in r for r in result['runs'])
 
     def test_run_entries_have_is_verified(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_file=output_path)))
-        for r in result["runs"]:
-            assert "is_verified" in r
+        # Assert
+        # Assert
+        assert all('is_verified' in r for r in result['runs'])
 
 
 # ---------------------------------------------------------------------------
@@ -688,44 +1377,115 @@ class TestClewMermaidTool:
         register_tools(mcp)
         return _get_tool_fn(mcp, "clew_mermaid")
 
-    def test_returns_string(self, tool_fn, populated_db):
+    def test_returns_string_result_is_str(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _run(tool_fn(session_id=populated_db["session_id"]))
+        # Assert
+        # Assert
         assert isinstance(result, str)
 
     def test_returns_valid_json(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_id=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert isinstance(result, dict)
 
     def test_has_mermaid_key(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_id=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert "mermaid" in result
 
     def test_has_session_id_key(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(session_id=populated_db["session_id"])))
+        # Assert
+        # Assert
         assert "session_id" in result
 
     def test_session_id_reflected(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         sid = populated_db["session_id"]
+        # Act
+        # Act
         result = _parse(_run(tool_fn(session_id=sid)))
+        # Assert
+        # Assert
         assert result["session_id"] == sid
 
-    def test_target_file_param_resolves(self, tool_fn, populated_db):
+    def test_target_file_param_resolves_mermaid_in_result(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"])
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_file=output_path)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "mermaid" in result
+
+    def test_target_file_param_resolves_target_file_in_result(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        output_path = str(populated_db["output_file"])
+        # Act
+        # Act
+        result = _parse(_run(tool_fn(target_file=output_path)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "target_file" in result
 
+
     def test_multiple_target_files_param(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"])
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_files=output_path)))
+        # Assert
+        # Assert
         assert "target_files" in result
 
     def test_claims_flag_included_in_response(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(claims=False)))
+        # Assert
+        # Assert
         assert "claims" in result
 
     def test_claims_false_reflected(self, tool_fn, populated_db):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn(claims=False)))
+        # Assert
+        # Assert
         assert result["claims"] is False
 
 
@@ -746,53 +1506,127 @@ class TestClewDagTool:
 
     def test_no_args_returns_error(self, tool_fn):
         """Calling clew_dag with no arguments returns an error dict."""
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
         assert "error" in result
 
     def test_error_message_mentions_specify(self, tool_fn):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         result = _parse(_run(tool_fn()))
+        # Assert
+        # Assert
         assert "Specify" in result["error"] or "specify" in result["error"]
 
-    def test_target_files_returns_dag_result(self, tool_fn, populated_db):
+    def test_target_files_returns_dag_result_status_in_result(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_files=output_path)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "status" in result
+
+    def test_target_files_returns_dag_result_is_verified_in_result(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
+        # Arrange
+        output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
+        result = _parse(_run(tool_fn(target_files=output_path)))
+        # Act
+        # Assert
+        # Assert
+        # Assert
         assert "is_verified" in result
 
+
     def test_dag_result_has_target_files(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_files=output_path)))
+        # Assert
+        # Assert
         assert "target_files" in result
 
     def test_dag_result_has_runs(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_files=output_path)))
+        # Assert
+        # Assert
         assert "runs" in result
 
     def test_dag_result_has_edges(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_files=output_path)))
+        # Assert
+        # Assert
         assert "edges" in result
 
     def test_dag_result_has_topological_order(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_files=output_path)))
+        # Assert
+        # Assert
         assert "topological_order" in result
 
     def test_dag_result_has_num_runs(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_files=output_path)))
+        # Assert
+        # Assert
         assert "num_runs" in result
 
     def test_dag_result_has_num_edges(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_files=output_path)))
+        # Assert
+        # Assert
         assert "num_edges" in result
 
     def test_multiple_target_files_comma_separated(self, tool_fn, populated_db):
+        # Arrange
+        # Arrange
         output_path = str(populated_db["output_file"].resolve())
         # Pass the same file twice — still valid
+        # Act
+        # Act
         result = _parse(_run(tool_fn(target_files=f"{output_path},{output_path}")))
+        # Assert
+        # Assert
         assert "target_files" in result
 
 
@@ -805,6 +1639,8 @@ class TestFormatDagResult:
     """_format_dag_result is internal but exercised through clew_dag and clew_rerun_dag."""
 
     def test_runs_list_contains_session_id(self, populated_db):
+        # Arrange
+        # Arrange
         from fastmcp import FastMCP
         from scitex_clew._mcp.tools.verification import register_tools
 
@@ -812,11 +1648,16 @@ class TestFormatDagResult:
         register_tools(mcp)
         fn = _get_tool_fn(mcp, "clew_dag")
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(fn(target_files=output_path)))
-        for r in result.get("runs", []):
-            assert "session_id" in r
+        # Assert
+        # Assert
+        assert all('session_id' in r for r in result.get('runs', []))
 
     def test_runs_list_contains_is_verified(self, populated_db):
+        # Arrange
+        # Arrange
         from fastmcp import FastMCP
         from scitex_clew._mcp.tools.verification import register_tools
 
@@ -824,11 +1665,16 @@ class TestFormatDagResult:
         register_tools(mcp)
         fn = _get_tool_fn(mcp, "clew_dag")
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(fn(target_files=output_path)))
-        for r in result.get("runs", []):
-            assert "is_verified" in r
+        # Assert
+        # Assert
+        assert all('is_verified' in r for r in result.get('runs', []))
 
     def test_runs_list_contains_script_path(self, populated_db):
+        # Arrange
+        # Arrange
         from fastmcp import FastMCP
         from scitex_clew._mcp.tools.verification import register_tools
 
@@ -836,9 +1682,12 @@ class TestFormatDagResult:
         register_tools(mcp)
         fn = _get_tool_fn(mcp, "clew_dag")
         output_path = str(populated_db["output_file"].resolve())
+        # Act
+        # Act
         result = _parse(_run(fn(target_files=output_path)))
-        for r in result.get("runs", []):
-            assert "script_path" in r
+        # Assert
+        # Assert
+        assert all('script_path' in r for r in result.get('runs', []))
 
 
 # ---------------------------------------------------------------------------
@@ -848,13 +1697,25 @@ class TestFormatDagResult:
 
 class TestMCPToolsInit:
     def test_all_exports_register_all_tools(self):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         from scitex_clew._mcp.tools import __all__
 
+        # Assert
+        # Assert
         assert "register_all_tools" in __all__
 
     def test_all_has_one_export(self):
+        # Arrange
+        # Act
+        # Arrange
+        # Act
         from scitex_clew._mcp.tools import __all__
 
+        # Assert
+        # Assert
         assert len(__all__) == 1
 
 
