@@ -21,8 +21,8 @@ Covers:
 
 from __future__ import annotations
 
+import contextlib
 import json
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -33,6 +33,43 @@ from scitex_clew import (
     VerificationLevel,
     VerificationStatus,
 )
+from scitex_clew import _db as _db_mod
+from scitex_clew._viz import _mermaid as _mermaid_mod
+from scitex_clew._viz import _utils as _utils_mod
+
+# ---------------------------------------------------------------------------
+# PA-306-compliant stubs (mock-free monkey-patching helpers)
+# ---------------------------------------------------------------------------
+
+
+@contextlib.contextmanager
+def _swap_attr(obj, name, value):
+    """Temporarily swap ``obj.name`` with ``value`` (mock-free patch)."""
+    saved = getattr(obj, name)
+    setattr(obj, name, value)
+    try:
+        yield
+    finally:
+        setattr(obj, name, saved)
+
+
+class _FakeDB:
+    """Minimal stand-in for ``VerificationDB`` used by tests in this module.
+
+    Only the methods the tests actually invoke are implemented; canned
+    return values are supplied via ``__init__`` kwargs.
+    """
+
+    def __init__(self, *, list_runs=None, get_chain=None):
+        self._list_runs = list_runs if list_runs is not None else []
+        self._get_chain = get_chain if get_chain is not None else []
+
+    def list_runs(self, *args, **kwargs):
+        return list(self._list_runs)
+
+    def get_chain(self, *args, **kwargs):
+        return list(self._get_chain)
+
 
 # ---------------------------------------------------------------------------
 # Helper factories
@@ -723,11 +760,9 @@ class TestGenerateDagJsonEmptyChain:
         from scitex_clew._viz._json import generate_dag_json
         # Act
         # Act
-        with patch("scitex_clew._db.get_db") as mock_get_db:
-            mock_db = MagicMock()
-            mock_db.list_runs.return_value = []
-            mock_db.get_chain.return_value = []
-            mock_get_db.return_value = mock_db
+        from scitex_clew import _db as _db_mod
+        fake_db = _FakeDB()
+        with _swap_attr(_db_mod, "get_db", lambda: fake_db):
             result = generate_dag_json()
         # Act
         # Assert
@@ -742,11 +777,9 @@ class TestGenerateDagJsonEmptyChain:
         from scitex_clew._viz._json import generate_dag_json
         # Act
         # Act
-        with patch("scitex_clew._db.get_db") as mock_get_db:
-            mock_db = MagicMock()
-            mock_db.list_runs.return_value = []
-            mock_db.get_chain.return_value = []
-            mock_get_db.return_value = mock_db
+        from scitex_clew import _db as _db_mod
+        fake_db = _FakeDB()
+        with _swap_attr(_db_mod, "get_db", lambda: fake_db):
             result = generate_dag_json()
         # Act
         # Assert
@@ -761,11 +794,9 @@ class TestGenerateDagJsonEmptyChain:
         from scitex_clew._viz._json import generate_dag_json
         # Act
         # Act
-        with patch("scitex_clew._db.get_db") as mock_get_db:
-            mock_db = MagicMock()
-            mock_db.list_runs.return_value = []
-            mock_db.get_chain.return_value = []
-            mock_get_db.return_value = mock_db
+        from scitex_clew import _db as _db_mod
+        fake_db = _FakeDB()
+        with _swap_attr(_db_mod, "get_db", lambda: fake_db):
             result = generate_dag_json()
         # Act
         # Assert
@@ -781,10 +812,9 @@ class TestGenerateDagJsonEmptyChain:
         from scitex_clew._viz._json import generate_dag_json
         # Act
         # Act
-        with patch("scitex_clew._db.get_db") as mock_get_db:
-            mock_db = MagicMock()
-            mock_db.get_chain.return_value = []
-            mock_get_db.return_value = mock_db
+        from scitex_clew import _db as _db_mod
+        fake_db = _FakeDB()
+        with _swap_attr(_db_mod, "get_db", lambda: fake_db):
             result = generate_dag_json(session_id="nonexistent_sess")
         # Act
         # Assert
@@ -799,10 +829,9 @@ class TestGenerateDagJsonEmptyChain:
         from scitex_clew._viz._json import generate_dag_json
         # Act
         # Act
-        with patch("scitex_clew._db.get_db") as mock_get_db:
-            mock_db = MagicMock()
-            mock_db.get_chain.return_value = []
-            mock_get_db.return_value = mock_db
+        from scitex_clew import _db as _db_mod
+        fake_db = _FakeDB()
+        with _swap_attr(_db_mod, "get_db", lambda: fake_db):
             result = generate_dag_json(session_id="nonexistent_sess")
         # Act
         # Assert
@@ -818,10 +847,9 @@ class TestGenerateDagJsonEmptyChain:
 
         # Act
         # Act
-        with patch("scitex_clew._db.get_db") as mock_get_db:
-            mock_db = MagicMock()
-            mock_db.get_chain.return_value = []
-            mock_get_db.return_value = mock_db
+        from scitex_clew import _db as _db_mod
+        fake_db = _FakeDB()
+        with _swap_attr(_db_mod, "get_db", lambda: fake_db):
 
             result = generate_dag_json(session_id="nonexistent_sess")
 
@@ -836,10 +864,9 @@ class TestGenerateDagJsonEmptyChain:
 
         # Act
         # Act
-        with patch("scitex_clew._db.get_db") as mock_get_db:
-            mock_db = MagicMock()
-            mock_db.get_chain.return_value = []
-            mock_get_db.return_value = mock_db
+        from scitex_clew import _db as _db_mod
+        fake_db = _FakeDB()
+        with _swap_attr(_db_mod, "get_db", lambda: fake_db):
 
             result = generate_dag_json(session_id="nonexistent_sess")
 
@@ -1702,11 +1729,8 @@ class TestGenerateMermaidDagEmpty:
     """generate_mermaid_dag with an empty database returns valid Mermaid."""
 
     def _patched_empty_db(self):
-        """Return a mock DB that holds no runs."""
-        mock_db = MagicMock()
-        mock_db.list_runs.return_value = []
-        mock_db.get_chain.return_value = []
-        return mock_db
+        """Return a fake DB that holds no runs."""
+        return _FakeDB(list_runs=[], get_chain=[])
 
     def test_returns_string_result_is_str_2(self):
         # Arrange
@@ -1715,8 +1739,9 @@ class TestGenerateMermaidDagEmpty:
 
         # Act
         # Act
-        with patch("scitex_clew._viz._mermaid.get_db") as mock_get_db:
-            mock_get_db.return_value = self._patched_empty_db()
+        from scitex_clew._viz import _mermaid as _mermaid_mod
+        _fake_db_val = self._patched_empty_db()
+        with _swap_attr(_mermaid_mod, "get_db", lambda: _fake_db_val):
             result = generate_mermaid_dag()
         # Assert
         # Assert
@@ -1729,8 +1754,9 @@ class TestGenerateMermaidDagEmpty:
 
         # Act
         # Act
-        with patch("scitex_clew._viz._mermaid.get_db") as mock_get_db:
-            mock_get_db.return_value = self._patched_empty_db()
+        from scitex_clew._viz import _mermaid as _mermaid_mod
+        _fake_db_val = self._patched_empty_db()
+        with _swap_attr(_mermaid_mod, "get_db", lambda: _fake_db_val):
             result = generate_mermaid_dag()
         # Assert
         # Assert
@@ -1743,8 +1769,9 @@ class TestGenerateMermaidDagEmpty:
 
         # Act
         # Act
-        with patch("scitex_clew._viz._mermaid.get_db") as mock_get_db:
-            mock_get_db.return_value = self._patched_empty_db()
+        from scitex_clew._viz import _mermaid as _mermaid_mod
+        _fake_db_val = self._patched_empty_db()
+        with _swap_attr(_mermaid_mod, "get_db", lambda: _fake_db_val):
             result = generate_mermaid_dag()
         # Assert
         # Assert
@@ -1755,11 +1782,15 @@ class TestGenerateMermaidDagEmpty:
         # Arrange
         from scitex_clew._viz._mermaid import generate_mermaid_dag
 
-        with patch("scitex_clew._viz._mermaid.generate_multi_target_dag") as mock_multi:
-            mock_multi.return_value = 'graph TD\n    empty["No runs found"]'
+        from scitex_clew._viz import _mermaid as _mermaid_mod
+        _multi_calls = []
+        def _fake_multi(*a, **kw):
+            _multi_calls.append((a, kw))
+            return 'graph TD\n    empty["No runs found"]'
+        with _swap_attr(_mermaid_mod, "generate_multi_target_dag", _fake_multi):
             result = generate_mermaid_dag(claims=True)
         # Act
-        mock_multi.assert_called_once()
+        assert len(_multi_calls) == 1
         # Assert
         assert isinstance(result, str)
 
@@ -1772,10 +1803,14 @@ class TestGenerateMermaidDagEmpty:
         # Assert
         from scitex_clew._viz._mermaid import generate_mermaid_dag
 
-        with patch("scitex_clew._viz._mermaid.generate_multi_target_dag") as mock_multi:
-            mock_multi.return_value = 'graph TD\n    empty["No runs found"]'
+        from scitex_clew._viz import _mermaid as _mermaid_mod
+        _multi_calls = []
+        def _fake_multi(*a, **kw):
+            _multi_calls.append((a, kw))
+            return 'graph TD\n    empty["No runs found"]'
+        with _swap_attr(_mermaid_mod, "generate_multi_target_dag", _fake_multi):
             result = generate_mermaid_dag(target_files=["/some/file.csv"])
-        mock_multi.assert_called_once()
+        assert len(_multi_calls) == 1
 
 
 class TestGenerateHtmlDag:
@@ -1791,10 +1826,7 @@ class TestGenerateHtmlDag:
 
         # Act
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_mermaid_dag",
-            return_value=self._mock_mermaid_output(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid_output()):
             result = generate_html_dag()
         # Assert
         # Assert
@@ -1807,10 +1839,7 @@ class TestGenerateHtmlDag:
 
         # Act
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_mermaid_dag",
-            return_value=self._mock_mermaid_output(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid_output()):
             result = generate_html_dag()
         # Assert
         # Assert
@@ -1823,10 +1852,7 @@ class TestGenerateHtmlDag:
 
         # Act
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_mermaid_dag",
-            return_value=self._mock_mermaid_output(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid_output()):
             result = generate_html_dag(title="Custom Title")
         # Assert
         # Assert
@@ -1840,10 +1866,7 @@ class TestGenerateHtmlDag:
         mermaid_code = "graph TD\n    A --> B"
         # Act
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_mermaid_dag",
-            return_value=mermaid_code,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: mermaid_code):
             result = generate_html_dag()
         # Assert
         # Assert
@@ -1867,10 +1890,7 @@ class TestRenderDag:
         out = tmp_path / "diagram.mmd"
         # Act
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_mermaid_dag",
-            return_value=self._mock_mermaid(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid()):
             result = render_dag(out)
         # Act
         # Assert
@@ -1886,10 +1906,7 @@ class TestRenderDag:
         out = tmp_path / "diagram.mmd"
         # Act
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_mermaid_dag",
-            return_value=self._mock_mermaid(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid()):
             result = render_dag(out)
         # Act
         # Assert
@@ -1903,10 +1920,7 @@ class TestRenderDag:
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "diagram.mmd"
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_mermaid_dag",
-            return_value=self._mock_mermaid(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid()):
             result = render_dag(out)
         # Act
         # Assert
@@ -1919,10 +1933,7 @@ class TestRenderDag:
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "diagram.mmd"
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_mermaid_dag",
-            return_value=self._mock_mermaid(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid()):
             result = render_dag(out)
         # Act
         # Assert
@@ -1935,10 +1946,7 @@ class TestRenderDag:
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "diagram.mmd"
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_mermaid_dag",
-            return_value=self._mock_mermaid(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid()):
             result = render_dag(out)
         # Assert
         assert result == out
@@ -1958,10 +1966,7 @@ class TestRenderDag:
         out = tmp_path / "diagram.html"
         # Act
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_html_dag",
-            return_value=self._mock_html(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_html_dag", lambda *a, **kw: self._mock_html()):
             result = render_dag(out)
         # Act
         # Assert
@@ -1977,10 +1982,7 @@ class TestRenderDag:
         out = tmp_path / "diagram.html"
         # Act
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_html_dag",
-            return_value=self._mock_html(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_html_dag", lambda *a, **kw: self._mock_html()):
             result = render_dag(out)
         # Act
         # Assert
@@ -1994,10 +1996,7 @@ class TestRenderDag:
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "diagram.html"
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_html_dag",
-            return_value=self._mock_html(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_html_dag", lambda *a, **kw: self._mock_html()):
             result = render_dag(out)
         # Act
         # Assert
@@ -2010,10 +2009,7 @@ class TestRenderDag:
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "diagram.html"
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_html_dag",
-            return_value=self._mock_html(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_html_dag", lambda *a, **kw: self._mock_html()):
             result = render_dag(out)
         # Act
         # Assert
@@ -2026,10 +2022,7 @@ class TestRenderDag:
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "diagram.html"
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_html_dag",
-            return_value=self._mock_html(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_html_dag", lambda *a, **kw: self._mock_html()):
             result = render_dag(out)
         # Assert
         assert result == out
@@ -2054,10 +2047,7 @@ class TestRenderDag:
         }
         # Act
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_dag_json",
-            return_value=fake_graph,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
             result = render_dag(out)
         # Act
         # Assert
@@ -2078,10 +2068,7 @@ class TestRenderDag:
         }
         # Act
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_dag_json",
-            return_value=fake_graph,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
             result = render_dag(out)
         # Act
         # Assert
@@ -2100,10 +2087,7 @@ class TestRenderDag:
             "metadata": {"generated_at": "2026-03-14", "empty": True},
         }
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_dag_json",
-            return_value=fake_graph,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
             result = render_dag(out)
         # Act
         # Assert
@@ -2121,10 +2105,7 @@ class TestRenderDag:
             "metadata": {"generated_at": "2026-03-14", "empty": True},
         }
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_dag_json",
-            return_value=fake_graph,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
             result = render_dag(out)
         # Act
         # Assert
@@ -2142,10 +2123,7 @@ class TestRenderDag:
             "metadata": {"generated_at": "2026-03-14", "empty": True},
         }
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_dag_json",
-            return_value=fake_graph,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
             result = render_dag(out)
         # Assert
         assert result == out
@@ -2167,10 +2145,7 @@ class TestRenderDag:
             "metadata": {"generated_at": "2026-03-14", "empty": True},
         }
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_dag_json",
-            return_value=fake_graph,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
             result = render_dag(out)
         # Act
         # Assert
@@ -2188,10 +2163,7 @@ class TestRenderDag:
             "metadata": {"generated_at": "2026-03-14", "empty": True},
         }
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_dag_json",
-            return_value=fake_graph,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
             result = render_dag(out)
         # Act
         # Assert
@@ -2209,10 +2181,7 @@ class TestRenderDag:
             "metadata": {"generated_at": "2026-03-14", "empty": True},
         }
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_dag_json",
-            return_value=fake_graph,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
             result = render_dag(out)
         # Assert
         assert result == out
@@ -2234,10 +2203,7 @@ class TestRenderDag:
             "metadata": {"generated_at": "2026-03-14", "empty": True},
         }
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_dag_json",
-            return_value=fake_graph,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
             result = render_dag(out)
         # Act
         # Assert
@@ -2255,10 +2221,7 @@ class TestRenderDag:
             "metadata": {"generated_at": "2026-03-14", "empty": True},
         }
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_dag_json",
-            return_value=fake_graph,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
             result = render_dag(out)
         # Act
         # Assert
@@ -2276,10 +2239,7 @@ class TestRenderDag:
             "metadata": {"generated_at": "2026-03-14", "empty": True},
         }
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_dag_json",
-            return_value=fake_graph,
-        ):
+        with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
             result = render_dag(out)
         # Assert
         assert result == out
@@ -2299,10 +2259,7 @@ class TestRenderDag:
         out = tmp_path / "nested" / "deep" / "diagram.mmd"
         # Act
         # Act
-        with patch(
-            "scitex_clew._viz._mermaid.generate_mermaid_dag",
-            return_value=self._mock_mermaid(),
-        ):
+        with _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid()):
             render_dag(out)
         # Assert
         # Assert
@@ -2325,19 +2282,20 @@ class TestRenderDag:
         # Arrange
         # Arrange
         # Arrange
+        import subprocess
+
+        from scitex_clew._viz import _mermaid as _mermaid_mod
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "diagram.png"
+
+        def _raise_not_found(*args, **kwargs):
+            raise FileNotFoundError("mmdc not found")
+
         # Act
         # Act
         with (
-            patch(
-                "scitex_clew._viz._mermaid.generate_mermaid_dag",
-                return_value=self._mock_mermaid(),
-            ),
-            patch(
-                "subprocess.run",
-                side_effect=FileNotFoundError("mmdc not found"),
-            ),
+            _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid()),
+            _swap_attr(subprocess, "run", _raise_not_found),
         ):
             result = render_dag(out)
         # Act
@@ -2350,19 +2308,20 @@ class TestRenderDag:
         # Arrange
         # Arrange
         # Arrange
+        import subprocess
+
+        from scitex_clew._viz import _mermaid as _mermaid_mod
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "diagram.png"
+
+        def _raise_not_found(*args, **kwargs):
+            raise FileNotFoundError("mmdc not found")
+
         # Act
         # Act
         with (
-            patch(
-                "scitex_clew._viz._mermaid.generate_mermaid_dag",
-                return_value=self._mock_mermaid(),
-            ),
-            patch(
-                "subprocess.run",
-                side_effect=FileNotFoundError("mmdc not found"),
-            ),
+            _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid()),
+            _swap_attr(subprocess, "run", _raise_not_found),
         ):
             result = render_dag(out)
         # Act
@@ -3300,10 +3259,7 @@ class TestPrintVerificationSummary:
         records, verifs = self._build_run_records(
             [VerificationStatus.VERIFIED, VerificationStatus.VERIFIED]
         )
-        with patch(
-            "scitex_clew._viz._utils.verify_run",
-            side_effect=lambda sid: verifs[sid],
-        ):
+        with _swap_attr(_utils_mod, "verify_run", lambda sid: verifs[sid]):
             print_verification_summary(records)
 
         # Act
@@ -3325,10 +3281,7 @@ class TestPrintVerificationSummary:
                 VerificationStatus.MISMATCH,
             ]
         )
-        with patch(
-            "scitex_clew._viz._utils.verify_run",
-            side_effect=lambda sid: verifs[sid],
-        ):
+        with _swap_attr(_utils_mod, "verify_run", lambda sid: verifs[sid]):
             print_verification_summary(records)
 
         # Act
@@ -3346,10 +3299,7 @@ class TestPrintVerificationSummary:
         records, verifs = self._build_run_records(
             [VerificationStatus.MISMATCH, VerificationStatus.VERIFIED]
         )
-        with patch(
-            "scitex_clew._viz._utils.verify_run",
-            side_effect=lambda sid: verifs[sid],
-        ):
+        with _swap_attr(_utils_mod, "verify_run", lambda sid: verifs[sid]):
             print_verification_summary(records)
 
         # Act
@@ -3365,10 +3315,7 @@ class TestPrintVerificationSummary:
         from scitex_clew._viz._utils import print_verification_summary
 
         records, verifs = self._build_run_records([VerificationStatus.MISSING])
-        with patch(
-            "scitex_clew._viz._utils.verify_run",
-            side_effect=lambda sid: verifs[sid],
-        ):
+        with _swap_attr(_utils_mod, "verify_run", lambda sid: verifs[sid]):
             print_verification_summary(records)
 
         # Act
@@ -3381,17 +3328,14 @@ class TestPrintVerificationSummary:
     def test_show_all_true_prints_verified_runs_too(self, capsys):
         # Arrange
         # Arrange
+        from scitex_clew._viz import _utils as _utils_mod
         from scitex_clew._viz._utils import print_verification_summary
 
         records, verifs = self._build_run_records([VerificationStatus.VERIFIED])
         with (
-            patch(
-                "scitex_clew._viz._utils.verify_run",
-                side_effect=lambda sid: verifs[sid],
-            ),
-            patch("scitex_clew._viz._utils.format_run_detailed") as mock_fmt,
+            _swap_attr(_utils_mod, "verify_run", lambda sid: verifs[sid]),
+            _swap_attr(_utils_mod, "format_run_detailed", lambda *a, **kw: "RUN_DETAIL_LINE"),
         ):
-            mock_fmt.return_value = "RUN_DETAIL_LINE"
             print_verification_summary(records, show_all=True)
 
         # Act
