@@ -15,10 +15,77 @@ Strategy
 
 from __future__ import annotations
 
+import contextlib
 import json
-from unittest.mock import MagicMock, patch
 
 import pytest
+
+
+@contextlib.contextmanager
+def _swap_attr(obj, name, value):
+    """Temporarily replace ``obj.name`` with ``value`` (mock-free patch).
+
+    Restores the original attribute on exit, regardless of exception.
+    """
+    saved = getattr(obj, name)
+    setattr(obj, name, value)
+    try:
+        yield
+    finally:
+        setattr(obj, name, saved)
+
+
+class _FakeTool:
+    """Minimal MCP tool stand-in exposing the attributes the CLI reads."""
+
+    def __init__(self, name: str = "", description: str = "", parameters=None, fn=None):
+        self.name = name
+        self.description = description
+        self.parameters = parameters if parameters is not None else {}
+        self.fn = fn
+
+
+class _FakeProc:
+    """Minimal stand-in for a ``subprocess.CompletedProcess`` result."""
+
+    def __init__(self, stdout: str = "", stderr: str = "", returncode: int = 0):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.returncode = returncode
+
+
+class _CallRecorder:
+    """Callable that records call args/kwargs (mock-free replacement)."""
+
+    def __init__(self, return_value=None):
+        self.return_value = return_value
+        self.calls: list[tuple[tuple, dict]] = []
+
+    def __call__(self, *args, **kwargs):
+        self.calls.append((args, kwargs))
+        return self.return_value
+
+    @property
+    def call_count(self) -> int:
+        return len(self.calls)
+
+    def assert_called_once(self) -> None:
+        assert self.call_count == 1, f"expected 1 call, got {self.call_count}"
+
+    @property
+    def call_args(self):
+        if not self.calls:
+            return None
+        args, kwargs = self.calls[-1]
+        return _CallArgs(args, kwargs)
+
+
+class _CallArgs:
+    """Mimics the ``call_args`` API used by the tests (.kwargs)."""
+
+    def __init__(self, args, kwargs):
+        self.args = args
+        self.kwargs = kwargs
 
 # PA-303: click is in the [cli] extra (not [project] deps), so guard so a
 # clean install without [cli] doesn't crash collection.
@@ -1321,7 +1388,7 @@ class TestMcpDoctor:
             return real_import(name, *args, **kwargs)
 
         # Act
-        with patch("builtins.__import__", side_effect=fake_import):
+        with _swap_attr(builtins, "__import__", fake_import):
             result = runner.invoke(main, ["mcp", "doctor"])
         # Assert
         assert result.exit_code == 0
@@ -1329,15 +1396,11 @@ class TestMcpDoctor:
     def test_shows_checking_message(self, runner):
         """Regardless of fastmcp availability the initial message is shown."""
         # Arrange
+        import scitex_clew._mcp as _mcp_mod
+
+        tools = [_FakeTool("t1"), _FakeTool("t2"), _FakeTool("t3")]
         # Act
-        with patch(
-            "scitex_clew._mcp.get_tools_sync",
-            return_value=[
-                MagicMock(name="t1"),
-                MagicMock(name="t2"),
-                MagicMock(name="t3"),
-            ],
-        ):
+        with _swap_attr(_mcp_mod, "get_tools_sync", lambda *a, **kw: tools):
             result = runner.invoke(main, ["mcp", "doctor"])
         # Assert
         assert "Checking" in result.output or "mcp" in result.output.lower()
@@ -1352,14 +1415,10 @@ class TestMcpDoctor:
             pytest.skip("fastmcp not installed in this environment")
         # Act
         # Act
-        with patch(
-            "scitex_clew._mcp.get_tools_sync",
-            return_value=[
-                MagicMock(name="t1"),
-                MagicMock(name="t2"),
-                MagicMock(name="t3"),
-            ],
-        ):
+        import scitex_clew._mcp as _mcp_mod
+
+        tools = [_FakeTool("t1"), _FakeTool("t2"), _FakeTool("t3")]
+        with _swap_attr(_mcp_mod, "get_tools_sync", lambda *a, **kw: tools):
             result = runner.invoke(main, ["mcp", "doctor"])
         # Act
         # Assert
@@ -1377,14 +1436,10 @@ class TestMcpDoctor:
             pytest.skip("fastmcp not installed in this environment")
         # Act
         # Act
-        with patch(
-            "scitex_clew._mcp.get_tools_sync",
-            return_value=[
-                MagicMock(name="t1"),
-                MagicMock(name="t2"),
-                MagicMock(name="t3"),
-            ],
-        ):
+        import scitex_clew._mcp as _mcp_mod
+
+        tools = [_FakeTool("t1"), _FakeTool("t2"), _FakeTool("t3")]
+        with _swap_attr(_mcp_mod, "get_tools_sync", lambda *a, **kw: tools):
             result = runner.invoke(main, ["mcp", "doctor"])
         # Act
         # Assert
@@ -1406,7 +1461,7 @@ class TestMcpDoctor:
             return real_import(name, *args, **kwargs)
 
         # Act
-        with patch("builtins.__import__", side_effect=fake_import):
+        with _swap_attr(builtins, "__import__", fake_import):
             result = runner.invoke(main, ["mcp", "doctor"])
         # Assert
         assert "pip install" in result.output or "not installed" in result.output
@@ -1436,16 +1491,13 @@ class TestMcpListTools:
 
     def _make_fake_tool(self, name: str, description: str = ""):
         """Create a minimal fake MCP tool object."""
-        tool = MagicMock()
-        tool.name = name
-        tool.description = description
-        tool.parameters = {}
-        tool.fn = None
-        return tool
+        return _FakeTool(name=name, description=description, parameters={}, fn=None)
 
     def _patch_get_tools(self, tools):
-        """Return a context manager that patches get_tools_sync to return tools."""
-        return patch("scitex_clew._mcp.get_tools_sync", return_value=tools)
+        """Return a context manager that swaps get_tools_sync to return tools."""
+        import scitex_clew._mcp as _mcp_mod
+
+        return _swap_attr(_mcp_mod, "get_tools_sync", lambda *a, **kw: tools)
 
     def test_list_tools_import_error_exits_nonzero(self, runner):
         """If mcp server import fails, exit code is non-zero."""
@@ -1460,7 +1512,7 @@ class TestMcpListTools:
             return real_import(name, *args, **kwargs)
 
         # Act
-        with patch("builtins.__import__", side_effect=fake_import):
+        with _swap_attr(builtins, "__import__", fake_import):
             result = runner.invoke(main, ["mcp", "list-tools"])
         # Assert
         assert result.exit_code != 0 or "error" in result.output.lower()
@@ -1700,7 +1752,9 @@ class TestMcpListTools:
             pytest.skip("fastmcp / MCP server not available in this environment")
 
         # Act
-        with patch("scitex_clew._mcp.get_tools_sync", return_value=[]):
+        import scitex_clew._mcp as _mcp_mod
+
+        with _swap_attr(_mcp_mod, "get_tools_sync", lambda *a, **kw: []):
             result = runner.invoke(main, ["mcp", "list-tools"])
         # Assert
         assert result.exit_code == 0
@@ -1723,12 +1777,13 @@ class TestCompletionCommand:
     _ENV_VAR = "_SCITEX_CLEW_COMPLETE"
 
     def _invoke_print(self, runner, shell: str):
-        mock_proc = MagicMock()
-        mock_proc.stdout = f"# {shell} completion for scitex-clew\n"
-        mock_proc.returncode = 0
-        with patch(
-            "scitex_dev._cli._completion.subprocess.run", return_value=mock_proc
-        ):
+        import scitex_dev._cli._completion as _completion_mod
+
+        fake_proc = _FakeProc(
+            stdout=f"# {shell} completion for scitex-clew\n", returncode=0
+        )
+        recorder = _CallRecorder(return_value=fake_proc)
+        with _swap_attr(_completion_mod.subprocess, "run", recorder):
             return runner.invoke(main, ["print-shell-completion", "--shell", shell])
 
     def test_bash_completion_exit_code(self, runner):
@@ -1809,18 +1864,17 @@ class TestCompletionCommand:
     def test_bash_completion_calls_subprocess(self, runner):
         # Arrange
         # Arrange
-        mock_proc = MagicMock()
-        mock_proc.stdout = "# bash completion\n"
-        mock_proc.returncode = 0
-        with patch(
-            "scitex_dev._cli._completion.subprocess.run", return_value=mock_proc
-        ) as mock_run:
+        import scitex_dev._cli._completion as _completion_mod
+
+        fake_proc = _FakeProc(stdout="# bash completion\n", returncode=0)
+        recorder = _CallRecorder(return_value=fake_proc)
+        with _swap_attr(_completion_mod.subprocess, "run", recorder):
             runner.invoke(main, ["print-shell-completion", "--shell", "bash"])
 
-        mock_run.assert_called_once()
+        recorder.assert_called_once()
         # Act
         # Act
-        env = mock_run.call_args.kwargs.get("env") or {}
+        env = recorder.call_args.kwargs.get("env") or {}
         # Assert
         # Assert
         assert env.get(self._ENV_VAR) == "bash_source"
@@ -1828,17 +1882,16 @@ class TestCompletionCommand:
     def test_zsh_completion_calls_subprocess_with_zsh_source(self, runner):
         # Arrange
         # Arrange
-        mock_proc = MagicMock()
-        mock_proc.stdout = "# zsh completion\n"
-        mock_proc.returncode = 0
-        with patch(
-            "scitex_dev._cli._completion.subprocess.run", return_value=mock_proc
-        ) as mock_run:
+        import scitex_dev._cli._completion as _completion_mod
+
+        fake_proc = _FakeProc(stdout="# zsh completion\n", returncode=0)
+        recorder = _CallRecorder(return_value=fake_proc)
+        with _swap_attr(_completion_mod.subprocess, "run", recorder):
             runner.invoke(main, ["print-shell-completion", "--shell", "zsh"])
 
         # Act
         # Act
-        env = mock_run.call_args.kwargs.get("env") or {}
+        env = recorder.call_args.kwargs.get("env") or {}
         # Assert
         # Assert
         assert env.get(self._ENV_VAR) == "zsh_source"
@@ -2002,11 +2055,13 @@ class TestGetVersion:
     def test_fallback_on_missing_package(self):
         """When importlib.metadata.version raises, returns the fallback string."""
         # Arrange
+        import importlib.metadata as _md
+
+        def _raise(*_a, **_kw):
+            raise Exception("package not found")
+
         # Act
-        with patch(
-            "importlib.metadata.version",
-            side_effect=Exception("package not found"),
-        ):
+        with _swap_attr(_md, "version", _raise):
             from scitex_clew._cli._main import _get_version
 
             v = _get_version()
@@ -2027,10 +2082,11 @@ class TestMcpFormatToolSignature:
         # Arrange
         from scitex_clew._cli._mcp import _format_tool_signature
 
-        tool = MagicMock()
-        tool.name = "clew_status"
-        tool.parameters = {"properties": {}, "required": []}
-        tool.fn = None
+        tool = _FakeTool(
+            name="clew_status",
+            parameters={"properties": {}, "required": []},
+            fn=None,
+        )
         # Act
         # Act
         sig = _format_tool_signature(tool)
@@ -2043,13 +2099,14 @@ class TestMcpFormatToolSignature:
         # Arrange
         from scitex_clew._cli._mcp import _format_tool_signature
 
-        tool = MagicMock()
-        tool.name = "clew_run"
-        tool.parameters = {
-            "properties": {"session_id": {"type": "string"}},
-            "required": ["session_id"],
-        }
-        tool.fn = None
+        tool = _FakeTool(
+            name="clew_run",
+            parameters={
+                "properties": {"session_id": {"type": "string"}},
+                "required": ["session_id"],
+            },
+            fn=None,
+        )
         # Act
         # Act
         sig = _format_tool_signature(tool)
@@ -2062,13 +2119,14 @@ class TestMcpFormatToolSignature:
         # Arrange
         from scitex_clew._cli._mcp import _format_tool_signature
 
-        tool = MagicMock()
-        tool.name = "clew_list_runs"
-        tool.parameters = {
-            "properties": {"limit": {"type": "integer", "default": 50}},
-            "required": [],
-        }
-        tool.fn = None
+        tool = _FakeTool(
+            name="clew_list_runs",
+            parameters={
+                "properties": {"limit": {"type": "integer", "default": 50}},
+                "required": [],
+            },
+            fn=None,
+        )
         # Act
         # Act
         sig = _format_tool_signature(tool)
@@ -2081,17 +2139,18 @@ class TestMcpFormatToolSignature:
         # Arrange
         # Arrange
         from scitex_clew._cli._mcp import _format_tool_signature
-        tool = MagicMock()
-        tool.name = "clew_dag"
-        tool.parameters = {
-            "properties": {
-                "target_files": {"type": "string"},
-                "session_ids": {"type": "string"},
-                "claims": {"type": "boolean"},
+        tool = _FakeTool(
+            name="clew_dag",
+            parameters={
+                "properties": {
+                    "target_files": {"type": "string"},
+                    "session_ids": {"type": "string"},
+                    "claims": {"type": "boolean"},
+                },
+                "required": ["target_files"],
             },
-            "required": ["target_files"],
-        }
-        tool.fn = None
+            fn=None,
+        )
         # multiline=True should introduce newlines when >2 params
         sig_multi = _format_tool_signature(tool, multiline=True)
         # Act
@@ -2108,17 +2167,18 @@ class TestMcpFormatToolSignature:
         # Arrange
         # Arrange
         from scitex_clew._cli._mcp import _format_tool_signature
-        tool = MagicMock()
-        tool.name = "clew_dag"
-        tool.parameters = {
-            "properties": {
-                "target_files": {"type": "string"},
-                "session_ids": {"type": "string"},
-                "claims": {"type": "boolean"},
+        tool = _FakeTool(
+            name="clew_dag",
+            parameters={
+                "properties": {
+                    "target_files": {"type": "string"},
+                    "session_ids": {"type": "string"},
+                    "claims": {"type": "boolean"},
+                },
+                "required": ["target_files"],
             },
-            "required": ["target_files"],
-        }
-        tool.fn = None
+            fn=None,
+        )
         # multiline=True should introduce newlines when >2 params
         sig_multi = _format_tool_signature(tool, multiline=True)
         # Act
