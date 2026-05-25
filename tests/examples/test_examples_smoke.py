@@ -3,12 +3,23 @@
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
+from scitex_clew import _examples as _examples_mod
 from scitex_clew._examples import _find_examples_dir, init_examples
+
+
+@contextlib.contextmanager
+def _swap_attr(obj, name, value):
+    saved = getattr(obj, name)
+    setattr(obj, name, value)
+    try:
+        yield
+    finally:
+        setattr(obj, name, saved)
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +148,7 @@ class TestInitExamples:
         # Arrange
         # Act
         # Assert
-        with patch("scitex_clew._examples._find_examples_dir", return_value=None):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": None):
             with pytest.raises(FileNotFoundError):
                 init_examples(tmp_path / "dest")
 
@@ -149,7 +160,7 @@ class TestInitExamples:
         dest = tmp_path / "dest"
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             result = init_examples(dest)
         # Act
         # Assert
@@ -165,7 +176,7 @@ class TestInitExamples:
         dest = tmp_path / "dest"
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             result = init_examples(dest)
         # Act
         # Assert
@@ -181,7 +192,7 @@ class TestInitExamples:
         dest = tmp_path / "dest"
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             result = init_examples(dest)
         # Act
         # Assert
@@ -197,7 +208,7 @@ class TestInitExamples:
         dest = tmp_path / "dest"
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             result = init_examples(dest)
         # Act
         # Assert
@@ -239,7 +250,7 @@ class TestInitExamples:
         dest = tmp_path / "new_dest" / "nested"
         # Assert
         assert not dest.exists()
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             init_examples(dest)
         # Act
         # Assert
@@ -255,7 +266,7 @@ class TestInitExamples:
         dest = tmp_path / "dest"
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             result = init_examples(dest)
         # Act
         # Assert
@@ -271,7 +282,7 @@ class TestInitExamples:
         dest = tmp_path / "dest"
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             result = init_examples(dest)
         # Act
         # Assert
@@ -287,7 +298,7 @@ class TestInitExamples:
         dest = tmp_path / "dest"
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             result = init_examples(dest)
         # Assert
         # Assert
@@ -300,7 +311,7 @@ class TestInitExamples:
         dest = tmp_path / "dest"
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             result = init_examples(dest, variant="sequential")
         # Assert
         # Assert
@@ -313,7 +324,7 @@ class TestInitExamples:
         dest = tmp_path / "dest"
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             result = init_examples(dest)
         # Assert
         # Assert
@@ -331,9 +342,10 @@ class TestInitExamples:
         # Act
         # Assert
         dest = tmp_path / "dest"
-        with patch(
-            "scitex_clew._examples._find_examples_dir",
-            side_effect=lambda variant: None if variant == "multi_parent" else None,
+        with _swap_attr(
+            _examples_mod,
+            "_find_examples_dir",
+            lambda variant="sequential": None if variant == "multi_parent" else None,
         ):
             with pytest.raises(FileNotFoundError):
                 init_examples(dest, variant="multi_parent")
@@ -349,7 +361,7 @@ class TestInitExamples:
         dest = tmp_path / "dest"
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             result = init_examples(dest, variant="multi_parent")
         # Act
         # Assert
@@ -368,7 +380,7 @@ class TestInitExamples:
         dest = tmp_path / "dest"
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             result = init_examples(dest, variant="multi_parent")
         # Act
         # Assert
@@ -384,7 +396,7 @@ class TestInitExamples:
         dest = str(tmp_path / "str_dest")
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             init_examples(dest)
         # Assert
         # Assert
@@ -399,7 +411,7 @@ class TestInitExamples:
         (dest / "01_process.py").write_text("OLD CONTENT")
         # Act
         # Act
-        with patch("scitex_clew._examples._find_examples_dir", return_value=src):
+        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             init_examples(dest)
         # Assert
         # Assert
