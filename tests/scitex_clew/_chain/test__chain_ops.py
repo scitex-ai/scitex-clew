@@ -1,7 +1,7 @@
 """Tests for ``scitex_clew._chain._chain_ops`` (verify_chain, get_status).
 
 The chain ops drive a real DB plus on-disk file hashing. To keep
-tests deterministic we monkeypatch:
+tests deterministic we use a ``_swap_attr`` context manager to swap:
 
   - `get_db` (used inside both `_chain_ops` and `_verify_ops`) →
     `_FakeDB` with scripted return values.
@@ -12,6 +12,7 @@ tests deterministic we monkeypatch:
 
 from __future__ import annotations
 
+import contextlib
 from typing import Any
 
 
@@ -22,6 +23,16 @@ from scitex_clew._chain._types import (
     RunVerification,
     VerificationStatus,
 )
+
+
+@contextlib.contextmanager
+def _swap_attr(obj, name, value):
+    saved = getattr(obj, name)
+    setattr(obj, name, value)
+    try:
+        yield
+    finally:
+        setattr(obj, name, saved)
 
 
 class _FakeDB:
@@ -66,124 +77,115 @@ def _make_run(
 # ----- verify_chain -------------------------------------------------------- #
 
 
-def test_verify_chain_returns_unknown_when_target_has_no_session_out_is_chainverification(monkeypatch):
+def test_verify_chain_returns_unknown_when_target_has_no_session_out_is_chainverification():
     # Arrange
     # Arrange
     # Arrange
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _FakeDB())
-    # Act
-    # Act
-    out = verify_chain("/some/output.csv")
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert isinstance(out, ChainVerification)
+    with _swap_attr(_chain_ops, "get_db", lambda: _FakeDB()):
+        # Act
+        # Act
+        out = verify_chain("/some/output.csv")
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert isinstance(out, ChainVerification)
 
 
-def test_verify_chain_returns_unknown_when_target_has_no_session_out_status_equals_verificationstatus_unknown(monkeypatch):
+def test_verify_chain_returns_unknown_when_target_has_no_session_out_status_equals_verificationstatus_unknown():
     # Arrange
     # Arrange
     # Arrange
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _FakeDB())
-    # Act
-    # Act
-    out = verify_chain("/some/output.csv")
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert out.status == VerificationStatus.UNKNOWN
+    with _swap_attr(_chain_ops, "get_db", lambda: _FakeDB()):
+        # Act
+        # Act
+        out = verify_chain("/some/output.csv")
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert out.status == VerificationStatus.UNKNOWN
 
 
-def test_verify_chain_returns_unknown_when_target_has_no_session_out_runs_equals_case(monkeypatch):
+def test_verify_chain_returns_unknown_when_target_has_no_session_out_runs_equals_case():
     # Arrange
     # Arrange
     # Arrange
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _FakeDB())
-    # Act
-    # Act
-    out = verify_chain("/some/output.csv")
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert out.runs == []
+    with _swap_attr(_chain_ops, "get_db", lambda: _FakeDB()):
+        # Act
+        # Act
+        out = verify_chain("/some/output.csv")
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert out.runs == []
 
 
 
 
-def test_verify_chain_all_verified_propagates_verified_status_out_status_equals_verificationstatus_verified(monkeypatch):
+def test_verify_chain_all_verified_propagates_verified_status_out_status_equals_verificationstatus_verified():
     # Arrange
     # Arrange
     # Arrange
-    monkeypatch.setattr(
+    with _swap_attr(
         _chain_ops,
         "get_db",
         lambda: _FakeDB(sessions_for_file=["s2"], chain=["s1", "s2"]),
-    )
-    monkeypatch.setattr(_chain_ops, "verify_run", lambda sid: _make_run(session_id=sid))
-    # Act
-    # Act
-    out = verify_chain("/out.csv")
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert out.status == VerificationStatus.VERIFIED
+    ), _swap_attr(_chain_ops, "verify_run", lambda sid: _make_run(session_id=sid)):
+        # Act
+        # Act
+        out = verify_chain("/out.csv")
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert out.status == VerificationStatus.VERIFIED
 
 
-def test_verify_chain_all_verified_propagates_verified_status_r_session_id_for_r_in_out_runs_s1_s2(monkeypatch):
+def test_verify_chain_all_verified_propagates_verified_status_r_session_id_for_r_in_out_runs_s1_s2():
     # Arrange
     # Arrange
     # Arrange
-    monkeypatch.setattr(
+    with _swap_attr(
         _chain_ops,
         "get_db",
         lambda: _FakeDB(sessions_for_file=["s2"], chain=["s1", "s2"]),
-    )
-    monkeypatch.setattr(_chain_ops, "verify_run", lambda sid: _make_run(session_id=sid))
-    # Act
-    # Act
-    out = verify_chain("/out.csv")
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert [r.session_id for r in out.runs] == ["s1", "s2"]
+    ), _swap_attr(_chain_ops, "verify_run", lambda sid: _make_run(session_id=sid)):
+        # Act
+        # Act
+        out = verify_chain("/out.csv")
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert [r.session_id for r in out.runs] == ["s1", "s2"]
 
 
-def test_verify_chain_all_verified_propagates_verified_status_out_is_verified(monkeypatch):
+def test_verify_chain_all_verified_propagates_verified_status_out_is_verified():
     # Arrange
     # Arrange
     # Arrange
-    monkeypatch.setattr(
+    with _swap_attr(
         _chain_ops,
         "get_db",
         lambda: _FakeDB(sessions_for_file=["s2"], chain=["s1", "s2"]),
-    )
-    monkeypatch.setattr(_chain_ops, "verify_run", lambda sid: _make_run(session_id=sid))
-    # Act
-    # Act
-    out = verify_chain("/out.csv")
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert out.is_verified
+    ), _swap_attr(_chain_ops, "verify_run", lambda sid: _make_run(session_id=sid)):
+        # Act
+        # Act
+        out = verify_chain("/out.csv")
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert out.is_verified
 
 
 
 
-def test_verify_chain_propagates_mismatch_when_any_run_mismatched(monkeypatch):
+def test_verify_chain_propagates_mismatch_when_any_run_mismatched():
     # Arrange
     # Arrange
-    monkeypatch.setattr(
-        _chain_ops,
-        "get_db",
-        lambda: _FakeDB(sessions_for_file=["s2"], chain=["s1", "s2"]),
-    )
-
     def _verify(sid: str) -> RunVerification:
         return _make_run(
             session_id=sid,
@@ -194,56 +196,58 @@ def test_verify_chain_propagates_mismatch_when_any_run_mismatched(monkeypatch):
             ),
         )
 
-    monkeypatch.setattr(_chain_ops, "verify_run", _verify)
-    # Act
-    # Act
-    out = verify_chain("/out.csv")
-    # Assert
-    # Assert
-    assert out.status == VerificationStatus.MISMATCH
+    with _swap_attr(
+        _chain_ops,
+        "get_db",
+        lambda: _FakeDB(sessions_for_file=["s2"], chain=["s1", "s2"]),
+    ), _swap_attr(_chain_ops, "verify_run", _verify):
+        # Act
+        # Act
+        out = verify_chain("/out.csv")
+        # Assert
+        # Assert
+        assert out.status == VerificationStatus.MISMATCH
 
 
-def test_verify_chain_propagates_missing_when_no_mismatch_but_missing(monkeypatch):
+def test_verify_chain_propagates_missing_when_no_mismatch_but_missing():
     # Arrange
     # Arrange
-    monkeypatch.setattr(
+    with _swap_attr(
         _chain_ops,
         "get_db",
         lambda: _FakeDB(sessions_for_file=["s1"], chain=["s1"]),
-    )
-    monkeypatch.setattr(
+    ), _swap_attr(
         _chain_ops,
         "verify_run",
         lambda sid: _make_run(status=VerificationStatus.MISSING),
-    )
-    # Act
-    # Act
-    out = verify_chain("/out.csv")
-    # Assert
-    # Assert
-    assert out.status == VerificationStatus.MISSING
+    ):
+        # Act
+        # Act
+        out = verify_chain("/out.csv")
+        # Assert
+        # Assert
+        assert out.status == VerificationStatus.MISSING
 
 
-def test_verify_chain_unknown_when_runs_have_no_explicit_status(monkeypatch):
+def test_verify_chain_unknown_when_runs_have_no_explicit_status():
     """All runs UNKNOWN → chain UNKNOWN (not VERIFIED, MISMATCH, MISSING)."""
     # Arrange
-    monkeypatch.setattr(
+    with _swap_attr(
         _chain_ops,
         "get_db",
         lambda: _FakeDB(sessions_for_file=["s1"], chain=["s1"]),
-    )
-    monkeypatch.setattr(
+    ), _swap_attr(
         _chain_ops,
         "verify_run",
         lambda sid: _make_run(status=VerificationStatus.UNKNOWN),
-    )
-    # Act
-    out = verify_chain("/out.csv")
-    # Assert
-    assert out.status == VerificationStatus.UNKNOWN
+    ):
+        # Act
+        out = verify_chain("/out.csv")
+        # Assert
+        assert out.status == VerificationStatus.UNKNOWN
 
 
-def test_verify_chain_target_path_is_resolved(monkeypatch, tmp_path):
+def test_verify_chain_target_path_is_resolved(tmp_path):
     """Relative target paths are resolved via Path(...).resolve()."""
     # Arrange
     captured = {}
@@ -253,24 +257,23 @@ def test_verify_chain_target_path_is_resolved(monkeypatch, tmp_path):
             captured["arg"] = target
             return []
 
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _Capture())
-    f = tmp_path / "result.csv"
-    f.write_text("x")
-    # Act
-    verify_chain(str(f))
-    # Assert
-    assert captured["arg"] == str(f.resolve())
+    with _swap_attr(_chain_ops, "get_db", lambda: _Capture()):
+        f = tmp_path / "result.csv"
+        f.write_text("x")
+        # Act
+        verify_chain(str(f))
+        # Assert
+        assert captured["arg"] == str(f.resolve())
 
 
 # ----- get_status ---------------------------------------------------------- #
 
 
-def test_get_status_counts_each_bucket_out_verified_count_1(monkeypatch):
+def test_get_status_counts_each_bucket_out_verified_count_1():
     # Arrange
     # Arrange
     # Arrange
     runs_meta = [{"session_id": "v1"}, {"session_id": "m1"}, {"session_id": "x1"}]
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta))
     def _verify(sid):
         if sid == "v1":
             return _make_run(session_id=sid, status=VerificationStatus.VERIFIED)
@@ -300,23 +303,22 @@ def test_get_status_counts_each_bucket_out_verified_count_1(monkeypatch):
         return _make_run(
             session_id=sid, status=VerificationStatus.MISSING, files=[missing]
         )
-    monkeypatch.setattr(_chain_ops, "verify_run", _verify)
-    # Act
-    # Act
-    out = get_status()
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert out["verified_count"] == 1
+    with _swap_attr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta)), _swap_attr(_chain_ops, "verify_run", _verify):
+        # Act
+        # Act
+        out = get_status()
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert out["verified_count"] == 1
 
 
-def test_get_status_counts_each_bucket_out_mismatch_count_1(monkeypatch):
+def test_get_status_counts_each_bucket_out_mismatch_count_1():
     # Arrange
     # Arrange
     # Arrange
     runs_meta = [{"session_id": "v1"}, {"session_id": "m1"}, {"session_id": "x1"}]
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta))
     def _verify(sid):
         if sid == "v1":
             return _make_run(session_id=sid, status=VerificationStatus.VERIFIED)
@@ -346,23 +348,22 @@ def test_get_status_counts_each_bucket_out_mismatch_count_1(monkeypatch):
         return _make_run(
             session_id=sid, status=VerificationStatus.MISSING, files=[missing]
         )
-    monkeypatch.setattr(_chain_ops, "verify_run", _verify)
-    # Act
-    # Act
-    out = get_status()
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert out["mismatch_count"] == 1
+    with _swap_attr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta)), _swap_attr(_chain_ops, "verify_run", _verify):
+        # Act
+        # Act
+        out = get_status()
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert out["mismatch_count"] == 1
 
 
-def test_get_status_counts_each_bucket_out_missing_count_1(monkeypatch):
+def test_get_status_counts_each_bucket_out_missing_count_1():
     # Arrange
     # Arrange
     # Arrange
     runs_meta = [{"session_id": "v1"}, {"session_id": "m1"}, {"session_id": "x1"}]
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta))
     def _verify(sid):
         if sid == "v1":
             return _make_run(session_id=sid, status=VerificationStatus.VERIFIED)
@@ -392,23 +393,22 @@ def test_get_status_counts_each_bucket_out_missing_count_1(monkeypatch):
         return _make_run(
             session_id=sid, status=VerificationStatus.MISSING, files=[missing]
         )
-    monkeypatch.setattr(_chain_ops, "verify_run", _verify)
-    # Act
-    # Act
-    out = get_status()
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert out["missing_count"] == 1
+    with _swap_attr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta)), _swap_attr(_chain_ops, "verify_run", _verify):
+        # Act
+        # Act
+        out = get_status()
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert out["missing_count"] == 1
 
 
-def test_get_status_counts_each_bucket_out_mismatched_0_session_id_m1(monkeypatch):
+def test_get_status_counts_each_bucket_out_mismatched_0_session_id_m1():
     # Arrange
     # Arrange
     # Arrange
     runs_meta = [{"session_id": "v1"}, {"session_id": "m1"}, {"session_id": "x1"}]
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta))
     def _verify(sid):
         if sid == "v1":
             return _make_run(session_id=sid, status=VerificationStatus.VERIFIED)
@@ -438,23 +438,22 @@ def test_get_status_counts_each_bucket_out_mismatched_0_session_id_m1(monkeypatc
         return _make_run(
             session_id=sid, status=VerificationStatus.MISSING, files=[missing]
         )
-    monkeypatch.setattr(_chain_ops, "verify_run", _verify)
-    # Act
-    # Act
-    out = get_status()
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert out["mismatched"][0]["session_id"] == "m1"
+    with _swap_attr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta)), _swap_attr(_chain_ops, "verify_run", _verify):
+        # Act
+        # Act
+        out = get_status()
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert out["mismatched"][0]["session_id"] == "m1"
 
 
-def test_get_status_counts_each_bucket_out_mismatched_0_files_m_csv(monkeypatch):
+def test_get_status_counts_each_bucket_out_mismatched_0_files_m_csv():
     # Arrange
     # Arrange
     # Arrange
     runs_meta = [{"session_id": "v1"}, {"session_id": "m1"}, {"session_id": "x1"}]
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta))
     def _verify(sid):
         if sid == "v1":
             return _make_run(session_id=sid, status=VerificationStatus.VERIFIED)
@@ -484,23 +483,22 @@ def test_get_status_counts_each_bucket_out_mismatched_0_files_m_csv(monkeypatch)
         return _make_run(
             session_id=sid, status=VerificationStatus.MISSING, files=[missing]
         )
-    monkeypatch.setattr(_chain_ops, "verify_run", _verify)
-    # Act
-    # Act
-    out = get_status()
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert out["mismatched"][0]["files"] == ["/m.csv"]
+    with _swap_attr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta)), _swap_attr(_chain_ops, "verify_run", _verify):
+        # Act
+        # Act
+        out = get_status()
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert out["mismatched"][0]["files"] == ["/m.csv"]
 
 
-def test_get_status_counts_each_bucket_out_missing_0_session_id_x1(monkeypatch):
+def test_get_status_counts_each_bucket_out_missing_0_session_id_x1():
     # Arrange
     # Arrange
     # Arrange
     runs_meta = [{"session_id": "v1"}, {"session_id": "m1"}, {"session_id": "x1"}]
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta))
     def _verify(sid):
         if sid == "v1":
             return _make_run(session_id=sid, status=VerificationStatus.VERIFIED)
@@ -530,23 +528,22 @@ def test_get_status_counts_each_bucket_out_missing_0_session_id_x1(monkeypatch):
         return _make_run(
             session_id=sid, status=VerificationStatus.MISSING, files=[missing]
         )
-    monkeypatch.setattr(_chain_ops, "verify_run", _verify)
-    # Act
-    # Act
-    out = get_status()
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert out["missing"][0]["session_id"] == "x1"
+    with _swap_attr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta)), _swap_attr(_chain_ops, "verify_run", _verify):
+        # Act
+        # Act
+        out = get_status()
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert out["missing"][0]["session_id"] == "x1"
 
 
-def test_get_status_counts_each_bucket_out_missing_0_files_x_csv(monkeypatch):
+def test_get_status_counts_each_bucket_out_missing_0_files_x_csv():
     # Arrange
     # Arrange
     # Arrange
     runs_meta = [{"session_id": "v1"}, {"session_id": "m1"}, {"session_id": "x1"}]
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta))
     def _verify(sid):
         if sid == "v1":
             return _make_run(session_id=sid, status=VerificationStatus.VERIFIED)
@@ -576,32 +573,32 @@ def test_get_status_counts_each_bucket_out_missing_0_files_x_csv(monkeypatch):
         return _make_run(
             session_id=sid, status=VerificationStatus.MISSING, files=[missing]
         )
-    monkeypatch.setattr(_chain_ops, "verify_run", _verify)
-    # Act
-    # Act
-    out = get_status()
-    # Act
-    # Assert
-    # Assert
-    # Assert
-    assert out["missing"][0]["files"] == ["/x.csv"]
+    with _swap_attr(_chain_ops, "get_db", lambda: _FakeDB(runs=runs_meta)), _swap_attr(_chain_ops, "verify_run", _verify):
+        # Act
+        # Act
+        out = get_status()
+        # Act
+        # Assert
+        # Assert
+        # Assert
+        assert out["missing"][0]["files"] == ["/x.csv"]
 
 
 
 
-def test_get_status_handles_empty_db(monkeypatch):
+def test_get_status_handles_empty_db():
     # Arrange
     # Arrange
-    monkeypatch.setattr(_chain_ops, "get_db", lambda: _FakeDB(runs=[]))
-    # Act
-    # Act
-    out = get_status()
-    # Assert
-    # Assert
-    assert out == {
-        "verified_count": 0,
-        "mismatch_count": 0,
-        "missing_count": 0,
-        "mismatched": [],
-        "missing": [],
-    }
+    with _swap_attr(_chain_ops, "get_db", lambda: _FakeDB(runs=[])):
+        # Act
+        # Act
+        out = get_status()
+        # Assert
+        # Assert
+        assert out == {
+            "verified_count": 0,
+            "mismatch_count": 0,
+            "missing_count": 0,
+            "mismatched": [],
+            "missing": [],
+        }
