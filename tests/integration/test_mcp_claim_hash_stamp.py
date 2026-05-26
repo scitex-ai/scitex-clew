@@ -52,32 +52,32 @@ def mcp_with_all_tools():
 
 
 class TestRegistration:
-    def test_clew_claim_add_registered(self, mcp_with_all_tools):
+    def test_clew_add_claim_registered(self, mcp_with_all_tools):
         # Arrange
         # Act
         # Assert
         # Arrange
         # Act
         # Assert
-        assert "clew_claim_add" in _get_tools(mcp_with_all_tools)
+        assert "clew_add_claim" in _get_tools(mcp_with_all_tools)
 
-    def test_clew_claim_list_registered(self, mcp_with_all_tools):
+    def test_clew_list_claims_registered(self, mcp_with_all_tools):
         # Arrange
         # Act
         # Assert
         # Arrange
         # Act
         # Assert
-        assert "clew_claim_list" in _get_tools(mcp_with_all_tools)
+        assert "clew_list_claims" in _get_tools(mcp_with_all_tools)
 
-    def test_clew_claim_verify_registered(self, mcp_with_all_tools):
+    def test_clew_verify_claim_registered(self, mcp_with_all_tools):
         # Arrange
         # Act
         # Assert
         # Arrange
         # Act
         # Assert
-        assert "clew_claim_verify" in _get_tools(mcp_with_all_tools)
+        assert "clew_verify_claim" in _get_tools(mcp_with_all_tools)
 
     def test_clew_hash_file_registered(self, mcp_with_all_tools):
         # Arrange
@@ -137,7 +137,7 @@ class TestClaimTools:
         # Arrange
         manuscript = tmp_path / "paper.tex"
         manuscript.write_text("dummy")
-        fn = _get_tools(mcp_with_all_tools)["clew_claim_add"].fn
+        fn = _get_tools(mcp_with_all_tools)["clew_add_claim"].fn
         out = _run(fn(file_path=str(manuscript), claim_type="statistic"))
         # Act
         # Act
@@ -154,7 +154,7 @@ class TestClaimTools:
         # Arrange
         manuscript = tmp_path / "paper.tex"
         manuscript.write_text("dummy")
-        fn = _get_tools(mcp_with_all_tools)["clew_claim_add"].fn
+        fn = _get_tools(mcp_with_all_tools)["clew_add_claim"].fn
         out = _run(fn(file_path=str(manuscript), claim_type="statistic"))
         # Act
         # Act
@@ -171,7 +171,7 @@ class TestClaimTools:
         # Arrange
         manuscript = tmp_path / "paper.tex"
         manuscript.write_text("x")
-        fn = _get_tools(mcp_with_all_tools)["clew_claim_add"].fn
+        fn = _get_tools(mcp_with_all_tools)["clew_add_claim"].fn
         out = _run(fn(file_path=str(manuscript), claim_type="bogus"))
         # Act
         # Act
@@ -183,7 +183,7 @@ class TestClaimTools:
     def test_claim_list_empty(self, mcp_with_all_tools):
         # Arrange
         # Arrange
-        fn = _get_tools(mcp_with_all_tools)["clew_claim_list"].fn
+        fn = _get_tools(mcp_with_all_tools)["clew_list_claims"].fn
         out = _run(fn())
         # Act
         # Act
@@ -195,7 +195,7 @@ class TestClaimTools:
     def test_claim_verify_not_found(self, mcp_with_all_tools):
         # Arrange
         # Arrange
-        fn = _get_tools(mcp_with_all_tools)["clew_claim_verify"].fn
+        fn = _get_tools(mcp_with_all_tools)["clew_verify_claim"].fn
         out = _run(fn(claim_id_or_location="claim_doesnotexist"))
         # Act
         # Act
