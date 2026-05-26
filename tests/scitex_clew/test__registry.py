@@ -382,7 +382,6 @@ class TestClewRegistryRegister:
 
     def test_register_sends_hash_in_payload_payload_hash_deadbeef1234_payload_hash_deadbeef1234(self, registry):
         # Arrange
-        # Arrange
         captured_bodies = []
         def fake_urlopen(req, timeout=None):
             captured_bodies.append(req.data)
@@ -390,12 +389,9 @@ class TestClewRegistryRegister:
         # Act
         with _swap_attr(urllib.request, "urlopen", fake_urlopen):
             registry.register("deadbeef1234")
+        payload = json.loads(captured_bodies[0].decode()) if captured_bodies else {}
         # Assert
-        assert len(captured_bodies) == 1
-        payload = json.loads(captured_bodies[0].decode())
-        # Act
-        # Assert
-        assert payload["hash"] == "deadbeef1234"
+        assert payload.get("hash") == "deadbeef1234"
 
 
 

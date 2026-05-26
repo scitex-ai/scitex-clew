@@ -370,22 +370,14 @@ class TestMigrateAddNodeClass:
         assert "node_class" not in cols_before
 
     def test_adds_node_class_column_node_class_in_cols_after_node_class_in_cols_after(self, tmp_path):
-        # Arrange
-        # Arrange
+        # Arrange — start from a schema missing the column.
         db_path = tmp_path / "test.db"
         self._make_db_with_table(db_path)
-        # Column should not exist yet
-        conn = sqlite3.connect(str(db_path))
-        cols_before = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)")}
         # Act
-        conn.close()
-        # Assert
-        assert "node_class" not in cols_before
         migrate_add_node_class(db_path)
         conn = sqlite3.connect(str(db_path))
         cols_after = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)")}
         conn.close()
-        # Act
         # Assert
         assert "node_class" in cols_after
 

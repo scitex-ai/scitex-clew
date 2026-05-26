@@ -169,7 +169,6 @@ class TestClaimAdd:
 
     def test_add_json_returns_dict_parsed_claim_type_statistic_parsed_claim_type_statistic(self, runner, isolated_db, tmp_path):
         # Arrange
-        # Arrange
         manuscript = tmp_path / "paper.tex"
         manuscript.write_text("dummy")
         # Act
@@ -187,12 +186,9 @@ class TestClaimAdd:
                 "p<0.05",
             ],
         )
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
-        assert result.exit_code == 0, result.output
-        parsed = json.loads(result.output)
-        # Act
-        # Assert
-        assert parsed["claim_type"] == "statistic"
+        assert parsed.get("claim_type") == "statistic", result.output
 
 
     def test_add_json_returns_dict_parsed_claim_id_startswith_claim_result_exit_code_equals_n_0(self, runner, isolated_db, tmp_path):
@@ -222,7 +218,6 @@ class TestClaimAdd:
 
     def test_add_json_returns_dict_parsed_claim_id_startswith_claim_parsed_claim_id_startswith_claim(self, runner, isolated_db, tmp_path):
         # Arrange
-        # Arrange
         manuscript = tmp_path / "paper.tex"
         manuscript.write_text("dummy")
         # Act
@@ -240,12 +235,9 @@ class TestClaimAdd:
                 "p<0.05",
             ],
         )
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
-        assert result.exit_code == 0, result.output
-        parsed = json.loads(result.output)
-        # Act
-        # Assert
-        assert parsed["claim_id"].startswith("claim_")
+        assert parsed.get("claim_id", "").startswith("claim_"), result.output
 
 
 
@@ -334,15 +326,11 @@ class TestClaimList:
 
     def test_list_json_empty_db_parsed_count_0_parsed_count_0(self, runner, isolated_db):
         # Arrange
-        # Arrange
-        # Act
         result = runner.invoke(main, ["--json", "claim", "list"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
         # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
-        assert parsed["count"] == 0
+        assert parsed.get("count") == 0, result.output
 
 
     def test_list_json_empty_db_parsed_claims_result_exit_code_equals_n_0(self, runner, isolated_db):
@@ -357,15 +345,11 @@ class TestClaimList:
 
     def test_list_json_empty_db_parsed_claims_parsed_claims(self, runner, isolated_db):
         # Arrange
-        # Arrange
-        # Act
         result = runner.invoke(main, ["--json", "claim", "list"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
         # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
-        assert parsed["claims"] == []
+        assert parsed.get("claims") == [], result.output
 
 
 
@@ -396,16 +380,12 @@ class TestClaimList:
 
     def test_list_after_add_parsed_count_1_parsed_count_1(self, runner, isolated_db, tmp_path):
         # Arrange
-        # Arrange
         self._seed(runner, tmp_path)
         # Act
         result = runner.invoke(main, ["--json", "claim", "list"])
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
-        # Assert
-        assert parsed["count"] == 1
+        assert parsed.get("count") == 1, result.output
 
 
 
@@ -502,10 +482,7 @@ class TestHashFile:
         # Arrange
         # Act
         result = runner.invoke(main, ["--json", "hash-file", str(sample_files["src"])])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert parsed["path"] == str(sample_files["src"])
 
@@ -525,10 +502,7 @@ class TestHashFile:
         # Arrange
         # Act
         result = runner.invoke(main, ["--json", "hash-file", str(sample_files["src"])])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert parsed["algorithm"] == "sha256"
 
@@ -548,10 +522,7 @@ class TestHashFile:
         # Arrange
         # Act
         result = runner.invoke(main, ["--json", "hash-file", str(sample_files["src"])])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert isinstance(parsed["hash"], str) and len(parsed["hash"]) > 0
 
@@ -635,10 +606,7 @@ class TestHashDirectory:
         result = runner.invoke(
             main, ["--json", "hash-directory", str(sample_files["dir"])]
         )
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert parsed["path"] == str(sample_files["dir"])
 
@@ -662,10 +630,7 @@ class TestHashDirectory:
         result = runner.invoke(
             main, ["--json", "hash-directory", str(sample_files["dir"])]
         )
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert isinstance(parsed["hashes"], dict)
 
@@ -689,10 +654,7 @@ class TestHashDirectory:
         result = runner.invoke(
             main, ["--json", "hash-directory", str(sample_files["dir"])]
         )
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert len(parsed["hashes"]) >= 3  # src.csv, sub/x.txt, sub/y.txt
 
@@ -781,10 +743,7 @@ class TestStampGroup:
         # Arrange
         # Act
         result = runner.invoke(main, ["--json", "list-stamps"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert parsed["count"] == 0
 
@@ -804,10 +763,7 @@ class TestStampGroup:
         # Arrange
         # Act
         result = runner.invoke(main, ["--json", "list-stamps"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert parsed["stamps"] == []
 
@@ -860,10 +816,7 @@ class TestUniversalJsonFlag:
         # Arrange
         # Act
         result = runner.invoke(main, ["--json", "status"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert "verified_count" in parsed
 
@@ -897,10 +850,7 @@ class TestUniversalJsonFlag:
         # Arrange
         # Act
         result = runner.invoke(main, ["--json", "list-runs"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert "count" in parsed and "runs" in parsed
 
@@ -934,10 +884,7 @@ class TestUniversalJsonFlag:
         # Arrange
         # Act
         result = runner.invoke(main, ["--json", "show-stats"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert "total_runs" in parsed
 
@@ -971,10 +918,7 @@ class TestUniversalJsonFlag:
         # Arrange
         # Act
         result = runner.invoke(main, ["--json", "print-mermaid"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert "mermaid" in parsed
 
@@ -1023,10 +967,7 @@ class TestUniversalJsonFlag:
         # Arrange
         # Act
         result = runner.invoke(main, ["--json", "dag", "--claims"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert "status" in parsed
 

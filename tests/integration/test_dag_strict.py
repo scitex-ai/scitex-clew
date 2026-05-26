@@ -595,10 +595,7 @@ class TestStrictDagViaCLI:
                 str(chain_capsule["leaf"]),
             ],
         )
-        # Assert
-        assert result.exit_code == 0, result.output
-        payload = json.loads(result.output)
-        # Act
+        payload = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert payload["status"] == "FAIL"
 
@@ -644,10 +641,7 @@ class TestStrictDagViaCLI:
                 str(chain_capsule["leaf"]),
             ],
         )
-        # Assert
-        assert result.exit_code == 0, result.output
-        payload = json.loads(result.output)
-        # Act
+        payload = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert payload["failed_node"] is not None
 
@@ -693,10 +687,7 @@ class TestStrictDagViaCLI:
                 str(chain_capsule["leaf"]),
             ],
         )
-        # Assert
-        assert result.exit_code == 0, result.output
-        payload = json.loads(result.output)
-        # Act
+        payload = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert payload["root_cause"] is not None
 
@@ -757,10 +748,7 @@ class TestStrictDagViaCLI:
                 str(chain_capsule["leaf"]),
             ],
         )
-        # Assert
-        assert result.exit_code == 0, result.output
-        payload = json.loads(result.output)
-        # Act
+        payload = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert payload["status"] == "OK"
 

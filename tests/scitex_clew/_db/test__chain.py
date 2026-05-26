@@ -319,17 +319,12 @@ class TestAddParent:
         assert db.get_run("c_primary")["parent_session"] is None
 
     def test_add_parent_sets_primary_if_null_run_parent_session_p_primary_run_parent_session_p_primary(self, db):
-        # Arrange
-        # Arrange
+        # Arrange — child starts parentless, then a primary parent is added.
         _add_run(db, "p_primary")
-        # Act
         _add_run(db, "c_primary")
-        # No parent initially
-        # Assert
-        assert db.get_run("c_primary")["parent_session"] is None
+        # Act
         db.add_parent("c_primary", "p_primary")
         run = db.get_run("c_primary")
-        # Act
         # Assert
         assert run["parent_session"] == "p_primary"
 

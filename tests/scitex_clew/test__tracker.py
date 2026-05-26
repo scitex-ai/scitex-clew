@@ -525,13 +525,9 @@ class TestFinalize:
 
     def test_finalize_marks_finalized_tracker_finalized_tracker_finalized(self):
         # Arrange
-        # Arrange
-        # Act
         tracker = SessionTracker("sess_050")
-        # Assert
-        assert not tracker._finalized
-        tracker.finalize()
         # Act
+        tracker.finalize()
         # Assert
         assert tracker._finalized
 
@@ -767,13 +763,9 @@ class TestSummary:
 
     def test_summary_finalized_flag_tracker_summary_finalized_tracker_summary_finalized(self):
         # Arrange
-        # Arrange
-        # Act
         tracker = SessionTracker("sess_061")
-        # Assert
-        assert not tracker.summary()["finalized"]
-        tracker.finalize()
         # Act
+        tracker.finalize()
         # Assert
         assert tracker.summary()["finalized"]
 

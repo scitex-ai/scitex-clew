@@ -19,6 +19,10 @@ import pytest
 
 # ===== AUTO-GENERATED: cross-package imports =====
 CROSS_PACKAGE_IMPORTS = [
+    'scitex_clew',
+    'scitex_clew._claim',
+    'scitex_clew._cli',
+    'scitex_clew._dag',
     'scitex_dev._cli._completion',
     'scitex_dev.cli',
     'scitex_dev.decorators',
@@ -32,5 +36,6 @@ def test_cross_package_import(module_name):
     """Importing scitex-clew's declared cross-package dependency must succeed."""
     # Arrange
     # Act
+    module = pytest.importorskip(module_name)
     # Assert
-    pytest.importorskip(module_name)
+    assert getattr(module, "__name__", None) == module_name

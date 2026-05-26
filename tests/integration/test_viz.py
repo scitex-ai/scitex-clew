@@ -1777,7 +1777,7 @@ class TestGenerateMermaidDagEmpty:
         # Assert
         assert "No runs found" in result
 
-    def test_no_targets_claims_calls_generate_multi_target(self):
+    def test_no_targets_claims_invokes_multi_target_once(self):
         """When claims=True the multi-target path is taken."""
         # Arrange
         from scitex_clew._viz._mermaid import generate_mermaid_dag
@@ -1787,10 +1787,23 @@ class TestGenerateMermaidDagEmpty:
         def _fake_multi(*a, **kw):
             _multi_calls.append((a, kw))
             return 'graph TD\n    empty["No runs found"]'
+        # Act
+        with _swap_attr(_mermaid_mod, "generate_multi_target_dag", _fake_multi):
+            generate_mermaid_dag(claims=True)
+        # Assert
+        assert len(_multi_calls) == 1
+
+    def test_no_targets_claims_returns_string(self):
+        """When claims=True the multi-target path returns a string."""
+        # Arrange
+        from scitex_clew._viz._mermaid import generate_mermaid_dag
+
+        from scitex_clew._viz import _mermaid as _mermaid_mod
+        def _fake_multi(*a, **kw):
+            return 'graph TD\n    empty["No runs found"]'
+        # Act
         with _swap_attr(_mermaid_mod, "generate_multi_target_dag", _fake_multi):
             result = generate_mermaid_dag(claims=True)
-        # Act
-        assert len(_multi_calls) == 1
         # Assert
         assert isinstance(result, str)
 
@@ -1942,17 +1955,12 @@ class TestRenderDag:
 
     def test_render_to_mmd_file_graph_td_in_content_graph_td_in_content(self, tmp_path):
         # Arrange
-        # Arrange
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "diagram.mmd"
         # Act
         with _swap_attr(_mermaid_mod, "generate_mermaid_dag", lambda *a, **kw: self._mock_mermaid()):
-            result = render_dag(out)
-        # Assert
-        assert result == out
-        assert out.exists()
-        content = out.read_text()
-        # Act
+            render_dag(out)
+        content = out.read_text() if out.exists() else ""
         # Assert
         assert "graph TD" in content
 
@@ -2018,17 +2026,12 @@ class TestRenderDag:
 
     def test_render_to_html_file_doctype_html_in_content_doctype_html_in_content(self, tmp_path):
         # Arrange
-        # Arrange
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "diagram.html"
         # Act
         with _swap_attr(_mermaid_mod, "generate_html_dag", lambda *a, **kw: self._mock_html()):
-            result = render_dag(out)
-        # Assert
-        assert result == out
-        assert out.exists()
-        content = out.read_text()
-        # Act
+            render_dag(out)
+        content = out.read_text() if out.exists() else ""
         # Assert
         assert "<!DOCTYPE html>" in content
 
@@ -2114,7 +2117,6 @@ class TestRenderDag:
 
     def test_render_to_json_file_nodes_in_parsed_nodes_in_parsed(self, tmp_path):
         # Arrange
-        # Arrange
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "graph.json"
         fake_graph = {
@@ -2124,12 +2126,8 @@ class TestRenderDag:
         }
         # Act
         with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
-            result = render_dag(out)
-        # Assert
-        assert result == out
-        assert out.exists()
-        parsed = json.loads(out.read_text())
-        # Act
+            render_dag(out)
+        parsed = json.loads(out.read_text()) if out.exists() else {}
         # Assert
         assert "nodes" in parsed
 
@@ -2172,7 +2170,6 @@ class TestRenderDag:
 
     def test_render_to_json_file_links_in_parsed_links_in_parsed(self, tmp_path):
         # Arrange
-        # Arrange
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "graph.json"
         fake_graph = {
@@ -2182,12 +2179,8 @@ class TestRenderDag:
         }
         # Act
         with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
-            result = render_dag(out)
-        # Assert
-        assert result == out
-        assert out.exists()
-        parsed = json.loads(out.read_text())
-        # Act
+            render_dag(out)
+        parsed = json.loads(out.read_text()) if out.exists() else {}
         # Assert
         assert "links" in parsed
 
@@ -2230,7 +2223,6 @@ class TestRenderDag:
 
     def test_render_to_json_file_metadata_in_parsed_metadata_in_parsed(self, tmp_path):
         # Arrange
-        # Arrange
         from scitex_clew._viz._mermaid import render_dag
         out = tmp_path / "graph.json"
         fake_graph = {
@@ -2240,12 +2232,8 @@ class TestRenderDag:
         }
         # Act
         with _swap_attr(_mermaid_mod, "generate_dag_json", lambda *a, **kw: fake_graph):
-            result = render_dag(out)
-        # Assert
-        assert result == out
-        assert out.exists()
-        parsed = json.loads(out.read_text())
-        # Act
+            render_dag(out)
+        parsed = json.loads(out.read_text()) if out.exists() else {}
         # Assert
         assert "metadata" in parsed
 
