@@ -255,9 +255,9 @@ class TestRegisterAllTools:
             "clew_skills_list",
             "clew_skills_get",
             # F1 — claim/hash/stamp wrappers
-            "clew_claim_add",
-            "clew_claim_list",
-            "clew_claim_verify",
+            "clew_add_claim",
+            "clew_list_claims",
+            "clew_verify_claim",
             "clew_hash_file",
             "clew_hash_directory",
             "clew_stamp",

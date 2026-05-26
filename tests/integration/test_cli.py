@@ -334,17 +334,20 @@ class TestVersion:
         # Assert
         assert len(parts) >= 2
 
-    def test_version_output_contains_dot_separated_number_in_version_str_in_version_str(self, runner):
-        # Arrange
+    def test_version_output_has_at_least_two_tokens(self, runner):
         # Arrange
         result = runner.invoke(main, ["--version"])
-        # version string format: "scitex-clew X.Y.Z" or "scitex-clew X.Y.Z-something"
         # Act
         parts = result.output.strip().split()
         # Assert
         assert len(parts) >= 2
-        version_str = parts[-1]
+
+    def test_version_output_contains_dot_separated_number(self, runner):
+        # Arrange — version string format: "scitex-clew X.Y.Z" or "scitex-clew X.Y.Z-something"
+        result = runner.invoke(main, ["--version"])
+        parts = result.output.strip().split()
         # Act
+        version_str = parts[-1] if parts else ""
         # Assert
         assert "." in version_str
 
@@ -787,15 +790,11 @@ class TestStatsCommand:
 
     def test_populated_db_total_runs_one_parsed_total_runs_1_parsed_total_runs_1(self, runner, populated_db):
         # Arrange
-        # Arrange
-        # Act
         result = runner.invoke(main, ["show-stats"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
         # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
-        assert parsed["total_runs"] == 1
+        assert parsed.get("total_runs") == 1
 
 
 
@@ -1010,13 +1009,9 @@ class TestListPythonApisCommand:
 
     def test_json_flag_outputs_valid_json_parsed_is_list_parsed_is_list(self, runner):
         # Arrange
-        # Arrange
-        # Act
         result = runner.invoke(main, ["list-python-apis", "--json"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
         # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else None
         # Assert
         assert isinstance(parsed, list)
 
@@ -1181,13 +1176,9 @@ class TestListPythonApisCommand:
 
     def test_json_and_verbose_combination_docstring_in_parsed_0_docstring_in_parsed_0(self, runner):
         # Arrange
-        # Arrange
-        # Act
         result = runner.invoke(main, ["list-python-apis", "--json", "-v"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
         # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else [{}]
         # Assert
         assert "Docstring" in parsed[0]
 
@@ -1407,43 +1398,25 @@ class TestMcpDoctor:
 
     def test_fastmcp_installed_shows_ok_result_exit_code_equals_n_0(self, runner):
         # Arrange
-        # Arrange
-        # Arrange
-        try:
-            import fastmcp  # noqa: F401
-        except ImportError:
-            pytest.skip("fastmcp not installed in this environment")
-        # Act
-        # Act
+        pytest.importorskip("fastmcp")
         import scitex_clew._mcp as _mcp_mod
 
         tools = [_FakeTool("t1"), _FakeTool("t2"), _FakeTool("t3")]
+        # Act
         with _swap_attr(_mcp_mod, "get_tools_sync", lambda *a, **kw: tools):
             result = runner.invoke(main, ["mcp", "doctor"])
-        # Act
-        # Assert
-        # Assert
         # Assert
         assert result.exit_code == 0
 
     def test_fastmcp_installed_shows_ok_ok_in_result_output_or_fastmcp_in_result_output(self, runner):
         # Arrange
-        # Arrange
-        # Arrange
-        try:
-            import fastmcp  # noqa: F401
-        except ImportError:
-            pytest.skip("fastmcp not installed in this environment")
-        # Act
-        # Act
+        pytest.importorskip("fastmcp")
         import scitex_clew._mcp as _mcp_mod
 
         tools = [_FakeTool("t1"), _FakeTool("t2"), _FakeTool("t3")]
+        # Act
         with _swap_attr(_mcp_mod, "get_tools_sync", lambda *a, **kw: tools):
             result = runner.invoke(main, ["mcp", "doctor"])
-        # Act
-        # Assert
-        # Assert
         # Assert
         assert "OK" in result.output or "fastmcp" in result.output
 
@@ -1566,15 +1539,11 @@ class TestMcpListTools:
 
     def test_list_tools_json_outputs_valid_json_total_in_parsed_total_in_parsed(self, runner):
         # Arrange
-        # Arrange
         fake_tool = self._make_fake_tool("clew_status", "Get status.")
         # Act
         with self._patch_get_tools([fake_tool]):
             result = runner.invoke(main, ["mcp", "list-tools", "--json"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert "total" in parsed
 
@@ -1593,15 +1562,11 @@ class TestMcpListTools:
 
     def test_list_tools_json_outputs_valid_json_tools_in_parsed_tools_in_parsed(self, runner):
         # Arrange
-        # Arrange
         fake_tool = self._make_fake_tool("clew_status", "Get status.")
         # Act
         with self._patch_get_tools([fake_tool]):
             result = runner.invoke(main, ["mcp", "list-tools", "--json"])
-        # Assert
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        # Act
+        parsed = json.loads(result.output) if result.exit_code == 0 else {}
         # Assert
         assert "tools" in parsed
 
@@ -1746,14 +1711,10 @@ class TestMcpListTools:
     def test_list_tools_with_real_fastmcp_if_available(self, runner):
         """End-to-end test: if fastmcp is installed, list-tools must exit 0."""
         # Arrange
-        try:
-            from scitex_clew._mcp.server import mcp as _mcp_server  # noqa: F401
-        except ImportError:
-            pytest.skip("fastmcp / MCP server not available in this environment")
-
-        # Act
+        pytest.importorskip("scitex_clew._mcp.server")
         import scitex_clew._mcp as _mcp_mod
 
+        # Act
         with _swap_attr(_mcp_mod, "get_tools_sync", lambda *a, **kw: []):
             result = runner.invoke(main, ["mcp", "list-tools"])
         # Assert

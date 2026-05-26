@@ -252,7 +252,7 @@ AI agents can verify reproducibility and trace provenance autonomously.
 | `clew_mermaid` | Generate Mermaid DAG diagram |
 | `clew_rerun_dag` | Rerun full DAG in sandbox |
 | `clew_rerun_claims` | Rerun all claim-backing sessions |
-| `clew_claim_add` / `clew_claim_list` / `clew_claim_verify` | Claim CRUD (F1) |
+| `clew_add_claim` / `clew_list_claims` / `clew_verify_claim` | Claim CRUD (F1) |
 | `clew_hash_file` / `clew_hash_directory` | File/directory hashing (F1) |
 | `clew_stamp` / `clew_list_stamps` / `clew_check_stamp` | Temporal stamping (F1) |
 

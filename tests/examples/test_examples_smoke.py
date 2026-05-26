@@ -38,16 +38,20 @@ class TestFindExamplesDir:
         # Assert
         assert result is None or isinstance(result, Path)
 
-    def test_returns_existing_dir_if_found(self):
+    def test_returns_existing_dir_if_found_exists(self):
         # Arrange
         # Act
-        # Assert
-        # Arrange
-        # Act
-        # Assert
         result = _find_examples_dir()
+        # Assert
         if result is not None:
             assert result.exists()
+
+    def test_returns_existing_dir_if_found_is_dir(self):
+        # Arrange
+        # Act
+        result = _find_examples_dir()
+        # Assert
+        if result is not None:
             assert result.is_dir()
 
     def test_bundled_example_data_used_if_exists(self):
@@ -92,20 +96,22 @@ class TestFindExamplesDir:
         # Assert
         assert not nonexistent.exists()
 
-    def test_returns_none_when_no_candidates_exist_result_is_none_result_is_none(self, tmp_path):
-        # Manually exercise the same lookup logic with a non-existent candidate.
+    def test_returns_none_when_no_candidates_exist_setup_nonexistent_path(self, tmp_path):
         # Arrange
-        # Arrange
-        # Act
         nonexistent = tmp_path / "does_not_exist"
+        # Act
         # Assert
         assert not nonexistent.exists()
+
+    def test_returns_none_when_no_candidates_exist_lookup_returns_none(self, tmp_path):
+        # Arrange
+        nonexistent = tmp_path / "does_not_exist"
+        # Act
         result = None
         for candidate in [nonexistent]:
             if candidate.exists() and candidate.is_dir():
                 result = candidate
                 break
-        # Act
         # Assert
         assert result is None
 
@@ -242,17 +248,21 @@ class TestInitExamples:
         # Assert
         assert not dest.exists()
 
-    def test_creates_destination_directory_dest_exists_dest_exists(self, tmp_path):
+    def test_creates_destination_directory_dest_starts_missing(self, tmp_path):
         # Arrange
-        # Arrange
-        src = self._make_fake_examples_dir(tmp_path)
-        # Act
+        self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "new_dest" / "nested"
+        # Act
         # Assert
         assert not dest.exists()
+
+    def test_creates_destination_directory_dest_exists_after_init(self, tmp_path):
+        # Arrange
+        src = self._make_fake_examples_dir(tmp_path)
+        dest = tmp_path / "new_dest" / "nested"
+        # Act
         with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
             init_examples(dest)
-        # Act
         # Assert
         assert dest.exists()
 

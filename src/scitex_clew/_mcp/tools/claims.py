@@ -20,10 +20,15 @@ def _json(data) -> str:
 
 
 def register_tools(mcp: FastMCP) -> None:
-    """Register clew_claim_add / list / verify."""
+    """Register clew_add_claim / list_claims / verify_claim.
+
+    Tool names mirror the Python-API names exactly (per §6 MCP-parity
+    rule): `scitex_clew.add_claim` → `clew_add_claim`, etc. The earlier
+    `clew_claim_<verb>` naming created spurious §6 misses.
+    """
 
     @mcp.tool()
-    async def clew_claim_add(
+    async def clew_add_claim(
         file_path: str,
         claim_type: str,
         line_number: Optional[int] = None,
@@ -66,7 +71,7 @@ def register_tools(mcp: FastMCP) -> None:
         return _json(c.to_dict())
 
     @mcp.tool()
-    async def clew_claim_list(
+    async def clew_list_claims(
         file_path: Optional[str] = None,
         claim_type: Optional[str] = None,
         status: Optional[str] = None,
@@ -87,7 +92,7 @@ def register_tools(mcp: FastMCP) -> None:
         return _json({"count": len(claims), "claims": [c.to_dict() for c in claims]})
 
     @mcp.tool()
-    async def clew_claim_verify(
+    async def clew_verify_claim(
         claim_id_or_location: str,
     ) -> str:
         """Verify a registered claim by id or 'file.tex:L42'.

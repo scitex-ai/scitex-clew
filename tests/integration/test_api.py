@@ -52,23 +52,27 @@ class TestPublicAPI:
         # Assert
         assert set(clew.__all__) == expected
 
-    def test_all_names_are_callable(self):
-        # Modules in __all__ are namespace exports; __version__ is a string;
-        # everything else must be callable.
+    def test_version_in_all_is_a_string(self):
+        # __version__ is the lone non-callable in __all__ — it must be a string.
         # Arrange
         # Act
+        version = getattr(clew, "__version__", None)
         # Assert
+        assert isinstance(version, str)
+
+    def test_all_non_version_names_are_callable_or_module(self):
+        # Modules in __all__ are namespace exports; everything else (besides
+        # __version__) must be callable.
         # Arrange
+        names = [n for n in clew.__all__ if n != "__version__"]
         # Act
+        bad = [
+            name
+            for name in names
+            if not (callable(getattr(clew, name)) or isinstance(getattr(clew, name), types.ModuleType))
+        ]
         # Assert
-        for name in clew.__all__:
-            obj = getattr(clew, name)
-            if name == "__version__":
-                assert isinstance(obj, str), f"{name} should be a version string"
-                continue
-            assert callable(obj) or isinstance(obj, types.ModuleType), (
-                f"{name} is not callable or a module"
-            )
+        assert bad == []
 
 
 class TestBackwardCompat:
@@ -325,30 +329,38 @@ class TestBackwardCompat:
         assert clew.Stamp is not None
 
 
-    def test_old_names_not_in_all(self):
-        """Old names are accessible but NOT in __all__."""
+    OLD_NAMES = [
+        "verify_run",
+        "verify_chain",
+        "verify_dag",
+        "verify_by_rerun",
+        "get_db",
+        "set_db",
+        "get_status",
+        "get_tracker",
+        "format_status",
+        "generate_mermaid_dag",
+        "render_dag",
+        "VerificationDB",
+        "SessionTracker",
+        "VerificationStatus",
+    ]
+
+    def test_old_names_excluded_from_all(self):
+        """Old names must not appear in clew.__all__."""
         # Arrange
+        leaked = [n for n in self.OLD_NAMES if n in clew.__all__]
         # Act
         # Assert
-        old_names = [
-            "verify_run",
-            "verify_chain",
-            "verify_dag",
-            "verify_by_rerun",
-            "get_db",
-            "set_db",
-            "get_status",
-            "get_tracker",
-            "format_status",
-            "generate_mermaid_dag",
-            "render_dag",
-            "VerificationDB",
-            "SessionTracker",
-            "VerificationStatus",
-        ]
-        for name in old_names:
-            assert name not in clew.__all__, f"{name} should not be in __all__"
-            assert hasattr(clew, name), f"{name} should still be accessible"
+        assert leaked == []
+
+    def test_old_names_still_accessible(self):
+        """Old names must remain accessible as attributes for backward compat."""
+        # Arrange
+        missing = [n for n in self.OLD_NAMES if not hasattr(clew, n)]
+        # Act
+        # Assert
+        assert missing == []
 
 
 class TestConvenienceFunctions:

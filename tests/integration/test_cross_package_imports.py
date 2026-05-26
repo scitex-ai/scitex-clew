@@ -18,6 +18,15 @@ in its source tree. Two outcomes:
 import pytest
 
 # ===== AUTO-GENERATED: cross-package imports =====
+# NOTE: scitex_clew self-imports (scitex_clew, scitex_clew._claim,
+# scitex_clew._cli, scitex_clew._dag) are deliberately omitted — the
+# scitex-dev auditor disagrees with itself on whether self-imports
+# belong in the cross-package gate ("missing" verdict in some envs,
+# "stale" verdict once added). This is an upstream auditor bug
+# (`_check_umbrella_dep_and_integration._own_import_name` derives the
+# own-name from the repo directory basename — see scitex-ml PR #8
+# for the full diagnosis). Keep the gate to genuine cross-package
+# imports only; the CI auditor sees these as "stale" if added.
 CROSS_PACKAGE_IMPORTS = [
     'scitex_dev._cli._completion',
     'scitex_dev.cli',
@@ -32,5 +41,6 @@ def test_cross_package_import(module_name):
     """Importing scitex-clew's declared cross-package dependency must succeed."""
     # Arrange
     # Act
+    module = pytest.importorskip(module_name)
     # Assert
-    pytest.importorskip(module_name)
+    assert getattr(module, "__name__", None) == module_name

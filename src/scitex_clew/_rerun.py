@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict
 
 from ._chain import (
+    DAGVerification,
     FileVerification,
     RunVerification,
     VerificationLevel,

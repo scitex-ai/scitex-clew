@@ -223,16 +223,12 @@ def test_get_api_tree_records_module_root_root_type_m_len_rows_is_1():
 
 def test_get_api_tree_records_module_root_root_type_m_root_type_m():
     # Arrange
-    # Arrange
     mod = types.ModuleType("alpha")
     # Act
     rows = _get_api_tree(mod, max_depth=2)
+    root = rows[0] if rows else {}
     # Assert
-    assert len(rows) == 1
-    root = rows[0]
-    # Act
-    # Assert
-    assert root["Type"] == "M"
+    assert root.get("Type") == "M"
 
 
 
@@ -251,16 +247,12 @@ def test_get_api_tree_records_module_root_root_depth_0_len_rows_is_1():
 
 def test_get_api_tree_records_module_root_root_depth_0_root_depth_0():
     # Arrange
-    # Arrange
     mod = types.ModuleType("alpha")
     # Act
     rows = _get_api_tree(mod, max_depth=2)
+    root = rows[0] if rows else {}
     # Assert
-    assert len(rows) == 1
-    root = rows[0]
-    # Act
-    # Assert
-    assert root["Depth"] == 0
+    assert root.get("Depth") == 0
 
 
 
@@ -279,16 +271,12 @@ def test_get_api_tree_records_module_root_root_name_alpha_len_rows_is_1():
 
 def test_get_api_tree_records_module_root_root_name_alpha_root_name_alpha():
     # Arrange
-    # Arrange
     mod = types.ModuleType("alpha")
     # Act
     rows = _get_api_tree(mod, max_depth=2)
+    root = rows[0] if rows else {}
     # Assert
-    assert len(rows) == 1
-    root = rows[0]
-    # Act
-    # Assert
-    assert root["Name"] == "alpha"
+    assert root.get("Name") == "alpha"
 
 
 
@@ -432,7 +420,6 @@ def test_get_api_tree_respects_max_depth_len_rows_deep_1_len_rows_shallow_is_1()
 
 def test_get_api_tree_respects_max_depth_len_rows_deep_1_len_rows_deep_1():
     # Arrange
-    # Arrange
     mod = types.ModuleType("c0")
     sub = types.ModuleType("c0.c1")
     sub.fn = lambda: None  # type: ignore[attr-defined]
@@ -440,13 +427,8 @@ def test_get_api_tree_respects_max_depth_len_rows_deep_1_len_rows_deep_1():
     mod.c1 = sub  # type: ignore[attr-defined]
     mod.__all__ = ["c1"]
     # Act
-    rows_shallow = _get_api_tree(mod, max_depth=0)
-    # Only root row at max_depth=0.
-    # Assert
-    assert len(rows_shallow) == 1
     rows_deep = _get_api_tree(mod, max_depth=3)
-    # Act
-    # Assert
+    # Assert — deep crawl exposes more than the root row.
     assert len(rows_deep) > 1
 
 
@@ -583,10 +565,7 @@ def test_list_python_apis_json_invocation_returns_zero_payload_is_list_payload_i
     runner = CliRunner()
     # Act
     result = runner.invoke(list_python_apis, ["--json", "--root-only"])
-    # Assert
-    assert result.exit_code == 0
-    payload = json.loads(result.output)
-    # Act
+    payload = json.loads(result.output) if result.exit_code == 0 else {}
     # Assert
     assert isinstance(payload, list)
 
@@ -611,10 +590,7 @@ def test_list_python_apis_json_invocation_returns_zero_len_payload_1_len_payload
     runner = CliRunner()
     # Act
     result = runner.invoke(list_python_apis, ["--json", "--root-only"])
-    # Assert
-    assert result.exit_code == 0
-    payload = json.loads(result.output)
-    # Act
+    payload = json.loads(result.output) if result.exit_code == 0 else {}
     # Assert
     assert len(payload) >= 1
 
@@ -686,16 +662,12 @@ def test_list_python_apis_root_only_limits_depth_shallow_n_deep_n_deep_exit_code
 
 def test_list_python_apis_root_only_limits_depth_shallow_n_deep_n_shallow_n_deep_n():
     # Arrange
-    # Arrange
     runner = CliRunner()
     deep = runner.invoke(list_python_apis, ["--json"])
-    # Act
     shallow = runner.invoke(list_python_apis, ["--json", "--root-only"])
-    # Assert
-    assert deep.exit_code == 0 and shallow.exit_code == 0
-    deep_n = len(json.loads(deep.output))
-    shallow_n = len(json.loads(shallow.output))
     # Act
+    deep_n = len(json.loads(deep.output)) if deep.exit_code == 0 else 0
+    shallow_n = len(json.loads(shallow.output)) if shallow.exit_code == 0 else 0
     # Assert
     assert shallow_n <= deep_n
 

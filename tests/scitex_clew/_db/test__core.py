@@ -47,23 +47,27 @@ class TestVerificationDB:
         assert db is not None
 
 
-    def test_init_creates_tables(self, db):
-        """Test that initialization creates required tables."""
+    def test_init_creates_runs_table(self, db):
+        """Initialization must create the `runs` table."""
         # Arrange
         # Act
-        # Assert
         with db._connect() as conn:
-            # Check runs table exists
             result = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='runs'"
             ).fetchone()
-            assert result is not None
+        # Assert
+        assert result is not None
 
-            # Check file_hashes table exists
+    def test_init_creates_file_hashes_table(self, db):
+        """Initialization must create the `file_hashes` table."""
+        # Arrange
+        # Act
+        with db._connect() as conn:
             result = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='file_hashes'"
             ).fetchone()
-            assert result is not None
+        # Assert
+        assert result is not None
 
 
 class TestRunOperations:
@@ -376,17 +380,11 @@ class TestFileHashOperations:
 
     def test_get_file_hashes_by_role_len_outputs_is_1_len_outputs_is_1(self, db):
         # Arrange
-        # Arrange
         db.add_run(session_id="test_session", script_path="/path/script.py")
         db.add_file_hash("test_session", "/path/input.csv", "hash1", "input")
         db.add_file_hash("test_session", "/path/output.csv", "hash2", "output")
         # Act
-        inputs = db.get_file_hashes("test_session", role="input")
-        # Assert
-        assert len(inputs) == 1
-        assert "/path/input.csv" in inputs
         outputs = db.get_file_hashes("test_session", role="output")
-        # Act
         # Assert
         assert len(outputs) == 1
 
@@ -419,17 +417,11 @@ class TestFileHashOperations:
 
     def test_get_file_hashes_by_role_path_output_csv_in_outputs_path_output_csv_in_outputs(self, db):
         # Arrange
-        # Arrange
         db.add_run(session_id="test_session", script_path="/path/script.py")
         db.add_file_hash("test_session", "/path/input.csv", "hash1", "input")
         db.add_file_hash("test_session", "/path/output.csv", "hash2", "output")
         # Act
-        inputs = db.get_file_hashes("test_session", role="input")
-        # Assert
-        assert len(inputs) == 1
-        assert "/path/input.csv" in inputs
         outputs = db.get_file_hashes("test_session", role="output")
-        # Act
         # Assert
         assert "/path/output.csv" in outputs
 
