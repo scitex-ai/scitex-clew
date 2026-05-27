@@ -149,7 +149,7 @@ def stamp(
     session_ids : list of str, optional
         Specific sessions to stamp. If None, stamps all successful runs.
     output_dir : str, optional
-        Directory for file-based stamps (default: .scitex/stamps/).
+        Directory for file-based stamps (default: <db_dir>/stamps, i.e. .scitex/clew/runtime/stamps/).
 
     Returns
     -------

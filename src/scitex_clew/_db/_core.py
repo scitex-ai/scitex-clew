@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import warnings
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -24,6 +25,35 @@ def _find_project_root() -> Path:
         if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
             return parent
     return current
+
+
+def _default_db_path(project_root: Path) -> Path:
+    """Resolve the default database path under ``runtime/``.
+
+    Returns ``<project_root>/.scitex/clew/runtime/db.sqlite`` per the
+    ecosystem local-state-directories convention.
+
+    Back-compat (skill §8): if the legacy path
+    ``<project_root>/.scitex/clew/db.sqlite`` exists and the new path
+    does not, migrate silently on first access and emit a one-time
+    deprecation warning.
+    """
+    new = project_root / ".scitex" / "clew" / "runtime" / "db.sqlite"
+    if new.exists():
+        return new
+
+    old = project_root / ".scitex" / "clew" / "db.sqlite"
+    if old.exists():
+        new.parent.mkdir(parents=True, exist_ok=True)
+        old.rename(new)
+        warnings.warn(
+            f"Moved database from {old} to {new}. "
+            "The legacy location is deprecated and will be removed "
+            "in a future version. Set SCITEX_CLEW_DB_PATH to suppress.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    return new
 
 
 class VerificationDB(VerificationQueryMixin, ChainMixin):
@@ -52,16 +82,17 @@ class VerificationDB(VerificationQueryMixin, ChainMixin):
             Path to database file. Resolution order:
             1. Explicit db_path argument
             2. SCITEX_CLEW_DB_PATH environment variable
-            3. {project_root}/.scitex/clew/db.sqlite where project_root is
-               found by walking up from cwd until a .git / pyproject.toml is
-               found; falls back to cwd if no root marker is found.
+            3. {project_root}/.scitex/clew/runtime/db.sqlite where
+               project_root is found by walking up from cwd until a
+               .git / pyproject.toml is found; falls back to cwd if no
+               root marker is found.
         """
         if db_path is None:
             env_path = os.environ.get("SCITEX_CLEW_DB_PATH")
             if env_path:
                 db_path = Path(env_path)
             else:
-                db_path = _find_project_root() / ".scitex" / "clew" / "db.sqlite"
+                db_path = _default_db_path(_find_project_root())
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
@@ -448,7 +479,7 @@ def set_db(db_path: Union[str, Path]) -> VerificationDB:
     Parameters
     ----------
     db_path : str or Path
-        Path to database file (e.g. "./.scitex/clew/db.sqlite" for project-relative).
+        Path to database file (e.g. "./.scitex/clew/runtime/db.sqlite" for project-relative).
 
     Returns
     -------
