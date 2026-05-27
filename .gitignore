@@ -3,6 +3,13 @@
 # Please add files here
 logs/
 
+# Ecosystem local-state-directories convention (§4b): runtime/ contents
+# are regenerable and must never be committed. Only .gitkeep and
+# README.md are tracked.
+.scitex/*/runtime/*
+!.scitex/*/runtime/.gitkeep
+!.scitex/*/runtime/README.md
+
 ### Source: /home/ywatanabe/.git-templates/.gitignore-templates/Custom/Claude.gitignore ###
 docs/to_claude
 docs/from_agents
