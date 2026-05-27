@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-clew"
-version = "0.2.8"
+version = "0.2.11"
 description = "Verifiable knowledge graph for scientific experiments"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -33,7 +33,6 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "scitex",
 ]
 [project.optional-dependencies]
 cli = [
@@ -47,7 +46,9 @@ dev = [
     "click>=8.0.0",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
-    "scitex-dev",
+    # pytest-timeout — CI runs pytest with --timeout=120 (test.yml).
+    "pytest-timeout>=2.0",
+    "scitex-dev>=0.11.7",
 ]
 docs = [
     "sphinx>=7.0",
@@ -62,13 +63,14 @@ all = [
 ]
 
 [project.scripts]
-clew = "scitex_clew._cli:main"
+clew = "scitex_clew._cli._main:main"
+scitex-clew = "scitex_clew._cli._main:main"
 [project.entry-points."scitex_dev.docs"]
 scitex-clew = "scitex_clew"
 [project.entry-points."scitex_dev.skills"]
 scitex-clew = "scitex_clew"
 
-[project.entry-points."scitex_linter.plugins"]
+[project.entry-points."scitex_dev.linter.plugins"]
 clew = "scitex_clew._linter_plugin:get_plugin"
 [project.urls]
 Homepage = "https://github.com/ywatanabe1989/scitex-clew"
@@ -78,5 +80,14 @@ Documentation = "https://scitex-clew.readthedocs.io"
 packages = ["src/scitex_clew"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+# Subprocess coverage wiring (skill leaf 05_development_06_subprocess-coverage):
+# parallel=true makes every coverage process write to its own
+# .coverage.<host>.<pid>.<rand> shard; concurrency covers subprocess.run + threads.
+parallel = true
+source = ["scitex_clew"]
+concurrency = ["multiprocessing", "thread"]
+
 [tool.scitex-linter]
 library_dirs = ["src", "tests", "examples"]

@@ -45,6 +45,7 @@ from __future__ import annotations
 
 try:
     from importlib.metadata import version as _v, PackageNotFoundError
+
     try:
         __version__ = _v("scitex-clew")
     except PackageNotFoundError:
@@ -58,8 +59,10 @@ except ImportError:  # pragma: no cover — only on ancient Pythons
 # ---------------------------------------------------------------------------
 try:
     from scitex_dev.decorators import supports_return_as as _supports_return_as
-except ImportError:
-
+except Exception:
+    # Broad catch (not just ImportError): scitex-dev may import optional ML
+    # libs whose runtime-init can fail with VersionError / RuntimeError.
+    # Fall back to a no-op decorator regardless.
     def _supports_return_as(fn):
         return fn
 
@@ -106,6 +109,7 @@ from ._claim import (
     list_claims,
     verify_claim,
 )
+from ._register_intermediate import register_intermediate
 from ._claim import (
     format_claims as _format_claims,
 )
@@ -113,6 +117,7 @@ from ._claim import (
     verify_claims_dag as _verify_claims_dag,
 )
 from ._dag import verify_dag as _verify_dag
+from ._dag import verify_dag_strict as _verify_dag_strict
 from ._db import VerificationDB as _VerificationDB
 from ._db import get_db as _get_db
 from ._db import set_db as _set_db
@@ -227,8 +232,22 @@ def stats():
 
 
 @_supports_return_as
-def dag(targets=None, claims=False):
-    """Verify the DAG for multiple targets or all claims."""
+def dag(targets=None, claims=False, strict=False):
+    """Verify the DAG for multiple targets or all claims.
+
+    Parameters
+    ----------
+    targets : list of str or Path, optional
+        Target files to verify (mutually exclusive with ``claims``).
+    claims : bool, optional
+        If True, build the DAG from every registered claim.
+    strict : bool, optional
+        If True (F2), return a failure-attribution dict with
+        ``failed_node`` / ``root_cause`` / ``invalidated_claims`` /
+        ``still_valid_claims`` instead of a ``DAGVerification``.
+    """
+    if strict:
+        return _verify_dag_strict(targets=targets, claims=claims)
     if claims:
         return _verify_claims_dag()
     return _verify_dag(targets or [])
@@ -278,6 +297,7 @@ def mermaid(
     """
     if grouper is None:
         from ._groupers._config import load_project_config
+
         grouper = load_project_config().get("grouper")
     return _generate_mermaid_dag(
         session_id=session_id,
@@ -354,6 +374,7 @@ __all__ = [
     "add_claim",
     "list_claims",
     "verify_claim",
+    "register_intermediate",
     # Stamping
     "stamp",
     "list_stamps",

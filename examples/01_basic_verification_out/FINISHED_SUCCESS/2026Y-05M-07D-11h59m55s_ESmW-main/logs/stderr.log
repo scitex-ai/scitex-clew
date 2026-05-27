@@ -1,0 +1,14 @@
+INFO: Initializing example pipeline...
+INFO:   Copied to: /tmp/clew_example
+INFO:   Files: 12
+INFO: === Verification Status ===
+INFO: Total runs: 0
+INFO: Verified runs: 0
+INFO: Failed runs: 0
+INFO: === Recent Runs (limit=5) ===
+INFO:   2026Y-05M-07D-11h59m55s_ESmW: /home/ywatanabe/proj/scitex-clew/examples/01_basic_verification.py [running]
+INFO: === Database Statistics ===
+INFO: Total sessions: 1
+INFO: Total files: 0
+INFO: Database location: /home/ywatanabe/proj/scitex-clew/.scitex/clew/db.sqlite
+INFO: Report saved to: /home/ywatanabe/proj/scitex-clew/examples/01_basic_verification_out/status_report.txt

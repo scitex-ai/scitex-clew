@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from ._chain_ops import get_status, verify_chain
-from ._dag import _topological_sort, verify_dag
+from ._dag import _topological_sort, verify_dag, verify_dag_strict
 from ._types import (
     ChainVerification,
     DAGVerification,
@@ -31,6 +31,7 @@ __all__ = [
     "verify_run",
     "verify_chain",
     "verify_dag",
+    "verify_dag_strict",
     "get_status",
     # Helpers
     "_resolve_target",

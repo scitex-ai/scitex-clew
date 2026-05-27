@@ -10,8 +10,7 @@ Set SCITEX_CLEW_DEBUG_MODE=1 to enable DEBUG-level logging.
 import os
 
 try:
-    import scitex.logging as _logging
-
+    import scitex_logging as _logging
     getLogger = _logging.getLogger
 except ImportError:
     import logging

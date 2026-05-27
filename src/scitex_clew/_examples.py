@@ -8,21 +8,18 @@ from pathlib import Path
 from typing import Optional
 
 
-def _find_examples_dir() -> Optional[Path]:
+def _find_examples_dir(variant: str = "sequential") -> Optional[Path]:
     """Locate the bundled Clew examples directory.
 
-    Tries multiple paths:
-    1. Bundled with package: clew/_example_data/ (pip-installed)
+    Tries (in order):
+    1. Source repo: ../../../examples/<variant>/   (editable install or git clone)
     2. Docker mount: /scitex-python/examples/scitex/clew
-    3. Source repo: ../../../../examples/scitex/clew
     """
+    # __file__ = <repo>/src/scitex_clew/_examples.py — 3 parents up = <repo>.
+    repo_root = Path(__file__).resolve().parents[2]
     candidates = [
-        Path(__file__).resolve().parent / "_example_data",
-        Path("/scitex-python/examples/scitex/clew"),
-        Path(__file__).resolve().parent.parent.parent.parent
-        / "examples"
-        / "scitex"
-        / "clew",
+        repo_root / "examples" / variant,
+        Path("/scitex-python/examples/scitex/clew") / variant,
     ]
     for candidate in candidates:
         if candidate.exists() and candidate.is_dir():
@@ -61,22 +58,13 @@ def init_examples(dest: str | Path, variant: str = "sequential") -> dict:
     if variant not in valid_variants:
         raise ValueError(f"Unknown variant {variant!r}. Choose from: {valid_variants}")
 
-    src_dir = _find_examples_dir()
+    src_dir = _find_examples_dir(variant)
     if src_dir is None:
         raise FileNotFoundError(
-            "Clew example directory not found. "
-            "Ensure scitex-python is installed with examples."
+            f"Clew example variant {variant!r} not found. "
+            "Examples live at ~/proj/scitex-clew/examples/<variant>/ — "
+            "install editably (`pip install -e .`) or clone the repo."
         )
-
-    # For non-default variants, look in subdirectory
-    if variant != "sequential":
-        variant_dir = src_dir / variant
-        if variant_dir.exists():
-            src_dir = variant_dir
-        else:
-            raise FileNotFoundError(
-                f"Example variant {variant!r} not found at {variant_dir}"
-            )
 
     dest = Path(dest)
     dest.mkdir(parents=True, exist_ok=True)

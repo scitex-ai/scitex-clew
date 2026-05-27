@@ -1,0 +1,13 @@
+INFO: Initializing example pipeline...
+INFO: === Generating Mermaid DAG Diagram ===
+INFO: Generating diagram from all registered claims...
+INFO: Mermaid Diagram Code:
+INFO: ------------------------------------------------------------
+INFO: graph TD
+INFO:     empty["No runs found"]
+INFO: ------------------------------------------------------------
+INFO: Diagram saved to: /home/ywatanabe/proj/scitex-clew/examples/03_mermaid_diagram_out/dag.mmd
+INFO: Usage:
+INFO:   1. Embed in GitHub Markdown with ```mermaid ... ```
+INFO:   2. Render: mmdc -i dag.mmd -o dag.png
+INFO:   3. View online at https://mermaid.live

@@ -1,5 +1,10 @@
 ---
-description: Hash-based reproducibility verification for scientific pipelines — SHA-256 fingerprints every input/output file, builds a provenance DAG, and rechecks hashes on demand (git-status-like). Use whenever the user asks to "verify a run", "check if results are reproducible", "did this pipeline change?", "trace where this figure came from", "audit the DAG", "rerun the whole pipeline and compare", "register a manuscript claim", "link a figure to its source session", "stamp a file's provenance", or "show the Mermaid DAG of my experiments". Drop-in replacement for ad-hoc `md5sum` logs, `dvc status`, Snakemake hash tracking, and manual "did I rerun this?" checks. Zero-dependency pure-stdlib; auto-integrates with `@stx.session` and `stx.io.save/load`.
+name: scitex-clew
+description: |
+  [WHAT] Hash-based reproducibility verification for scientific pipelines — SHA-256 fingerprints every input/output file, builds a provenance DAG, and rechecks hashes on demand (git-status-like).
+  [WHEN] Use whenever the user asks to "verify a run", "check if results are reproducible", "did this pipeline change?", "trace where this figure came from", "audit the DAG", "rerun the whole pipeline and compare", "register a manuscript claim", "link a figure to its source session", "stamp a file's provenance", or "show the Mermaid DAG of my experiments".
+  [HOW] Drop-in replacement for ad-hoc `md5sum` logs, `dvc status`, Snakemake hash tracking, and manual "did I rerun this?" checks. Zero-dependency pure-stdlib; auto-integrates with `@stx.session` and `stx.io.save/load`.
+tags: [scitex-clew]
 allowed-tools: mcp__scitex__clew_*
 primary_interface: cli
 interfaces:
@@ -7,50 +12,33 @@ interfaces:
   cli: 3
   mcp: 2
   skills: 2
-  hook: 0
   http: 0
-name: scitex-clew
-tags: [scitex-clew, scitex-package]
 ---
 
 # scitex-clew
 
-> **Interfaces:** Python ⭐⭐ · CLI ⭐⭐⭐ (primary) · MCP ⭐⭐ · Skills ⭐⭐ · Hook — · HTTP —
-
 Hash-based verification tracking for reproducible science. Zero dependencies (pure stdlib + sqlite3). Auto-integrates with `@stx.session` and `stx.io` when scitex is present.
 
-## Installation & import (two equivalent paths)
+## Installation & import
 
-The same module is reachable via two install paths. Both forms work at
-runtime; which one a user has depends on their install choice.
+`pip install scitex-clew` exposes `import scitex_clew`. To also reach
+`import scitex.clew`, additionally `pip install scitex` (umbrella).
+Both forms call the same module. See `../../general/02_interface-python-api.md`.
 
 ```python
-# Standalone — pip install scitex-clew
-import scitex_clew
+import scitex_clew                  # standalone
 scitex_clew.status(...)
-
-# Umbrella — pip install scitex
-import scitex.clew
-scitex.clew.status(...)
 ```
-
-`pip install scitex-clew` alone does NOT expose the `scitex` namespace;
-`import scitex.clew` raises `ModuleNotFoundError`. To use the
-`scitex.clew` form, also `pip install scitex`.
-
-See [../../general/02_interface-python-api.md] for the ecosystem-wide
-rule and empirical verification table.
 
 ## Sub-skills
 
-### Core
-* [01_quick-start.md](01_quick-start.md) — Basic API, session tracking, first verification
-* [02_grouping.md](02_grouping.md) — Collapse related files into DAG nodes with Merkle roots
-
-### Workflows
-* [10_common-workflows.md](10_common-workflows.md) — Claims, DAG patterns, stamps, reproducibility
-* [11_cli-commands.md](11_cli-commands.md) — CLI reference (`clew status`, `clew verify`, etc.)
-* [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — MCP tool reference for AI agents
+* [01_installation.md](01_installation.md) — pip install + verify
+* [02_quick-start.md](02_quick-start.md) — minimal usage
+* [03_python-api.md](03_python-api.md) — public callables
+* [04_cli-reference.md](04_cli-reference.md) — `clew` subcommands
+* [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — workflows + CLI detail + MCP refs
+* [20_env-vars.md](20_env-vars.md), [14_grouping.md](14_grouping.md) — env vars + DAG-node grouping
+* [21_agentic-reasoning.md](21_agentic-reasoning.md) — when-to-call discipline for AI agents using Clew as an active reasoning substrate (v2 framing)
 
 ## MCP Tools
 
@@ -82,4 +70,4 @@ clew skills get SKILL    # Get a specific skill page
 
 ## Environment
 
-- [13_env-vars.md](13_env-vars.md) — SCITEX_* env vars read by scitex-clew at runtime
+See [20_env-vars.md](20_env-vars.md) — SCITEX_* env vars read by scitex-clew at runtime.

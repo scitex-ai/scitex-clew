@@ -6,9 +6,12 @@ from fastmcp import FastMCP
 
 def register_all_tools(mcp: FastMCP) -> None:
     """Register all clew MCP tools with the server."""
-    from . import skills, verification
+    from . import claims, hashing, skills, stamping, verification
 
     verification.register_tools(mcp)
+    claims.register_tools(mcp)
+    hashing.register_tools(mcp)
+    stamping.register_tools(mcp)
     skills.register_tools(mcp)
 
 

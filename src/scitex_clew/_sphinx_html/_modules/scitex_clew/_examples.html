@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew._examples &mdash; SciTeX Clew v0.2.8</title>
+  <title>scitex_clew._examples &mdash; SciTeX Clew v0.2.9</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=b01fafc3"></script>
+      <script src="../../_static/documentation_options.js?v=14672bda"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -111,6 +111,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
@@ -167,21 +168,18 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_find_examples_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_find_examples_dir</span><span class="p">(</span><span class="n">variant</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;sequential&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Locate the bundled Clew examples directory.</span>
 
-<span class="sd">    Tries multiple paths:</span>
-<span class="sd">    1. Bundled with package: clew/_example_data/ (pip-installed)</span>
+<span class="sd">    Tries (in order):</span>
+<span class="sd">    1. Source repo: ../../../examples/&lt;variant&gt;/   (editable install or git clone)</span>
 <span class="sd">    2. Docker mount: /scitex-python/examples/scitex/clew</span>
-<span class="sd">    3. Source repo: ../../../../examples/scitex/clew</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># __file__ = &lt;repo&gt;/src/scitex_clew/_examples.py — 3 parents up = &lt;repo&gt;.</span>
+    <span class="n">repo_root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
     <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;_example_data&quot;</span><span class="p">,</span>
-        <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/scitex-python/examples/scitex/clew&quot;</span><span class="p">),</span>
-        <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
-        <span class="o">/</span> <span class="s2">&quot;examples&quot;</span>
-        <span class="o">/</span> <span class="s2">&quot;scitex&quot;</span>
-        <span class="o">/</span> <span class="s2">&quot;clew&quot;</span><span class="p">,</span>
+        <span class="n">repo_root</span> <span class="o">/</span> <span class="s2">&quot;examples&quot;</span> <span class="o">/</span> <span class="n">variant</span><span class="p">,</span>
+        <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/scitex-python/examples/scitex/clew&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">variant</span><span class="p">,</span>
     <span class="p">]</span>
     <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">candidate</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
@@ -222,22 +220,13 @@
     <span class="k">if</span> <span class="n">variant</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_variants</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown variant </span><span class="si">{</span><span class="n">variant</span><span class="si">!r}</span><span class="s2">. Choose from: </span><span class="si">{</span><span class="n">valid_variants</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="n">src_dir</span> <span class="o">=</span> <span class="n">_find_examples_dir</span><span class="p">()</span>
+    <span class="n">src_dir</span> <span class="o">=</span> <span class="n">_find_examples_dir</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">src_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
-            <span class="s2">&quot;Clew example directory not found. &quot;</span>
-            <span class="s2">&quot;Ensure scitex-python is installed with examples.&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Clew example variant </span><span class="si">{</span><span class="n">variant</span><span class="si">!r}</span><span class="s2"> not found. &quot;</span>
+            <span class="s2">&quot;Examples live at ~/proj/scitex-clew/examples/&lt;variant&gt;/ — &quot;</span>
+            <span class="s2">&quot;install editably (`pip install -e .`) or clone the repo.&quot;</span>
         <span class="p">)</span>
-
-    <span class="c1"># For non-default variants, look in subdirectory</span>
-    <span class="k">if</span> <span class="n">variant</span> <span class="o">!=</span> <span class="s2">&quot;sequential&quot;</span><span class="p">:</span>
-        <span class="n">variant_dir</span> <span class="o">=</span> <span class="n">src_dir</span> <span class="o">/</span> <span class="n">variant</span>
-        <span class="k">if</span> <span class="n">variant_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-            <span class="n">src_dir</span> <span class="o">=</span> <span class="n">variant_dir</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Example variant </span><span class="si">{</span><span class="n">variant</span><span class="si">!r}</span><span class="s2"> not found at </span><span class="si">{</span><span class="n">variant_dir</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
 
     <span class="n">dest</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
     <span class="n">dest</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>

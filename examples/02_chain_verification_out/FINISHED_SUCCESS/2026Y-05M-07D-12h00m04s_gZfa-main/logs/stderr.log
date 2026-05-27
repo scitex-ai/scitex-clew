@@ -1,0 +1,10 @@
+INFO: Initializing example pipeline...
+INFO: === Chain Verification ===
+INFO: Verifying the full dependency DAG...
+INFO: DAG Verification Result:
+INFO:   Overall Status: unknown
+INFO:   Is Verified: False
+INFO:   No runs tracked yet.
+INFO:   Run '00_run_all.sh' in /tmp/clew_example to generate pipeline outputs.
+INFO:   No dependencies tracked yet.
+INFO: Report saved to: /home/ywatanabe/proj/scitex-clew/examples/02_chain_verification_out/chain_report.txt

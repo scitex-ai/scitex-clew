@@ -1,7 +1,8 @@
 ---
-description: Common scitex-clew workflows — claims, DAG patterns, stamps, and reproducibility auditing.
-name: common-workflows
-tags: [scitex-clew, scitex-package]
+description: |
+  [TOPIC] Common Workflows
+  [DETAILS] Common scitex-clew workflows — claims, DAG patterns, stamps, and reproducibility auditing.
+tags: [scitex-clew-common-workflows]
 ---
 
 # Common Workflows

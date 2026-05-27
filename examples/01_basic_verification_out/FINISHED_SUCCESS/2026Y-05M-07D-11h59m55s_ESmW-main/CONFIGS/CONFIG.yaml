@@ -1,0 +1,11 @@
+ID: 2026Y-05M-07D-11h59m55s_ESmW
+PID: 316301
+START_DATETIME: 2026-05-07 11:59:55.341609
+FILE: /home/ywatanabe/proj/scitex-clew/examples/01_basic_verification.py
+SDIR_OUT: /home/ywatanabe/proj/scitex-clew/examples/01_basic_verification_out
+SDIR_RUN: 
+    /home/ywatanabe/proj/scitex-clew/examples/01_basic_verification_out/RUNNING/2026Y-05M-07D-11h59m55s_ESmW-main
+ARGS: {}
+EXIT_STATUS: 0
+END_DATETIME: 2026-05-07 12:00:00.373985
+RUN_DURATION: 00:00:05

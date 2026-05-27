@@ -1,0 +1,11 @@
+ID: 2026Y-05M-07D-12h00m13s_txc9
+PID: 322480
+START_DATETIME: 2026-05-07 12:00:13.939146
+FILE: /home/ywatanabe/proj/scitex-clew/examples/03_mermaid_diagram.py
+SDIR_OUT: /home/ywatanabe/proj/scitex-clew/examples/03_mermaid_diagram_out
+SDIR_RUN: 
+    /home/ywatanabe/proj/scitex-clew/examples/03_mermaid_diagram_out/RUNNING/2026Y-05M-07D-12h00m13s_txc9-main
+ARGS: {}
+EXIT_STATUS: 0
+END_DATETIME: 2026-05-07 12:00:18.558068
+RUN_DURATION: 00:00:04

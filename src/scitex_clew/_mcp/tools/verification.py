@@ -43,7 +43,7 @@ def register_tools(mcp: FastMCP) -> None:
     """Register all clew verification tools."""
 
     @mcp.tool()
-    async def clew_list(
+    async def clew_list_runs(
         limit: int = 50,
         status_filter: Optional[str] = None,
     ) -> str:
@@ -285,8 +285,9 @@ def register_tools(mcp: FastMCP) -> None:
     async def clew_dag(
         target_files: Optional[str] = None,
         claims: bool = False,
+        strict: bool = False,
     ) -> str:
-        """Verify every session in the upstream DAG for a set of target files (or every manuscript claim's backing session) by re-hashing recorded inputs/outputs — the strongest hash-only check of whether an entire downstream pipeline is still reproducible. Use when the user asks to "verify the whole pipeline", "check if all figures are still valid", "audit the DAG for claims", "am I safe to submit?", or passes a comma-separated list of final outputs. For actual re-execution (not just hashing), use `clew_rerun_dag` instead.
+        """Verify every session in the upstream DAG for a set of target files (or every manuscript claim's backing session) by re-hashing recorded inputs/outputs — the strongest hash-only check of whether an entire downstream pipeline is still reproducible. Use when the user asks to "verify the whole pipeline", "check if all figures are still valid", "audit the DAG for claims", "am I safe to submit?", or passes a comma-separated list of final outputs. For actual re-execution (not just hashing), use `clew_rerun_dag` instead. Pass ``strict=True`` (F2) to receive a failure-attribution payload (failed_node, root_cause, invalidated_claims, still_valid_claims) instead of the standard DAG verification structure.
 
         Parameters
         ----------
@@ -294,20 +295,30 @@ def register_tools(mcp: FastMCP) -> None:
             Comma-separated list of target file paths
         claims : bool, optional
             If True, build DAG from all registered claims
+        strict : bool, optional
+            If True, return F2 failure-attribution dict instead of the
+            standard DAG verification structure.
 
         Returns
         -------
         str
-            JSON with DAG verification results
+            JSON with DAG verification results (or strict-mode attribution).
         """
         from pathlib import Path
 
         from scitex_clew import dag
 
+        targets = None
+        if target_files:
+            targets = [str(Path(f.strip()).resolve()) for f in target_files.split(",")]
+
+        if strict:
+            payload = dag(targets=targets, claims=claims, strict=True)
+            return _json(payload)
+
         if claims:
             dag_result = dag(claims=True)
-        elif target_files:
-            targets = [str(Path(f.strip()).resolve()) for f in target_files.split(",")]
+        elif targets:
             dag_result = dag(targets)
         else:
             return _json({"error": "Specify target_files or claims=True"})

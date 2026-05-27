@@ -1,0 +1,10 @@
+# scitex-dev audit-project config — root-whitelist for files that
+# legitimately live at the repo top but aren't in the baseline set.
+# See skill leaf 01_ecosystem_06_local-state-directories.md §49 — this
+# file MUST travel with the repo so CI sees the same whitelist as local.
+
+audit:
+  root-whitelist:
+    files:
+      # Codecov config canonically lives at repo root.
+      - codecov.yml

@@ -6,16 +6,6 @@
 
 # SciTeX Clew (<code>scitex-clew</code>)
 
-<!-- scitex-badges:start -->
-[![PyPI](https://img.shields.io/pypi/v/scitex-clew.svg)](https://pypi.org/project/scitex-clew/)
-[![Python](https://img.shields.io/pypi/pyversions/scitex-clew.svg)](https://pypi.org/project/scitex-clew/)
-[![Tests](https://github.com/ywatanabe1989/scitex-clew/actions/workflows/test.yml/badge.svg)](https://github.com/ywatanabe1989/scitex-clew/actions/workflows/test.yml)
-[![Install Test](https://github.com/ywatanabe1989/scitex-clew/actions/workflows/install-test.yml/badge.svg)](https://github.com/ywatanabe1989/scitex-clew/actions/workflows/install-test.yml)
-[![Coverage](https://codecov.io/gh/ywatanabe1989/scitex-clew/graph/badge.svg)](https://codecov.io/gh/ywatanabe1989/scitex-clew)
-[![Docs](https://readthedocs.org/projects/scitex-clew/badge/?version=latest)](https://scitex-clew.readthedocs.io/en/latest/)
-[![License: AGPL v3](https://img.shields.io/badge/license-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-<!-- scitex-badges:end -->
-
 <p align="center">
   <a href="https://scitex.ai">
     <img src="docs/scitex-logo-blue-cropped.png" alt="SciTeX" width="400">
@@ -23,8 +13,20 @@
 </p>
 
 <p align="center">
-  <a href="https://scitex-clew.readthedocs.io/">Full Documentation</a> · <code>pip install scitex-clew</code>
+  <a href="https://scitex-clew.readthedocs.io/">Full Documentation</a> · <code>uv pip install scitex-clew[all]</code>
 </p>
+
+<!-- scitex-badges:start -->
+<p align="center">
+  <a href="https://pypi.org/project/scitex-clew/"><img src="https://img.shields.io/pypi/v/scitex-clew?label=pypi" alt="pypi"></a>
+  <a href="https://pypi.org/project/scitex-clew/"><img src="https://img.shields.io/pypi/pyversions/scitex-clew?label=python" alt="python"></a>
+  <a href="https://github.com/ywatanabe1989/scitex-clew/actions/workflows/rtd-sphinx-build-on-ubuntu-latest.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-clew/rtd-sphinx-build-on-ubuntu-latest.yml?branch=develop&label=docs" alt="docs"></a>
+</p>
+<p align="center">
+  <a href="https://github.com/ywatanabe1989/scitex-clew/actions/workflows/pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-clew/pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml?branch=develop&label=tests" alt="tests"></a>
+  <a href="https://codecov.io/gh/ywatanabe1989/scitex-clew"><img src="https://img.shields.io/codecov/c/github/ywatanabe1989/scitex-clew/develop?label=cov" alt="cov"></a>
+</p>
+<!-- scitex-badges:end -->
 
 ---
 
@@ -110,6 +112,41 @@ Requires Python >= 3.10. **Zero dependencies** — pure stdlib + sqlite3.
 pip install scitex-clew
 ```
 
+## Architecture
+
+```mermaid
+graph LR
+    S[Source<br/>01_download.py] --> I[Input<br/>raw_data.csv]
+    I --> P[Processing<br/>03_analyze.py]
+    P --> O[Output<br/>figure1.png]
+    O --> C[Claim<br/>'Fig 1: p<0.05']
+    classDef src fill:#cfe8ff,stroke:#1f6feb
+    classDef inp fill:#e6ffec,stroke:#1a7f37
+    classDef proc fill:#fff8c5,stroke:#9a6700
+    classDef out fill:#ffe0b2,stroke:#bc4c00
+    classDef cl fill:#ffd6cc,stroke:#cf222e
+    class S src
+    class I inp
+    class P proc
+    class O out
+    class C cl
+```
+
+```
+scitex-clew/
+├── src/scitex_clew/
+│   ├── __init__.py              # status, run, chain, dag, rerun, mermaid
+│   ├── _db.py                   # sqlite3 hash-linked DAG store
+│   ├── _hash.py                 # file + directory Merkle hashing
+│   ├── groupers/                # pattern / directory / auto / compose
+│   ├── _claim/                  # claim CRUD + verification
+│   ├── _stamp/                  # temporal stamping backends
+│   ├── _cli/                    # clew entrypoint (recursive --help)
+│   ├── _mcp_tools/              # MCP tools for AI agents
+│   └── _skills/                 # workflow skill pages
+└── tests/
+```
+
 ## Quickstart
 
 ```python
@@ -138,7 +175,7 @@ rerun_result = clew.rerun("session_20250301_143022")
 
 ## Four Interfaces
 
-<details>
+<details open>
 <summary><strong>Python API</strong></summary>
 
 <br>
@@ -155,7 +192,7 @@ clew.mermaid(claims=True)                  # Mermaid DAG diagram
 clew.add_claim("Fig 1 shows p<0.05", source_files=["fig1.png"])
 ```
 
-> **[Full API reference](https://scitex-clew.readthedocs.io/)**
+> **[Full API reference](https://scitex-clew.readthedocs.io/en/latest/api/scitex_clew.html)**
 
 </details>
 
@@ -173,9 +210,27 @@ clew stats                                 # Database statistics
 clew mermaid                               # Generate Mermaid diagram
 clew list-python-apis                      # List Python API tree
 clew mcp list-tools                        # List MCP tools
+
+# Claims, hashing, stamping (F1)
+clew claim add --file-path paper.tex --type statistic --value "p=0.003"
+clew claim list
+clew claim verify <claim_id>
+clew hash-file path/to/data.csv
+clew hash-directory path/to/dir/
+clew stamp --backend file
+clew list-stamps
+clew check-stamp [STAMP_ID]
+
+# Universal --json on every command (F5)
+clew --json status
+clew status --json
+clew --json list --limit 20
+
+# Strict DAG verification with failure attribution (F2)
+clew dag --strict --json --target results/figure.csv
 ```
 
-> **[Full CLI reference](https://scitex-clew.readthedocs.io/)**
+> **[Full CLI reference](https://scitex-clew.readthedocs.io/en/latest/quickstart.html)**
 
 </details>
 
@@ -191,20 +246,23 @@ AI agents can verify reproducibility and trace provenance autonomously.
 | `clew_status` | Git-status-like overview |
 | `clew_run` | Verify a specific run |
 | `clew_chain` | Trace file provenance chain |
-| `clew_dag` | Verify full DAG |
-| `clew_list` | List tracked runs |
+| `clew_dag` | Verify full DAG (`strict=True` returns failure attribution, F2) |
+| `clew_list_runs` | List tracked runs |
 | `clew_stats` | Database statistics |
 | `clew_mermaid` | Generate Mermaid DAG diagram |
 | `clew_rerun_dag` | Rerun full DAG in sandbox |
 | `clew_rerun_claims` | Rerun all claim-backing sessions |
+| `clew_add_claim` / `clew_list_claims` / `clew_verify_claim` | Claim CRUD (F1) |
+| `clew_hash_file` / `clew_hash_directory` | File/directory hashing (F1) |
+| `clew_stamp` / `clew_list_stamps` / `clew_check_stamp` | Temporal stamping (F1) |
 
-<sub><b>Table 3.</b> Nine MCP tools available for AI-assisted verification. All tools accept JSON parameters and return JSON results.</sub>
+<sub><b>Table 3.</b> MCP tools available for AI-assisted verification. All tools accept JSON parameters and return JSON results.</sub>
 
 ```bash
 clew mcp start
 ```
 
-> **[Full MCP specification](https://scitex-clew.readthedocs.io/)**
+> **[Full MCP specification](https://scitex-clew.readthedocs.io/en/latest/api/scitex_clew._mcp.html)**
 
 </details>
 
@@ -229,6 +287,13 @@ scitex-dev skills export --package scitex-clew  # Export to Claude Code
 | `common-workflows` | Claims, DAG patterns, stamps, reproducibility |
 
 </details>
+
+## Demo
+
+<p align="center">
+  <img src="src/scitex_clew/dag.png" alt="DAG verification example" width="80%"/>
+</p>
+<p align="center"><sub><b>Figure 2.</b> Live DAG verification. Green nodes are sessions whose recorded hashes still match disk; red nodes flag a drift. <code>clew dag --strict</code> walks claims back to raw data and prints the first failure.</sub></p>
 
 ## Part of SciTeX
 
