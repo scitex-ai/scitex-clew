@@ -391,4 +391,17 @@ __all__ = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# SOC R6: self-register post-save / post-load hooks with scitex-io.
+# Must never break ``import scitex_clew`` — broad except is intentional.
+# ---------------------------------------------------------------------------
+try:
+    from ._observers import register_with_scitex_io as _register
+
+    _register()
+    del _register
+except Exception:
+    pass
+
+
 # EOF
