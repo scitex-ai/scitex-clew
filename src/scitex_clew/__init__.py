@@ -5,7 +5,7 @@ scitex-clew — Hash-based verification for reproducible science.
 Standalone package. Zero dependencies (pure stdlib + sqlite3).
 When used with scitex, integration is automatic via @stx.session + stx.io.
 
-Public API (19 functions)::
+Public API::
 
     import scitex_clew as clew
 
@@ -39,6 +39,10 @@ Public API (19 functions)::
 
     # Examples
     clew.init_examples(dest)           # scaffold example pipeline
+
+    # Session lifecycle hooks (invoked by @scitex.session)
+    clew.on_session_start(session_id)  # open a tracked run
+    clew.on_session_close(status=...)  # finalize run + combined hash
 """
 
 from __future__ import annotations
@@ -110,6 +114,7 @@ from ._claim import (
     verify_claim,
 )
 from ._register_intermediate import register_intermediate
+from ._session import on_session_close, on_session_start
 from ._claim import (
     format_claims as _format_claims,
 )
@@ -388,6 +393,9 @@ __all__ = [
     "groupers",
     # Examples
     "init_examples",
+    # Session lifecycle hooks
+    "on_session_start",
+    "on_session_close",
 ]
 
 

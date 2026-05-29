@@ -9,15 +9,15 @@ import scitex_clew as clew
 class TestPublicAPI:
     """Verify __all__ contains the expected public names."""
 
-    def test_all_count_len_clew_all_is_22(self):
-        # 21 public names + canonical __version__ string (per PA201)
+    def test_all_count_len_clew_all_is_24(self):
+        # 23 public names + canonical __version__ string (per PA201)
         # Arrange
         # Act
         # Assert
         # Arrange
         # Act
         # Assert
-        assert len(clew.__all__) == 22
+        assert len(clew.__all__) == 24
 
     def test_all_names_set_clew_all_expected(self):
         # Arrange
@@ -47,6 +47,8 @@ class TestPublicAPI:
             "mermaid",
             "groupers",
             "init_examples",
+            "on_session_start",
+            "on_session_close",
         }
         # Assert
         # Assert
@@ -69,7 +71,10 @@ class TestPublicAPI:
         bad = [
             name
             for name in names
-            if not (callable(getattr(clew, name)) or isinstance(getattr(clew, name), types.ModuleType))
+            if not (
+                callable(getattr(clew, name))
+                or isinstance(getattr(clew, name), types.ModuleType)
+            )
         ]
         # Assert
         assert bad == []
@@ -219,7 +224,6 @@ class TestBackwardCompat:
         # Assert
         assert hasattr(clew.VerificationLevel, "RERUN")
 
-
     def test_classes_accessible_clew_verificationdb_is_not_none(self):
         # Arrange
         # Act
@@ -327,7 +331,6 @@ class TestBackwardCompat:
         # Act
         # Assert
         assert clew.Stamp is not None
-
 
     OLD_NAMES = [
         "verify_run",
