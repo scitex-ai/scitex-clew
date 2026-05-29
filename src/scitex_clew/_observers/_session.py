@@ -14,8 +14,8 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from ._logging import getLogger
-from ._tracker import get_tracker, start_tracking, stop_tracking
+from .._logging import getLogger
+from .._tracker import get_tracker, start_tracking, stop_tracking
 
 logger = getLogger(__name__)
 
@@ -104,7 +104,7 @@ def _should_auto_register(register: Optional[bool]) -> bool:
 def _auto_register_session(session_id: str) -> None:
     """Register session hashes with remote Clew Registry (fire-and-forget)."""
     try:
-        from ._registry import get_registry
+        from .._registry import get_registry
 
         get_registry().register_session(session_id)
     except Exception as e:

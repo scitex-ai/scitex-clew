@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for scitex_clew._session lifecycle hooks (on_session_start/close)."""
+"""Tests for scitex_clew._observers._session lifecycle hooks (on_session_start/close)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 import scitex_clew
 import scitex_clew._db as _db_module
 from scitex_clew._db import set_db
-from scitex_clew._session import on_session_close, on_session_start
+from scitex_clew._observers._session import on_session_close, on_session_start
 from scitex_clew._tracker import get_tracker, set_tracker
 
 
