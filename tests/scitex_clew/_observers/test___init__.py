@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for scitex_clew._io_hooks (SOC R6 self-registration)."""
+"""Tests for scitex_clew._observers io hooks (SOC R6 self-registration)."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ pytest.importorskip("scitex_io")
 
 import scitex_clew._db as _db_module
 from scitex_clew._db import set_db
-from scitex_clew._io_hooks import (
+from scitex_clew._observers import (
     on_io_load,
     on_io_save,
     register_with_scitex_io,

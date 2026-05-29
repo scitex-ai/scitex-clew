@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Self-registering scitex-io post-save / post-load hooks (SOC R6).
+"""Lifecycle hook observers (SOC R6).
 
-scitex-clew is the observer; it registers its own hooks with scitex-io so
-the umbrella package never has to wire them. Each hook is exception-safe
-— it MUST NOT raise (scitex-io would swallow exceptions anyway, but we
-also log at DEBUG for diagnostics).
+scitex-clew is the observer; it owns the hooks that other packages fire
+into so the umbrella package never has to wire them:
+
+* **io hooks** (``on_io_save`` / ``on_io_load``) — self-registered with
+  scitex-io; exception-safe (they MUST NOT raise).
+* **session hooks** (``on_session_start`` / ``on_session_close``) — invoked
+  by ``@scitex.session`` to open/finalize a tracked run; see
+  :mod:`scitex_clew._observers._session`.
 """
 
 from __future__ import annotations
@@ -13,6 +17,8 @@ from pathlib import Path
 from typing import Any, Dict
 
 from scitex_clew._logging import getLogger
+
+from ._session import on_session_close, on_session_start
 
 logger = getLogger(__name__)
 

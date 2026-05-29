@@ -114,7 +114,7 @@ from ._claim import (
     verify_claim,
 )
 from ._register_intermediate import register_intermediate
-from ._session import on_session_close, on_session_start
+from ._observers import on_session_close, on_session_start
 from ._claim import (
     format_claims as _format_claims,
 )
