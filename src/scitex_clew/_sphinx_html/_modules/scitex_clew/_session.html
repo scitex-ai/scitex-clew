@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew._register_intermediate &mdash; SciTeX Clew v0.2.12</title>
+  <title>scitex_clew._session &mdash; SciTeX Clew v0.2.12</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -150,7 +150,7 @@
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
           <li class="breadcrumb-item"><a href="../scitex_clew.html">scitex_clew</a></li>
-      <li class="breadcrumb-item active">scitex_clew._register_intermediate</li>
+      <li class="breadcrumb-item active">scitex_clew._session</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -159,110 +159,127 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for scitex_clew._register_intermediate</h1><div class="highlight"><pre>
+  <h1>Source code for scitex_clew._session</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
-<span class="sd">&quot;&quot;&quot;Register an in-session intermediate value as a Clew claim.</span>
+<span class="sd">&quot;&quot;&quot;Session lifecycle hooks for scitex-clew.</span>
 
-<span class="sd">Wrapper around `_claim.add_claim` for the agentic-reasoning use case</span>
-<span class="sd">(see `_skills/scitex-clew/20_agentic-reasoning.md`). Lets an AI agent or</span>
-<span class="sd">script register a computed intermediate value without needing to construct</span>
-<span class="sd">a manuscript file path or line number — uses the active session&#39;s log file</span>
-<span class="sd">as the synthetic source.</span>
+<span class="sd">These thin wrappers are invoked by ``@scitex.session`` (or any equivalent</span>
+<span class="sd">session manager) at the start and end of a run. They delegate to the</span>
+<span class="sd">``scitex_clew._tracker`` machinery so that a run record is opened on start</span>
+<span class="sd">and finalized (with a combined hash) on close.</span>
+
+<span class="sd">They import only scitex-clew internals; no scitex-io dependency is needed.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="n">Claim</span><span class="p">,</span> <span class="n">add_claim</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">getLogger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_tracker</span><span class="p">,</span> <span class="n">start_tracking</span><span class="p">,</span> <span class="n">stop_tracking</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="register_intermediate">
-<a class="viewcode-back" href="../../api/scitex_clew.html#scitex_clew.register_intermediate">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">register_intermediate</span><span class="p">(</span>
-    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-    <span class="n">supports</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">session_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">claim_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Claim</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Register a computed intermediate as a Clew claim.</span>
-
-<span class="sd">    Use this from inside a `@stx.session` script (or from an agent loop) to</span>
-<span class="sd">    record any non-trivial intermediate value with explicit upstream support.</span>
-<span class="sd">    The claim becomes part of the DAG and can be queried via `clew.chain`,</span>
-<span class="sd">    `clew.dag`, or the MCP `clew_chain` / `clew_dag` tools.</span>
+<div class="viewcode-block" id="on_session_start">
+<a class="viewcode-back" href="../../api/scitex_clew.html#scitex_clew.on_session_start">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_session_start</span><span class="p">(</span>
+    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">script_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">parent_session</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Hook called when a session starts.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    name</span>
-<span class="sd">        Descriptive identifier (e.g. `&quot;acute_n_sig_pathways&quot;`). Avoid generic</span>
-<span class="sd">        names like `&quot;result_3&quot;` — the id is the only handle a future inspector</span>
-<span class="sd">        has on the value.</span>
-<span class="sd">    value</span>
-<span class="sd">        The computed result. Coerced to string for storage; the hash chain</span>
-<span class="sd">        sees `repr(value)` so types matter.</span>
-<span class="sd">    supports</span>
-<span class="sd">        List of upstream claim ids or session ids that this value depends on.</span>
-<span class="sd">        Stored as JSON in the claim&#39;s value field for retrieval. None means</span>
-<span class="sd">        no explicit upstream (use sparingly).</span>
-<span class="sd">    session_id</span>
-<span class="sd">        The session this value belongs to. If None, read from the</span>
-<span class="sd">        `SCITEX_SESSION_ID` env var that `@stx.session` sets at start.</span>
-<span class="sd">    claim_type</span>
-<span class="sd">        One of `statistic`, `figure`, `table`, `text`, `value`. Defaults to</span>
-<span class="sd">        `value` since intermediates are usually scalar / categorical results.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    Claim</span>
-<span class="sd">        The registered claim object.</span>
-
-<span class="sd">    Raises</span>
-<span class="sd">    ------</span>
-<span class="sd">    ValueError</span>
-<span class="sd">        If no session_id can be determined (env var unset and not passed).</span>
-
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    Inside a `@stx.session` script:</span>
-
-<span class="sd">    &gt;&gt;&gt; from scitex_clew import register_intermediate</span>
-<span class="sd">    &gt;&gt;&gt; n_sig = sum(1 for p in pathways if p.padj &lt; 0.05)</span>
-<span class="sd">    &gt;&gt;&gt; register_intermediate(</span>
-<span class="sd">    ...     name=&quot;chronic_r2_n_sig_pathways&quot;,</span>
-<span class="sd">    ...     value=n_sig,</span>
-<span class="sd">    ...     supports=[&quot;chronic_r2_min_pvals&quot;, &quot;reactome_pathways_v2024&quot;],</span>
-<span class="sd">    ... )</span>
+<span class="sd">    session_id : str</span>
+<span class="sd">        Unique session identifier</span>
+<span class="sd">    script_path : str, optional</span>
+<span class="sd">        Path to the script being run</span>
+<span class="sd">    parent_session : str, optional</span>
+<span class="sd">        Parent session ID for chain tracking</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Whether to log status messages</span>
+<span class="sd">    metadata : dict, optional</span>
+<span class="sd">        Additional metadata (e.g. notebook_path, cell_index)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">session_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">session_id</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SCITEX_SESSION_ID&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">session_id</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;register_intermediate: no session_id given and SCITEX_SESSION_ID &quot;</span>
-            <span class="s2">&quot;is not set in the environment. Either pass session_id explicitly &quot;</span>
-            <span class="s2">&quot;or run inside a @stx.session-decorated script.&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">start_tracking</span><span class="p">(</span>
+            <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
+            <span class="n">script_path</span><span class="o">=</span><span class="n">script_path</span><span class="p">,</span>
+            <span class="n">parent_session</span><span class="o">=</span><span class="n">parent_session</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
         <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not start verification tracking: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
-    <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
-        <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
-        <span class="s2">&quot;supports&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">supports</span><span class="p">)</span> <span class="k">if</span> <span class="n">supports</span> <span class="k">else</span> <span class="p">[],</span>
-    <span class="p">}</span>
 
-    <span class="n">script_path</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span> <span class="k">else</span> <span class="s2">&quot;&lt;agent&gt;&quot;</span>
-    <span class="k">return</span> <span class="n">add_claim</span><span class="p">(</span>
-        <span class="n">file_path</span><span class="o">=</span><span class="n">script_path</span><span class="p">,</span>
-        <span class="n">claim_type</span><span class="o">=</span><span class="n">claim_type</span><span class="p">,</span>
-        <span class="n">line_number</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">claim_value</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-        <span class="n">source_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">source_session</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
-    <span class="p">)</span></div>
 
+<div class="viewcode-block" id="on_session_close">
+<a class="viewcode-back" href="../../api/scitex_clew.html#scitex_clew.on_session_close">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_session_close</span><span class="p">(</span>
+    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;success&quot;</span><span class="p">,</span>
+    <span class="n">exit_code</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">register</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Hook called when a session closes.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    status : str, optional</span>
+<span class="sd">        Final status (success, failed, error)</span>
+<span class="sd">    exit_code : int, optional</span>
+<span class="sd">        Exit code of the script</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Whether to log status messages</span>
+<span class="sd">    register : bool, optional</span>
+<span class="sd">        If True, register session hashes with remote Clew Registry.</span>
+<span class="sd">        If None, checks SCITEX_AUTO_REGISTER environment variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">tracker</span> <span class="o">=</span> <span class="n">get_tracker</span><span class="p">()</span>
+        <span class="n">stop_tracking</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">exit_code</span><span class="o">=</span><span class="n">exit_code</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_should_auto_register</span><span class="p">(</span><span class="n">register</span><span class="p">)</span> <span class="ow">and</span> <span class="n">tracker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_auto_register_session</span><span class="p">(</span><span class="n">tracker</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not stop verification tracking: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># ── Registry helpers ──</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_should_auto_register</span><span class="p">(</span><span class="n">register</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check whether auto-registration is enabled.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">register</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">register</span>
+
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SCITEX_AUTO_REGISTER&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="s2">&quot;1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;true&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;yes&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_auto_register_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Register session hashes with remote Clew Registry (fire-and-forget).&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_registry</span>
+
+        <span class="n">get_registry</span><span class="p">()</span><span class="o">.</span><span class="n">register_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;clew: failed to auto-register session </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+
+
+<span class="c1"># EOF</span>
 </pre></div>
 
            </div>
