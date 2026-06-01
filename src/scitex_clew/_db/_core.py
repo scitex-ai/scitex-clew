@@ -27,6 +27,22 @@ def _find_project_root() -> Path:
     return current
 
 
+def _default_claims_json_path(project_root: Path) -> Path:
+    """Resolve the default canonical claims.json artifact path.
+
+    Returns ``<project_root>/.scitex/clew/runtime/claims.json`` per the
+    ecosystem local-state-directories convention. The runtime/ subdir
+    is the canonical home for regenerable per-host outputs — claims.json
+    is regenerable from the DB at any time, so it lives there alongside
+    ``db.sqlite``.
+
+    The resolved path is **just the path** — this function does not
+    write or read the file. ``scitex_clew.export_claims_json()`` writes
+    to it.
+    """
+    return project_root / ".scitex" / "clew" / "runtime" / "claims.json"
+
+
 def _default_db_path(project_root: Path) -> Path:
     """Resolve the default database path under ``runtime/``.
 

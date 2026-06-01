@@ -9,19 +9,16 @@ import scitex_clew as clew
 class TestPublicAPI:
     """Verify __all__ contains the expected public names."""
 
-    def test_all_count_len_clew_all_is_24(self):
-        # 23 public names + canonical __version__ string (per PA201)
+    def test_all_count_len_clew_all_is_25(self):
+        # 24 public names + canonical __version__ string (per PA201).
+        # +1 over the previous 24 for ``export_claims_json`` (added in
+        # the canonical claims.json artifact feature, 2026-06-01).
         # Arrange
         # Act
         # Assert
-        # Arrange
-        # Act
-        # Assert
-        assert len(clew.__all__) == 24
+        assert len(clew.__all__) == 25
 
     def test_all_names_set_clew_all_expected(self):
-        # Arrange
-        # Act
         # Arrange
         # Act
         expected = {
@@ -38,6 +35,7 @@ class TestPublicAPI:
             "add_claim",
             "list_claims",
             "verify_claim",
+            "export_claims_json",
             "register_intermediate",
             "stamp",
             "list_stamps",
@@ -50,7 +48,6 @@ class TestPublicAPI:
             "on_session_start",
             "on_session_close",
         }
-        # Assert
         # Assert
         assert set(clew.__all__) == expected
 

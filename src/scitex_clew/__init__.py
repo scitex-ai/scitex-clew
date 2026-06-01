@@ -110,6 +110,7 @@ from ._claim import (
 )
 from ._claim import (
     add_claim,
+    export_claims_json,
     list_claims,
     verify_claim,
 )
@@ -379,6 +380,7 @@ __all__ = [
     "add_claim",
     "list_claims",
     "verify_claim",
+    "export_claims_json",
     "register_intermediate",
     # Stamping
     "stamp",
