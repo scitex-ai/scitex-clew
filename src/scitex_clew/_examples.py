@@ -27,7 +27,12 @@ def _find_examples_dir(variant: str = "sequential") -> Optional[Path]:
     return None
 
 
-def init_examples(dest: str | Path, variant: str = "sequential") -> dict:
+def init_examples(
+    dest: str | Path,
+    variant: str = "sequential",
+    *,
+    find_examples_dir=_find_examples_dir,
+) -> dict:
     """Copy Clew example scripts to a destination directory.
 
     Copies only the runnable scripts (.py, .sh) and README — not
@@ -41,6 +46,12 @@ def init_examples(dest: str | Path, variant: str = "sequential") -> dict:
         Existing script files are overwritten.
     variant : str, optional
         Example variant: "sequential" (default) or "multi_parent".
+    find_examples_dir : callable, optional
+        Locator callable ``(variant: str) -> Optional[Path]`` used to
+        resolve the bundled examples source. Production callers should
+        not pass this; it is the canonical PA-306 §1 DI seam — tests
+        inject a hand-rolled fake that returns a ``tmp_path``-rooted
+        directory or ``None``.
 
     Returns
     -------
@@ -58,7 +69,7 @@ def init_examples(dest: str | Path, variant: str = "sequential") -> dict:
     if variant not in valid_variants:
         raise ValueError(f"Unknown variant {variant!r}. Choose from: {valid_variants}")
 
-    src_dir = _find_examples_dir(variant)
+    src_dir = find_examples_dir(variant)
     if src_dir is None:
         raise FileNotFoundError(
             f"Clew example variant {variant!r} not found. "

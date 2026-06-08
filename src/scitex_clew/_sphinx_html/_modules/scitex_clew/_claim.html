@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew._claim &mdash; SciTeX Clew v0.2.9</title>
+  <title>scitex_clew._claim &mdash; SciTeX Clew v0.2.15</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=14672bda"></script>
+      <script src="../../_static/documentation_options.js?v=d5b904a0"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -111,6 +111,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
@@ -119,6 +120,8 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.on_session_start"><code class="docutils literal notranslate"><span class="pre">on_session_start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.on_session_close"><code class="docutils literal notranslate"><span class="pre">on_session_close()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -176,12 +179,14 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
 
@@ -368,7 +373,125 @@
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
+    <span class="c1"># Auto-export the canonical claims.json so consumers (verifier,</span>
+    <span class="c1"># scitex-writer, human eyes) can read a stable artifact without</span>
+    <span class="c1"># talking to sqlite. Default ON; opt out with</span>
+    <span class="c1"># SCITEX_CLEW_AUTO_EXPORT_CLAIMS=0 if you&#39;re streaming thousands of</span>
+    <span class="c1"># claims and the per-call rewrite cost matters. The cost is O(N×K)</span>
+    <span class="c1"># where N is total claims in the DB and K is rewrite size — for</span>
+    <span class="c1"># typical research papers (N &lt; 100, K &lt; 50 KB) it&#39;s negligible.</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SCITEX_CLEW_AUTO_EXPORT_CLAIMS&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">export_claims_json</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
+            <span class="c1"># Auto-export is a convenience layer — must not break the</span>
+            <span class="c1"># add_claim primary path if e.g. the runtime/ dir is</span>
+            <span class="c1"># read-only on this host. Log and continue. The user can</span>
+            <span class="c1"># call export_claims_json() explicitly to surface failures.</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_w</span>
+
+            <span class="n">_w</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;scitex_clew auto-export of claims.json failed &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(set SCITEX_CLEW_AUTO_EXPORT_CLAIMS=0 to silence): &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">exc</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="ne">RuntimeWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+
     <span class="k">return</span> <span class="n">claim</span></div>
+
+
+
+<div class="viewcode-block" id="export_claims_json">
+<a class="viewcode-back" href="../../api/scitex_clew.html#scitex_clew.export_claims_json">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">export_claims_json</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">file_path_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">read_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Export every registered claim to a canonical JSON artifact.</span>
+
+<span class="sd">    The exported file is the single human-readable + machine-consumable</span>
+<span class="sd">    view of the claims table in ``db.sqlite``. The DB remains the</span>
+<span class="sd">    source of truth; this JSON is a regenerable artifact.</span>
+
+<span class="sd">    Path resolution (mirrors :func:`scitex_clew._db._core._default_db_path`)::</span>
+
+<span class="sd">        1. Explicit ``path`` argument.</span>
+<span class="sd">        2. ``$SCITEX_CLEW_CLAIMS_JSON`` env var (escape hatch).</span>
+<span class="sd">        3. ``&lt;project_root&gt;/.scitex/clew/runtime/claims.json``</span>
+<span class="sd">           (project root = nearest ancestor dir with ``.git`` or</span>
+<span class="sd">           ``pyproject.toml``; falls back to cwd if none found).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str | Path, optional</span>
+<span class="sd">        Override the resolved path. Useful for tests / one-off dumps.</span>
+<span class="sd">    file_path_filter : str, optional</span>
+<span class="sd">        When set, only claims registered against this manuscript file</span>
+<span class="sd">        path are exported. Default: every claim in the DB.</span>
+<span class="sd">    read_only : bool, optional</span>
+<span class="sd">        After writing, ``chmod 0o444`` the file so accidental edits</span>
+<span class="sd">        fail loudly at the OS layer. Default True (the file IS</span>
+<span class="sd">        derived). Set False for tests that need to mutate the file.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Path</span>
+<span class="sd">        The path the artifact was written to (absolute).</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import scitex_clew as clew</span>
+<span class="sd">    &gt;&gt;&gt; clew.add_claim(&quot;paper.tex&quot;, &quot;value&quot;, 42, &quot;0.94&quot;, source_file=&quot;r.csv&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; # claims.json now auto-exported under ./.scitex/clew/runtime/</span>
+<span class="sd">    &gt;&gt;&gt; clew.export_claims_json()  # idempotent — re-emit on demand</span>
+<span class="sd">    PosixPath(&#39;.../.scitex/clew/runtime/claims.json&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">_core</span> <span class="k">as</span> <span class="n">_db_core</span>
+
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">env_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SCITEX_CLEW_CLAIMS_JSON&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">env_path</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">env_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">_db_core</span><span class="o">.</span><span class="n">_default_claims_json_path</span><span class="p">(</span>
+                <span class="n">_db_core</span><span class="o">.</span><span class="n">_find_project_root</span><span class="p">()</span>
+            <span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">list_claims</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">file_path_filter</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">10_000</span><span class="p">)</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;_note&quot;</span><span class="p">:</span> <span class="p">(</span>
+            <span class="s2">&quot;AUTO-GENERATED by scitex_clew.export_claims_json() from &quot;</span>
+            <span class="s2">&quot;db.sqlite. Do NOT edit by hand — re-emit by calling &quot;</span>
+            <span class="s2">&quot;scitex_clew.export_claims_json() (default-on after every &quot;</span>
+            <span class="s2">&quot;clew.add_claim()) or by re-running your pipeline.&quot;</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;claims_count&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">claims</span><span class="p">),</span>
+        <span class="s2">&quot;claims&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">claims</span><span class="p">],</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Clear any pre-existing read-only bit before rewriting.</span>
+    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="mo">0o644</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">read_only</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="mo">0o444</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="c1"># Best-effort — on filesystems that don&#39;t support unix</span>
+            <span class="c1"># perms (e.g. some Windows mounts) this is a no-op.</span>
+            <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">path</span></div>
 
 
 

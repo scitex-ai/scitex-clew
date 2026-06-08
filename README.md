@@ -136,14 +136,36 @@ graph LR
 scitex-clew/
 ├── src/scitex_clew/
 │   ├── __init__.py              # status, run, chain, dag, rerun, mermaid
-│   ├── _db.py                   # sqlite3 hash-linked DAG store
+│   ├── _db/                     # sqlite3 hash-linked DAG store (package)
+│   │   ├── __init__.py
+│   │   ├── _core.py             # VerificationDB, connection mgmt
+│   │   ├── _chain.py            # ChainMixin: get_chain, get_children, set_parent
+│   │   ├── _queries.py          # VerificationQueryMixin
+│   │   └── _parents.py          # Parent-session operations
 │   ├── _hash.py                 # file + directory Merkle hashing
-│   ├── groupers/                # pattern / directory / auto / compose
-│   ├── _claim/                  # claim CRUD + verification
-│   ├── _stamp/                  # temporal stamping backends
+│   ├── _chain.py                # VerificationLevel, ChainEntry
+│   ├── _claim.py                # Claim CRUD + verification (single file)
+│   ├── _dag.py                  # DAG verification
+│   ├── _node_class.py           # DAG node classification
+│   ├── _stamp.py                # Temporal stamping backends (single file)
+│   ├── _rerun.py                # Sandbox re-execution
+│   ├── _tracker.py              # Session tracking
+│   ├── _registry.py             # Clew Registry client (scitex.ai)
+│   ├── _register_intermediate.py# Agentic intermediate-value registration
+│   ├── _visualize.py            # Visualization helpers
+│   ├── _viz/                    # Graphviz-based DAG rendering
+│   ├── _examples.py             # Bundled example locator
+│   ├── _logging.py              # Optional scitex.logging integration
+│   ├── _linter_plugin.py        # scitex-linter plugin entry point
+│   ├── groupers/                # Pattern / directory / auto / compose
+│   │   ├── __init__.py
+│   │   └── _config.py           # Per-project grouper config loader
+│   ├── groupers.py              # Public re-exports
 │   ├── _cli/                    # clew entrypoint (recursive --help)
-│   ├── _mcp_tools/              # MCP tools for AI agents
-│   └── _skills/                 # workflow skill pages
+│   ├── _mcp/                    # MCP server for AI agents
+│   │   ├── server.py            # FastMCP server
+│   │   └── tools/               # Tool definitions (skills, claims, hashing, stamping, verification)
+│   └── _skills/scitex-clew/     # Workflow skill pages
 └── tests/
 ```
 

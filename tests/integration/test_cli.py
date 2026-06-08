@@ -8,8 +8,10 @@ Strategy
 - Use click.testing.CliRunner to invoke all CLI entry points in-process.
 - Where commands call scitex_clew.* functions that touch the database, inject
   an isolated temp DB via set_db() before each test and tear it down after.
-- MCP-related sub-commands that need fastmcp are tested with monkeypatching
-  so the suite does not require the optional [mcp] extra to pass.
+- MCP-related sub-commands that need fastmcp are tested by swapping the
+  module-level ``fastmcp`` symbol via the hand-rolled ``_swap_attr``
+  context manager (PA-306-compliant — no stdlib mock library used) so
+  the suite does not require the optional [mcp] extra to pass.
 - Each test asserts exit_code and one or more observable strings in output.
 """
 

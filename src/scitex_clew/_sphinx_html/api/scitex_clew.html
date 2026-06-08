@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew &mdash; SciTeX Clew v0.2.9</title>
+  <title>scitex_clew &mdash; SciTeX Clew v0.2.15</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=14672bda"></script>
+      <script src="../_static/documentation_options.js?v=d5b904a0"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -114,6 +114,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
@@ -122,6 +123,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.on_session_start"><code class="docutils literal notranslate"><span class="pre">on_session_start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.on_session_close"><code class="docutils literal notranslate"><span class="pre">on_session_close()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -164,7 +167,7 @@
 <p>scitex-clew — Hash-based verification for reproducible science.</p>
 <p>Standalone package. Zero dependencies (pure stdlib + sqlite3).
 When used with scitex, integration is automatic via &#64;stx.session + stx.io.</p>
-<p>Public API (19 functions):</p>
+<p>Public API:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">clew</span>
 
 <span class="c1"># Verification</span>
@@ -197,6 +200,10 @@ When used with scitex, integration is automatic via &#64;stx.session + stx.io.</
 
 <span class="c1"># Examples</span>
 <span class="n">clew</span><span class="o">.</span><span class="n">init_examples</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>           <span class="c1"># scaffold example pipeline</span>
+
+<span class="c1"># Session lifecycle hooks (invoked by @scitex.session)</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">on_session_start</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>  <span class="c1"># open a tracked run</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">on_session_close</span><span class="p">(</span><span class="n">status</span><span class="o">=...</span><span class="p">)</span>  <span class="c1"># finalize run + combined hash</span>
 </pre></div>
 </div>
 <dl class="py function">
@@ -382,6 +389,51 @@ source files referenced by the matching claims.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.export_claims_json">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">export_claims_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim.html#export_claims_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.export_claims_json" title="Link to this definition"></a></dt>
+<dd><p>Export every registered claim to a canonical JSON artifact.</p>
+<p>The exported file is the single human-readable + machine-consumable
+view of the claims table in <code class="docutils literal notranslate"><span class="pre">db.sqlite</span></code>. The DB remains the
+source of truth; this JSON is a regenerable artifact.</p>
+<p>Path resolution (mirrors <code class="xref py py-func docutils literal notranslate"><span class="pre">scitex_clew._db._core._default_db_path()</span></code>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>1. Explicit ``path`` argument.
+2. ``$SCITEX_CLEW_CLAIMS_JSON`` env var (escape hatch).
+3. ``&lt;project_root&gt;/.scitex/clew/runtime/claims.json``
+   (project root = nearest ancestor dir with ``.git`` or
+   ``pyproject.toml``; falls back to cwd if none found).
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>Path</em><em>, </em><em>optional</em>) – Override the resolved path. Useful for tests / one-off dumps.</p></li>
+<li><p><strong>file_path_filter</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – When set, only claims registered against this manuscript file
+path are exported. Default: every claim in the DB.</p></li>
+<li><p><strong>read_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – After writing, <code class="docutils literal notranslate"><span class="pre">chmod</span> <span class="pre">0o444</span></code> the file so accidental edits
+fail loudly at the OS layer. Default True (the file IS
+derived). Set False for tests that need to mutate the file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The path the artifact was written to (absolute).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path</p>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">clew</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">clew</span><span class="o">.</span><span class="n">add_claim</span><span class="p">(</span><span class="s2">&quot;paper.tex&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="s2">&quot;0.94&quot;</span><span class="p">,</span> <span class="n">source_file</span><span class="o">=</span><span class="s2">&quot;r.csv&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># claims.json now auto-exported under ./.scitex/clew/runtime/</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">clew</span><span class="o">.</span><span class="n">export_claims_json</span><span class="p">()</span>  <span class="c1"># idempotent — re-emit on demand</span>
+<span class="go">PosixPath(&#39;.../.scitex/clew/runtime/claims.json&#39;)</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.register_intermediate">
 <span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">register_intermediate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supports</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'value'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_register_intermediate.html#register_intermediate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.register_intermediate" title="Link to this definition"></a></dt>
 <dd><p>Register a computed intermediate as a Clew claim.</p>
@@ -441,7 +493,7 @@ no explicit upstream (use sparingly).</p></li>
 <li><p><strong>backend</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – One of: file, rfc3161, zenodo.</p></li>
 <li><p><strong>service_url</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – URL for RFC 3161 TSA or Zenodo API.</p></li>
 <li><p><strong>session_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Specific sessions to stamp. If None, stamps all successful runs.</p></li>
-<li><p><strong>output_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Directory for file-based stamps (default: .scitex/stamps/).</p></li>
+<li><p><strong>output_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Directory for file-based stamps (default: &lt;db_dir&gt;/stamps, i.e. .scitex/clew/runtime/stamps/).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -559,7 +611,7 @@ no explicit upstream (use sparingly).</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.init_examples">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">init_examples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sequential'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_examples.html#init_examples"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.init_examples" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">init_examples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sequential'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">find_examples_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">_find_examples_dir&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_examples.html#init_examples"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.init_examples" title="Link to this definition"></a></dt>
 <dd><p>Copy Clew example scripts to a destination directory.</p>
 <p>Copies only the runnable scripts (.py, .sh) and README — not
 the output directories.  Users run <code class="docutils literal notranslate"><span class="pre">00_run_all.sh</span></code> themselves
@@ -570,6 +622,11 @@ to generate outputs and populate the verification database.</p>
 <li><p><strong>dest</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>Path</em>) – Destination directory.  Created if it does not exist.
 Existing script files are overwritten.</p></li>
 <li><p><strong>variant</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Example variant: “sequential” (default) or “multi_parent”.</p></li>
+<li><p><strong>find_examples_dir</strong> (<em>callable</em><em>, </em><em>optional</em>) – Locator callable <code class="docutils literal notranslate"><span class="pre">(variant:</span> <span class="pre">str)</span> <span class="pre">-&gt;</span> <span class="pre">Optional[Path]</span></code> used to
+resolve the bundled examples source. Production callers should
+not pass this; it is the canonical PA-306 §1 DI seam — tests
+inject a hand-rolled fake that returns a <code class="docutils literal notranslate"><span class="pre">tmp_path</span></code>-rooted
+directory or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -583,6 +640,46 @@ Existing script files are overwritten.</p></li>
 <li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.14)"><strong>FileNotFoundError</strong></a> – If the bundled examples cannot be located.</p></li>
 <li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If variant is not recognized.</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.on_session_start">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">on_session_start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">script_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent_session</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_observers/_session.html#on_session_start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.on_session_start" title="Link to this definition"></a></dt>
+<dd><p>Hook called when a session starts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>session_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Unique session identifier</p></li>
+<li><p><strong>script_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Path to the script being run</p></li>
+<li><p><strong>parent_session</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Parent session ID for chain tracking</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to log status messages</p></li>
+<li><p><strong>metadata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Additional metadata (e.g. notebook_path, cell_index)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.on_session_close">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">on_session_close</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'success'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exit_code</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">register</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_observers/_session.html#on_session_close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.on_session_close" title="Link to this definition"></a></dt>
+<dd><p>Hook called when a session closes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>status</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Final status (success, failed, error)</p></li>
+<li><p><strong>exit_code</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Exit code of the script</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to log status messages</p></li>
+<li><p><strong>register</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, register session hashes with remote Clew Registry.
+If None, checks SCITEX_AUTO_REGISTER environment variable.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>

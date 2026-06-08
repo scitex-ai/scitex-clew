@@ -128,7 +128,7 @@ Architecture
    │    _hash.py    _chain.py    _dag.py    _claim.py │
    │    _tracker.py _stamp.py   _rerun.py             │
    ├─────────────────────────────────────────────────┤
-   │  Storage: SQLite (clew.db)                       │
+   │  Storage: SQLite (db.sqlite)                      │
    │    runs, file_hashes, session_parents, claims    │
    └─────────────────────────────────────────────────┘
 

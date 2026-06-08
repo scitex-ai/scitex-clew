@@ -5,7 +5,7 @@ scitex-clew — Hash-based verification for reproducible science.
 Standalone package. Zero dependencies (pure stdlib + sqlite3).
 When used with scitex, integration is automatic via @stx.session + stx.io.
 
-Public API (19 functions)::
+Public API::
 
     import scitex_clew as clew
 
@@ -39,6 +39,10 @@ Public API (19 functions)::
 
     # Examples
     clew.init_examples(dest)           # scaffold example pipeline
+
+    # Session lifecycle hooks (invoked by @scitex.session)
+    clew.on_session_start(session_id)  # open a tracked run
+    clew.on_session_close(status=...)  # finalize run + combined hash
 """
 
 from __future__ import annotations
@@ -106,10 +110,12 @@ from ._claim import (
 )
 from ._claim import (
     add_claim,
+    export_claims_json,
     list_claims,
     verify_claim,
 )
 from ._register_intermediate import register_intermediate
+from ._observers import on_session_close, on_session_start
 from ._claim import (
     format_claims as _format_claims,
 )
@@ -374,6 +380,7 @@ __all__ = [
     "add_claim",
     "list_claims",
     "verify_claim",
+    "export_claims_json",
     "register_intermediate",
     # Stamping
     "stamp",
@@ -388,7 +395,23 @@ __all__ = [
     "groupers",
     # Examples
     "init_examples",
+    # Session lifecycle hooks
+    "on_session_start",
+    "on_session_close",
 ]
+
+
+# ---------------------------------------------------------------------------
+# SOC R6: self-register post-save / post-load hooks with scitex-io.
+# Must never break ``import scitex_clew`` — broad except is intentional.
+# ---------------------------------------------------------------------------
+try:
+    from ._observers import register_with_scitex_io as _register
+
+    _register()
+    del _register
+except Exception:
+    pass
 
 
 # EOF

@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew &mdash; SciTeX Clew v0.2.9</title>
+  <title>scitex_clew &mdash; SciTeX Clew v0.2.15</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=14672bda"></script>
+      <script src="../_static/documentation_options.js?v=d5b904a0"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -111,6 +111,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
@@ -119,6 +120,8 @@
 <li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.on_session_start"><code class="docutils literal notranslate"><span class="pre">on_session_start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scitex_clew.html#scitex_clew.on_session_close"><code class="docutils literal notranslate"><span class="pre">on_session_close()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -164,7 +167,7 @@
 <span class="sd">Standalone package. Zero dependencies (pure stdlib + sqlite3).</span>
 <span class="sd">When used with scitex, integration is automatic via @stx.session + stx.io.</span>
 
-<span class="sd">Public API (19 functions)::</span>
+<span class="sd">Public API::</span>
 
 <span class="sd">    import scitex_clew as clew</span>
 
@@ -198,6 +201,10 @@
 
 <span class="sd">    # Examples</span>
 <span class="sd">    clew.init_examples(dest)           # scaffold example pipeline</span>
+
+<span class="sd">    # Session lifecycle hooks (invoked by @scitex.session)</span>
+<span class="sd">    clew.on_session_start(session_id)  # open a tracked run</span>
+<span class="sd">    clew.on_session_close(status=...)  # finalize run + combined hash</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -265,10 +272,12 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">add_claim</span><span class="p">,</span>
+    <span class="n">export_claims_json</span><span class="p">,</span>
     <span class="n">list_claims</span><span class="p">,</span>
     <span class="n">verify_claim</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._register_intermediate</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_intermediate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._observers</span><span class="w"> </span><span class="kn">import</span> <span class="n">on_session_close</span><span class="p">,</span> <span class="n">on_session_start</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">format_claims</span> <span class="k">as</span> <span class="n">_format_claims</span><span class="p">,</span>
 <span class="p">)</span>
@@ -557,6 +566,7 @@
     <span class="s2">&quot;add_claim&quot;</span><span class="p">,</span>
     <span class="s2">&quot;list_claims&quot;</span><span class="p">,</span>
     <span class="s2">&quot;verify_claim&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;export_claims_json&quot;</span><span class="p">,</span>
     <span class="s2">&quot;register_intermediate&quot;</span><span class="p">,</span>
     <span class="c1"># Stamping</span>
     <span class="s2">&quot;stamp&quot;</span><span class="p">,</span>
@@ -571,7 +581,23 @@
     <span class="s2">&quot;groupers&quot;</span><span class="p">,</span>
     <span class="c1"># Examples</span>
     <span class="s2">&quot;init_examples&quot;</span><span class="p">,</span>
+    <span class="c1"># Session lifecycle hooks</span>
+    <span class="s2">&quot;on_session_start&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;on_session_close&quot;</span><span class="p">,</span>
 <span class="p">]</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># SOC R6: self-register post-save / post-load hooks with scitex-io.</span>
+<span class="c1"># Must never break ``import scitex_clew`` — broad except is intentional.</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._observers</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_with_scitex_io</span> <span class="k">as</span> <span class="n">_register</span>
+
+    <span class="n">_register</span><span class="p">()</span>
+    <span class="k">del</span> <span class="n">_register</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="k">pass</span>
 
 
 <span class="c1"># EOF</span>

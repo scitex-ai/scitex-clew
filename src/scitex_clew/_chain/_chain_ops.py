@@ -15,6 +15,9 @@ from ._verify_ops import verify_run
 
 def verify_chain(
     target: Union[str, Path],
+    *,
+    db_factory=get_db,
+    verify_run_fn=verify_run,
 ) -> ChainVerification:
     """Verify the dependency chain for a target file.
 
@@ -25,13 +28,20 @@ def verify_chain(
     ----------
     target : str or Path
         Target file to trace
+    db_factory : callable, optional
+        Zero-arg callable returning a verification-DB handle. Defaults
+        to the real ``get_db``; tests inject a hand-rolled fake DB via
+        this PA-306 §1 DI seam.
+    verify_run_fn : callable, optional
+        ``(session_id) -> RunVerification``. Defaults to the real
+        ``verify_run``; tests inject a canned-result callable here.
 
     Returns
     -------
     ChainVerification
         Verification result for the entire chain
     """
-    db = get_db()
+    db = db_factory()
     target = str(Path(target).resolve())
 
     # Find session that produced this output
@@ -52,7 +62,7 @@ def verify_chain(
     # Verify each run in the chain
     run_verifications = []
     for sid in chain:
-        run_verifications.append(verify_run(sid))
+        run_verifications.append(verify_run_fn(sid))
 
     # Determine overall status
     if all(r.is_verified for r in run_verifications):
@@ -71,15 +81,29 @@ def verify_chain(
     )
 
 
-def get_status() -> Dict[str, Any]:
+def get_status(
+    *,
+    db_factory=get_db,
+    verify_run_fn=verify_run,
+) -> Dict[str, Any]:
     """Get verification status for all runs (like git status).
+
+    Parameters
+    ----------
+    db_factory : callable, optional
+        Zero-arg callable returning a verification-DB handle. Defaults
+        to the real ``get_db``; tests inject a hand-rolled fake via
+        this PA-306 §1 DI seam.
+    verify_run_fn : callable, optional
+        ``(session_id) -> RunVerification``. Defaults to the real
+        ``verify_run``; tests inject a canned-result callable here.
 
     Returns
     -------
     dict
         Summary of verification status
     """
-    db = get_db()
+    db = db_factory()
     runs = db.list_runs(limit=1000)
 
     verified = []
@@ -88,7 +112,7 @@ def get_status() -> Dict[str, Any]:
 
     for run in runs:
         session_id = run["session_id"]
-        verification = verify_run(session_id)
+        verification = verify_run_fn(session_id)
 
         if verification.is_verified:
             verified.append(session_id)

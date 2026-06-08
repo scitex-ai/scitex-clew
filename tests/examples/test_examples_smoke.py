@@ -1,25 +1,19 @@
 #!/usr/bin/env python3
-"""Tests for scitex_clew._examples module."""
+"""Tests for scitex_clew._examples module.
+
+The DI seam used here is the canonical PA-306 §1 pattern: production
+exposes ``find_examples_dir`` as a kwarg with the real implementation
+as the default, and tests pass a hand-rolled fake locator — no
+attribute swapping or stdlib-mock machinery required.
+"""
 
 from __future__ import annotations
 
-import contextlib
 from pathlib import Path
 
 import pytest
 
-from scitex_clew import _examples as _examples_mod
 from scitex_clew._examples import _find_examples_dir, init_examples
-
-
-@contextlib.contextmanager
-def _swap_attr(obj, name, value):
-    saved = getattr(obj, name)
-    setattr(obj, name, value)
-    try:
-        yield
-    finally:
-        setattr(obj, name, saved)
 
 
 # ---------------------------------------------------------------------------
@@ -149,76 +143,46 @@ class TestInitExamples:
 
     def test_missing_examples_dir_raises_file_not_found(self, tmp_path):
         # Arrange
+        dest = tmp_path / "dest"
         # Act
+        ctx = pytest.raises(FileNotFoundError)
         # Assert
-        # Arrange
-        # Act
-        # Assert
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": None):
-            with pytest.raises(FileNotFoundError):
-                init_examples(tmp_path / "dest")
+        with ctx:
+            init_examples(dest, find_examples_dir=lambda variant="sequential": None)
 
     def test_returns_dict_with_expected_keys_path_in_result(self, tmp_path):
-        # Arrange
-        # Arrange
         # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "dest"
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            result = init_examples(dest)
-        # Act
-        # Assert
-        # Assert
+        result = init_examples(dest, find_examples_dir=lambda variant="sequential": src)
         # Assert
         assert "path" in result
 
     def test_returns_dict_with_expected_keys_files_in_result(self, tmp_path):
         # Arrange
-        # Arrange
-        # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "dest"
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            result = init_examples(dest)
-        # Act
-        # Assert
-        # Assert
+        result = init_examples(dest, find_examples_dir=lambda variant="sequential": src)
         # Assert
         assert "files" in result
 
     def test_returns_dict_with_expected_keys_file_count_in_result(self, tmp_path):
         # Arrange
-        # Arrange
-        # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "dest"
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            result = init_examples(dest)
-        # Act
-        # Assert
-        # Assert
+        result = init_examples(dest, find_examples_dir=lambda variant="sequential": src)
         # Assert
         assert "file_count" in result
 
     def test_returns_dict_with_expected_keys_variant_in_result(self, tmp_path):
         # Arrange
-        # Arrange
-        # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "dest"
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            result = init_examples(dest)
-        # Act
-        # Assert
-        # Assert
+        result = init_examples(dest, find_examples_dir=lambda variant="sequential": src)
         # Assert
         assert "variant" in result
 
@@ -261,8 +225,7 @@ class TestInitExamples:
         src = self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "new_dest" / "nested"
         # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            init_examples(dest)
+        init_examples(dest, find_examples_dir=lambda variant="sequential": src)
         # Assert
         assert dest.exists()
 
@@ -270,99 +233,72 @@ class TestInitExamples:
 
     def test_copies_files_to_dest_result_file_count_0(self, tmp_path):
         # Arrange
-        # Arrange
-        # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "dest"
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            result = init_examples(dest)
-        # Act
-        # Assert
-        # Assert
+        result = init_examples(dest, find_examples_dir=lambda variant="sequential": src)
         # Assert
         assert result["file_count"] > 0
 
     def test_copies_files_to_dest_all_dest_fname_exists_for_fname_in_result_files(self, tmp_path):
         # Arrange
-        # Arrange
-        # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "dest"
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            result = init_examples(dest)
-        # Act
-        # Assert
-        # Assert
+        result = init_examples(dest, find_examples_dir=lambda variant="sequential": src)
         # Assert
         assert all((dest / fname).exists() for fname in result['files'])
 
 
     def test_skips_subdirectories_out_not_in_result_files(self, tmp_path):
         # Arrange
-        # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "dest"
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            result = init_examples(dest)
-        # Assert
+        result = init_examples(dest, find_examples_dir=lambda variant="sequential": src)
         # Assert
         assert "_out" not in result["files"]
 
     def test_variant_in_result(self, tmp_path):
         # Arrange
-        # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "dest"
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            result = init_examples(dest, variant="sequential")
-        # Assert
+        result = init_examples(
+            dest,
+            variant="sequential",
+            find_examples_dir=lambda variant="sequential": src,
+        )
         # Assert
         assert result["variant"] == "sequential"
 
     def test_path_in_result_matches_dest(self, tmp_path):
         # Arrange
-        # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "dest"
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            result = init_examples(dest)
-        # Assert
+        result = init_examples(dest, find_examples_dir=lambda variant="sequential": src)
         # Assert
         assert result["path"] == str(dest)
 
     def test_multi_parent_variant_missing_raises(self, tmp_path):
         # _find_examples_dir(variant) returns None when the bundled variant
         # directory cannot be located; init_examples must surface that as
-        # FileNotFoundError. The previous test patched it to a non-None
-        # value, which never tripped the None-branch.
+        # FileNotFoundError. The hand-rolled locator below returns None
+        # for the multi_parent variant, exercising the None-branch.
         # Arrange
-        # Act
-        # Assert
-        # Arrange
-        # Act
-        # Assert
         dest = tmp_path / "dest"
-        with _swap_attr(
-            _examples_mod,
-            "_find_examples_dir",
-            lambda variant="sequential": None if variant == "multi_parent" else None,
-        ):
-            with pytest.raises(FileNotFoundError):
-                init_examples(dest, variant="multi_parent")
+        # Act
+        ctx = pytest.raises(FileNotFoundError)
+        # Assert
+        with ctx:
+            init_examples(
+                dest,
+                variant="multi_parent",
+                find_examples_dir=lambda variant="sequential": None,
+            )
 
     def test_multi_parent_variant_found_result_variant_multi_parent(self, tmp_path):
-        # Arrange
-        # Arrange
         # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         mp_dir = src / "multi_parent"
@@ -370,60 +306,48 @@ class TestInitExamples:
         (mp_dir / "01_step.py").write_text("print('mp')")
         dest = tmp_path / "dest"
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            result = init_examples(dest, variant="multi_parent")
-        # Act
-        # Assert
-        # Assert
+        result = init_examples(
+            dest,
+            variant="multi_parent",
+            find_examples_dir=lambda variant="sequential": src,
+        )
         # Assert
         assert result["variant"] == "multi_parent"
 
     def test_multi_parent_variant_found_result_file_count_1(self, tmp_path):
         # Arrange
-        # Arrange
-        # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         mp_dir = src / "multi_parent"
         mp_dir.mkdir()
         (mp_dir / "01_step.py").write_text("print('mp')")
         dest = tmp_path / "dest"
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            result = init_examples(dest, variant="multi_parent")
-        # Act
-        # Assert
-        # Assert
+        result = init_examples(
+            dest,
+            variant="multi_parent",
+            find_examples_dir=lambda variant="sequential": src,
+        )
         # Assert
         assert result["file_count"] >= 1
 
 
     def test_accepts_string_dest(self, tmp_path):
         # Arrange
-        # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         dest = str(tmp_path / "str_dest")
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            init_examples(dest)
-        # Assert
+        init_examples(dest, find_examples_dir=lambda variant="sequential": src)
         # Assert
         assert Path(dest).exists()
 
     def test_overwrites_existing_files(self, tmp_path):
-        # Arrange
         # Arrange
         src = self._make_fake_examples_dir(tmp_path)
         dest = tmp_path / "dest"
         dest.mkdir()
         (dest / "01_process.py").write_text("OLD CONTENT")
         # Act
-        # Act
-        with _swap_attr(_examples_mod, "_find_examples_dir", lambda variant="sequential": src):
-            init_examples(dest)
-        # Assert
+        init_examples(dest, find_examples_dir=lambda variant="sequential": src)
         # Assert
         assert (dest / "01_process.py").read_text() == "print('step 1')"
 
