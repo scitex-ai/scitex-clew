@@ -64,13 +64,24 @@ def verify_chain(
     for sid in chain:
         run_verifications.append(verify_run_fn(sid))
 
-    # Determine overall status
+    # Determine overall status.
+    # Severity preserved: VERIFIED > SUSPECT > MISSING > MISMATCH > UNKNOWN
+    # is NOT the order — instead we keep the historical "any-failure-wins"
+    # priority and slot SUSPECT in below MISMATCH/MISSING:
+    #     MISMATCH > MISSING > SUSPECT > UNKNOWN.
+    # A chain that has any *locally* broken run reports MISMATCH/MISSING
+    # because that needs to be fixed first; a chain whose runs are all
+    # locally valid but at least one is SUSPECT (its upstream was broken)
+    # reports SUSPECT so the DAG colours that band orange instead of
+    # lying green.
     if all(r.is_verified for r in run_verifications):
         status = VerificationStatus.VERIFIED
     elif any(r.status == VerificationStatus.MISMATCH for r in run_verifications):
         status = VerificationStatus.MISMATCH
     elif any(r.status == VerificationStatus.MISSING for r in run_verifications):
         status = VerificationStatus.MISSING
+    elif any(r.status == VerificationStatus.SUSPECT for r in run_verifications):
+        status = VerificationStatus.SUSPECT
     else:
         status = VerificationStatus.UNKNOWN
 

@@ -9,11 +9,20 @@ from .._chain import VerificationStatus
 
 
 class Colors:
-    """ANSI color codes for terminal output."""
+    """ANSI color codes for terminal output.
+
+    ORANGE is paired with the new ``VerificationStatus.SUSPECT`` enum
+    (added 2026-06-10): "upstream-failed-but-locally-valid". The
+    Mermaid renderer uses a hex equivalent (#FFD580 / #FF8C00) for the
+    ``file_suspect`` / ``suspect`` class definitions in
+    ``_mermaid_nodes.py``; this ANSI code is the terminal-status
+    counterpart used by ``status_icon`` / ``status_text``.
+    """
 
     GREEN = "\033[92m"
     RED = "\033[91m"
     YELLOW = "\033[93m"
+    ORANGE = "\033[38;5;208m"
     CYAN = "\033[96m"
     GRAY = "\033[90m"
     RESET = "\033[0m"
@@ -52,6 +61,7 @@ def status_icon(
     icons = {
         VerificationStatus.VERIFIED: f"{Colors.GREEN}●{Colors.RESET}",
         VerificationStatus.MISMATCH: f"{Colors.RED}●{Colors.RESET}",
+        VerificationStatus.SUSPECT: f"{Colors.ORANGE}●{Colors.RESET}",
         VerificationStatus.MISSING: f"{Colors.YELLOW}○{Colors.RESET}",
         VerificationStatus.UNKNOWN: f"{Colors.CYAN}?{Colors.RESET}",
     }
@@ -75,6 +85,7 @@ def status_text(status: VerificationStatus) -> str:
     texts = {
         VerificationStatus.VERIFIED: f"{Colors.GREEN}verified{Colors.RESET}",
         VerificationStatus.MISMATCH: f"{Colors.RED}mismatch{Colors.RESET}",
+        VerificationStatus.SUSPECT: f"{Colors.ORANGE}suspect{Colors.RESET}",
         VerificationStatus.MISSING: f"{Colors.YELLOW}missing{Colors.RESET}",
         VerificationStatus.UNKNOWN: f"{Colors.CYAN}unknown{Colors.RESET}",
     }

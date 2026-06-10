@@ -299,3 +299,42 @@ def test_get_status_handles_empty_db():
         "mismatched": [],
         "missing": [],
     }
+
+
+# ----- VerificationStatus.SUSPECT (3-colour DAG) -------------------------- #
+
+
+def test_verify_chain_propagates_suspect_when_any_run_is_suspect():
+    # Arrange — chain s1 → s2 where s1 is SUSPECT (locally valid, upstream
+    # broken) and s2 is VERIFIED. No locally-failed runs in the chain.
+    def _verify(sid: str) -> RunVerification:
+        return _make_run(
+            session_id=sid,
+            status=(
+                VerificationStatus.SUSPECT
+                if sid == "s1"
+                else VerificationStatus.VERIFIED
+            ),
+        )
+
+    db_factory = lambda: _FakeDB(sessions_for_file=["s2"], chain=["s1", "s2"])
+    # Act
+    out = verify_chain("/out.csv", db_factory=db_factory, verify_run_fn=_verify)
+    # Assert
+    assert out.status == VerificationStatus.SUSPECT
+
+
+def test_verify_chain_mismatch_outranks_suspect_in_severity():
+    # Arrange — chain has both a SUSPECT run AND a MISMATCH run. MISMATCH
+    # must win because the user has to fix the locally-broken run first;
+    # surfacing SUSPECT here would hide the worse failure.
+    def _verify(sid: str) -> RunVerification:
+        if sid == "s1":
+            return _make_run(session_id=sid, status=VerificationStatus.SUSPECT)
+        return _make_run(session_id=sid, status=VerificationStatus.MISMATCH)
+
+    db_factory = lambda: _FakeDB(sessions_for_file=["s2"], chain=["s1", "s2"])
+    # Act
+    out = verify_chain("/out.csv", db_factory=db_factory, verify_run_fn=_verify)
+    # Assert
+    assert out.status == VerificationStatus.MISMATCH

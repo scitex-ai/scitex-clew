@@ -134,7 +134,11 @@ def verify_dag(
         for p in parents:
             edges.append((p, child))
 
-    # Determine overall status
+    # Determine overall status. SUSPECT slots in below MISMATCH / MISSING
+    # so a DAG that has any locally-broken run still reports MISMATCH /
+    # MISSING (the user has to fix that first), but a DAG whose runs are
+    # all locally valid except for an upstream-only failure reports
+    # SUSPECT — matching the orange band in ``_viz/_mermaid_nodes.py``.
     run_list = [verifications[sid] for sid in topo_order]
     if all(sid not in failed_sessions for sid in topo_order):
         status = VerificationStatus.VERIFIED
@@ -146,6 +150,10 @@ def verify_dag(
         verifications[sid].status == VerificationStatus.MISSING for sid in topo_order
     ):
         status = VerificationStatus.MISSING
+    elif any(
+        verifications[sid].status == VerificationStatus.SUSPECT for sid in topo_order
+    ):
+        status = VerificationStatus.SUSPECT
     else:
         status = VerificationStatus.UNKNOWN
 

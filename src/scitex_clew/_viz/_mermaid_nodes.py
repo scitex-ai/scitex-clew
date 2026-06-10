@@ -44,7 +44,16 @@ def get_file_icon(filename: str) -> str:
 
 
 def append_class_definitions(lines: list) -> None:
-    """Append Mermaid class definitions for styling."""
+    """Append Mermaid class definitions for styling.
+
+    Three colour bands are emitted so the DAG view can distinguish
+    locally-valid runs whose UPSTREAM chain is broken (orange ``suspect``
+    band) from runs whose own artifacts are wrong (red ``failed`` /
+    ``file_bad`` band). See ``VerificationStatus.SUSPECT`` in
+    ``_chain/_types.py`` for the underlying enum. Renderers that pass an
+    empty ``suspect_files`` set degrade cleanly to the historical 2-colour
+    output.
+    """
     lines.append("")
     lines.append("    classDef script fill:#87CEEB,stroke:#4169E1,stroke-width:2px")
     lines.append("    classDef verified fill:#90EE90,stroke:#228B22")
@@ -52,10 +61,12 @@ def append_class_definitions(lines: list) -> None:
         "    classDef verified_scratch fill:#90EE90,stroke:#228B22,stroke-width:4px"
     )
     lines.append("    classDef failed fill:#FFB6C1,stroke:#DC143C")
+    lines.append("    classDef suspect fill:#FFD580,stroke:#FF8C00")
     lines.append("    classDef file fill:#FFF8DC,stroke:#DAA520")
     lines.append("    classDef file_ok fill:#90EE90,stroke:#228B22")
     lines.append("    classDef file_rerun fill:#90EE90,stroke:#228B22,stroke-width:4px")
     lines.append("    classDef file_bad fill:#FFB6C1,stroke:#DC143C")
+    lines.append("    classDef file_suspect fill:#FFD580,stroke:#FF8C00")
 
 
 def add_script_node(
@@ -67,14 +78,26 @@ def add_script_node(
     path_mode: PathMode,
     show_hashes: bool = False,
     has_failed_input: bool = False,
+    has_suspect_input: bool = False,
 ) -> None:
-    """Add a script node to the diagram."""
+    """Add a script node to the diagram.
+
+    ``has_suspect_input`` is the orange-band signal: every local input
+    file verifies, but the upstream chain producing one of those inputs
+    failed. Caller flips this on for runs marked
+    ``VerificationStatus.SUSPECT``; we then render the script in the
+    ``suspect`` colour class so the DAG view does not lie that the run
+    is green. Severity order is failed > suspect > verified.
+    """
     node_id = f"script_{idx}"
     script_verified = verification.is_verified and not has_failed_input
     is_from_scratch = verification.is_verified_from_scratch and not has_failed_input
 
     if has_failed_input:
         status_class = "failed"
+    elif has_suspect_input:
+        # Locally valid but upstream-broken — orange.
+        status_class = "suspect"
     elif is_from_scratch:
         status_class = "verified_scratch"
     elif script_verified:
@@ -105,9 +128,22 @@ def add_file_nodes(
     role: str,
     is_script_rerun_verified: bool = False,
     failed_files: set = None,
+    suspect_files: set = None,
 ) -> None:
-    """Add file nodes and connections to the diagram."""
+    """Add file nodes and connections to the diagram.
+
+    ``suspect_files`` is the new orange-band signal (paired with the
+    ``VerificationStatus.SUSPECT`` enum in ``_chain/_types.py``): a path
+    in this set verifies locally (its own hash is fine), but the
+    upstream session that produced it failed verification, so the chain
+    is broken even though the artifact itself is. Callers that want the
+    historical 2-colour output simply pass ``None`` (default) and the
+    cascade falls back to file_ok / file_bad.
+
+    Severity preserved: failed > suspect > rerun > verified.
+    """
     failed_files = failed_files or set()
+    suspect_files = suspect_files or set()
 
     for fpath, stored_hash in files.items():
         display_name = format_path(fpath, path_mode)
@@ -117,10 +153,14 @@ def add_file_nodes(
         if file_id not in file_nodes:
             file_status = verify_file_hash(fpath, stored_hash)
             is_failed = fpath in failed_files or not file_status
+            is_suspect = (not is_failed) and (fpath in suspect_files)
 
             if is_failed:
                 file_class = "file_bad"
                 badge = "✗"
+            elif is_suspect:
+                file_class = "file_suspect"
+                badge = "?"
             elif role == "output" and is_script_rerun_verified:
                 file_class = "file_rerun"
                 badge = "✓✓"
@@ -151,6 +191,7 @@ def add_grouped_nodes(
     role: str,
     is_script_rerun_verified: bool = False,
     failed_files: set = None,
+    suspect_files: set = None,
 ) -> None:
     """Add file-or-group nodes and connections.
 
@@ -158,8 +199,14 @@ def add_grouped_nodes(
     by a grouper. File entries render identically to ``add_file_nodes``;
     groups render as a single node labeled with member count and Merkle
     root, with aggregate verification status.
+
+    ``suspect_files`` is propagated through to the single-file and group
+    helpers so the SUSPECT (orange) band is honoured at every level of
+    the DAG renderer. Default ``None`` → empty set → legacy 2-colour
+    behaviour for callers that have not opted in yet.
     """
     failed_files = failed_files or set()
+    suspect_files = suspect_files or set()
 
     for item in items:
         if isinstance(item, Group):
@@ -173,6 +220,7 @@ def add_grouped_nodes(
                 role,
                 is_script_rerun_verified,
                 failed_files,
+                suspect_files,
             )
         else:  # FileEntry
             _add_single_file_node(
@@ -185,6 +233,7 @@ def add_grouped_nodes(
                 role,
                 is_script_rerun_verified,
                 failed_files,
+                suspect_files,
             )
 
 
@@ -198,7 +247,9 @@ def _add_single_file_node(
     role,
     is_rerun,
     failed_files,
+    suspect_files=None,
 ):
+    suspect_files = suspect_files or set()
     fpath = entry.path
     stored_hash = entry.hash
     display_name = format_path(fpath, path_mode)
@@ -208,8 +259,11 @@ def _add_single_file_node(
     if file_id not in node_ids:
         ok = verify_file_hash(fpath, stored_hash)
         is_failed = fpath in failed_files or not ok
+        is_suspect = (not is_failed) and (fpath in suspect_files)
         if is_failed:
             cls, badge = "file_bad", "✗"
+        elif is_suspect:
+            cls, badge = "file_suspect", "?"
         elif role == "output" and is_rerun:
             cls, badge = "file_rerun", "✓✓"
         else:
@@ -236,7 +290,9 @@ def _add_group_node(
     role,
     is_rerun,
     failed_files,
+    suspect_files=None,
 ):
+    suspect_files = suspect_files or set()
     group_id = f"group_{group.root_hash[:12]}"
     if group_id not in node_ids:
         any_failed = any(m.path in failed_files for m in group.members)
@@ -244,8 +300,15 @@ def _add_group_node(
             any_failed = not all(
                 verify_file_hash(m.path, m.hash) for m in group.members
             )
+        any_suspect = (not any_failed) and any(
+            m.path in suspect_files for m in group.members
+        )
         if any_failed:
             cls, badge = "file_bad", "⚠"
+        elif any_suspect:
+            # Group aggregates SUSPECT when no member is locally failed
+            # but at least one member's upstream chain is broken.
+            cls, badge = "file_suspect", "?"
         elif role == "output" and is_rerun:
             cls, badge = "file_rerun", "✓✓"
         else:

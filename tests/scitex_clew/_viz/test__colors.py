@@ -372,3 +372,29 @@ def test_status_text_color_matches_status_colors_cyan_in_status_text_verificatio
     assert Colors.CYAN in status_text(VerificationStatus.UNKNOWN)
 
 
+# ----- VerificationStatus.SUSPECT (3-colour DAG) -------------------------- #
+
+
+def test_colors_orange_is_ansi_escape_for_suspect_band():
+    # Arrange
+    # Act
+    # Assert
+    assert Colors.ORANGE.startswith("\033[") and "208" in Colors.ORANGE
+
+
+def test_status_icon_for_suspect_uses_orange():
+    # Arrange
+    # Act
+    icon = status_icon(VerificationStatus.SUSPECT)
+    # Assert
+    assert Colors.ORANGE in icon and "●" in icon
+
+
+def test_status_text_for_suspect_uses_orange_word_suspect():
+    # Arrange
+    # Act
+    text = status_text(VerificationStatus.SUSPECT)
+    # Assert
+    assert Colors.ORANGE in text and "suspect" in text
+
+
