@@ -86,6 +86,7 @@ def _resolve_target(db, target: str) -> str | None:
 def verify_run(
     target: str,
     propagate: bool = True,
+    collapse_suspect: bool = False,
 ) -> RunVerification:
     """Verify a session run by checking all file hashes.
 
@@ -94,7 +95,14 @@ def verify_run(
     target : str
         Session ID, script path, or artifact path
     propagate : bool
-        If True, mark as failed if any upstream input has failed verification
+        If True, mark as failed if any upstream input has failed verification.
+    collapse_suspect : bool
+        Backward-compatibility knob for the original 2-state output:
+        when True the new SUSPECT state ("upstream failed but every local
+        file verifies on its own") is folded back into MISMATCH, exactly
+        matching the pre-SUSPECT behaviour. Default is False so callers
+        opting into the 3-state DAG colouring get SUSPECT surfaced
+        without further changes.
 
     Returns
     -------
@@ -155,9 +163,48 @@ def verify_run(
         )
         file_verifications.append(script_verification)
 
-    # Determine overall status (upstream failure propagates)
-    if upstream_failed:
-        status = VerificationStatus.MISMATCH
+    # Determine overall status.
+    #
+    # Order matters: a *local* failure (MISMATCH on an output/script, or a
+    # MISSING output) is always more severe than upstream propagation —
+    # the local failure says "this run's own artifacts are wrong now",
+    # which the user must fix regardless of chain state. We check those
+    # first. Only when every locally-checkable file passes do we fall back
+    # to the upstream-only signal — that becomes SUSPECT (or MISMATCH if
+    # the caller opted into the legacy 2-state collapse).
+    locally_failed_files = [
+        f
+        for f in file_verifications
+        if f.role != "input" and not f.is_verified
+    ]
+    if locally_failed_files:
+        # Pick MISMATCH if any local artifact mismatches; MISSING only when
+        # every local failure is "file absent" (matches the original
+        # severity preference).
+        if any(
+            f.status == VerificationStatus.MISMATCH
+            for f in locally_failed_files
+        ):
+            status = VerificationStatus.MISMATCH
+        elif all(
+            f.status == VerificationStatus.MISSING
+            for f in locally_failed_files
+        ):
+            status = VerificationStatus.MISSING
+        else:
+            status = VerificationStatus.UNKNOWN
+    elif upstream_failed:
+        # Every local file (output / script) verifies cleanly; only the
+        # upstream chain is broken. This is the SUSPECT case — surface it
+        # so the DAG view can render it in its own colour ("upstream-
+        # failed-but-locally-valid"). The collapse_suspect knob folds it
+        # back into MISMATCH for callers that still want the legacy
+        # 2-state behaviour.
+        status = (
+            VerificationStatus.MISMATCH
+            if collapse_suspect
+            else VerificationStatus.SUSPECT
+        )
     elif all(f.is_verified for f in file_verifications):
         status = VerificationStatus.VERIFIED
     elif any(f.status == VerificationStatus.MISMATCH for f in file_verifications):

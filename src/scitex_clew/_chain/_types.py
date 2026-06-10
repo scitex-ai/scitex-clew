@@ -11,10 +11,24 @@ from typing import List, Optional, Tuple
 
 
 class VerificationStatus(Enum):
-    """Verification status for a run or file."""
+    """Verification status for a run or file.
+
+    SUSPECT is a specialization of MISMATCH for runs where every local file
+    verifies on its own (hashes match the recorded values) but at least one
+    UPSTREAM session that produced an input failed. The run itself is
+    locally valid; the chain is not. Surfaces as a third colour
+    ("upstream-failed-but-locally-valid", typically orange) so the DAG view
+    can distinguish a locally-broken run from a chain-broken-only run.
+
+    Callers that want the legacy 2-state colouring (treat upstream-only
+    failures the same as local failures) opt back in via the
+    ``collapse_suspect`` knob on the helpers that emit this enum — the
+    default emits SUSPECT.
+    """
 
     VERIFIED = "verified"
     MISMATCH = "mismatch"
+    SUSPECT = "suspect"
     MISSING = "missing"
     UNKNOWN = "unknown"
 
