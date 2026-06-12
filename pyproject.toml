@@ -33,6 +33,8 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
+    "scitex-dev>=0.17.8",
+    "click>=8.1",
 ]
 [project.optional-dependencies]
 cli = [

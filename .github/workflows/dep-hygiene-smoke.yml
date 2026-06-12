@@ -1,0 +1,24 @@
+name: dep-hygiene-smoke
+on:
+  pull_request:
+    branches: [develop, main, master]
+  push:
+    branches: [chore/dep-hygiene-add-scitex-dev]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip
+      - name: bare install (no extras)
+        run: pip install .
+      - name: import package
+        run: |
+          python -c "import scitex_clew; print(scitex_clew.__name__)"
+      - name: cli --help (clew)
+        run: clew --help
+      - name: cli --help (scitex-clew)
+        run: scitex-clew --help
