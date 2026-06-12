@@ -43,12 +43,26 @@ Public API::
     # Session lifecycle hooks (invoked by @scitex.session)
     clew.on_session_start(session_id)  # open a tracked run
     clew.on_session_close(status=...)  # finalize run + combined hash
+
+Implementation note (audit-all §10 cold-start)::
+
+    This module uses the PEP 562 ``__getattr__`` lazy-import pattern. All
+    submodules and re-exports below ``__version__`` are loaded on first
+    access only, so ``import scitex_clew`` stays well under the 500ms
+    cold-start threshold. The public attribute names listed above (and in
+    ``__all__``) resolve exactly as before — no caller-visible change.
 """
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+# ---------------------------------------------------------------------------
+# Eager: __version__ (cheap, stdlib only)
+# ---------------------------------------------------------------------------
 try:
-    from importlib.metadata import version as _v, PackageNotFoundError
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as _v
 
     try:
         __version__ = _v("scitex-clew")
@@ -58,8 +72,13 @@ try:
 except ImportError:  # pragma: no cover — only on ancient Pythons
     __version__ = "0.0.0+local"
 
+
 # ---------------------------------------------------------------------------
-# Optional decorator from scitex-dev (graceful fallback)
+# Eager: optional decorator from scitex-dev (graceful fallback)
+#
+# Must stay eager: ``_supports_return_as`` is applied at definition time to
+# the convenience wrapper functions defined below (status, run, chain, …).
+# The import itself is cheap; the fallback is a no-op.
 # ---------------------------------------------------------------------------
 try:
     from scitex_dev.decorators import supports_return_as as _supports_return_as
@@ -72,139 +91,204 @@ except Exception:
 
 
 # ---------------------------------------------------------------------------
-# Internal imports (hidden from public API, still importable via full path)
+# Lazy attribute map: public_name -> (submodule_relative_path, attr_or_None)
+#
+# attr_or_None=None means re-export the submodule itself.
+# Each entry is resolved on first attribute access via __getattr__ below,
+# then cached in module globals so subsequent accesses are free.
 # ---------------------------------------------------------------------------
-from . import groupers  # public: scitex_clew.groupers
-from ._chain import (
-    ChainVerification as _ChainVerification,
-)
-from ._chain import (
-    DAGVerification as _DAGVerification,
-)
-from ._chain import (
-    FileVerification as _FileVerification,
-)
-from ._chain import (
-    RunVerification as _RunVerification,
-)
-from ._chain import (
-    VerificationLevel as _VerificationLevel,
-)
-from ._chain import (
-    VerificationStatus as _VerificationStatus,
-)
-from ._chain import (
-    get_status as _get_status,
-)
-from ._chain import (
-    verify_chain as _verify_chain,
-)
-from ._chain import (
-    verify_file as _verify_file,
-)
-from ._chain import (
-    verify_run as _verify_run,
-)
-from ._claim import (
-    Claim as _Claim,
-)
-from ._claim import (
-    add_claim,
-    export_claims_json,
-    list_claims,
-    verify_claim,
-)
-from ._register_intermediate import register_intermediate
-from ._observers import on_session_close, on_session_start
-from ._claim import (
-    format_claims as _format_claims,
-)
-from ._claim import (
-    verify_claims_dag as _verify_claims_dag,
-)
-from ._dag import verify_dag as _verify_dag
-from ._dag import verify_dag_strict as _verify_dag_strict
-from ._db import VerificationDB as _VerificationDB
-from ._db import get_db as _get_db
-from ._db import set_db as _set_db
-from ._examples import init_examples
-from ._hash import (
-    combine_hashes as _combine_hashes,
-)
-from ._hash import (
-    hash_directory,
-    hash_file,
-)
-from ._hash import (
-    hash_files as _hash_files,
-)
-from ._hash import (
-    verify_hash as _verify_hash,
-)
-from ._registry import ClewRegistry as _ClewRegistry
-from ._registry import get_registry as _get_registry
-from ._rerun import rerun_claims, rerun_dag
-from ._rerun import verify_by_rerun as _verify_by_rerun
-from ._stamp import Stamp as _Stamp
-from ._stamp import check_stamp, list_stamps, stamp
-from ._tracker import (
-    SessionTracker as _SessionTracker,
-)
-from ._tracker import (
-    get_tracker as _get_tracker,
-)
-from ._tracker import (
-    set_tracker as _set_tracker,
-)
-from ._tracker import (
-    start_tracking as _start_tracking,
-)
-from ._tracker import (
-    stop_tracking as _stop_tracking,
-)
-from ._visualize import (
-    format_chain_verification as _format_chain_verification,
-)
-from ._visualize import (
-    format_list as _format_list,
-)
-from ._visualize import (
-    format_run_detailed as _format_run_detailed,
-)
-from ._visualize import (
-    format_run_verification as _format_run_verification,
-)
-from ._visualize import (
-    format_status as _format_status,
-)
-from ._visualize import (
-    generate_html_dag as _generate_html_dag,
-)
-from ._visualize import (
-    generate_mermaid_dag as _generate_mermaid_dag,
-)
-from ._visualize import (
-    print_verification_summary as _print_verification_summary,
-)
-from ._visualize import (
-    render_dag as _render_dag,
-)
+_LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
+    # ----- Submodule re-export -----
+    "groupers": (".groupers", None),
+    # ----- Public names re-exported from submodules -----
+    # _chain
+    "verify_run": ("._chain", "verify_run"),
+    "verify_chain": ("._chain", "verify_chain"),
+    "verify_file": ("._chain", "verify_file"),
+    "get_status": ("._chain", "get_status"),
+    "VerificationStatus": ("._chain", "VerificationStatus"),
+    "VerificationLevel": ("._chain", "VerificationLevel"),
+    "FileVerification": ("._chain", "FileVerification"),
+    "RunVerification": ("._chain", "RunVerification"),
+    "ChainVerification": ("._chain", "ChainVerification"),
+    "DAGVerification": ("._chain", "DAGVerification"),
+    # _claim
+    "add_claim": ("._claim", "add_claim"),
+    "list_claims": ("._claim", "list_claims"),
+    "verify_claim": ("._claim", "verify_claim"),
+    "export_claims_json": ("._claim", "export_claims_json"),
+    "format_claims": ("._claim", "format_claims"),
+    "verify_claims_dag": ("._claim", "verify_claims_dag"),
+    "Claim": ("._claim", "Claim"),
+    # _register_intermediate
+    "register_intermediate": ("._register_intermediate", "register_intermediate"),
+    # _observers (session hooks)
+    "on_session_start": ("._observers", "on_session_start"),
+    "on_session_close": ("._observers", "on_session_close"),
+    # _dag
+    "verify_dag": ("._dag", "verify_dag"),
+    "verify_dag_strict": ("._dag", "verify_dag_strict"),
+    # _db
+    "VerificationDB": ("._db", "VerificationDB"),
+    "get_db": ("._db", "get_db"),
+    "set_db": ("._db", "set_db"),
+    # _examples
+    "init_examples": ("._examples", "init_examples"),
+    # _hash
+    "hash_directory": ("._hash", "hash_directory"),
+    "hash_file": ("._hash", "hash_file"),
+    "hash_files": ("._hash", "hash_files"),
+    "combine_hashes": ("._hash", "combine_hashes"),
+    "verify_hash": ("._hash", "verify_hash"),
+    # _registry
+    "ClewRegistry": ("._registry", "ClewRegistry"),
+    "get_registry": ("._registry", "get_registry"),
+    # _rerun
+    "rerun_claims": ("._rerun", "rerun_claims"),
+    "rerun_dag": ("._rerun", "rerun_dag"),
+    "verify_by_rerun": ("._rerun", "verify_by_rerun"),
+    "verify_run_from_scratch": ("._rerun", "verify_by_rerun"),
+    # _stamp
+    "Stamp": ("._stamp", "Stamp"),
+    "check_stamp": ("._stamp", "check_stamp"),
+    "list_stamps": ("._stamp", "list_stamps"),
+    "stamp": ("._stamp", "stamp"),
+    # _tracker
+    "SessionTracker": ("._tracker", "SessionTracker"),
+    "get_tracker": ("._tracker", "get_tracker"),
+    "set_tracker": ("._tracker", "set_tracker"),
+    "start_tracking": ("._tracker", "start_tracking"),
+    "stop_tracking": ("._tracker", "stop_tracking"),
+    # _visualize
+    "generate_mermaid_dag": ("._visualize", "generate_mermaid_dag"),
+    "generate_html_dag": ("._visualize", "generate_html_dag"),
+    "render_dag": ("._visualize", "render_dag"),
+    "format_chain_verification": ("._visualize", "format_chain_verification"),
+    "format_list": ("._visualize", "format_list"),
+    "format_run_detailed": ("._visualize", "format_run_detailed"),
+    "format_run_verification": ("._visualize", "format_run_verification"),
+    "format_status": ("._visualize", "format_status"),
+    "print_verification_summary": ("._visualize", "print_verification_summary"),
+}
+
+# NOTE: Underscore-prefixed aliases (``_get_db`` / ``_verify_run`` / …) are
+# deliberately NOT in ``_LAZY_ATTRS``. PEP 562 ``__getattr__`` is only fired
+# for ``getattr(module, name)``-style lookups, not for unqualified name
+# resolution inside this module's own function bodies. The convenience
+# wrappers below therefore do a function-local ``from .<sub> import …``
+# at first call instead — which is the canonical lazy-import idiom and
+# keeps cold-start free of those submodule imports.
+
+
+if TYPE_CHECKING:
+    # Re-state for type checkers / IDEs. These statements never execute at
+    # runtime, so they don't affect cold-start cost.
+    from . import groupers  # noqa: F401
+    from ._chain import (  # noqa: F401
+        ChainVerification,
+        DAGVerification,
+        FileVerification,
+        RunVerification,
+        VerificationLevel,
+        VerificationStatus,
+        get_status,
+        verify_chain,
+        verify_file,
+        verify_run,
+    )
+    from ._claim import (  # noqa: F401
+        Claim,
+        add_claim,
+        export_claims_json,
+        format_claims,
+        list_claims,
+        verify_claim,
+        verify_claims_dag,
+    )
+    from ._dag import verify_dag, verify_dag_strict  # noqa: F401
+    from ._db import VerificationDB, get_db, set_db  # noqa: F401
+    from ._examples import init_examples  # noqa: F401
+    from ._hash import (  # noqa: F401
+        combine_hashes,
+        hash_directory,
+        hash_file,
+        hash_files,
+        verify_hash,
+    )
+    from ._observers import on_session_close, on_session_start  # noqa: F401
+    from ._register_intermediate import register_intermediate  # noqa: F401
+    from ._registry import ClewRegistry, get_registry  # noqa: F401
+    from ._rerun import rerun_claims, rerun_dag, verify_by_rerun  # noqa: F401
+    from ._stamp import Stamp, check_stamp, list_stamps, stamp  # noqa: F401
+    from ._tracker import (  # noqa: F401
+        SessionTracker,
+        get_tracker,
+        set_tracker,
+        start_tracking,
+        stop_tracking,
+    )
+    from ._visualize import (  # noqa: F401
+        format_chain_verification,
+        format_list,
+        format_run_detailed,
+        format_run_verification,
+        format_status,
+        generate_html_dag,
+        generate_mermaid_dag,
+        print_verification_summary,
+        render_dag,
+    )
+
+
+def __getattr__(name: str):
+    """PEP 562 lazy attribute resolver.
+
+    Resolves any name in :data:`_LAZY_ATTRS` by importing the backing
+    submodule on demand and caching the result in module globals so future
+    accesses are direct dict lookups.
+    """
+    spec = _LAZY_ATTRS.get(name)
+    if spec is None:
+        raise AttributeError(
+            f"module {__name__!r} has no attribute {name!r}"
+        )
+    module_path, attr = spec
+    from importlib import import_module
+
+    mod = import_module(module_path, __name__)
+    value = mod if attr is None else getattr(mod, attr)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> "list[str]":
+    return sorted({*globals().keys(), *_LAZY_ATTRS.keys()})
 
 
 # ---------------------------------------------------------------------------
 # Public convenience API
+#
+# These wrappers are defined eagerly (cheap — they're just function objects
+# plus the decorator). Each body does a function-local
+# ``from .<submodule> import …`` so the heavy submodule is only imported on
+# first invocation. Python caches the resulting module in ``sys.modules``,
+# so the local-import overhead on subsequent calls is a dict lookup.
 # ---------------------------------------------------------------------------
 @_supports_return_as
 def list_runs(limit: int = 100, status: str = None):
     """List tracked runs."""
-    db = _get_db()
+    from ._db import get_db
+
+    db = get_db()
     return db.list_runs(status=status, limit=limit)
 
 
 @_supports_return_as
 def status():
     """Get verification status summary (like git status)."""
-    return _get_status()
+    from ._chain import get_status
+
+    return get_status()
 
 
 @_supports_return_as
@@ -220,20 +304,28 @@ def run(session_id: str, from_scratch: bool = False):
         If False, only compare hashes (fast).
     """
     if from_scratch:
-        return _verify_by_rerun(session_id)
-    return _verify_run(session_id)
+        from ._rerun import verify_by_rerun
+
+        return verify_by_rerun(session_id)
+    from ._chain import verify_run
+
+    return verify_run(session_id)
 
 
 @_supports_return_as
 def chain(target: str):
     """Verify the dependency chain for a target file."""
-    return _verify_chain(target)
+    from ._chain import verify_chain
+
+    return verify_chain(target)
 
 
 @_supports_return_as
 def stats():
     """Get database statistics."""
-    db = _get_db()
+    from ._db import get_db
+
+    db = get_db()
     return db.stats()
 
 
@@ -253,10 +345,16 @@ def dag(targets=None, claims=False, strict=False):
         ``still_valid_claims`` instead of a ``DAGVerification``.
     """
     if strict:
-        return _verify_dag_strict(targets=targets, claims=claims)
+        from ._dag import verify_dag_strict
+
+        return verify_dag_strict(targets=targets, claims=claims)
     if claims:
-        return _verify_claims_dag()
-    return _verify_dag(targets or [])
+        from ._claim import verify_claims_dag
+
+        return verify_claims_dag()
+    from ._dag import verify_dag
+
+    return verify_dag(targets or [])
 
 
 @_supports_return_as
@@ -272,7 +370,9 @@ def rerun(target, timeout: int = 300, cleanup: bool = True):
     cleanup : bool, optional
         Remove sandbox outputs after verification (default: True).
     """
-    return _verify_by_rerun(target, timeout=timeout, cleanup=cleanup)
+    from ._rerun import verify_by_rerun
+
+    return verify_by_rerun(target, timeout=timeout, cleanup=cleanup)
 
 
 @_supports_return_as
@@ -305,7 +405,9 @@ def mermaid(
         from ._groupers._config import load_project_config
 
         grouper = load_project_config().get("grouper")
-    return _generate_mermaid_dag(
+    from ._visualize import generate_mermaid_dag
+
+    return generate_mermaid_dag(
         session_id=session_id,
         target_file=target_file,
         target_files=target_files,
@@ -316,53 +418,11 @@ def mermaid(
 
 
 # ---------------------------------------------------------------------------
-# Accessible but not in __all__ (for advanced use / backward compat)
-# ---------------------------------------------------------------------------
-get_db = _get_db
-set_db = _set_db
-verify_run = _verify_run
-verify_chain = _verify_chain
-verify_dag = _verify_dag
-verify_file = _verify_file
-verify_by_rerun = _verify_by_rerun
-verify_claims_dag = _verify_claims_dag
-get_status = _get_status
-generate_mermaid_dag = _generate_mermaid_dag
-get_tracker = _get_tracker
-set_tracker = _set_tracker
-start_tracking = _start_tracking
-stop_tracking = _stop_tracking
-get_registry = _get_registry
-format_claims = _format_claims
-format_status = _format_status
-format_list = _format_list
-format_run_verification = _format_run_verification
-format_run_detailed = _format_run_detailed
-format_chain_verification = _format_chain_verification
-print_verification_summary = _print_verification_summary
-generate_html_dag = _generate_html_dag
-render_dag = _render_dag
-combine_hashes = _combine_hashes
-hash_files = _hash_files
-verify_hash = _verify_hash
-verify_run_from_scratch = _verify_by_rerun
-
-# Class/type names
-VerificationDB = _VerificationDB
-SessionTracker = _SessionTracker
-ClewRegistry = _ClewRegistry
-VerificationStatus = _VerificationStatus
-VerificationLevel = _VerificationLevel
-FileVerification = _FileVerification
-RunVerification = _RunVerification
-ChainVerification = _ChainVerification
-DAGVerification = _DAGVerification
-Claim = _Claim
-Stamp = _Stamp
-
-
-# ---------------------------------------------------------------------------
-# Public API — only these 19 names show in dir() and tab-completion
+# Public API — only these names show in dir() and tab-completion.
+#
+# Star-import (``from scitex_clew import *``) honours ``__all__``: every
+# name listed here is either defined directly above (the convenience
+# wrappers) or resolved lazily by ``__getattr__`` below.
 # ---------------------------------------------------------------------------
 __all__ = [
     "__version__",
@@ -403,15 +463,24 @@ __all__ = [
 
 # ---------------------------------------------------------------------------
 # SOC R6: self-register post-save / post-load hooks with scitex-io.
-# Must never break ``import scitex_clew`` — broad except is intentional.
+#
+# This side-effect MUST run at import time so that any later
+# ``scitex_io.save(...)`` from user code fires the clew hooks. The
+# registration helper itself is exception-safe (silent no-op if scitex-io
+# is unavailable). It is invoked via a one-shot bootstrap that only loads
+# the ``_observers`` submodule — no other clew submodule is pulled in.
 # ---------------------------------------------------------------------------
-try:
-    from ._observers import register_with_scitex_io as _register
+def _bootstrap_io_hooks() -> None:
+    try:
+        from ._observers import register_with_scitex_io
 
-    _register()
-    del _register
-except Exception:
-    pass
+        register_with_scitex_io()
+    except Exception:
+        pass
+
+
+_bootstrap_io_hooks()
+del _bootstrap_io_hooks
 
 
 # EOF
