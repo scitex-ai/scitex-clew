@@ -205,12 +205,26 @@
 <span class="sd">    # Session lifecycle hooks (invoked by @scitex.session)</span>
 <span class="sd">    clew.on_session_start(session_id)  # open a tracked run</span>
 <span class="sd">    clew.on_session_close(status=...)  # finalize run + combined hash</span>
+
+<span class="sd">Implementation note (audit-all §10 cold-start)::</span>
+
+<span class="sd">    This module uses the PEP 562 ``__getattr__`` lazy-import pattern. All</span>
+<span class="sd">    submodules and re-exports below ``__version__`` are loaded on first</span>
+<span class="sd">    access only, so ``import scitex_clew`` stays well under the 500ms</span>
+<span class="sd">    cold-start threshold. The public attribute names listed above (and in</span>
+<span class="sd">    ``__all__``) resolve exactly as before — no caller-visible change.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Eager: __version__ (cheap, stdlib only)</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">version</span> <span class="k">as</span> <span class="n">_v</span><span class="p">,</span> <span class="n">PackageNotFoundError</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackageNotFoundError</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">version</span> <span class="k">as</span> <span class="n">_v</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">__version__</span> <span class="o">=</span> <span class="n">_v</span><span class="p">(</span><span class="s2">&quot;scitex-clew&quot;</span><span class="p">)</span>
@@ -220,148 +234,240 @@
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover — only on ancient Pythons</span>
     <span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.0.0+local&quot;</span>
 
+
 <span class="c1"># ---------------------------------------------------------------------------</span>
-<span class="c1"># Optional decorator from scitex-dev (graceful fallback)</span>
+<span class="c1"># Lazy decorator from scitex-dev (audit §10 cold-start)</span>
+<span class="c1">#</span>
+<span class="c1"># ``supports_return_as`` adds ``return_as=&quot;result&quot;`` support. We MUST apply</span>
+<span class="c1"># it at function-definition time to preserve that public API behaviour, but</span>
+<span class="c1"># importing ``scitex_dev.decorators`` eagerly costs ~190ms (it pulls in</span>
+<span class="c1"># ``scitex_dev._core.types`` + dataclasses + copy). That single import was</span>
+<span class="c1"># pushing ``import scitex_clew`` over the audit-cli §10 500 ms threshold in</span>
+<span class="c1"># CI py3.12.</span>
+<span class="c1">#</span>
+<span class="c1"># Trick: wrap the decorator. At definition time we just record the function</span>
+<span class="c1"># unchanged (cheap). The first *call* into any wrapper resolves the real</span>
+<span class="c1"># decorator from scitex_dev.decorators, applies it, and patches the module</span>
+<span class="c1"># global so subsequent calls skip the indirection. Net cost at import: zero.</span>
 <span class="c1"># ---------------------------------------------------------------------------</span>
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">scitex_dev.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">supports_return_as</span> <span class="k">as</span> <span class="n">_supports_return_as</span>
-<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-    <span class="c1"># Broad catch (not just ImportError): scitex-dev may import optional ML</span>
-    <span class="c1"># libs whose runtime-init can fail with VersionError / RuntimeError.</span>
-    <span class="c1"># Fall back to a no-op decorator regardless.</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_supports_return_as</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">fn</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_supports_return_as</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Defer scitex_dev.decorators.supports_return_as to first call.&quot;&quot;&quot;</span>
+
+    <span class="n">_decorated</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">_decorated</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">scitex_dev.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+                    <span class="n">supports_return_as</span> <span class="k">as</span> <span class="n">_real</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">_decorated</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">_real</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="c1"># scitex-dev may import optional ML libs whose runtime-init</span>
+                <span class="c1"># can fail with VersionError / RuntimeError; fall back to</span>
+                <span class="c1"># the bare function, preserving normal call semantics.</span>
+                <span class="n">_decorated</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn</span>
+        <span class="k">return</span> <span class="n">_decorated</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">_wrapper</span><span class="o">.</span><span class="n">__wrapped__</span> <span class="o">=</span> <span class="n">fn</span>
+    <span class="n">_wrapper</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;__name__&quot;</span><span class="p">,</span> <span class="s2">&quot;_wrapper&quot;</span><span class="p">)</span>
+    <span class="n">_wrapper</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">fn</span><span class="o">.</span><span class="vm">__doc__</span>
+    <span class="n">_wrapper</span><span class="o">.</span><span class="vm">__qualname__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;__qualname__&quot;</span><span class="p">,</span> <span class="n">_wrapper</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_wrapper</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
-<span class="c1"># Internal imports (hidden from public API, still importable via full path)</span>
+<span class="c1"># Lazy attribute map: public_name -&gt; (submodule_relative_path, attr_or_None)</span>
+<span class="c1">#</span>
+<span class="c1"># attr_or_None=None means re-export the submodule itself.</span>
+<span class="c1"># Each entry is resolved on first attribute access via __getattr__ below,</span>
+<span class="c1"># then cached in module globals so subsequent accesses are free.</span>
 <span class="c1"># ---------------------------------------------------------------------------</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">groupers</span>  <span class="c1"># public: scitex_clew.groupers</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">ChainVerification</span> <span class="k">as</span> <span class="n">_ChainVerification</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DAGVerification</span> <span class="k">as</span> <span class="n">_DAGVerification</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">FileVerification</span> <span class="k">as</span> <span class="n">_FileVerification</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">RunVerification</span> <span class="k">as</span> <span class="n">_RunVerification</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">VerificationLevel</span> <span class="k">as</span> <span class="n">_VerificationLevel</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">VerificationStatus</span> <span class="k">as</span> <span class="n">_VerificationStatus</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">get_status</span> <span class="k">as</span> <span class="n">_get_status</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">verify_chain</span> <span class="k">as</span> <span class="n">_verify_chain</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">verify_file</span> <span class="k">as</span> <span class="n">_verify_file</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">verify_run</span> <span class="k">as</span> <span class="n">_verify_run</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Claim</span> <span class="k">as</span> <span class="n">_Claim</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">add_claim</span><span class="p">,</span>
-    <span class="n">export_claims_json</span><span class="p">,</span>
-    <span class="n">list_claims</span><span class="p">,</span>
-    <span class="n">verify_claim</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._register_intermediate</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_intermediate</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._observers</span><span class="w"> </span><span class="kn">import</span> <span class="n">on_session_close</span><span class="p">,</span> <span class="n">on_session_start</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">format_claims</span> <span class="k">as</span> <span class="n">_format_claims</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">verify_claims_dag</span> <span class="k">as</span> <span class="n">_verify_claims_dag</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._dag</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_dag</span> <span class="k">as</span> <span class="n">_verify_dag</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._dag</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_dag_strict</span> <span class="k">as</span> <span class="n">_verify_dag_strict</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerificationDB</span> <span class="k">as</span> <span class="n">_VerificationDB</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span> <span class="k">as</span> <span class="n">_get_db</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">set_db</span> <span class="k">as</span> <span class="n">_set_db</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._examples</span><span class="w"> </span><span class="kn">import</span> <span class="n">init_examples</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._hash</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">combine_hashes</span> <span class="k">as</span> <span class="n">_combine_hashes</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._hash</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">hash_directory</span><span class="p">,</span>
-    <span class="n">hash_file</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._hash</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">hash_files</span> <span class="k">as</span> <span class="n">_hash_files</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._hash</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">verify_hash</span> <span class="k">as</span> <span class="n">_verify_hash</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClewRegistry</span> <span class="k">as</span> <span class="n">_ClewRegistry</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_registry</span> <span class="k">as</span> <span class="n">_get_registry</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._rerun</span><span class="w"> </span><span class="kn">import</span> <span class="n">rerun_claims</span><span class="p">,</span> <span class="n">rerun_dag</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._rerun</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_by_rerun</span> <span class="k">as</span> <span class="n">_verify_by_rerun</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._stamp</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stamp</span> <span class="k">as</span> <span class="n">_Stamp</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._stamp</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_stamp</span><span class="p">,</span> <span class="n">list_stamps</span><span class="p">,</span> <span class="n">stamp</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">SessionTracker</span> <span class="k">as</span> <span class="n">_SessionTracker</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">get_tracker</span> <span class="k">as</span> <span class="n">_get_tracker</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">set_tracker</span> <span class="k">as</span> <span class="n">_set_tracker</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">start_tracking</span> <span class="k">as</span> <span class="n">_start_tracking</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">stop_tracking</span> <span class="k">as</span> <span class="n">_stop_tracking</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">format_chain_verification</span> <span class="k">as</span> <span class="n">_format_chain_verification</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">format_list</span> <span class="k">as</span> <span class="n">_format_list</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">format_run_detailed</span> <span class="k">as</span> <span class="n">_format_run_detailed</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">format_run_verification</span> <span class="k">as</span> <span class="n">_format_run_verification</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">format_status</span> <span class="k">as</span> <span class="n">_format_status</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">generate_html_dag</span> <span class="k">as</span> <span class="n">_generate_html_dag</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">generate_mermaid_dag</span> <span class="k">as</span> <span class="n">_generate_mermaid_dag</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">print_verification_summary</span> <span class="k">as</span> <span class="n">_print_verification_summary</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">render_dag</span> <span class="k">as</span> <span class="n">_render_dag</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="n">_LAZY_ATTRS</span><span class="p">:</span> <span class="s2">&quot;dict[str, tuple[str, str | None]]&quot;</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># ----- Submodule re-export -----</span>
+    <span class="s2">&quot;groupers&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;.groupers&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="c1"># ----- Public names re-exported from submodules -----</span>
+    <span class="c1"># _chain</span>
+    <span class="s2">&quot;verify_run&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._chain&quot;</span><span class="p">,</span> <span class="s2">&quot;verify_run&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;verify_chain&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._chain&quot;</span><span class="p">,</span> <span class="s2">&quot;verify_chain&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;verify_file&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._chain&quot;</span><span class="p">,</span> <span class="s2">&quot;verify_file&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;get_status&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._chain&quot;</span><span class="p">,</span> <span class="s2">&quot;get_status&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;VerificationStatus&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._chain&quot;</span><span class="p">,</span> <span class="s2">&quot;VerificationStatus&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;VerificationLevel&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._chain&quot;</span><span class="p">,</span> <span class="s2">&quot;VerificationLevel&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;FileVerification&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._chain&quot;</span><span class="p">,</span> <span class="s2">&quot;FileVerification&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;RunVerification&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._chain&quot;</span><span class="p">,</span> <span class="s2">&quot;RunVerification&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;ChainVerification&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._chain&quot;</span><span class="p">,</span> <span class="s2">&quot;ChainVerification&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;DAGVerification&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._chain&quot;</span><span class="p">,</span> <span class="s2">&quot;DAGVerification&quot;</span><span class="p">),</span>
+    <span class="c1"># _claim</span>
+    <span class="s2">&quot;add_claim&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._claim&quot;</span><span class="p">,</span> <span class="s2">&quot;add_claim&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;list_claims&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._claim&quot;</span><span class="p">,</span> <span class="s2">&quot;list_claims&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;verify_claim&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._claim&quot;</span><span class="p">,</span> <span class="s2">&quot;verify_claim&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;export_claims_json&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._claim&quot;</span><span class="p">,</span> <span class="s2">&quot;export_claims_json&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;format_claims&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._claim&quot;</span><span class="p">,</span> <span class="s2">&quot;format_claims&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;verify_claims_dag&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._claim&quot;</span><span class="p">,</span> <span class="s2">&quot;verify_claims_dag&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Claim&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._claim&quot;</span><span class="p">,</span> <span class="s2">&quot;Claim&quot;</span><span class="p">),</span>
+    <span class="c1"># _register_intermediate</span>
+    <span class="s2">&quot;register_intermediate&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._register_intermediate&quot;</span><span class="p">,</span> <span class="s2">&quot;register_intermediate&quot;</span><span class="p">),</span>
+    <span class="c1"># _observers (session hooks)</span>
+    <span class="s2">&quot;on_session_start&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._observers&quot;</span><span class="p">,</span> <span class="s2">&quot;on_session_start&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;on_session_close&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._observers&quot;</span><span class="p">,</span> <span class="s2">&quot;on_session_close&quot;</span><span class="p">),</span>
+    <span class="c1"># _dag</span>
+    <span class="s2">&quot;verify_dag&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._dag&quot;</span><span class="p">,</span> <span class="s2">&quot;verify_dag&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;verify_dag_strict&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._dag&quot;</span><span class="p">,</span> <span class="s2">&quot;verify_dag_strict&quot;</span><span class="p">),</span>
+    <span class="c1"># _db</span>
+    <span class="s2">&quot;VerificationDB&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._db&quot;</span><span class="p">,</span> <span class="s2">&quot;VerificationDB&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;get_db&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._db&quot;</span><span class="p">,</span> <span class="s2">&quot;get_db&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;set_db&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._db&quot;</span><span class="p">,</span> <span class="s2">&quot;set_db&quot;</span><span class="p">),</span>
+    <span class="c1"># _examples</span>
+    <span class="s2">&quot;init_examples&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._examples&quot;</span><span class="p">,</span> <span class="s2">&quot;init_examples&quot;</span><span class="p">),</span>
+    <span class="c1"># _hash</span>
+    <span class="s2">&quot;hash_directory&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._hash&quot;</span><span class="p">,</span> <span class="s2">&quot;hash_directory&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;hash_file&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._hash&quot;</span><span class="p">,</span> <span class="s2">&quot;hash_file&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;hash_files&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._hash&quot;</span><span class="p">,</span> <span class="s2">&quot;hash_files&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;combine_hashes&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._hash&quot;</span><span class="p">,</span> <span class="s2">&quot;combine_hashes&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;verify_hash&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._hash&quot;</span><span class="p">,</span> <span class="s2">&quot;verify_hash&quot;</span><span class="p">),</span>
+    <span class="c1"># _registry</span>
+    <span class="s2">&quot;ClewRegistry&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._registry&quot;</span><span class="p">,</span> <span class="s2">&quot;ClewRegistry&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;get_registry&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._registry&quot;</span><span class="p">,</span> <span class="s2">&quot;get_registry&quot;</span><span class="p">),</span>
+    <span class="c1"># _rerun</span>
+    <span class="s2">&quot;rerun_claims&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._rerun&quot;</span><span class="p">,</span> <span class="s2">&quot;rerun_claims&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;rerun_dag&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._rerun&quot;</span><span class="p">,</span> <span class="s2">&quot;rerun_dag&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;verify_by_rerun&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._rerun&quot;</span><span class="p">,</span> <span class="s2">&quot;verify_by_rerun&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;verify_run_from_scratch&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._rerun&quot;</span><span class="p">,</span> <span class="s2">&quot;verify_by_rerun&quot;</span><span class="p">),</span>
+    <span class="c1"># _stamp</span>
+    <span class="s2">&quot;Stamp&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._stamp&quot;</span><span class="p">,</span> <span class="s2">&quot;Stamp&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;check_stamp&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._stamp&quot;</span><span class="p">,</span> <span class="s2">&quot;check_stamp&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;list_stamps&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._stamp&quot;</span><span class="p">,</span> <span class="s2">&quot;list_stamps&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;stamp&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._stamp&quot;</span><span class="p">,</span> <span class="s2">&quot;stamp&quot;</span><span class="p">),</span>
+    <span class="c1"># _tracker</span>
+    <span class="s2">&quot;SessionTracker&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._tracker&quot;</span><span class="p">,</span> <span class="s2">&quot;SessionTracker&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;get_tracker&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._tracker&quot;</span><span class="p">,</span> <span class="s2">&quot;get_tracker&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;set_tracker&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._tracker&quot;</span><span class="p">,</span> <span class="s2">&quot;set_tracker&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;start_tracking&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._tracker&quot;</span><span class="p">,</span> <span class="s2">&quot;start_tracking&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;stop_tracking&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._tracker&quot;</span><span class="p">,</span> <span class="s2">&quot;stop_tracking&quot;</span><span class="p">),</span>
+    <span class="c1"># _visualize</span>
+    <span class="s2">&quot;generate_mermaid_dag&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._visualize&quot;</span><span class="p">,</span> <span class="s2">&quot;generate_mermaid_dag&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;generate_html_dag&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._visualize&quot;</span><span class="p">,</span> <span class="s2">&quot;generate_html_dag&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;render_dag&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._visualize&quot;</span><span class="p">,</span> <span class="s2">&quot;render_dag&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;format_chain_verification&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._visualize&quot;</span><span class="p">,</span> <span class="s2">&quot;format_chain_verification&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;format_list&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._visualize&quot;</span><span class="p">,</span> <span class="s2">&quot;format_list&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;format_run_detailed&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._visualize&quot;</span><span class="p">,</span> <span class="s2">&quot;format_run_detailed&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;format_run_verification&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._visualize&quot;</span><span class="p">,</span> <span class="s2">&quot;format_run_verification&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;format_status&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._visualize&quot;</span><span class="p">,</span> <span class="s2">&quot;format_status&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;print_verification_summary&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;._visualize&quot;</span><span class="p">,</span> <span class="s2">&quot;print_verification_summary&quot;</span><span class="p">),</span>
+<span class="p">}</span>
+
+<span class="c1"># NOTE: Underscore-prefixed aliases (``_get_db`` / ``_verify_run`` / …) are</span>
+<span class="c1"># deliberately NOT in ``_LAZY_ATTRS``. PEP 562 ``__getattr__`` is only fired</span>
+<span class="c1"># for ``getattr(module, name)``-style lookups, not for unqualified name</span>
+<span class="c1"># resolution inside this module&#39;s own function bodies. The convenience</span>
+<span class="c1"># wrappers below therefore do a function-local ``from .&lt;sub&gt; import …``</span>
+<span class="c1"># at first call instead — which is the canonical lazy-import idiom and</span>
+<span class="c1"># keeps cold-start free of those submodule imports.</span>
+
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="c1"># Re-state for type checkers / IDEs. These statements never execute at</span>
+    <span class="c1"># runtime, so they don&#39;t affect cold-start cost.</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">groupers</span>  <span class="c1"># noqa: F401</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
+        <span class="n">ChainVerification</span><span class="p">,</span>
+        <span class="n">DAGVerification</span><span class="p">,</span>
+        <span class="n">FileVerification</span><span class="p">,</span>
+        <span class="n">RunVerification</span><span class="p">,</span>
+        <span class="n">VerificationLevel</span><span class="p">,</span>
+        <span class="n">VerificationStatus</span><span class="p">,</span>
+        <span class="n">get_status</span><span class="p">,</span>
+        <span class="n">verify_chain</span><span class="p">,</span>
+        <span class="n">verify_file</span><span class="p">,</span>
+        <span class="n">verify_run</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
+        <span class="n">Claim</span><span class="p">,</span>
+        <span class="n">add_claim</span><span class="p">,</span>
+        <span class="n">export_claims_json</span><span class="p">,</span>
+        <span class="n">format_claims</span><span class="p">,</span>
+        <span class="n">list_claims</span><span class="p">,</span>
+        <span class="n">verify_claim</span><span class="p">,</span>
+        <span class="n">verify_claims_dag</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._dag</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_dag</span><span class="p">,</span> <span class="n">verify_dag_strict</span>  <span class="c1"># noqa: F401</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerificationDB</span><span class="p">,</span> <span class="n">get_db</span><span class="p">,</span> <span class="n">set_db</span>  <span class="c1"># noqa: F401</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._examples</span><span class="w"> </span><span class="kn">import</span> <span class="n">init_examples</span>  <span class="c1"># noqa: F401</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._hash</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
+        <span class="n">combine_hashes</span><span class="p">,</span>
+        <span class="n">hash_directory</span><span class="p">,</span>
+        <span class="n">hash_file</span><span class="p">,</span>
+        <span class="n">hash_files</span><span class="p">,</span>
+        <span class="n">verify_hash</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._observers</span><span class="w"> </span><span class="kn">import</span> <span class="n">on_session_close</span><span class="p">,</span> <span class="n">on_session_start</span>  <span class="c1"># noqa: F401</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._register_intermediate</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_intermediate</span>  <span class="c1"># noqa: F401</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClewRegistry</span><span class="p">,</span> <span class="n">get_registry</span>  <span class="c1"># noqa: F401</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._rerun</span><span class="w"> </span><span class="kn">import</span> <span class="n">rerun_claims</span><span class="p">,</span> <span class="n">rerun_dag</span><span class="p">,</span> <span class="n">verify_by_rerun</span>  <span class="c1"># noqa: F401</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._stamp</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stamp</span><span class="p">,</span> <span class="n">check_stamp</span><span class="p">,</span> <span class="n">list_stamps</span><span class="p">,</span> <span class="n">stamp</span>  <span class="c1"># noqa: F401</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
+        <span class="n">SessionTracker</span><span class="p">,</span>
+        <span class="n">get_tracker</span><span class="p">,</span>
+        <span class="n">set_tracker</span><span class="p">,</span>
+        <span class="n">start_tracking</span><span class="p">,</span>
+        <span class="n">stop_tracking</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
+        <span class="n">format_chain_verification</span><span class="p">,</span>
+        <span class="n">format_list</span><span class="p">,</span>
+        <span class="n">format_run_detailed</span><span class="p">,</span>
+        <span class="n">format_run_verification</span><span class="p">,</span>
+        <span class="n">format_status</span><span class="p">,</span>
+        <span class="n">generate_html_dag</span><span class="p">,</span>
+        <span class="n">generate_mermaid_dag</span><span class="p">,</span>
+        <span class="n">print_verification_summary</span><span class="p">,</span>
+        <span class="n">render_dag</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;PEP 562 lazy attribute resolver.</span>
+
+<span class="sd">    Resolves any name in :data:`_LAZY_ATTRS` by importing the backing</span>
+<span class="sd">    submodule on demand and caching the result in module globals so future</span>
+<span class="sd">    accesses are direct dict lookups.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">_LAZY_ATTRS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;module </span><span class="si">{</span><span class="vm">__name__</span><span class="si">!r}</span><span class="s2"> has no attribute </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+    <span class="n">module_path</span><span class="p">,</span> <span class="n">attr</span> <span class="o">=</span> <span class="n">spec</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">import_module</span>
+
+    <span class="n">mod</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">mod</span> <span class="k">if</span> <span class="n">attr</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+    <span class="nb">globals</span><span class="p">()[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="fm">__dir__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s2">&quot;list[str]&quot;</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">({</span><span class="o">*</span><span class="nb">globals</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="o">*</span><span class="n">_LAZY_ATTRS</span><span class="o">.</span><span class="n">keys</span><span class="p">()})</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
 <span class="c1"># Public convenience API</span>
+<span class="c1">#</span>
+<span class="c1"># These wrappers are defined eagerly (cheap — they&#39;re just function objects</span>
+<span class="c1"># plus the decorator). Each body does a function-local</span>
+<span class="c1"># ``from .&lt;submodule&gt; import …`` so the heavy submodule is only imported on</span>
+<span class="c1"># first invocation. Python caches the resulting module in ``sys.modules``,</span>
+<span class="c1"># so the local-import overhead on subsequent calls is a dict lookup.</span>
 <span class="c1"># ---------------------------------------------------------------------------</span>
 <div class="viewcode-block" id="list_runs">
 <a class="viewcode-back" href="../api/scitex_clew.html#scitex_clew.list_runs">[docs]</a>
 <span class="nd">@_supports_return_as</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">list_runs</span><span class="p">(</span><span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;List tracked runs.&quot;&quot;&quot;</span>
-    <span class="n">db</span> <span class="o">=</span> <span class="n">_get_db</span><span class="p">()</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">list_runs</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">)</span></div>
 
 
@@ -371,7 +477,9 @@
 <span class="nd">@_supports_return_as</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">status</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get verification status summary (like git status).&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">_get_status</span><span class="p">()</span></div>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_status</span>
+
+    <span class="k">return</span> <span class="n">get_status</span><span class="p">()</span></div>
 
 
 
@@ -390,8 +498,12 @@
 <span class="sd">        If False, only compare hashes (fast).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">from_scratch</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_verify_by_rerun</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_verify_run</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span></div>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._rerun</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_by_rerun</span>
+
+        <span class="k">return</span> <span class="n">verify_by_rerun</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_run</span>
+
+    <span class="k">return</span> <span class="n">verify_run</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span></div>
 
 
 
@@ -400,7 +512,9 @@
 <span class="nd">@_supports_return_as</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">chain</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify the dependency chain for a target file.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">_verify_chain</span><span class="p">(</span><span class="n">target</span><span class="p">)</span></div>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_chain</span>
+
+    <span class="k">return</span> <span class="n">verify_chain</span><span class="p">(</span><span class="n">target</span><span class="p">)</span></div>
 
 
 
@@ -409,7 +523,9 @@
 <span class="nd">@_supports_return_as</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">stats</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get database statistics.&quot;&quot;&quot;</span>
-    <span class="n">db</span> <span class="o">=</span> <span class="n">_get_db</span><span class="p">()</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">stats</span><span class="p">()</span></div>
 
 
@@ -432,10 +548,16 @@
 <span class="sd">        ``still_valid_claims`` instead of a ``DAGVerification``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">strict</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_verify_dag_strict</span><span class="p">(</span><span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span> <span class="n">claims</span><span class="o">=</span><span class="n">claims</span><span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._dag</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_dag_strict</span>
+
+        <span class="k">return</span> <span class="n">verify_dag_strict</span><span class="p">(</span><span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span> <span class="n">claims</span><span class="o">=</span><span class="n">claims</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">claims</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_verify_claims_dag</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">_verify_dag</span><span class="p">(</span><span class="n">targets</span> <span class="ow">or</span> <span class="p">[])</span></div>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_claims_dag</span>
+
+        <span class="k">return</span> <span class="n">verify_claims_dag</span><span class="p">()</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._dag</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_dag</span>
+
+    <span class="k">return</span> <span class="n">verify_dag</span><span class="p">(</span><span class="n">targets</span> <span class="ow">or</span> <span class="p">[])</span></div>
 
 
 
@@ -454,7 +576,9 @@
 <span class="sd">    cleanup : bool, optional</span>
 <span class="sd">        Remove sandbox outputs after verification (default: True).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">_verify_by_rerun</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="n">cleanup</span><span class="p">)</span></div>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._rerun</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_by_rerun</span>
+
+    <span class="k">return</span> <span class="n">verify_by_rerun</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="n">cleanup</span><span class="p">)</span></div>
 
 
 
@@ -490,7 +614,9 @@
         <span class="kn">from</span><span class="w"> </span><span class="nn">._groupers._config</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_project_config</span>
 
         <span class="n">grouper</span> <span class="o">=</span> <span class="n">load_project_config</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;grouper&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_generate_mermaid_dag</span><span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._visualize</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_mermaid_dag</span>
+
+    <span class="k">return</span> <span class="n">generate_mermaid_dag</span><span class="p">(</span>
         <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
         <span class="n">target_file</span><span class="o">=</span><span class="n">target_file</span><span class="p">,</span>
         <span class="n">target_files</span><span class="o">=</span><span class="n">target_files</span><span class="p">,</span>
@@ -502,53 +628,11 @@
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
-<span class="c1"># Accessible but not in __all__ (for advanced use / backward compat)</span>
-<span class="c1"># ---------------------------------------------------------------------------</span>
-<span class="n">get_db</span> <span class="o">=</span> <span class="n">_get_db</span>
-<span class="n">set_db</span> <span class="o">=</span> <span class="n">_set_db</span>
-<span class="n">verify_run</span> <span class="o">=</span> <span class="n">_verify_run</span>
-<span class="n">verify_chain</span> <span class="o">=</span> <span class="n">_verify_chain</span>
-<span class="n">verify_dag</span> <span class="o">=</span> <span class="n">_verify_dag</span>
-<span class="n">verify_file</span> <span class="o">=</span> <span class="n">_verify_file</span>
-<span class="n">verify_by_rerun</span> <span class="o">=</span> <span class="n">_verify_by_rerun</span>
-<span class="n">verify_claims_dag</span> <span class="o">=</span> <span class="n">_verify_claims_dag</span>
-<span class="n">get_status</span> <span class="o">=</span> <span class="n">_get_status</span>
-<span class="n">generate_mermaid_dag</span> <span class="o">=</span> <span class="n">_generate_mermaid_dag</span>
-<span class="n">get_tracker</span> <span class="o">=</span> <span class="n">_get_tracker</span>
-<span class="n">set_tracker</span> <span class="o">=</span> <span class="n">_set_tracker</span>
-<span class="n">start_tracking</span> <span class="o">=</span> <span class="n">_start_tracking</span>
-<span class="n">stop_tracking</span> <span class="o">=</span> <span class="n">_stop_tracking</span>
-<span class="n">get_registry</span> <span class="o">=</span> <span class="n">_get_registry</span>
-<span class="n">format_claims</span> <span class="o">=</span> <span class="n">_format_claims</span>
-<span class="n">format_status</span> <span class="o">=</span> <span class="n">_format_status</span>
-<span class="n">format_list</span> <span class="o">=</span> <span class="n">_format_list</span>
-<span class="n">format_run_verification</span> <span class="o">=</span> <span class="n">_format_run_verification</span>
-<span class="n">format_run_detailed</span> <span class="o">=</span> <span class="n">_format_run_detailed</span>
-<span class="n">format_chain_verification</span> <span class="o">=</span> <span class="n">_format_chain_verification</span>
-<span class="n">print_verification_summary</span> <span class="o">=</span> <span class="n">_print_verification_summary</span>
-<span class="n">generate_html_dag</span> <span class="o">=</span> <span class="n">_generate_html_dag</span>
-<span class="n">render_dag</span> <span class="o">=</span> <span class="n">_render_dag</span>
-<span class="n">combine_hashes</span> <span class="o">=</span> <span class="n">_combine_hashes</span>
-<span class="n">hash_files</span> <span class="o">=</span> <span class="n">_hash_files</span>
-<span class="n">verify_hash</span> <span class="o">=</span> <span class="n">_verify_hash</span>
-<span class="n">verify_run_from_scratch</span> <span class="o">=</span> <span class="n">_verify_by_rerun</span>
-
-<span class="c1"># Class/type names</span>
-<span class="n">VerificationDB</span> <span class="o">=</span> <span class="n">_VerificationDB</span>
-<span class="n">SessionTracker</span> <span class="o">=</span> <span class="n">_SessionTracker</span>
-<span class="n">ClewRegistry</span> <span class="o">=</span> <span class="n">_ClewRegistry</span>
-<span class="n">VerificationStatus</span> <span class="o">=</span> <span class="n">_VerificationStatus</span>
-<span class="n">VerificationLevel</span> <span class="o">=</span> <span class="n">_VerificationLevel</span>
-<span class="n">FileVerification</span> <span class="o">=</span> <span class="n">_FileVerification</span>
-<span class="n">RunVerification</span> <span class="o">=</span> <span class="n">_RunVerification</span>
-<span class="n">ChainVerification</span> <span class="o">=</span> <span class="n">_ChainVerification</span>
-<span class="n">DAGVerification</span> <span class="o">=</span> <span class="n">_DAGVerification</span>
-<span class="n">Claim</span> <span class="o">=</span> <span class="n">_Claim</span>
-<span class="n">Stamp</span> <span class="o">=</span> <span class="n">_Stamp</span>
-
-
-<span class="c1"># ---------------------------------------------------------------------------</span>
-<span class="c1"># Public API — only these 19 names show in dir() and tab-completion</span>
+<span class="c1"># Public API — only these names show in dir() and tab-completion.</span>
+<span class="c1">#</span>
+<span class="c1"># Star-import (``from scitex_clew import *``) honours ``__all__``: every</span>
+<span class="c1"># name listed here is either defined directly above (the convenience</span>
+<span class="c1"># wrappers) or resolved lazily by ``__getattr__`` below.</span>
 <span class="c1"># ---------------------------------------------------------------------------</span>
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;__version__&quot;</span><span class="p">,</span>
@@ -589,15 +673,59 @@
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
 <span class="c1"># SOC R6: self-register post-save / post-load hooks with scitex-io.</span>
-<span class="c1"># Must never break ``import scitex_clew`` — broad except is intentional.</span>
+<span class="c1">#</span>
+<span class="c1"># Audit §10 cold-start: the legacy eager ``from ._observers import …``</span>
+<span class="c1"># pulled in _logging + _session + _tracker + _db (&gt;125 ms). We now defer</span>
+<span class="c1"># registration until ``scitex_io`` is actually imported, via a tiny</span>
+<span class="c1"># ``sys.meta_path`` finder (constant-time string check per import).</span>
 <span class="c1"># ---------------------------------------------------------------------------</span>
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">._observers</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_with_scitex_io</span> <span class="k">as</span> <span class="n">_register</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_bootstrap_io_hooks</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 
-    <span class="n">_register</span><span class="p">()</span>
-    <span class="k">del</span> <span class="n">_register</span>
-<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-    <span class="k">pass</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_register_now</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">._observers</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_with_scitex_io</span>
+
+            <span class="n">register_with_scitex_io</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="s2">&quot;scitex_io&quot;</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
+        <span class="n">_register_now</span><span class="p">()</span>
+        <span class="k">return</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">_F</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">find_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fullname</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">fullname</span> <span class="o">!=</span> <span class="s2">&quot;scitex_io&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">meta_path</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">for</span> <span class="n">finder</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">meta_path</span><span class="p">):</span>
+                <span class="n">spec</span> <span class="o">=</span> <span class="n">finder</span><span class="o">.</span><span class="n">find_spec</span><span class="p">(</span><span class="n">fullname</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">orig</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">loader</span>
+
+                <span class="k">class</span><span class="w"> </span><span class="nc">_L</span><span class="p">:</span>
+                    <span class="k">def</span><span class="w"> </span><span class="nf">create_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+                        <span class="n">cm</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="s2">&quot;create_module&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                        <span class="k">return</span> <span class="n">cm</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">if</span> <span class="n">cm</span> <span class="k">else</span> <span class="kc">None</span>
+
+                    <span class="k">def</span><span class="w"> </span><span class="nf">exec_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+                        <span class="n">orig</span><span class="o">.</span><span class="n">exec_module</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+                        <span class="n">_register_now</span><span class="p">()</span>
+
+                <span class="n">spec</span><span class="o">.</span><span class="n">loader</span> <span class="o">=</span> <span class="n">_L</span><span class="p">()</span>
+                <span class="k">return</span> <span class="n">spec</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">meta_path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">_F</span><span class="p">())</span>
+
+
+<span class="n">_bootstrap_io_hooks</span><span class="p">()</span>
+<span class="k">del</span> <span class="n">_bootstrap_io_hooks</span>
 
 
 <span class="c1"># EOF</span>
