@@ -27,7 +27,15 @@ from scitex_clew._chain._types import (
 
 
 class _FakeDB:
-    """Stand-in for ``VerificationDB`` exposing only what chain_ops calls."""
+    """Stand-in for ``VerificationDB`` exposing only what chain_ops calls.
+
+    ``verify_chain`` now resolves the chain from file save->load handshakes
+    (``get_file_hashes`` + ``find_session_by_file``), so this fake synthesizes
+    file records from the ``chain`` list: each consecutive pair
+    ``chain[i] -> chain[i+1]`` becomes a file that ``chain[i]`` outputs and
+    ``chain[i+1]`` loads. The file-route resolver then reconstructs exactly
+    that chain, and the status-propagation assertions remain meaningful.
+    """
 
     def __init__(
         self,
@@ -39,9 +47,23 @@ class _FakeDB:
         self._sessions_for_file = sessions_for_file or []
         self._chain = chain or []
         self._runs = runs or []
+        # Synthesize save->load records from the (root-first) chain list.
+        self._producer_of: dict[str, list[str]] = {}
+        self._inputs_of: dict[str, list[str]] = {}
+        for parent, child in zip(self._chain, self._chain[1:]):
+            edge_file = f"__edge::{parent}->{child}"
+            self._producer_of[edge_file] = [parent]
+            self._inputs_of.setdefault(child, []).append(edge_file)
 
     def find_session_by_file(self, target: str, role: str = "output") -> list[str]:
+        if target in self._producer_of:
+            return list(self._producer_of[target])
         return list(self._sessions_for_file)
+
+    def get_file_hashes(self, session_id: str, role: str | None = None) -> dict:
+        if role == "input":
+            return {f: "h" for f in self._inputs_of.get(session_id, [])}
+        return {}
 
     def get_chain(self, session_id: str) -> list[str]:
         return list(self._chain)
@@ -90,9 +112,7 @@ def _bucket_verify(sid: str) -> RunVerification:
         current_hash=None,
         status=VerificationStatus.MISSING,
     )
-    return _make_run(
-        session_id=sid, status=VerificationStatus.MISSING, files=[missing]
-    )
+    return _make_run(session_id=sid, status=VerificationStatus.MISSING, files=[missing])
 
 
 _BUCKET_RUNS = [

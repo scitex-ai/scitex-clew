@@ -109,8 +109,13 @@ def verify_dag(
             topological_order=[],
         )
 
-    # BFS backward to collect full DAG
-    adjacency, all_ids = db.get_dag(leaf_sessions)
+    # Resolve the DAG via file save->load handshakes (bounded + deduped),
+    # NOT the legacy session_parents junction (which accreted every historical
+    # producer of every shared/config input -> dense, unreadable, slow). See
+    # ._routes for the model.
+    from ._routes import resolve_file_dag
+
+    adjacency, all_ids = resolve_file_dag(leaf_sessions, db=db)
 
     # Topological sort (roots first)
     topo_order = _topological_sort(adjacency)

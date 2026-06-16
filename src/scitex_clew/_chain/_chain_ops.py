@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Union
 
 from .._db import get_db
+from ._routes import DEFAULT_MAX_DEPTH, order_roots_first, resolve_file_dag
 from ._types import ChainVerification, VerificationStatus
 from ._verify_ops import verify_run
 
@@ -18,6 +19,7 @@ def verify_chain(
     *,
     db_factory=get_db,
     verify_run_fn=verify_run,
+    max_depth: int = DEFAULT_MAX_DEPTH,
 ) -> ChainVerification:
     """Verify the dependency chain for a target file.
 
@@ -56,8 +58,15 @@ def verify_chain(
     # Get the most recent session
     session_id = sessions[0]
 
-    # Build chain by following parent_session links
-    chain = db.get_chain(session_id)
+    # Resolve the chain via file save->load handshakes (bounded + deduped),
+    # NOT the legacy parent_session walk (which was cyclic and accreted every
+    # historical producer of every shared/config input). The target's producer
+    # is the leaf; walk back through the newest producer of each loaded file.
+    # See ._routes for the model.
+    adjacency, all_ids = resolve_file_dag([session_id], db=db, max_depth=max_depth)
+
+    # Roots-first order (sources -> target), cycle-tolerant.
+    chain = order_roots_first(adjacency, all_ids)
 
     # Verify each run in the chain
     run_verifications = []
@@ -115,7 +124,7 @@ def get_status(
         Summary of verification status
     """
     db = db_factory()
-    runs = db.list_runs(limit=1000)
+    runs = db.list_runs(limit=1_000)
 
     verified = []
     mismatched = []
