@@ -596,6 +596,13 @@ no explicit upstream (use sparingly).</p></li>
 </pre></div>
 </div>
 </div>
+<div class="admonition-notes admonition">
+<p class="admonition-title">Notes</p>
+<p>Transparently accepts a compressed session archive: if <code class="docutils literal notranslate"><span class="pre">path</span></code> is a
+<code class="docutils literal notranslate"><span class="pre">&lt;dir&gt;.tar.gz</span></code> file (or a directory whose <code class="docutils literal notranslate"><span class="pre">&lt;dir&gt;.tar.gz</span></code> sibling
+exists because it was archived away), the members are hashed in place and
+returned with the same <code class="docutils literal notranslate"><span class="pre">{relpath:</span> <span class="pre">hash}</span></code> shape a loose dir would yield.</p>
+</div>
 </dd></dl>
 
 <dl class="py function">
