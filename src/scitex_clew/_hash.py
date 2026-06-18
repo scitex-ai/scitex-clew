@@ -78,9 +78,24 @@ def hash_directory(
     --------
     >>> hash_directory("./data/")
     {'input.csv': 'a1b2...', 'config.yaml': 'c3d4...'}
+
+    Notes
+    -----
+    Transparently accepts a compressed session archive: if ``path`` is a
+    ``<dir>.tar.gz`` file (or a directory whose ``<dir>.tar.gz`` sibling
+    exists because it was archived away), the members are hashed in place and
+    returned with the same ``{relpath: hash}`` shape a loose dir would yield.
     """
     path = Path(path)
+
     if not path.is_dir():
+        # Maybe the dir was compressed to a session archive — hash its members
+        # rather than failing. Keeps ``hash_directory`` usable post-compression.
+        from ._archive_lookup import hash_archive_members, resolve_directory_archive
+
+        archive = resolve_directory_archive(path)
+        if archive is not None:
+            return hash_archive_members(archive, pattern=pattern, algorithm=algorithm)
         raise NotADirectoryError(f"Not a directory: {path}")
 
     glob_method = path.rglob if recursive else path.glob
