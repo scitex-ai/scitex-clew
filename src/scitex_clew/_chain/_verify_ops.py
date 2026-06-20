@@ -8,6 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Union
 
+from ._archive_lookup import hash_archived_file
 from .._db import get_db
 from .._hash import hash_file
 from ._types import (
@@ -23,6 +24,12 @@ def verify_file(
     role: str = "unknown",
 ) -> FileVerification:
     """Verify a single file against expected hash.
+
+    If the loose file is gone but its enclosing session dir was compressed to
+    an ancestor ``<dir>.tar.gz`` (``scitex.session`` archive mode), the file
+    is read+hashed from inside the archive instead of being reported MISSING.
+    This keeps provenance verifiable after the inode-saving compression — the
+    archived bytes are byte-identical to the recorded ones.
 
     Parameters
     ----------
@@ -41,16 +48,20 @@ def verify_file(
     path = Path(path)
     path_str = str(path)
 
-    if not path.exists():
-        return FileVerification(
-            path=path_str,
-            role=role,
-            expected_hash=expected_hash,
-            current_hash=None,
-            status=VerificationStatus.MISSING,
-        )
-
-    current_hash = hash_file(path)
+    if path.exists():
+        current_hash = hash_file(path)
+    else:
+        # Loose file absent — try to read it from an ancestor session archive
+        # (transparent .tar.gz support). None means truly gone.
+        current_hash = hash_archived_file(path)
+        if current_hash is None:
+            return FileVerification(
+                path=path_str,
+                role=role,
+                expected_hash=expected_hash,
+                current_hash=None,
+                status=VerificationStatus.MISSING,
+            )
 
     # Compare only the length of expected_hash
     matches = current_hash[: len(expected_hash)] == expected_hash
@@ -173,23 +184,15 @@ def verify_run(
     # to the upstream-only signal — that becomes SUSPECT (or MISMATCH if
     # the caller opted into the legacy 2-state collapse).
     locally_failed_files = [
-        f
-        for f in file_verifications
-        if f.role != "input" and not f.is_verified
+        f for f in file_verifications if f.role != "input" and not f.is_verified
     ]
     if locally_failed_files:
         # Pick MISMATCH if any local artifact mismatches; MISSING only when
         # every local failure is "file absent" (matches the original
         # severity preference).
-        if any(
-            f.status == VerificationStatus.MISMATCH
-            for f in locally_failed_files
-        ):
+        if any(f.status == VerificationStatus.MISMATCH for f in locally_failed_files):
             status = VerificationStatus.MISMATCH
-        elif all(
-            f.status == VerificationStatus.MISSING
-            for f in locally_failed_files
-        ):
+        elif all(f.status == VerificationStatus.MISSING for f in locally_failed_files):
             status = VerificationStatus.MISSING
         else:
             status = VerificationStatus.UNKNOWN

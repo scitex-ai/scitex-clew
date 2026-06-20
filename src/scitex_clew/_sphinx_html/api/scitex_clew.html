@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew &mdash; SciTeX Clew v0.2.15</title>
+  <title>scitex_clew &mdash; SciTeX Clew v0.2.16</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=d5b904a0"></script>
+      <script src="../_static/documentation_options.js?v=e2418eca"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -595,6 +595,13 @@ no explicit upstream (use sparingly).</p></li>
 <span class="go">{&#39;input.csv&#39;: &#39;a1b2...&#39;, &#39;config.yaml&#39;: &#39;c3d4...&#39;}</span>
 </pre></div>
 </div>
+</div>
+<div class="admonition-notes admonition">
+<p class="admonition-title">Notes</p>
+<p>Transparently accepts a compressed session archive: if <code class="docutils literal notranslate"><span class="pre">path</span></code> is a
+<code class="docutils literal notranslate"><span class="pre">&lt;dir&gt;.tar.gz</span></code> file (or a directory whose <code class="docutils literal notranslate"><span class="pre">&lt;dir&gt;.tar.gz</span></code> sibling
+exists because it was archived away), the members are hashed in place and
+returned with the same <code class="docutils literal notranslate"><span class="pre">{relpath:</span> <span class="pre">hash}</span></code> shape a loose dir would yield.</p>
 </div>
 </dd></dl>
 

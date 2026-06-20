@@ -35,38 +35,86 @@ Call `clew_dag(target_files=<final answer path>)` and read the returned `is_veri
 
 This is the closure check. An answer with an unverified DAG is by construction unreproducible — even if the value happens to be correct, no third party (or your future self) can trace why.
 
+### Before signalling DONE — the `clew verify` gate
+
+Registering claims is not the same as verifying them. A claim can be
+`status="registered"` with `verified_at=null` and **no computation behind
+its source** — that is exactly what happens when an agent, blocked on some
+runtime error, hand-codes "estimated" numbers into a `results.json`,
+registers claims pointing at it, and declares success. Clew records the
+missing provenance, but you MUST act on it.
+
+So, immediately before you signal DONE, run:
+
+```bash
+clew verify --strict        # claim-set mode: verify EVERY registered claim
+echo $?                     # 0 == legitimate DONE; anything else == abstain
+```
+
+`DONE` is legitimate **only when `clew verify` exits `0`**. The exit code is
+a documented, machine-actionable contract:
+
+| Exit | Name             | Meaning                                                        |
+|------|------------------|----------------------------------------------------------------|
+| `0`  | `OK`             | every claim is source-verified (strict: + has `@stx.session` lineage) |
+| `10` | `UNVERIFIED`     | claim(s) registered but never verified — **the fabrication case** |
+| `11` | `SOURCE_MISSING` | a claim's source file is gone                                  |
+| `12` | `HASH_MISMATCH`  | a claim's source changed since registration                    |
+| `13` | `NO_LINEAGE`     | `--strict`: source is a hand-written leaf, no upstream computation |
+| `20` | `NO_CLAIMS`      | nothing registered — there is nothing to stand behind a DONE   |
+
+On any nonzero exit you MUST NOT claim success. Emit an honest abstention
+instead — `null` for the affected answer(s) plus a one-line reason (e.g.
+"abstained: TF version blocker, metrics could not be computed") — per the
+scitexification honest-grounding rule. Fabricating a value and labelling it
+DONE scores zero and is worse than an honest `null`.
+
+**Reproduce before you abstain.** A "TF version blocker" / "environment
+won't run" is usually *surmountable*, not a reason to abstain. If you run
+inside the SciTeX agent container with `nested_build`, rebuild the source's
+pinned environment and run the REAL code, then ground your claims in its
+outputs:
+
+```bash
+export APPTAINER_TMPDIR=/tmp APPTAINER_CACHEDIR=/tmp/.apptainer-cache
+apptainer build env.sif docker://<registry>/<published-image>:<tag>   # or build its Dockerfile-derived def
+apptainer exec --bind data:/data --bind code:/code --bind "$PWD/results":/results \
+  env.sif bash -lc 'cd /code && bash run'
+```
+
+You **cannot** use Docker (no daemon inside the container) — use this
+apptainer path. Abstain (`null` + reason) only after an honest reproduction
+attempt genuinely fails. Mechanism + limits: the `scitexification` (Stage
+4.0) and `scitex-agent-container` (nested-apptainer builds) skills.
+
+**The gate is harness-enforced — you cannot skip it.** A `Stop` hook runs
+`clew verify --strict` at every turn-end and REFUSES `DONE` while any
+submitted answer is unverified, feeding the failure back to you. There is no
+"declare DONE anyway": you either reproduce-and-verify, or abstain. Running
+`clew verify` early and often is how you avoid being blocked at the end.
+
+Use `--strict` whenever the task expects the answer to come from an actual
+computation: it rejects a source whose hash matches but which no
+`@stx.session` ever produced (the hand-edited `results.json`). Use the
+JSON form (`clew verify --strict --json`) to read `exit_code` / `counts` /
+`errors` / `warnings` / per-claim `outcome` programmatically.
+
+Each pattern's severity is configurable per project via `verify.severity` in
+`.scitex/clew/config.yaml` (see [20_env-vars.md](20_env-vars.md#config-files-scitexclew)):
+a pattern set to `warning` is reported under `warnings` but does **not** block
+DONE (exit stays `0`); only `error`-severity patterns fail the gate. Defaults
+keep every fabrication/integrity pattern at `error`, so you cannot accidentally
+relax the gate — you must opt out explicitly.
+
 ### Emit the final answer and stop
 
-Once the closure check passes, you MUST emit the final answer in the exact format the harness expects (typically `ANSWERS: {"q1": "...", "q5": "..."}` as a single line on stdout, or the equivalent format your task specifies) and then stop calling tools. Registering the chain is necessary but not sufficient — without an emitted final answer, the trial returns no result. Treat "I have computed and registered everything" and "I have produced the answer" as two distinct steps; do not finish at the first.
+Once the closure check passes **and `clew verify` exits 0**, you MUST emit the final answer in the exact format the harness expects (typically `ANSWERS: {"q1": "...", "q5": "..."}` as a single line on stdout, or the equivalent format your task specifies) and then stop calling tools. Registering the chain is necessary but not sufficient — without an emitted final answer, the trial returns no result. Treat "I have computed and registered everything" and "I have produced the answer" as two distinct steps; do not finish at the first.
 
-## What you get for following this discipline
+## Rationale, anti-patterns, and a worked example
 
-Cache hits on identical inputs. The first run of `mygene.querymany` for a given gene list takes 87 seconds; the second returns in 8 seconds because the hash of the input list resolves to a cached output. Generalize this pattern to every external API call, every long-running computation, every parameter sweep. Re-runs of identical pipelines collapse from minutes to milliseconds.
-
-Tamper detection at claim granularity. If any input changes — even one byte in a data file, even one character in a parameter — the affected claim's hash flips. Other claims whose input set does not include the changed value remain insulated. This means you can localize where a divergence began without re-running the entire chain.
-
-Final-answer provenance. The `clew_chain` call from any future inspector returns the full path from the answer back to the source data and code. The agent's reasoning is no longer ephemeral; it survives the conversation as a queryable graph.
-
-## What to avoid
-
-Do not produce final answers without a passing `clew_dag` verification. Do not register every single trivial value (loop counters, intermediate arrays for plotting) — register the *claims* that back the answer, not the implementation noise. Do not use generic ids like `value_1`, `temp`, `result`; the id is the only handle a future inspector has on the value.
-
-Do not use this skill in single-step tasks where the agent's job is just to call one function and return its output. The overhead of registration is not worth it for trivially-traceable computations. The threshold is roughly three or more intermediate values, or any value the agent produced through a non-trivial choice (which method, which threshold, which subset).
-
-## Example: a five-step analysis
-
-The agent receives raw RNA-seq counts plus the question "which condition shows the strongest pathway enrichment?". The five steps and their corresponding API calls:
-
-1. Load and normalize the counts. Save via `stx.io.save(normalized, "counts_normalized.csv")`. Auto-registered.
-2. Compute differential expression per condition. Each condition's DE table → `stx.io.save(de_acute, "de_acute.csv")` etc. Auto-registered.
-3. Map RefSeq IDs to gene symbols. The mapping dict gets `clew.add_claim(id="refseq_to_symbol_map", value=mapping_hash, ...)`. Cache key.
-4. Run pathway over-representation per condition. Each condition's `n_sig_pathways` → `clew.add_claim(id="acute_n_sig_pathways", value=N, ...)`. Repeat for chronic_r1, chronic_r2, chronic_r3.
-5. Argmax to pick the winning condition. Final answer → `clew.add_claim(id="q1_answer", value="chronic round 2", ...)` with `parent_session` linking to the four `n_sig_pathways` claims.
-
-Before answering, `clew_dag(target_files="q1_answer")` must return `is_verified=True`. If it does not, look at `missing_runs` and fill them.
-
-## Force and reward summary
-
-The discipline is not optional. Returns from un-registered intermediates cannot land in a verified final-answer chain — the closure check at step 5 will fail. Conversely, registered claims get cached: the second call with identical inputs is a hash lookup, not a recompute. Use the API and the system gets faster; skip it and the system refuses to commit your answer.
+The *why* behind this discipline (cache hits, claim-granular tamper
+detection, durable final-answer provenance), the values you should and
+should not register, and an end-to-end five-step analysis are in
+[22_agentic-reasoning-examples.md](22_agentic-reasoning-examples.md).
 
 Refer also to `01_quick-start.md` for the Python API and `12_mcp-tools-for-ai-agents.md` for the MCP tool surface. This skill adds *when-to-call* discipline; the *what-to-call* is unchanged from v1.

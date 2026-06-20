@@ -26,6 +26,7 @@ import scitex.clew
 | `dag(targets=None, claims=False)` | Verify the full DAG (or claims-DAG)                     |
 | `rerun(target, timeout=300, cleanup=True)` | Re-execute and compare outputs                 |
 | `mermaid(...)`                  | Render Mermaid diagram for the DAG                        |
+| `verify_all_claims(strict=False, config=None)` | Verify every claim; returns a `VerificationResult` (fail-loud `exit_code`/`ok`; the `clew verify` DONE gate) |
 | `stats()`                       | Database statistics                                       |
 
 ## Programmatic verification
@@ -33,11 +34,19 @@ import scitex.clew
 ```python
 from scitex_clew import (
     verify_run, verify_chain, verify_dag, verify_file,
-    verify_by_rerun, verify_claims_dag,
+    verify_by_rerun, verify_claims_dag, verify_all_claims,
 )
 
 result = verify_run("20261103_120000_abc12345")
 ok = verify_file("results/figure_3.png")
+
+# Fail-loud claim-set verification (the `clew verify` DONE gate).
+# Returns a VerificationResult dataclass (.to_dict() gives the JSON shape):
+summary = verify_all_claims(strict=True)   # optional config="path/to/.scitex/clew"
+if not summary.ok:                         # summary.exit_code == 0; see _cli._exit_codes
+    abstain(reason=summary.reason)         # never claim success on nonzero
+# summary.errors / summary.warnings list fired patterns by name; per-pattern
+# severity (error vs warning) is tunable in .scitex/clew/config.yaml.
 ```
 
 ## Tracking primitives

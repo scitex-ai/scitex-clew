@@ -10,6 +10,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from ._chain._archive_lookup import hash_archived_file
 from ._db import get_db
 from ._hash import hash_file
 
@@ -132,6 +133,10 @@ def verify_file(
     """
     Verify a single file against expected hash.
 
+    If the loose file is gone but its enclosing session dir was compressed to
+    an ancestor ``<dir>.tar.gz`` (``scitex.session`` archive mode), the file
+    is read+hashed from inside the archive instead of being reported MISSING.
+
     Parameters
     ----------
     path : str or Path
@@ -149,16 +154,20 @@ def verify_file(
     path = Path(path)
     path_str = str(path)
 
-    if not path.exists():
-        return FileVerification(
-            path=path_str,
-            role=role,
-            expected_hash=expected_hash,
-            current_hash=None,
-            status=VerificationStatus.MISSING,
-        )
-
-    current_hash = hash_file(path)
+    if path.exists():
+        current_hash = hash_file(path)
+    else:
+        # Loose file absent — try to read it from an ancestor session archive
+        # (transparent .tar.gz support). None means truly gone.
+        current_hash = hash_archived_file(path)
+        if current_hash is None:
+            return FileVerification(
+                path=path_str,
+                role=role,
+                expected_hash=expected_hash,
+                current_hash=None,
+                status=VerificationStatus.MISSING,
+            )
 
     # Compare only the length of expected_hash
     matches = current_hash[: len(expected_hash)] == expected_hash

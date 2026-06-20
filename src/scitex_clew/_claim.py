@@ -70,6 +70,86 @@ class Claim:
         }
 
 
+@dataclass
+class ClaimVerification:
+    """Per-claim verification outcome (one row of a :class:`VerificationResult`)."""
+
+    claim_id: str
+    location: str
+    claim_value: Optional[str]
+    status: Optional[str]
+    source_file: Optional[str]
+    source_session: Optional[str]
+    source_verified: bool
+    chain_verified: bool
+    outcome: str  # exit-code NAME: "OK" / "UNVERIFIED" / "HASH_MISMATCH" / ...
+    severity: str  # resolved severity for this outcome: error/warning/ignore/ok
+    details: List[str]
+
+    @property
+    def is_verified(self) -> bool:
+        return self.outcome == "OK"
+
+    def to_dict(self) -> Dict:
+        return {
+            "claim_id": self.claim_id,
+            "location": self.location,
+            "claim_value": self.claim_value,
+            "status": self.status,
+            "source_file": self.source_file,
+            "source_session": self.source_session,
+            "source_verified": self.source_verified,
+            "chain_verified": self.chain_verified,
+            "outcome": self.outcome,
+            "severity": self.severity,
+            "details": self.details,
+        }
+
+
+@dataclass
+class VerificationResult:
+    """Structured result of ``verify_all_claims`` / ``clew verify`` (claim-set mode).
+
+    The single object a harness branches on. ``exit_code`` is the fail-loud
+    contract code (see :mod:`scitex_clew._cli._exit_codes`); ``ok`` is the
+    DONE-gate. Per-pattern severity (configurable via ``.scitex/clew``) decides
+    which fired patterns count as ``errors`` (fail) vs ``warnings`` (tolerated).
+    ``.to_dict()`` returns the canonical CLI ``--json`` shape.
+    """
+
+    exit_code: int
+    exit_name: str
+    reason: str
+    strict: bool
+    total: int
+    verified: int
+    counts: Dict[str, int]
+    claims: List[ClaimVerification]
+    severities: Dict[str, str]  # pattern key -> resolved severity (transparency)
+    errors: List[str]  # pattern NAMES that fired at ERROR severity
+    warnings: List[str]  # pattern NAMES that fired at WARNING severity
+
+    @property
+    def ok(self) -> bool:
+        """True iff exit_code == 0 — a solver may then legitimately signal DONE."""
+        return self.exit_code == 0
+
+    def to_dict(self) -> Dict:
+        return {
+            "exit_code": self.exit_code,
+            "exit_name": self.exit_name,
+            "reason": self.reason,
+            "strict": self.strict,
+            "total": self.total,
+            "verified": self.verified,
+            "counts": self.counts,
+            "severities": self.severities,
+            "errors": self.errors,
+            "warnings": self.warnings,
+            "claims": [c.to_dict() for c in self.claims],
+        }
+
+
 def migrate_add_claims_table(db_path: Path) -> None:
     """Create claims table if not present. Safe to call multiple times."""
     conn = sqlite3.connect(str(db_path))
@@ -288,9 +368,7 @@ def export_claims_json(
         if env_path:
             path = Path(env_path)
         else:
-            path = _db_core._default_claims_json_path(
-                _db_core._find_project_root()
-            )
+            path = _db_core._default_claims_json_path(_db_core._find_project_root())
     path = Path(path).resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -516,6 +594,184 @@ def verify_claims_dag(
         )
 
     return verify_dag(source_files)
+
+
+def _classify_claim(result: Dict, *, strict: bool) -> int:
+    """Classify a single ``verify_claim`` result into an exit code.
+
+    Maps the per-claim verification outcome onto the documented fail-loud
+    exit-code contract in :mod:`scitex_clew._cli._exit_codes`. Returns the
+    code for *this one claim* (the caller reduces over the whole set).
+
+    Decision tree (per claim):
+
+    * No ``source_file`` linked → ``UNVERIFIED`` (the fabrication case: a
+      claim registered against nothing computable — exactly the hand-coded
+      ``results.json`` story).
+    * Source file gone → ``SOURCE_MISSING``.
+    * Stored hash != current hash → ``HASH_MISMATCH``.
+    * Source hash matches but the claim was never marked verified
+      (``verified_at`` is null AND status is still ``registered``) →
+      ``UNVERIFIED``.
+    * Source verified:
+        * non-strict → ``OK`` (hash match is the bar).
+        * strict and chain NOT verified → ``NO_LINEAGE`` (hand-written
+          leaf, no ``@stx.session`` provenance upstream).
+        * strict and chain verified → ``OK``.
+    """
+    from ._cli._exit_codes import (
+        HASH_MISMATCH,
+        NO_LINEAGE,
+        OK,
+        SOURCE_MISSING,
+        UNVERIFIED,
+    )
+
+    claim = result.get("claim", {})
+    status = claim.get("status")
+    source_file = claim.get("source_file")
+    verified_at = claim.get("verified_at")
+
+    # No computable source at all — the canonical fabrication case.
+    if not source_file:
+        return UNVERIFIED
+
+    if status == "missing":
+        return SOURCE_MISSING
+    if status == "mismatch":
+        return HASH_MISMATCH
+
+    if result.get("source_verified"):
+        if strict and not result.get("chain_verified"):
+            return NO_LINEAGE
+        return OK
+
+    # Source linked but neither verified nor explicitly failed: it was
+    # never put through a real verification pass (verified_at null).
+    if not verified_at:
+        return UNVERIFIED
+
+    # Fallback — any other not-verified state is treated as unverified.
+    return UNVERIFIED
+
+
+def verify_all_claims(
+    file_path: Optional[str] = None,
+    claim_type: Optional[str] = None,
+    *,
+    strict: bool = False,
+    config: Optional[Union[str, Path]] = None,
+) -> "VerificationResult":
+    """Verify every registered claim and reduce to a fail-loud result.
+
+    This is the reusable core behind ``clew verify`` (claim-set mode). It
+    re-verifies each claim (re-hashing its source and, in ``strict`` mode,
+    checking upstream ``@stx.session`` lineage), updates each claim's stored
+    status as a side effect (via :func:`verify_claim`), and reduces the
+    per-claim outcomes to a single :class:`VerificationResult`.
+
+    Parameters
+    ----------
+    file_path : str, optional
+        Restrict to claims registered against this manuscript path.
+    claim_type : str, optional
+        Restrict to claims of this type.
+    strict : bool, optional
+        When True, a claim only passes if its source additionally has
+        upstream computation lineage (its provenance chain verifies).
+        A hand-written leaf (no ``@stx.session`` behind it) fails with
+        ``NO_LINEAGE`` even though its hash matches. ``strict`` also promotes
+        ``NO_LINEAGE`` to ERROR severity regardless of config. Default False.
+    config : str or pathlib.Path, optional
+        Explicit ``.scitex/clew`` config file/dir overriding the resolved
+        user/project severity map (see :mod:`scitex_clew._core._config`).
+
+    Returns
+    -------
+    VerificationResult
+        Structured outcome. ``result.exit_code == 0`` (``result.ok``) is the
+        DONE-gate; any nonzero code means the agent MUST abstain honestly
+        instead of claiming success. Per-pattern severity (configurable via
+        ``.scitex/clew``) decides which fired patterns are ``errors`` (fail)
+        vs ``warnings`` (tolerated). See :mod:`scitex_clew._cli._exit_codes`.
+    """
+    from ._cli._exit_codes import (
+        KEY_BY_CODE,
+        NO_CLAIMS,
+        OK,
+        classify_exit,
+        name_of,
+        reason_of,
+        resolve_severity,
+    )
+
+    severities = resolve_severity(explicit=config, strict=strict)
+    severity_view = {KEY_BY_CODE[code]: lvl.value for code, lvl in severities.items()}
+
+    claims = list_claims(file_path=file_path, claim_type=claim_type, limit=10_000)
+
+    if not claims:
+        exit_code, errors, warnings = classify_exit([NO_CLAIMS], severities)
+        return VerificationResult(
+            exit_code=exit_code,
+            exit_name=name_of(exit_code),
+            reason=reason_of(exit_code),
+            strict=strict,
+            total=0,
+            verified=0,
+            counts={name_of(NO_CLAIMS): 1},
+            claims=[],
+            severities=severity_view,
+            errors=errors,
+            warnings=warnings,
+        )
+
+    per_claim: List[ClaimVerification] = []
+    per_codes: List[int] = []
+    verified = 0
+    counts: Dict[str, int] = {}
+
+    for c in claims:
+        result = verify_claim(c.claim_id)
+        code = _classify_claim(result, strict=strict)
+        per_codes.append(code)
+        cname = name_of(code)
+        counts[cname] = counts.get(cname, 0) + 1
+        if code == OK:
+            verified += 1
+
+        rclaim = result.get("claim", {})
+        sev = "ok" if code == OK else severities[code].value
+        per_claim.append(
+            ClaimVerification(
+                claim_id=c.claim_id,
+                location=c.location,
+                claim_value=c.claim_value,
+                status=rclaim.get("status", c.status),
+                source_file=rclaim.get("source_file", c.source_file),
+                source_session=rclaim.get("source_session", c.source_session),
+                source_verified=result.get("source_verified", False),
+                chain_verified=result.get("chain_verified", False),
+                outcome=cname,
+                severity=sev,
+                details=result.get("details", []),
+            )
+        )
+
+    exit_code, errors, warnings = classify_exit(per_codes, severities)
+    return VerificationResult(
+        exit_code=exit_code,
+        exit_name=name_of(exit_code),
+        reason=reason_of(exit_code),
+        strict=strict,
+        total=len(claims),
+        verified=verified,
+        counts=counts,
+        claims=per_claim,
+        severities=severity_view,
+        errors=errors,
+        warnings=warnings,
+    )
 
 
 def _resolve_claim(identifier: str, db) -> Optional[Claim]:

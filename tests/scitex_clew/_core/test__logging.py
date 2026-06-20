@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Tests for scitex_clew._logging module."""
+"""Tests for scitex_clew._core._logging module."""
 
 from __future__ import annotations
 
 import logging
-
 
 
 class TestGetLogger:
@@ -13,7 +12,7 @@ class TestGetLogger:
         # Act
         # Arrange
         # Act
-        from scitex_clew._logging import getLogger
+        from scitex_clew._core._logging import getLogger
 
         # Assert
         # Assert
@@ -22,7 +21,7 @@ class TestGetLogger:
     def test_getLogger_returns_logger(self):
         # Arrange
         # Arrange
-        from scitex_clew._logging import getLogger
+        from scitex_clew._core._logging import getLogger
 
         # Act
         # Act
@@ -34,7 +33,7 @@ class TestGetLogger:
     def test_getLogger_with_name(self):
         # Arrange
         # Arrange
-        from scitex_clew._logging import getLogger
+        from scitex_clew._core._logging import getLogger
 
         # Act
         # Act
@@ -48,7 +47,7 @@ class TestGetLogger:
         # Even if scitex.logging is not available, we get a callable
         # Arrange
         # Arrange
-        from scitex_clew._logging import getLogger
+        from scitex_clew._core._logging import getLogger
 
         # Act
         # Act
@@ -64,7 +63,7 @@ class TestGetLogger:
         # Arrange
         # Act
         # Assert
-        from scitex_clew._logging import getLogger
+        from scitex_clew._core._logging import getLogger
 
         logger_a = getLogger("scitex_clew.same")
         logger_b = getLogger("scitex_clew.same")
@@ -82,7 +81,7 @@ class TestGetLogger:
         # Arrange
         # Act
         # Assert
-        from scitex_clew._logging import getLogger
+        from scitex_clew._core._logging import getLogger
 
         # Python stdlib logging.getLogger() with no args returns root logger
         try:
@@ -99,7 +98,7 @@ class TestGetLogger:
 
         # Act
         # Act
-        mod = importlib.import_module("scitex_clew._logging")
+        mod = importlib.import_module("scitex_clew._core._logging")
         # Assert
         # Assert
         assert hasattr(mod, "getLogger")
@@ -107,7 +106,7 @@ class TestGetLogger:
     def test_getLogger_is_stdlib_logging_or_compatible(self):
         # Arrange
         # Arrange
-        from scitex_clew._logging import getLogger
+        from scitex_clew._core._logging import getLogger
 
         # Should be either stdlib logging.getLogger or a compatible callable
         # Verify it is either the same object or produces something logger-like

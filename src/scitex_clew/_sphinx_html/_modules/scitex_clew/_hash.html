@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew._hash &mdash; SciTeX Clew v0.2.15</title>
+  <title>scitex_clew._hash &mdash; SciTeX Clew v0.2.16</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=d5b904a0"></script>
+      <script src="../../_static/documentation_options.js?v=e2418eca"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -246,9 +246,27 @@
 <span class="sd">    --------</span>
 <span class="sd">    &gt;&gt;&gt; hash_directory(&quot;./data/&quot;)</span>
 <span class="sd">    {&#39;input.csv&#39;: &#39;a1b2...&#39;, &#39;config.yaml&#39;: &#39;c3d4...&#39;}</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Transparently accepts a compressed session archive: if ``path`` is a</span>
+<span class="sd">    ``&lt;dir&gt;.tar.gz`` file (or a directory whose ``&lt;dir&gt;.tar.gz`` sibling</span>
+<span class="sd">    exists because it was archived away), the members are hashed in place and</span>
+<span class="sd">    returned with the same ``{relpath: hash}`` shape a loose dir would yield.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+        <span class="c1"># Maybe the dir was compressed to a session archive — hash its members</span>
+        <span class="c1"># rather than failing. Keeps ``hash_directory`` usable post-compression.</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._chain._archive_lookup</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">hash_archive_members</span><span class="p">,</span>
+            <span class="n">resolve_directory_archive</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">archive</span> <span class="o">=</span> <span class="n">resolve_directory_archive</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">archive</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">hash_archive_members</span><span class="p">(</span><span class="n">archive</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="n">algorithm</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">NotADirectoryError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not a directory: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="n">glob_method</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">rglob</span> <span class="k">if</span> <span class="n">recursive</span> <span class="k">else</span> <span class="n">path</span><span class="o">.</span><span class="n">glob</span>

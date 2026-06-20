@@ -24,6 +24,7 @@ Public API::
     clew.add_claim(...)                # register manuscript assertion
     clew.list_claims(...)              # list registered claims
     clew.verify_claim(...)             # verify a specific claim
+    clew.verify_all_claims(...)        # verify every claim -> fail-loud code
 
     # Stamping
     clew.stamp(...)                    # create temporal proof
@@ -99,6 +100,7 @@ def _supports_return_as(fn):
                 from scitex_dev.decorators import (
                     supports_return_as as _real,
                 )
+
                 _decorated[0] = _real(fn)
             except Exception:
                 # scitex-dev may import optional ML libs whose runtime-init
@@ -140,10 +142,15 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     "add_claim": ("._claim", "add_claim"),
     "list_claims": ("._claim", "list_claims"),
     "verify_claim": ("._claim", "verify_claim"),
+    "verify_all_claims": ("._claim", "verify_all_claims"),
     "export_claims_json": ("._claim", "export_claims_json"),
     "format_claims": ("._claim", "format_claims"),
     "verify_claims_dag": ("._claim", "verify_claims_dag"),
     "Claim": ("._claim", "Claim"),
+    "ClaimVerification": ("._claim", "ClaimVerification"),
+    "VerificationResult": ("._claim", "VerificationResult"),
+    # _cli._exit_codes (configurable verify severity)
+    "Severity": ("._cli._exit_codes", "Severity"),
     # _register_intermediate
     "register_intermediate": ("._register_intermediate", "register_intermediate"),
     # _observers (session hooks)
@@ -222,13 +229,17 @@ if TYPE_CHECKING:
     )
     from ._claim import (  # noqa: F401
         Claim,
+        ClaimVerification,
+        VerificationResult,
         add_claim,
         export_claims_json,
         format_claims,
         list_claims,
+        verify_all_claims,
         verify_claim,
         verify_claims_dag,
     )
+    from ._cli._exit_codes import Severity  # noqa: F401
     from ._dag import verify_dag, verify_dag_strict  # noqa: F401
     from ._db import VerificationDB, get_db, set_db  # noqa: F401
     from ._examples import init_examples  # noqa: F401
@@ -273,9 +284,7 @@ def __getattr__(name: str):
     """
     spec = _LAZY_ATTRS.get(name)
     if spec is None:
-        raise AttributeError(
-            f"module {__name__!r} has no attribute {name!r}"
-        )
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     module_path, attr = spec
     from importlib import import_module
 
@@ -464,6 +473,7 @@ __all__ = [
     "add_claim",
     "list_claims",
     "verify_claim",
+    "verify_all_claims",
     "export_claims_json",
     "register_intermediate",
     # Stamping

@@ -14,7 +14,7 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from .._logging import getLogger
+from .._core import getLogger
 from .._tracker import get_tracker, start_tracking, stop_tracking
 
 logger = getLogger(__name__)

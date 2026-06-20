@@ -18,6 +18,39 @@ tags: [scitex-clew-env-vars]
 
 - **opt-in:** `SCITEX_CLEW_DEBUG_MODE=true` to enable debug tracing (verbose, default off).
 
+## Config files (`.scitex/clew`)
+
+Beyond env vars, scitex-clew reads layered YAML config from the SciTeX
+`.scitex/<pkg>` convention (`pkg = clew`):
+
+| Scope | Path | Precedence |
+|---|---|---|
+| user | `$SCITEX_DIR/clew/` (default `~/.scitex/clew/`) | low |
+| project | `<git-root>/.scitex/clew/` | high (overrides user, per key) |
+| explicit | `clew verify --config PATH` (file or dir) | highest |
+
+Within a scope, `config.yaml` is the base and any `config/*.yaml` files are
+deep-merged on top (sorted by name) — the `{config.yaml, config/}` shape.
+`$SCITEX_DIR` relocates the user-scope root.
+
+Currently consumed: **`verify.severity`** — per-pattern severity for
+`clew verify` (`error` fails the run / blocks DONE, `warning` is reported but
+tolerated, `ignore` is dropped):
+
+```yaml
+verify:
+  severity:
+    unverified: error      # the fabrication case
+    source_missing: error
+    hash_mismatch: error
+    no_lineage: warning    # only fires under --strict, which promotes it to error
+    no_claims: error
+```
+
+Absent config → the built-in defaults above. A malformed file, an unknown
+pattern key, or an invalid severity value **raises** (fail-loud, no silent
+fallback).
+
 ## Audit
 
 ```bash
