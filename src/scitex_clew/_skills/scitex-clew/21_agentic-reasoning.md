@@ -69,6 +69,30 @@ instead — `null` for the affected answer(s) plus a one-line reason (e.g.
 scitexification honest-grounding rule. Fabricating a value and labelling it
 DONE scores zero and is worse than an honest `null`.
 
+**Reproduce before you abstain.** A "TF version blocker" / "environment
+won't run" is usually *surmountable*, not a reason to abstain. If you run
+inside the SciTeX agent container with `nested_build`, rebuild the source's
+pinned environment and run the REAL code, then ground your claims in its
+outputs:
+
+```bash
+export APPTAINER_TMPDIR=/tmp APPTAINER_CACHEDIR=/tmp/.apptainer-cache
+apptainer build env.sif docker://<registry>/<published-image>:<tag>   # or build its Dockerfile-derived def
+apptainer exec --bind data:/data --bind code:/code --bind "$PWD/results":/results \
+  env.sif bash -lc 'cd /code && bash run'
+```
+
+You **cannot** use Docker (no daemon inside the container) — use this
+apptainer path. Abstain (`null` + reason) only after an honest reproduction
+attempt genuinely fails. Mechanism + limits: the `scitexification` (Stage
+4.0) and `scitex-agent-container` (nested-apptainer builds) skills.
+
+**The gate is harness-enforced — you cannot skip it.** A `Stop` hook runs
+`clew verify --strict` at every turn-end and REFUSES `DONE` while any
+submitted answer is unverified, feeding the failure back to you. There is no
+"declare DONE anyway": you either reproduce-and-verify, or abstain. Running
+`clew verify` early and often is how you avoid being blocked at the end.
+
 Use `--strict` whenever the task expects the answer to come from an actual
 computation: it rejects a source whose hash matches but which no
 `@stx.session` ever produced (the hand-edited `results.json`). Use the
