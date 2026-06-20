@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for scitex_clew._node_class module."""
+"""Tests for scitex_clew._core._node_class module."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import sqlite3
 
 import pytest
 
-from scitex_clew._node_class import (
+from scitex_clew._core._node_class import (
     NODE_CLASSES,
     auto_classify,
     infer_node_class,
@@ -90,7 +90,6 @@ class TestNodeClassesConstant:
         # Act
         # Assert
         assert "claim" in NODE_CLASSES
-
 
     def test_has_five_classes(self):
         # Arrange
@@ -301,7 +300,6 @@ class TestInferNodeClass:
         # Assert
         assert infer_node_class("script.PY", "script") == "source"
 
-
     # Path with directory components
     def test_full_path_handled(self):
         # Arrange
@@ -354,7 +352,9 @@ class TestMigrateAddNodeClass:
         # Assert
         assert "node_class" not in cols_before
 
-    def test_adds_node_class_column_node_class_in_cols_after_node_class_not_in_cols_before(self, tmp_path):
+    def test_adds_node_class_column_node_class_in_cols_after_node_class_not_in_cols_before(
+        self, tmp_path
+    ):
         # Arrange
         # Arrange
         db_path = tmp_path / "test.db"
@@ -369,7 +369,9 @@ class TestMigrateAddNodeClass:
         # Assert
         assert "node_class" not in cols_before
 
-    def test_adds_node_class_column_node_class_in_cols_after_node_class_in_cols_after(self, tmp_path):
+    def test_adds_node_class_column_node_class_in_cols_after_node_class_in_cols_after(
+        self, tmp_path
+    ):
         # Arrange — start from a schema missing the column.
         db_path = tmp_path / "test.db"
         self._make_db_with_table(db_path)
@@ -380,8 +382,6 @@ class TestMigrateAddNodeClass:
         conn.close()
         # Assert
         assert "node_class" in cols_after
-
-
 
     def test_idempotent_node_class_in_cols(self, tmp_path):
         # Arrange
@@ -599,7 +599,6 @@ class TestAutoClassify:
         # Assert
         # Assert
         assert updated >= 0
-
 
     def test_classifies_tex_output_as_claim(self, tmp_path):
         # Arrange

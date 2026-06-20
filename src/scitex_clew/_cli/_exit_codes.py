@@ -136,7 +136,7 @@ def reason_of(code: int) -> str:
 # The exit codes above say WHAT failed. Severity says how much each failure
 # COUNTS: ERROR fails the run (blocks DONE), WARNING is reported but tolerated,
 # IGNORE is dropped. The map is tunable per pattern via .scitex/clew/config.yaml
-# (see :mod:`scitex_clew._config`), so a project can downgrade a pattern without
+# (see :mod:`scitex_clew._core._config`), so a project can downgrade a pattern without
 # touching code — exactly like a linter's per-rule severities.
 class Severity(Enum):
     """How a fired verification pattern affects the overall result."""
@@ -213,7 +213,7 @@ def resolve_severity(
     """
     sev: Dict[int, Severity] = dict(DEFAULT_SEVERITY)
 
-    from .._config import load_config  # lazy: avoid an import cycle at load time
+    from .._core import load_config  # lazy: avoid an import cycle at load time
 
     cfg = load_config(start=start, explicit=explicit)
     raw = ((cfg.get("verify") or {}).get("severity")) or {}

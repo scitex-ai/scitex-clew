@@ -39,6 +39,7 @@ scitex_clew.status(...)
 * [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — workflows + CLI detail + MCP refs
 * [20_env-vars.md](20_env-vars.md), [14_grouping.md](14_grouping.md) — env vars + DAG-node grouping
 * [21_agentic-reasoning.md](21_agentic-reasoning.md) — when-to-call discipline for AI agents using Clew as an active reasoning substrate (v2 framing)
+* [22_agentic-reasoning-examples.md](22_agentic-reasoning-examples.md) — rationale (cache/tamper/provenance), anti-patterns, and a worked five-step example for 21_agentic-reasoning
 
 ## MCP Tools
 

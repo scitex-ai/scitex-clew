@@ -17,7 +17,7 @@ import os
 
 import pytest
 
-from scitex_clew import _config
+from scitex_clew._core import _config
 
 
 @pytest.fixture(autouse=True)

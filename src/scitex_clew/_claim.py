@@ -684,7 +684,7 @@ def verify_all_claims(
         ``NO_LINEAGE`` to ERROR severity regardless of config. Default False.
     config : str or pathlib.Path, optional
         Explicit ``.scitex/clew`` config file/dir overriding the resolved
-        user/project severity map (see :mod:`scitex_clew._config`).
+        user/project severity map (see :mod:`scitex_clew._core._config`).
 
     Returns
     -------

@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict
 
-from scitex_clew._logging import getLogger
+from scitex_clew._core import getLogger
 
 from ._session import on_session_close, on_session_start
 
