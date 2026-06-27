@@ -187,6 +187,62 @@ class FileHashMixin:
                 ).fetchall()
             return [row["session_id"] for row in rows]
 
+    def find_sessions_by_files(
+        self,
+        file_paths: List[str],
+        role: str,
+    ) -> Dict[str, List[str]]:
+        """Batch lookup: producers of multiple files in a single SQL query.
+
+        Replaces the per-file loop in ``_parents_via_files`` (the N+1 pattern)
+        with one ``WHERE file_path IN (...) AND role=?`` query, grouped by
+        file_path.  The ``idx_file_path`` index already covers this.
+
+        Note: a single session's input count is typically small (well under
+        SQLite's ~999-variable SQLITE_MAX_VARIABLE_NUMBER limit), so no
+        chunking is needed here.  If callers ever pass very large lists they
+        should chunk externally.
+
+        Parameters
+        ----------
+        file_paths : list of str
+            File paths to look up producers for.
+        role : str
+            Role to filter by (``"output"`` for producer lookup).
+
+        Returns
+        -------
+        dict[str, list[str]]
+            ``{file_path: [session_id, ...]}`` — producers per file, ordered
+            newest-first (``recorded_at DESC``), matching the order that
+            ``find_session_by_file`` returns.  Files with no producers are
+            absent from the dict (not present with an empty list).
+        """
+        if not file_paths:
+            return {}
+
+        placeholders = ", ".join("?" * len(file_paths))
+        params = list(file_paths) + [role]
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT file_path, session_id, MAX(recorded_at) AS latest_at
+                FROM file_hashes
+                WHERE file_path IN ({placeholders}) AND role = ?
+                GROUP BY file_path, session_id
+                ORDER BY file_path, latest_at DESC
+                """,
+                params,
+            ).fetchall()
+
+        result: Dict[str, List[str]] = {}
+        for row in rows:
+            fp = row["file_path"]
+            if fp not in result:
+                result[fp] = []
+            result[fp].append(row["session_id"])
+        return result
+
 
 def _stat_size(path: str) -> Optional[int]:
     """Return os.path.getsize for *path*, or None if the file is inaccessible."""

@@ -108,15 +108,30 @@ def _parents_via_files(db, session_id: str) -> List[str]:
     A loaded file with no producing session (raw source / read-only config)
     contributes no parent. Self-edges (a session that re-reads its own output)
     are skipped. Order follows the session's input-file order, deduped.
+
+    Implementation note
+    -------------------
+    Previously this issued one ``find_session_by_file`` query per input file
+    (an N+1 pattern).  It now calls ``find_sessions_by_files`` once to fetch
+    all producers for all input files in a single ``IN (...)`` query, then
+    walks the results in input-file order to preserve the original ordering
+    and dedup semantics exactly.
     """
     input_files = db.get_file_hashes(session_id, role="input")  # {path: hash}
+    if not input_files:
+        return []
+
+    # One batched query instead of one per file.
+    producers_by_file = db.find_sessions_by_files(
+        list(input_files.keys()), role="output"
+    )
 
     parents: List[str] = []
     seen: Set[str] = set()
     for file_path in input_files:
-        producers = db.find_session_by_file(file_path, role="output")
-        # find_session_by_file is ordered newest-first; the newest producer
-        # that is not this session itself is the genuine upstream hop.
+        # producers_by_file values are newest-first, matching find_session_by_file.
+        producers = producers_by_file.get(file_path, [])
+        # The newest producer that is not this session itself is the genuine hop.
         producer = next((p for p in producers if p != session_id), None)
         if producer is not None and producer not in seen:
             seen.add(producer)
