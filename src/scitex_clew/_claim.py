@@ -471,13 +471,21 @@ def list_claims(
         conn.close()
 
 
-def verify_claim(claim_id_or_location: str) -> Dict:
+def verify_claim(
+    claim_id_or_location: str,
+    hash_cache: "Optional[Dict[str, str]]" = None,
+) -> Dict:
     """Verify a specific claim by checking its source against the verification chain.
 
     Parameters
     ----------
     claim_id_or_location : str
         Either a claim_id or a location string like "paper.tex:L42".
+    hash_cache : dict or None, optional
+        Per-pass cache mapping resolved-path -> hash (see
+        :func:`scitex_clew._hash.hash_file`). When provided, a source file
+        shared by multiple claims is hashed at most once per pass. Pass
+        ``None`` (default) to disable caching — direct callers are unaffected.
 
     Returns
     -------
@@ -512,7 +520,7 @@ def verify_claim(claim_id_or_location: str) -> Dict:
 
         from ._hash import hash_file
 
-        current_hash = hash_file(source_path)
+        current_hash = hash_file(source_path, hash_cache=hash_cache)
         if (
             claim.source_hash
             and current_hash[: len(claim.source_hash)]
@@ -726,13 +734,24 @@ def verify_all_claims(
             warnings=warnings,
         )
 
+    # Perf B: one hash_cache per pass so a source file shared by N claims is
+    # hashed exactly once (O(D) instead of O(C·D)).  The cache is fresh every
+    # call to verify_all_claims so a file changed between two independent passes
+    # is always re-hashed — no stale entries leak across passes.
+    from ._chain._hash_cache import new_hash_cache
+
+    hash_cache = new_hash_cache()
+    # TODO(perf B strict chain memo): similarly memoize verify_chain(source_file)
+    # keyed by resolved source path so strict-mode chain walks are also O(D)
+    # instead of O(C·D).  Deferred: the hash dedup is the dominant win.
+
     per_claim: List[ClaimVerification] = []
     per_codes: List[int] = []
     verified = 0
     counts: Dict[str, int] = {}
 
     for c in claims:
-        result = verify_claim(c.claim_id)
+        result = verify_claim(c.claim_id, hash_cache=hash_cache)
         code = _classify_claim(result, strict=strict)
         per_codes.append(code)
         cname = name_of(code)
