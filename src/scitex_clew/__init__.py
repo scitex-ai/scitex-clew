@@ -122,6 +122,78 @@ __all__ = [
     "on_session_close",
 ]
 
+# Static binding of every lazily-exported public name (PA-102 requires each
+# __all__ entry to be imported/defined in __init__.py). These run only under
+# type-checking, so they add zero cold-start cost; runtime resolution still
+# goes through __getattr__ + _LAZY_ATTRS below.
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from . import groupers  # noqa: F401
+    from ._chain import (  # noqa: F401
+        ChainVerification,
+        DAGVerification,
+        FileVerification,
+        RunVerification,
+        VerificationLevel,
+        VerificationStatus,
+        get_status,
+        verify_chain,
+        verify_file,
+        verify_run,
+    )
+    from ._claim import (  # noqa: F401
+        Claim,
+        ClaimVerification,
+        VerificationResult,
+        add_claim,
+        export_claims_json,
+        format_claims,
+        list_claims,
+        verify_all_claims,
+        verify_claim,
+        verify_claims_dag,
+    )
+    from ._cli._exit_codes import Severity  # noqa: F401
+    from ._dag import verify_dag, verify_dag_strict  # noqa: F401
+    from ._db import VerificationDB, get_db, set_db  # noqa: F401
+    from ._estimate import (  # noqa: F401
+        HEAVY_THRESHOLD_SECONDS,
+        EstimateResult,
+        estimate,
+    )
+    from ._examples import init_examples  # noqa: F401
+    from ._hash import (  # noqa: F401
+        combine_hashes,
+        hash_directory,
+        hash_file,
+        hash_files,
+        verify_hash,
+    )
+    from ._observers import on_session_close, on_session_start  # noqa: F401
+    from ._register_intermediate import register_intermediate  # noqa: F401
+    from ._registry import ClewRegistry, get_registry  # noqa: F401
+    from ._rerun import rerun_claims, rerun_dag, verify_by_rerun  # noqa: F401
+    from ._stamp import Stamp, check_stamp, list_stamps, stamp  # noqa: F401
+    from ._tracker import (  # noqa: F401
+        SessionTracker,
+        get_tracker,
+        set_tracker,
+        start_tracking,
+        stop_tracking,
+    )
+    from ._visualize import (  # noqa: F401
+        format_chain_verification,
+        format_list,
+        format_run_detailed,
+        format_run_verification,
+        format_status,
+        generate_html_dag,
+        generate_mermaid_dag,
+        print_verification_summary,
+        render_dag,
+    )
+
 
 # ---------------------------------------------------------------------------
 # Lazy decorator from scitex-dev (audit §10 cold-start)

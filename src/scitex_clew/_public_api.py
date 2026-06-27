@@ -6,17 +6,16 @@ Extracted from __init__.py to keep that file under the 512-line limit.
 
 Contains:
 - _LAZY_ATTRS  — mapping of public name to (submodule, attr) for PEP-562
-- TYPE_CHECKING stubs for IDEs / mypy
 
-The canonical ``__all__`` literal lives in ``__init__.py`` (PA-101 requires
-it declared there); this module only provides the lazy-attribute registry.
+The canonical ``__all__`` literal and the ``TYPE_CHECKING`` import stubs live
+in ``__init__.py`` (PA-101 requires ``__all__`` declared there, and PA-102
+requires every ``__all__`` name statically bound there); this module only
+provides the lazy-attribute registry.
 
 Internal helper — not part of the public API surface.
 """
 
 from __future__ import annotations
-
-from typing import TYPE_CHECKING
 
 # ---------------------------------------------------------------------------
 # Lazy attribute map: public_name -> (submodule_relative_path, attr_or_None)
@@ -107,74 +106,6 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     "format_status": ("._visualize", "format_status"),
     "print_verification_summary": ("._visualize", "print_verification_summary"),
 }
-
-if TYPE_CHECKING:
-    # Re-state for type checkers / IDEs. These statements never execute at
-    # runtime, so they don't affect cold-start cost.
-    from . import groupers  # noqa: F401
-    from ._chain import (  # noqa: F401
-        ChainVerification,
-        DAGVerification,
-        FileVerification,
-        RunVerification,
-        VerificationLevel,
-        VerificationStatus,
-        get_status,
-        verify_chain,
-        verify_file,
-        verify_run,
-    )
-    from ._claim import (  # noqa: F401
-        Claim,
-        ClaimVerification,
-        VerificationResult,
-        add_claim,
-        export_claims_json,
-        format_claims,
-        list_claims,
-        verify_all_claims,
-        verify_claim,
-        verify_claims_dag,
-    )
-    from ._cli._exit_codes import Severity  # noqa: F401
-    from ._dag import verify_dag, verify_dag_strict  # noqa: F401
-    from ._db import VerificationDB, get_db, set_db  # noqa: F401
-    from ._estimate import (  # noqa: F401
-        HEAVY_THRESHOLD_SECONDS,
-        EstimateResult,
-        estimate,
-    )
-    from ._examples import init_examples  # noqa: F401
-    from ._hash import (  # noqa: F401
-        combine_hashes,
-        hash_directory,
-        hash_file,
-        hash_files,
-        verify_hash,
-    )
-    from ._observers import on_session_close, on_session_start  # noqa: F401
-    from ._register_intermediate import register_intermediate  # noqa: F401
-    from ._registry import ClewRegistry, get_registry  # noqa: F401
-    from ._rerun import rerun_claims, rerun_dag, verify_by_rerun  # noqa: F401
-    from ._stamp import Stamp, check_stamp, list_stamps, stamp  # noqa: F401
-    from ._tracker import (  # noqa: F401
-        SessionTracker,
-        get_tracker,
-        set_tracker,
-        start_tracking,
-        stop_tracking,
-    )
-    from ._visualize import (  # noqa: F401
-        format_chain_verification,
-        format_list,
-        format_run_detailed,
-        format_run_verification,
-        format_status,
-        generate_html_dag,
-        generate_mermaid_dag,
-        print_verification_summary,
-        render_dag,
-    )
 
 
 # EOF
