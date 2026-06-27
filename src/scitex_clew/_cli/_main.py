@@ -21,6 +21,7 @@ import sys
 import click
 
 from ._claim import claim
+from ._estimate import estimate
 from ._hash import hash_directory, hash_file
 from ._introspect import list_python_apis
 from ._mcp import mcp
@@ -51,6 +52,7 @@ COMMAND_CATEGORIES = [
             "chain",
             "rerun-dag",
             "rerun-claims",
+            "estimate",
         ],
     ),
     ("Claims", ["claim"]),
@@ -215,6 +217,7 @@ main.add_command(chain)
 main.add_command(rerun_dag)
 main.add_command(rerun_claims)
 
+main.add_command(estimate)
 main.add_command(list_python_apis)
 main.add_command(mcp)
 
