@@ -306,32 +306,43 @@ class TestNoFabricationWhenSizeBytesAbsent:
 
 class TestCachedIntermediateHint:
     def test_hint_contains_reuse_suggestion_when_input_is_prior_output(self, tmp_path):
-        # Arrange — session s2 uses output of session s1 as input
+        # Arrange — s2 uses s1's output as input; the intermediate exists on
+        # disk and still matches s1's recorded hash (fresh → reuse advised)
         script = tmp_path / "step.py"
         script.write_text("print('step')\n")
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
         db = _make_db(tmp_path)
-        shared_file = "/shared/intermediate.csv"
+        shared = tmp_path / "intermediate.csv"
+        shared.write_text("intermediate data")
+        shared_file = str(shared)
+        shared_hash = _hf(shared)
         _add_completed_run(db, "s1", str(script), h, 5.0)
-        db.add_file_hash("s1", shared_file, "hash-s1-out", "output")
+        db.add_file_hash("s1", shared_file, shared_hash, "output")
         _add_completed_run(db, "s2", str(script), h, 5.0)
-        db.add_file_hash("s2", shared_file, "hash-s2-in", "input")
+        db.add_file_hash("s2", shared_file, shared_hash, "input")
         # Act
         result = estimate(str(script), db=db)
         # Assert
         assert "cached intermediate" in result.hint.lower() or "reusing" in result.hint.lower()
 
     def test_cached_intermediate_hints_returns_non_empty_list(self, tmp_path):
-        # Arrange — session s4 inputs /shared/data.csv which s3 produced
+        # Arrange — s4 inputs a file s3 produced; it exists on disk and still
+        # matches s3's recorded output hash (fresh → hint emitted)
+        from scitex_clew._hash import hash_file as _hf
+
         db = _make_db(tmp_path)
+        shared = tmp_path / "data.csv"
+        shared.write_text("shared data")
+        shared_file = str(shared)
+        shared_hash = _hf(shared)
         db.add_run("s3", "/produce.py")
         db.finish_run("s3")
-        db.add_file_hash("s3", "/shared/data.csv", "hout", "output")
+        db.add_file_hash("s3", shared_file, shared_hash, "output")
         db.add_run("s4", "/consume.py")
         db.finish_run("s4")
-        db.add_file_hash("s4", "/shared/data.csv", "hin", "input")
+        db.add_file_hash("s4", shared_file, shared_hash, "input")
         # Act
         hints = _cached_intermediate_hints(db, ["s4"])
         # Assert
