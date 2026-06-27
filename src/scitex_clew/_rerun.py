@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Timestamp: "2026-02-01 (ywatanabe)"
-# File: /home/ywatanabe/proj/scitex-python/src/scitex/verify/_rerun.py
+# Timestamp: "2026-06-27 (ywatanabe)"
+# File: src/scitex_clew/_rerun.py
 """Rerun verification - re-execute scripts and compare outputs."""
 
 from __future__ import annotations
@@ -20,14 +20,16 @@ from ._chain import (
 )
 from ._db import get_db
 
+# _chain._freshness and _chain._hash_cache are imported lazily inside rerun_dag
+# so they do not add to the cold-start cost of `import scitex_clew`.
+
 
 def verify_by_rerun(
     target: str | list[str],
     timeout: int = 300,
     cleanup: bool = True,
 ) -> RunVerification | list[RunVerification]:
-    """
-    Verify session(s) by re-executing scripts and comparing outputs.
+    """Verify session(s) by re-executing scripts and comparing outputs.
 
     Parameters
     ----------
@@ -252,23 +254,32 @@ def rerun_dag(
     targets: list[str] | None = None,
     timeout: int = 300,
     cleanup: bool = True,
+    skip_unchanged: bool = False,
 ) -> DAGVerification:
     """Rerun-verify an entire DAG in topological order.
 
-    Each session is re-executed in a sandbox against its ORIGINAL stored
-    inputs (not freshly rerun outputs from upstream), then compared to
-    the original outputs.
+    Each session is re-executed against its ORIGINAL stored inputs then
+    compared to its original outputs.  When ``skip_unchanged=True`` a
+    freshness check short-circuits the subprocess for unchanged sessions.
 
     Parameters
     ----------
     targets : list of str, optional
-        Target output files whose upstream DAG should be rerun.
-        If None, all runs in the database are used and their output
-        files become the targets.
+        Target output files.  If None all recorded outputs are used.
     timeout : int, optional
-        Maximum execution time per session in seconds (default: 300).
+        Max execution time per session in seconds (default: 300).
     cleanup : bool, optional
-        Whether to remove sandbox output directories after each rerun.
+        Remove sandbox output directories after each rerun.
+    skip_unchanged : bool, optional
+        OPT-IN incremental skip (default: False).  When True, each session
+        is tested for freshness BEFORE the expensive subprocess launch.
+        A session is fresh when: (1) script_hash is recorded; (2) script
+        file exists and matches script_hash; (3) every recorded INPUT file
+        exists and its hash matches the recorded value.  Fresh sessions are
+        marked status=VERIFIED / level=CACHE so ``is_verified_from_scratch``
+        is False — clearly distinct from an actual re-execution.  Non-fresh
+        sessions fall through to the normal ``_execute_script`` path.
+        Default is False: behavior is byte-identical to the original.
 
     Returns
     -------
@@ -312,10 +323,26 @@ def rerun_dag(
     # Topological sort (roots first)
     topo_order = _topological_sort(adjacency)
 
+    # Lazy-import freshness helpers and hash cache only when opt-in is active
+    # so they do not add to the cold-start cost of `import scitex_clew`.
+    if skip_unchanged:
+        from ._chain._freshness import _is_session_fresh, _skipped_result
+        from ._chain._hash_cache import new_hash_cache
+
+        hash_cache = new_hash_cache()
+    else:
+        hash_cache = None
+
     # Rerun each session in topological order
     verifications = {}
     for sid in topo_order:
-        verifications[sid] = verify_by_rerun(sid, timeout, cleanup)
+        if skip_unchanged and _is_session_fresh(sid, hash_cache=hash_cache):
+            run_info = db.get_run(sid)
+            verifications[sid] = _skipped_result(
+                sid, run_info.get("script_path") if run_info else None
+            )
+        else:
+            verifications[sid] = verify_by_rerun(sid, timeout, cleanup)
 
     # Propagate failures forward through the DAG
     failed_sessions: set = set()
@@ -364,9 +391,6 @@ def rerun_claims(
 ) -> DAGVerification:
     """Rerun-verify all sessions that produced files referenced by claims.
 
-    Collects unique source files from matching claims, then delegates
-    to ``rerun_dag`` with those files as targets.
-
     Parameters
     ----------
     file_path : str, optional
@@ -381,8 +405,7 @@ def rerun_claims(
     Returns
     -------
     DAGVerification
-        Unified verification result for the upstream DAG of all
-        source files referenced by the matching claims.
+        Unified verification result for the upstream DAG.
     """
     from ._claim import list_claims
 
