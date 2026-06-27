@@ -20,7 +20,7 @@ from ._chain import (
 )
 from ._db import get_db
 
-# _rerun_freshness and _chain._hash_cache are imported lazily inside rerun_dag
+# _chain._freshness and _chain._hash_cache are imported lazily inside rerun_dag
 # so they do not add to the cold-start cost of `import scitex_clew`.
 
 
@@ -326,8 +326,8 @@ def rerun_dag(
     # Lazy-import freshness helpers and hash cache only when opt-in is active
     # so they do not add to the cold-start cost of `import scitex_clew`.
     if skip_unchanged:
+        from ._chain._freshness import _is_session_fresh, _skipped_result
         from ._chain._hash_cache import new_hash_cache
-        from ._rerun_freshness import _is_session_fresh, _skipped_result
 
         hash_cache = new_hash_cache()
     else:

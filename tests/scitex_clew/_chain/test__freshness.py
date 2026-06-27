@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for scitex_clew._rerun_freshness and the skip_unchanged param of rerun_dag.
+"""Tests for scitex_clew._chain._freshness and the skip_unchanged param of rerun_dag.
 
 Covers:
 - _is_session_fresh: unchanged inputs+script → True
@@ -19,7 +19,7 @@ import pytest
 import scitex_clew._db as _db_module
 from scitex_clew._db import set_db
 from scitex_clew._chain import VerificationLevel, VerificationStatus
-from scitex_clew._rerun_freshness import _is_session_fresh, _skipped_result
+from scitex_clew._chain._freshness import _is_session_fresh, _skipped_result
 
 
 @pytest.fixture(autouse=True)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Timestamp: "2026-06-27 (ywatanabe)"
-# File: src/scitex_clew/_rerun_freshness.py
+# File: src/scitex_clew/_chain/_freshness.py
 """Freshness check helpers for the opt-in incremental skip in rerun_dag.
 
 A session is considered fresh (skippable) when:
@@ -19,10 +19,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, Optional
 
-from ._chain import RunVerification, VerificationLevel, VerificationStatus
-from ._chain._hash_cache import new_hash_cache
-from ._db import get_db
-from ._hash import hash_file
+from .._db import get_db
+from .._hash import hash_file
+from ._hash_cache import new_hash_cache
+from ._types import RunVerification, VerificationLevel, VerificationStatus
 
 
 def _is_session_fresh(
