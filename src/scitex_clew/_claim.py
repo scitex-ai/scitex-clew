@@ -474,6 +474,7 @@ def list_claims(
 def verify_claim(
     claim_id_or_location: str,
     hash_cache: "Optional[Dict[str, str]]" = None,
+    chain_cache: "Optional[Dict[str, object]]" = None,
 ) -> Dict:
     """Verify a specific claim by checking its source against the verification chain.
 
@@ -486,6 +487,13 @@ def verify_claim(
         :func:`scitex_clew._hash.hash_file`). When provided, a source file
         shared by multiple claims is hashed at most once per pass. Pass
         ``None`` (default) to disable caching — direct callers are unaffected.
+    chain_cache : dict or None, optional
+        Per-pass memo mapping ``str(resolved source_file)`` ->
+        :class:`~scitex_clew._chain.ChainVerification`. When provided, the
+        full chain walk (``verify_chain``) for a source_file that appears on
+        multiple claims is executed at most once per :func:`verify_all_claims`
+        pass. Pass ``None`` (default) to disable memoization — direct callers
+        are unaffected.
 
     Returns
     -------
@@ -541,7 +549,15 @@ def verify_claim(
         from ._chain import verify_chain
 
         try:
-            chain = verify_chain(claim.source_file)
+            # Per-pass chain memo: avoid re-walking the same source chain when
+            # multiple claims share one source_file (strict-mode perf).
+            chain_key = str(Path(claim.source_file).resolve())
+            if chain_cache is not None and chain_key in chain_cache:
+                chain = chain_cache[chain_key]
+            else:
+                chain = verify_chain(claim.source_file)
+                if chain_cache is not None:
+                    chain_cache[chain_key] = chain
             result["chain_verified"] = chain.is_verified
             if chain.is_verified:
                 result["details"].append(f"Chain verified ({len(chain.runs)} runs)")
@@ -741,9 +757,13 @@ def verify_all_claims(
     from ._chain._hash_cache import new_hash_cache
 
     hash_cache = new_hash_cache()
-    # TODO(perf B strict chain memo): similarly memoize verify_chain(source_file)
-    # keyed by resolved source path so strict-mode chain walks are also O(D)
-    # instead of O(C·D).  Deferred: the hash dedup is the dominant win.
+    # Strict-mode chain memo: in strict mode, verify_chain(source_file) walks
+    # upstream provenance — O(depth) per unique source.  Claims sharing one
+    # source_file would otherwise re-walk the same chain O(C) times.  The memo
+    # is keyed by str(resolved source_file) and populated on first encounter so
+    # each unique chain is walked at most once per pass.  A fresh dict is
+    # created each call so no stale entries leak across independent passes.
+    chain_cache: Dict[str, object] = {}
 
     per_claim: List[ClaimVerification] = []
     per_codes: List[int] = []
@@ -751,7 +771,7 @@ def verify_all_claims(
     counts: Dict[str, int] = {}
 
     for c in claims:
-        result = verify_claim(c.claim_id, hash_cache=hash_cache)
+        result = verify_claim(c.claim_id, hash_cache=hash_cache, chain_cache=chain_cache)
         code = _classify_claim(result, strict=strict)
         per_codes.append(code)
         cname = name_of(code)

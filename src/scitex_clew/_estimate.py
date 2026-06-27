@@ -264,13 +264,31 @@ def _typical_output_bytes(db, session_ids: List[str]) -> Optional[int]:
     return int(statistics.median(known))
 
 
-def _cached_intermediate_hints(db, session_ids: List[str]) -> List[str]:
-    """Return hints when recorded inputs exist as fresh outputs of prior sessions.
+def _cached_intermediate_hints(
+    db,
+    session_ids: List[str],
+    hash_cache: "Optional[dict]" = None,
+) -> List[str]:
+    """Return hints when recorded inputs exist as FRESH outputs of prior sessions.
 
-    Limitation: this is a best-effort check based on file_path equality.
-    It does not verify whether the prior session's output is current (hash
-    match) or whether the producing script has changed since then.
+    A "fresh" artifact is one whose on-disk content hashes to the same value
+    the producer session originally recorded.  PATH equality alone is not
+    sufficient: a later run may have overwritten the file (stale artifact).
+    Only artifacts that pass the freshness check get a reuse hint.
+
+    Parameters
+    ----------
+    db : VerificationDB
+        Database to query.
+    session_ids : list of str
+        Session IDs to check for cached-intermediate candidates.
+    hash_cache : dict or None, optional
+        Per-pass hash cache (see :func:`scitex_clew._hash.hash_file`).
+        When provided, each unique file path is hashed at most once per
+        call.  Pass ``None`` to disable caching.
     """
+    from ._hash import hash_file
+
     hints: List[str] = []
     seen: set = set()
     for sid in session_ids:
@@ -291,12 +309,42 @@ def _cached_intermediate_hints(db, session_ids: List[str]) -> List[str]:
             ).fetchall()
         for row in rows:
             key = (row["file_path"], row["producer_session"])
-            if key not in seen:
-                seen.add(key)
-                hints.append(
-                    f"Input '{row['file_path']}' already produced by session "
-                    f"{row['producer_session']} — consider reusing the cached intermediate."
-                )
+            if key in seen:
+                continue
+            seen.add(key)
+
+            # --- Freshness check -------------------------------------------
+            # Retrieve the hash the producer session recorded for this output.
+            producer_hashes = db.get_file_hashes(
+                row["producer_session"], role="output"
+            )
+            recorded_hash = producer_hashes.get(row["file_path"])
+
+            # If the artifact is missing or the stored hash is unavailable,
+            # we cannot vouch for freshness — skip the hint silently.
+            from pathlib import Path as _Path
+            artifact = _Path(row["file_path"])
+            if recorded_hash is None or not artifact.exists():
+                continue
+
+            try:
+                current_hash = hash_file(artifact, hash_cache=hash_cache)
+            except Exception:
+                continue
+
+            # Compare truncated hashes (hash_file returns first 32 chars of
+            # sha256 hex; the DB may store the same or a full hex — align by
+            # comparing the shorter prefix of each).
+            min_len = min(len(recorded_hash), len(current_hash))
+            if recorded_hash[:min_len] != current_hash[:min_len]:
+                # Artifact has changed on disk since the producer session —
+                # do NOT suggest reuse of a stale intermediate.
+                continue
+
+            hints.append(
+                f"Input '{row['file_path']}' already produced by session "
+                f"{row['producer_session']} — consider reusing the cached intermediate."
+            )
     return hints
 
 
@@ -329,6 +377,8 @@ def _compute_estimate(
     heavy_threshold: int,
 ) -> EstimateResult:
     """Compute statistics from a non-empty list of completed runs."""
+    from ._chain._hash_cache import new_hash_cache
+
     durations: List[float] = []
     successes: int = 0
 
@@ -355,7 +405,10 @@ def _compute_estimate(
         int(statistics.median(output_counts)) if output_counts else None
     )
     typ_bytes = _typical_output_bytes(db, session_ids)
-    reuse_hints = _cached_intermediate_hints(db, session_ids)
+    # Per-pass hash cache so each unique artifact is hashed at most once when
+    # checking freshness across multiple candidate sessions.
+    hint_hash_cache = new_hash_cache()
+    reuse_hints = _cached_intermediate_hints(db, session_ids, hash_cache=hint_hash_cache)
 
     heavy = bool(p90 is not None and p90 > heavy_threshold)
     hint = _build_hint(

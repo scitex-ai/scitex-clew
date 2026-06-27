@@ -659,4 +659,81 @@ class TestCLI:
         assert roundtripped["match_tier"] == "unknown"
 
 
+# ---------------------------------------------------------------------------
+# Item 1: freshness gate for cached-intermediate reuse hints
+# ---------------------------------------------------------------------------
+
+
+class TestCachedIntermediateHintsFreshness:
+    """Tests for the freshness check in _cached_intermediate_hints."""
+
+    def _setup_producer_session(
+        self, tmp_path, db, script, artifact_path, artifact_content
+    ):
+        """Register a session that produced artifact_path with artifact_content."""
+        from scitex_clew._hash import hash_file
+
+        artifact_path.write_text(artifact_content)
+        script_hash = hash_file(script)
+        db.add_run("prod_s1", str(script), script_hash=script_hash)
+        db.finish_run("prod_s1", status="success", exit_code=0)
+        artifact_hash = hash_file(artifact_path)
+        db.add_file_hash("prod_s1", str(artifact_path), artifact_hash, "output")
+        return artifact_hash
+
+    def _setup_consumer_session(self, tmp_path, db, script, artifact_path):
+        """Register a session that used artifact_path as input."""
+        from scitex_clew._hash import hash_file
+
+        script_hash = hash_file(script)
+        db.add_run("cons_s2", str(script), script_hash=script_hash)
+        db.finish_run("cons_s2", status="success", exit_code=0)
+        artifact_hash = hash_file(artifact_path)
+        db.add_file_hash("cons_s2", str(artifact_path), artifact_hash, "input")
+
+    def test_reuse_hint_emitted_when_artifact_hash_matches(self, tmp_path):
+        # Arrange
+        script = tmp_path / "proc.py"
+        script.write_text("pass\n")
+        artifact = tmp_path / "intermediate.csv"
+        db = _make_db(tmp_path)
+        self._setup_producer_session(tmp_path, db, script, artifact, "col1,col2\n1,2\n")
+        self._setup_consumer_session(tmp_path, db, script, artifact)
+        # artifact on disk still matches what prod_s1 produced
+        # Act
+        result = estimate(str(script), db=db)
+        # Assert — reuse hint must appear since artifact is still fresh
+        assert "consider reusing" in result.hint.lower()
+
+    def test_reuse_hint_not_emitted_when_artifact_changed(self, tmp_path):
+        # Arrange
+        script = tmp_path / "proc2.py"
+        script.write_text("pass\n")
+        artifact = tmp_path / "intermediate2.csv"
+        db = _make_db(tmp_path)
+        self._setup_producer_session(tmp_path, db, script, artifact, "col1,col2\n1,2\n")
+        self._setup_consumer_session(tmp_path, db, script, artifact)
+        # Overwrite artifact so its current hash differs from what prod_s1 recorded
+        artifact.write_text("col1,col2\n999,999\nSTALE\n")
+        # Act
+        result = estimate(str(script), db=db)
+        # Assert — stale artifact must NOT produce a reuse hint
+        assert "consider reusing" not in result.hint.lower()
+
+    def test_reuse_hint_not_emitted_when_artifact_missing(self, tmp_path):
+        # Arrange
+        script = tmp_path / "proc3.py"
+        script.write_text("pass\n")
+        artifact = tmp_path / "intermediate3.csv"
+        db = _make_db(tmp_path)
+        self._setup_producer_session(tmp_path, db, script, artifact, "col1,col2\n1,2\n")
+        self._setup_consumer_session(tmp_path, db, script, artifact)
+        # Delete the artifact so it is missing on disk
+        artifact.unlink()
+        # Act
+        result = estimate(str(script), db=db)
+        # Assert — missing artifact must NOT produce a reuse hint
+        assert "consider reusing" not in result.hint.lower()
+
+
 # EOF
