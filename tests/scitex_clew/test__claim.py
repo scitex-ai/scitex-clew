@@ -1,5 +1,5 @@
 """Tests for ``scitex_clew.export_claims_json`` and the
-``add_claim`` auto-export hook.
+``add_claim`` auto-export hook, plus perf-B dedup behaviour.
 
 Covers:
 
@@ -14,6 +14,8 @@ Covers:
     edits trip an OSError at the OS layer.
   - Setting ``SCITEX_CLEW_AUTO_EXPORT_CLAIMS=0`` disables the auto-hook
     without breaking ``add_claim``.
+  - Perf B: when N claims share one source_file, hash_file is called
+    exactly once per verify_all_claims pass (hash_cache dedup).
 
 Tests follow:
   - PA-306 §3 (no mocks): real env + cwd mutation with explicit
@@ -26,6 +28,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Dict, Optional
 
 import pytest
 
@@ -338,3 +341,179 @@ def test_default_claims_json_path_helper():
     p = _db_core._default_claims_json_path(project_root)
     # Assert
     assert p == Path("/tmp/some-project/.scitex/clew/runtime/claims.json")
+
+
+# ---------------------------------------------------------------------------
+# Perf B: hash_cache dedup tests
+# (PA-306 §3 no mocks, PA-307 §3 AAA + one assertion per test)
+# ---------------------------------------------------------------------------
+
+# Shared fixture for perf B tests — builds an isolated DB with N claims all
+# pointing at the same source_file so dedup behaviour is observable.
+
+@pytest.fixture
+def perf_b_sandbox(tmp_path, env_sandbox):
+    """Isolated DB + 3 claims sharing one source_file (evidence.txt)."""
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = workdir / "evidence.txt"
+    src.write_text("result=0.94\n")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim1\nclaim2\nclaim3\n")
+    for line in [1, 2, 3]:
+        clew.add_claim(
+            file_path=str(paper),
+            claim_type="value",
+            line_number=line,
+            claim_value=f"v{line}",
+            source_file=str(src),
+        )
+    return {"workdir": workdir, "src": src}
+
+
+def test_perf_b_shared_source_hashed_once_per_pass(perf_b_sandbox, env_sandbox):
+    """With 3 claims sharing one source_file, hash_cache has exactly 1 entry after the pass."""
+    # Arrange
+    from scitex_clew._chain._hash_cache import new_hash_cache
+    from scitex_clew._claim import verify_claim
+
+    observed_cache: Dict[str, str] = new_hash_cache()
+    src = perf_b_sandbox["src"]
+    all_claims = clew.list_claims()
+    # Act — call verify_claim 3 times with the SAME cache (simulating verify_all_claims)
+    for c in all_claims:
+        verify_claim(c.claim_id, hash_cache=observed_cache)
+    # Assert — resolved src path is the only key; file hashed once, not 3 times
+    assert len(observed_cache) == 1
+
+
+def test_perf_b_verify_all_claims_result_identical_exit_code(perf_b_sandbox):
+    """verify_all_claims returns the same exit_code as calling without cache."""
+    # Arrange — run without cache first (baseline), then with optimised path
+    # verify_all_claims always builds the cache internally; we compare two
+    # independent runs on the same DB and expect consistent exit_codes.
+    result_first = clew.verify_all_claims()
+    # Act
+    result_second = clew.verify_all_claims()
+    # Assert — idempotent: same pass, same DB, same exit_code
+    assert result_first.exit_code == result_second.exit_code
+
+
+def test_perf_b_verify_all_claims_result_identical_verified_count(perf_b_sandbox):
+    """verify_all_claims returns the same verified count on repeated passes."""
+    # Arrange
+    result_first = clew.verify_all_claims()
+    # Act
+    result_second = clew.verify_all_claims()
+    # Assert
+    assert result_first.verified == result_second.verified
+
+
+def test_perf_b_verify_all_claims_result_identical_total(perf_b_sandbox):
+    """verify_all_claims total claim count is stable across passes."""
+    # Arrange
+    result_first = clew.verify_all_claims()
+    # Act
+    result_second = clew.verify_all_claims()
+    # Assert
+    assert result_first.total == result_second.total
+
+
+def test_perf_b_missing_source_outcome_preserved(tmp_path, env_sandbox):
+    """hash_cache dedup does not hide a SOURCE_MISSING outcome."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = workdir / "gone.txt"
+    src.write_text("will be deleted\n")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim1\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="v1",
+        source_file=str(src),
+    )
+    src.unlink()  # delete the source so it's MISSING at verify time
+    from scitex_clew._cli import _exit_codes as codes
+    # Act
+    result = clew.verify_all_claims()
+    # Assert — source gone must surface as SOURCE_MISSING exit code
+    assert result.exit_code == codes.SOURCE_MISSING
+
+
+def test_perf_b_hash_mismatch_outcome_preserved(tmp_path, env_sandbox):
+    """hash_cache dedup does not mask a HASH_MISMATCH outcome."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = workdir / "data.txt"
+    src.write_text("original content\n")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim1\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="v1",
+        source_file=str(src),
+    )
+    src.write_text("TAMPERED content\n")  # mutate after registration
+    from scitex_clew._cli import _exit_codes as codes
+    # Act
+    result = clew.verify_all_claims()
+    # Assert — tampered source must surface as HASH_MISMATCH exit code
+    assert result.exit_code == codes.HASH_MISMATCH
+
+
+def test_perf_b_fresh_pass_re_hashes_changed_file(tmp_path, env_sandbox):
+    """A second verify_all_claims pass sees a file mutated between passes."""
+    # Arrange — first pass sees correct hash (source_verified True expected)
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = workdir / "evidence.txt"
+    src.write_text("original\n")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim1\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="v1",
+        source_file=str(src),
+    )
+    from scitex_clew._cli import _exit_codes as codes
+
+    first_result = clew.verify_all_claims()
+    src.write_text("TAMPERED\n")  # mutate between passes
+    # Act — second pass, fresh cache, must detect tamper
+    second_result = clew.verify_all_claims()
+    # Assert — second pass detects the change; exit codes differ
+    assert first_result.exit_code != second_result.exit_code
+
+
+def test_perf_b_no_source_unverified_preserved(tmp_path, env_sandbox):
+    """Fabrication claim (no source_file) still produces UNVERIFIED exit code."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    paper = workdir / "paper.tex"
+    paper.write_text("fabricated result\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="statistic",
+        line_number=1,
+        claim_value="p=0.001",
+        # source_file omitted — fabrication claim
+    )
+    from scitex_clew._cli import _exit_codes as codes
+    # Act
+    result = clew.verify_all_claims()
+    # Assert
+    assert result.exit_code == codes.UNVERIFIED
