@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Union
 
 from .._db import get_db
+from ._hash_cache import new_hash_cache
 from ._routes import DEFAULT_MAX_DEPTH, order_roots_first, resolve_file_dag
 from ._types import ChainVerification, VerificationStatus
 from ._verify_ops import verify_run
@@ -72,7 +73,7 @@ def verify_chain(
     # sessions so a file referenced by multiple sessions is hashed only once
     # per pass.  ``verify_run_fn`` may be a test-injected stub that ignores
     # the kwarg, so we pass it only when the function is the real verify_run.
-    hash_cache: dict = {}
+    hash_cache = new_hash_cache()
     run_verifications = []
     for sid in chain:
         if verify_run_fn is verify_run:
@@ -139,7 +140,7 @@ def get_status(
 
     # Share a single hash cache across all runs in this status pass so files
     # referenced by multiple sessions are hashed from disk only once.
-    hash_cache: dict = {}
+    hash_cache = new_hash_cache()
 
     for run in runs:
         session_id = run["session_id"]
