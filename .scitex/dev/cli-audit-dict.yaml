@@ -52,3 +52,12 @@ intransitive_verbs:
   # intransitive unit ("run the verification gate"); declare it here rather
   # than break the gate's public CLI.
   - verify
+
+  # `clew estimate` — pre-flight: predict a script/target's runtime + success
+  # from run history (Phase 1 of scitex-compute-preflight-check). "estimate"
+  # is a standard English verb ("to estimate the cost"); Moby classifies it
+  # as both noun and verb, tripping §1 on the bare token. The verb meaning is
+  # intended ("estimate this job"); the script/target is supplied
+  # positionally. Renaming (e.g. `estimate-runtime`) would be redundant and
+  # worse UX than the natural `clew estimate <script>`.
+  - estimate

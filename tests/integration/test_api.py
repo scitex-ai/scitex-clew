@@ -9,14 +9,15 @@ import scitex_clew as clew
 class TestPublicAPI:
     """Verify __all__ contains the expected public names."""
 
-    def test_all_count_len_clew_all_is_26(self):
-        # 25 public names + canonical __version__ string (per PA201).
-        # +1 over the previous 25 for ``verify_all_claims`` (the fail-loud
-        # claim-set verification behind ``clew verify``, 2026-06-19).
+    def test_all_count_len_clew_all_is_27(self):
+        # 26 public names + canonical __version__ string (per PA201).
+        # +1 over the previous 26 for ``estimate`` (the Phase 1 pre-flight
+        # compute estimate, 2026-06-27). ``EstimateResult`` is intentionally
+        # lazy-only (not in __all__), matching the other result dataclasses.
         # Arrange
         # Act
         # Assert
-        assert len(clew.__all__) == 26
+        assert len(clew.__all__) == 27
 
     def test_all_names_set_clew_all_expected(self):
         # Arrange
@@ -32,6 +33,7 @@ class TestPublicAPI:
             "rerun_claims",
             "list_runs",
             "stats",
+            "estimate",
             "add_claim",
             "list_claims",
             "verify_claim",
