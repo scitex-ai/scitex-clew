@@ -223,3 +223,202 @@ def test_add_script_node_failed_input_outranks_suspect_input():
         and ":::failed" in lines[0]
         and ":::suspect" not in lines[0]
     )
+
+
+# ----- Asserted provenance marker ------------------------------------------ #
+
+
+def test_class_definitions_emits_asserted_classDef_with_dashed_style():
+    # Arrange
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    asserted_lines = [ln for ln in lines if "classDef asserted" in ln]
+    assert len(asserted_lines) == 1 and "stroke-dasharray" in asserted_lines[0]
+
+
+def test_class_definitions_asserted_classDef_uses_lavender_fill():
+    # Arrange
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    asserted_lines = [ln for ln in lines if "classDef asserted" in ln]
+    assert len(asserted_lines) == 1 and "E6E6FA" in asserted_lines[0]
+
+
+def test_add_script_node_asserted_verified_uses_asserted_class():
+    # Arrange — a verified asserted node (no failure) must use the dashed
+    # 'asserted' class rather than 'verified'.
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "asserted",
+        "assertion_reason": "4.1TB gPAC, recipe-known, never re-run",
+    }
+    verification = _FakeVerification(verified=True, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="asserted_s1",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert
+    assert len(lines) == 1 and ":::asserted" in lines[0]
+
+
+def test_add_script_node_asserted_verified_label_contains_badge():
+    # Arrange
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "asserted",
+        "assertion_reason": "external job",
+    }
+    verification = _FakeVerification(verified=True, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="asserted_s2",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert
+    assert len(lines) == 1 and "⊘ ASSERTED" in lines[0]
+
+
+def test_add_script_node_asserted_verified_label_contains_reason():
+    # Arrange
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "asserted",
+        "assertion_reason": "4.1TB gPAC, recipe-known, never re-run",
+    }
+    verification = _FakeVerification(verified=True, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="asserted_s3",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert
+    assert len(lines) == 1 and "4.1TB gPAC, recipe-known, never re-run" in lines[0]
+
+
+def test_add_script_node_asserted_failed_uses_failed_class_not_asserted():
+    # Arrange — an asserted node with a local failure must use 'failed', NOT
+    # 'asserted', so the DAG view does not lie about the failure.
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "asserted",
+        "assertion_reason": "external job",
+    }
+    verification = _FakeVerification(verified=False, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="asserted_fail_s1",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert
+    assert len(lines) == 1 and ":::failed" in lines[0] and ":::asserted" not in lines[0]
+
+
+def test_add_script_node_asserted_failed_still_shows_badge():
+    # Arrange — even when the asserted node fails, the ⊘ ASSERTED badge
+    # must still appear in the label (so the user knows it was hand-asserted).
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "asserted",
+        "assertion_reason": "external job",
+    }
+    verification = _FakeVerification(verified=False, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="asserted_fail_s2",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert
+    assert len(lines) == 1 and "⊘ ASSERTED" in lines[0]
+
+
+def test_add_script_node_tracked_verified_uses_verified_class_not_asserted():
+    # Arrange — a normal tracked verified node must NOT get the asserted class;
+    # behavior-preservation guarantee.
+    lines: list = []
+    run = {
+        "script_path": "/scripts/normal.py",
+        "script_hash": "ab" * 32,
+        "provenance": "tracked",
+        "assertion_reason": None,
+    }
+    verification = _FakeVerification(verified=True, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="tracked_s1",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert
+    assert len(lines) == 1 and ":::verified" in lines[0] and ":::asserted" not in lines[0]

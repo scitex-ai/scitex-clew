@@ -72,6 +72,8 @@ class RunVerification:
     combined_hash_expected: Optional[str]
     combined_hash_current: Optional[str]
     level: VerificationLevel = VerificationLevel.CACHE
+    provenance: str = "tracked"
+    assertion_reason: Optional[str] = None
 
     @property
     def is_verified(self) -> bool:

@@ -129,7 +129,9 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                     exit_code INTEGER,
                     parent_session TEXT,
                     combined_hash TEXT,
-                    metadata TEXT
+                    metadata TEXT,
+                    provenance TEXT DEFAULT 'tracked',
+                    assertion_reason TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS file_hashes (
@@ -188,6 +190,8 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         self._migrate_session_parents()
         # Phase 2: add size_bytes column to pre-existing DBs (idempotent)
         self._migrate_file_hashes_size_bytes()
+        # Phase 3: add provenance + assertion_reason to pre-existing runs tables (idempotent)
+        self._migrate_runs_provenance()
 
     @contextmanager
     def _connect(self):
@@ -201,6 +205,33 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
             conn.close()
 
     # -------------------------------------------------------------------------
+    # Migration helpers
+    # -------------------------------------------------------------------------
+
+    def _migrate_runs_provenance(self) -> None:
+        """Add provenance and assertion_reason columns to pre-existing runs tables (idempotent).
+
+        Safe to call even when the columns already exist: the PRAGMA check
+        guards the ALTER TABLE so no exception is raised on repeated runs.
+        Existing rows receive the default value ('tracked' / NULL) automatically.
+        """
+        with self._connect() as conn:
+            columns = {
+                row[1]
+                for row in conn.execute(
+                    "PRAGMA table_info(runs)"
+                ).fetchall()
+            }
+            if "provenance" not in columns:
+                conn.execute(
+                    "ALTER TABLE runs ADD COLUMN provenance TEXT DEFAULT 'tracked'"
+                )
+            if "assertion_reason" not in columns:
+                conn.execute(
+                    "ALTER TABLE runs ADD COLUMN assertion_reason TEXT"
+                )
+
+    # -------------------------------------------------------------------------
     # Run operations
     # -------------------------------------------------------------------------
 
@@ -211,6 +242,8 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         script_hash: Optional[str] = None,
         parent_session: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        provenance: str = "tracked",
+        assertion_reason: Optional[str] = None,
     ) -> None:
         """
         Add a new run to the database.
@@ -227,14 +260,21 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
             Parent session ID for chain tracking
         metadata : dict, optional
             Additional metadata to store
+        provenance : str, optional
+            Provenance marker: 'tracked' (auto-tracked via @stx.session, default)
+            or 'asserted' (manually/retrospectively registered by hand).
+        assertion_reason : str, optional
+            Structured justification for asserted nodes (required when
+            provenance='asserted' for operator accountability). E.g.
+            '4.1 TB gPAC job, recipe-known, never re-run'. NULL for tracked nodes.
         """
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO runs
                 (session_id, script_path, script_hash, started_at, status,
-                 parent_session, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                 parent_session, metadata, provenance, assertion_reason)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session_id,
@@ -244,6 +284,8 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                     "running",
                     parent_session,
                     json.dumps(metadata) if metadata else None,
+                    provenance,
+                    assertion_reason,
                 ),
             )
 

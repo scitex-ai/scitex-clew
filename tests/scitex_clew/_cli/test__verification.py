@@ -375,4 +375,86 @@ def test_help_shows_max_depth_option(runner):
     assert "--max-depth" in result.output
 
 
+# ---------------------------------------------------------------------------
+# (6) Asserted provenance — chain and verify CLI text output
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def asserted_run_db(isolated_db, tmp_path):
+    """DB with one asserted session (no real files — no file hashes)."""
+    db = isolated_db
+    sid = "2026Y-06M-28D-00h00m00s_AssertedRun"
+    db.add_run(
+        sid,
+        script_path="/scripts/gpac_external.py",
+        provenance="asserted",
+        assertion_reason="4.1TB gPAC, recipe-known, never re-run",
+    )
+    db.finish_run(sid, status="success")
+    return {"db": db, "sid": sid}
+
+
+def test_verify_single_run_asserted_shows_badge(runner, asserted_run_db):
+    # Arrange
+    sid = asserted_run_db["sid"]
+    # Act
+    result = runner.invoke(main, ["verify", sid])
+    # Assert
+    assert "ASSERTED" in result.output
+
+
+def test_verify_single_run_asserted_shows_reason(runner, asserted_run_db):
+    # Arrange
+    sid = asserted_run_db["sid"]
+    # Act
+    result = runner.invoke(main, ["verify", sid])
+    # Assert
+    assert "4.1TB gPAC" in result.output
+
+
+def test_verify_single_run_tracked_does_not_show_asserted_badge(runner, isolated_db, tmp_path):
+    # Arrange — plain tracked run; asserted badge must NOT appear.
+    sid = "2026Y-06M-28D-01h00m00s_TrackedRun"
+    isolated_db.add_run(sid, script_path="/scripts/tracked.py")
+    isolated_db.finish_run(sid, status="success")
+    # Act
+    result = runner.invoke(main, ["verify", sid])
+    # Assert
+    assert "ASSERTED" not in result.output
+
+
+def test_print_mermaid_asserted_run_contains_asserted_classdef(runner, asserted_run_db):
+    # Arrange
+    # Act
+    result = runner.invoke(main, ["print-mermaid"])
+    # Assert
+    assert "classDef asserted" in result.output
+
+
+def test_print_mermaid_asserted_run_contains_badge_in_node(runner, asserted_run_db):
+    # Arrange
+    # Act
+    result = runner.invoke(main, ["print-mermaid"])
+    # Assert
+    assert "⊘ ASSERTED" in result.output
+
+
+def test_print_mermaid_tracked_run_does_not_contain_asserted_badge(runner, isolated_db, tmp_path):
+    # Arrange — tracked run; the mermaid output must not contain the badge.
+    in_file = tmp_path / "tracked_in.csv"
+    out_file = tmp_path / "tracked_out.csv"
+    in_file.write_text("x\n1\n")
+    out_file.write_text("y\n2\n")
+    sid = "2026Y-06M-28D-02h00m00s_TrackedMermaid"
+    isolated_db.add_run(sid, script_path="/scripts/tracked.py")
+    isolated_db.add_file_hash(sid, str(in_file.resolve()), hash_file(in_file), "input")
+    isolated_db.add_file_hash(sid, str(out_file.resolve()), hash_file(out_file), "output")
+    isolated_db.finish_run(sid, status="success")
+    # Act
+    result = runner.invoke(main, ["print-mermaid"])
+    # Assert
+    assert "⊘ ASSERTED" not in result.output
+
+
 # EOF
