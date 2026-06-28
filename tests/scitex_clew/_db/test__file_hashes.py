@@ -212,4 +212,83 @@ class TestEdgeCases:
         assert adjacency["sess"] == []
 
 
+# ---------------------------------------------------------------------------
+# Frozen flag: add_file_hash + get_frozen_files
+# ---------------------------------------------------------------------------
+
+
+class TestFrozenFlag:
+    """Tests for the frozen=True flag in add_file_hash and get_frozen_files."""
+
+    def test_add_file_hash_frozen_true_is_stored(self, tmp_path):
+        # Arrange
+        db = _make_db(tmp_path)
+        db.add_run("s_frz", script_path="/script.py")
+        db.add_file_hash("s_frz", "/data/huge.npz", "aabbcc", "input", frozen=True)
+        # Act
+        frozen = db.get_frozen_files("s_frz")
+        # Assert
+        assert "/data/huge.npz" in frozen
+
+    def test_add_file_hash_frozen_false_not_in_frozen_set(self, tmp_path):
+        # Arrange
+        db = _make_db(tmp_path)
+        db.add_run("s_nfrz", script_path="/script.py")
+        db.add_file_hash("s_nfrz", "/data/small.csv", "112233", "input", frozen=False)
+        # Act
+        frozen = db.get_frozen_files("s_nfrz")
+        # Assert
+        assert "/data/small.csv" not in frozen
+
+    def test_add_file_hash_default_not_frozen(self, tmp_path):
+        # Arrange
+        db = _make_db(tmp_path)
+        db.add_run("s_def", script_path="/script.py")
+        db.add_file_hash("s_def", "/data/normal.csv", "deadbeef", "input")
+        # Act
+        frozen = db.get_frozen_files("s_def")
+        # Assert
+        assert "/data/normal.csv" not in frozen
+
+    def test_get_frozen_files_role_filter_only_returns_matching_role(self, tmp_path):
+        # Arrange
+        db = _make_db(tmp_path)
+        db.add_run("s_role", script_path="/script.py")
+        db.add_file_hash("s_role", "/data/in.npz", "aa", "input", frozen=True)
+        db.add_file_hash("s_role", "/data/out.csv", "bb", "output", frozen=True)
+        # Act
+        frozen_inputs = db.get_frozen_files("s_role", role="input")
+        # Assert
+        assert "/data/out.csv" not in frozen_inputs
+
+    def test_get_frozen_files_returns_set_type(self, tmp_path):
+        # Arrange
+        db = _make_db(tmp_path)
+        db.add_run("s_set", script_path="/script.py")
+        db.add_file_hash("s_set", "/x.npz", "ff", "input", frozen=True)
+        # Act
+        result = db.get_frozen_files("s_set")
+        # Assert
+        assert isinstance(result, set)
+
+    def test_get_frozen_files_empty_session_returns_empty_set(self, tmp_path):
+        # Arrange
+        db = _make_db(tmp_path)
+        db.add_run("s_empty", script_path="/script.py")
+        # Act
+        frozen = db.get_frozen_files("s_empty")
+        # Assert
+        assert frozen == set()
+
+    def test_get_file_hashes_still_returns_path_hash_mapping_when_frozen(self, tmp_path):
+        # Arrange — frozen flag must NOT break the existing get_file_hashes API.
+        db = _make_db(tmp_path)
+        db.add_run("s_compat", script_path="/script.py")
+        db.add_file_hash("s_compat", "/data/huge.npz", "deadcafe", "input", frozen=True)
+        # Act
+        hashes = db.get_file_hashes("s_compat", role="input")
+        # Assert
+        assert hashes["/data/huge.npz"] == "deadcafe"
+
+
 # EOF

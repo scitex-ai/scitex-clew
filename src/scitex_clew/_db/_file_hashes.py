@@ -40,6 +40,27 @@ class FileHashMixin:
                     "ALTER TABLE file_hashes ADD COLUMN size_bytes INTEGER"
                 )
 
+    def _migrate_file_hashes_frozen(self) -> None:
+        """Add frozen column to pre-existing file_hashes tables (idempotent).
+
+        Phase 4: frozen INTEGER DEFAULT 0 — trusts the recorded hash without
+        re-reading the file during verification. Safe to call even when the
+        column already exists: the PRAGMA check guards the ALTER TABLE so no
+        exception is raised on repeated runs. Existing rows receive 0
+        (not frozen) automatically.
+        """
+        with self._connect() as conn:
+            columns = {
+                row[1]
+                for row in conn.execute(
+                    "PRAGMA table_info(file_hashes)"
+                ).fetchall()
+            }
+            if "frozen" not in columns:
+                conn.execute(
+                    "ALTER TABLE file_hashes ADD COLUMN frozen INTEGER DEFAULT 0"
+                )
+
     # -------------------------------------------------------------------------
     # Insert
     # -------------------------------------------------------------------------
@@ -51,6 +72,7 @@ class FileHashMixin:
         hash_value: str,
         role: str,
         size_bytes: Optional[int] = None,
+        frozen: bool = False,
     ) -> None:
         """Add a file hash record.
 
@@ -67,15 +89,27 @@ class FileHashMixin:
         size_bytes : int, optional
             File size in bytes at recording time.  ``None`` when unknown or
             the file is no longer accessible.
+        frozen : bool, optional
+            When True, verification trusts the recorded hash without re-reading
+            the file.  Use for huge/external files (e.g. 4.1 TB datasets) where
+            re-hashing on every ``clew verify`` is prohibitively expensive.
+            Default False keeps all existing callers behavior-identical.
+
+            A frozen file is NEVER silently rendered as fully hash-verified —
+            it always carries the "FROZEN (trusted, not re-hashed)" marker in
+            Mermaid output and CLI text so the trust is explicit and visible.
+            Freezing skips hashing but still notes when the file is absent
+            (frozen means "trust the hash without re-reading", not "ignore
+            missing files").
         """
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO file_hashes
-                (session_id, file_path, hash, role, size_bytes)
-                VALUES (?, ?, ?, ?, ?)
+                (session_id, file_path, hash, role, size_bytes, frozen)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (session_id, file_path, hash_value, role, size_bytes),
+                (session_id, file_path, hash_value, role, size_bytes, int(frozen)),
             )
 
     def add_file_hashes(
@@ -146,6 +180,47 @@ class FileHashMixin:
                     (session_id,),
                 ).fetchall()
             return {row["file_path"]: row["hash"] for row in rows}
+
+    def get_frozen_files(
+        self,
+        session_id: str,
+        role: Optional[str] = None,
+    ) -> set:
+        """Return the set of file paths that are marked frozen for a session.
+
+        Additive helper — does not change the return type of ``get_file_hashes``
+        so all existing callers remain behavior-identical.
+
+        Parameters
+        ----------
+        session_id : str
+            Session identifier.
+        role : str, optional
+            Filter by role (input, output, script, …).
+
+        Returns
+        -------
+        set of str
+            File paths whose ``frozen`` flag is 1 in the DB for this session.
+        """
+        with self._connect() as conn:
+            if role:
+                rows = conn.execute(
+                    """
+                    SELECT file_path FROM file_hashes
+                    WHERE session_id = ? AND role = ? AND frozen = 1
+                    """,
+                    (session_id, role),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT file_path FROM file_hashes
+                    WHERE session_id = ? AND frozen = 1
+                    """,
+                    (session_id,),
+                ).fetchall()
+            return {row["file_path"] for row in rows}
 
     def find_session_by_file(
         self,

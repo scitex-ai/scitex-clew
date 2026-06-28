@@ -203,6 +203,7 @@ def verify(ctx: click.Context, session_id, strict: bool, config, as_json: bool):
                     "expected_hash": f.expected_hash,
                     "current_hash": f.current_hash,
                     "is_verified": f.is_verified,
+                    "frozen": getattr(f, "frozen", False),
                 }
                 for f in result.files
             ],
@@ -217,7 +218,12 @@ def verify(ctx: click.Context, session_id, strict: bool, config, as_json: bool):
         click.echo(f"  ⊘ EXCEPTION (reason: {reason})")
     for f in result.files:
         ficon = "OK" if f.is_verified else "!!"
-        click.echo(f"  [{ficon}] {f.role:<6} {f.path}")
+        if getattr(f, "frozen", False):
+            click.echo(
+                f"  [{ficon}] {f.role:<6} 🔒 FROZEN (trusted hash, not re-read): {f.path}"
+            )
+        else:
+            click.echo(f"  [{ficon}] {f.role:<6} {f.path}")
     ctx.exit(code)
 
 

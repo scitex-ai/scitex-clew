@@ -39,6 +39,8 @@ def collect_runs_data(chain_ids: list, db) -> list:
 
         inputs = db.get_file_hashes(sid, role="input")
         outputs = db.get_file_hashes(sid, role="output")
+        frozen_inputs = db.get_frozen_files(sid, role="input")
+        frozen_outputs = db.get_frozen_files(sid, role="output")
         runs_data.append(
             {
                 "session_id": sid,
@@ -46,6 +48,8 @@ def collect_runs_data(chain_ids: list, db) -> list:
                 "verification": verification,
                 "inputs": inputs,
                 "outputs": outputs,
+                "frozen_inputs": frozen_inputs,
+                "frozen_outputs": frozen_outputs,
             }
         )
     return runs_data
@@ -99,12 +103,23 @@ def generate_detailed_dag(
 
     node_ids: dict = {}
     failed_files: set = set()
+    frozen_files: set = set()
     runs_data = list(reversed(runs_data))
+
+    # Collect all frozen file paths across all sessions BEFORE hash checking
+    # so we can skip hash verification for frozen files (their pre-computed
+    # hashes are intentionally not re-verified on disk).
+    for data in runs_data:
+        frozen_files |= data.get("frozen_inputs", set())
+        frozen_files |= data.get("frozen_outputs", set())
 
     for data in runs_data:
         inputs = data["inputs"]
         outputs = data["outputs"]
         for fpath, stored_hash in {**inputs, **outputs}.items():
+            # Skip hash check for frozen files — they trust their recorded hash.
+            if fpath in frozen_files:
+                continue
             if not verify_file_hash(fpath, stored_hash):
                 failed_files.add(fpath)
 
@@ -134,22 +149,22 @@ def generate_detailed_dag(
         if group_fn is None:
             add_file_nodes(
                 lines, script_id, inputs, node_ids, show_hashes, path_mode,
-                "input", False, failed_files,
+                "input", False, failed_files, None, frozen_files,
             )
             add_file_nodes(
                 lines, script_id, outputs, node_ids, show_hashes, path_mode,
-                "output", is_rerun, failed_files,
+                "output", is_rerun, failed_files, None, frozen_files,
             )
         else:
             in_entries = _files_dict_to_entries(inputs, "input", sid)
             out_entries = _files_dict_to_entries(outputs, "output", sid)
             add_grouped_nodes(
                 lines, script_id, group_fn(in_entries), node_ids, show_hashes,
-                path_mode, "input", False, failed_files,
+                path_mode, "input", False, failed_files, None, frozen_files,
             )
             add_grouped_nodes(
                 lines, script_id, group_fn(out_entries), node_ids, show_hashes,
-                path_mode, "output", is_rerun, failed_files,
+                path_mode, "output", is_rerun, failed_files, None, frozen_files,
             )
 
 
@@ -191,6 +206,8 @@ def generate_multi_target_dag(
             continue
         inputs = db.get_file_hashes(sid, role="input")
         outputs = db.get_file_hashes(sid, role="output")
+        frozen_inputs = db.get_frozen_files(sid, role="input")
+        frozen_outputs = db.get_frozen_files(sid, role="output")
         runs_data.append(
             {
                 "session_id": sid,
@@ -198,6 +215,8 @@ def generate_multi_target_dag(
                 "verification": verification,
                 "inputs": inputs,
                 "outputs": outputs,
+                "frozen_inputs": frozen_inputs,
+                "frozen_outputs": frozen_outputs,
             }
         )
 

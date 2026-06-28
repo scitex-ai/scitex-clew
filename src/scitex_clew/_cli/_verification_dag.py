@@ -56,6 +56,11 @@ def _echo_dag_human(result, label: str = "DAG") -> None:
         if getattr(r, "provenance", "tracked") == "exception":
             reason = getattr(r, "exception_reason", None) or "no reason given"
             click.echo(f"       ⊘ EXCEPTION (reason: {reason})")
+        for f in getattr(r, "files", []):
+            if getattr(f, "frozen", False):
+                click.echo(
+                    f"       🔒 FROZEN (trusted hash, not re-read): {f.path}"
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -203,6 +208,11 @@ def chain(ctx: click.Context, target_file: str, as_json: bool):
         if getattr(r, "provenance", "tracked") == "exception":
             reason = getattr(r, "exception_reason", None) or "no reason given"
             click.echo(f"       ⊘ EXCEPTION (reason: {reason})")
+        for f in getattr(r, "files", []):
+            if getattr(f, "frozen", False):
+                click.echo(
+                    f"       🔒 FROZEN (trusted hash, not re-read): {f.path}"
+                )
 
 
 @click.command(

@@ -68,6 +68,10 @@ def append_class_definitions(lines: list) -> None:
     lines.append("    classDef file_bad fill:#FFB6C1,stroke:#DC143C")
     lines.append("    classDef file_suspect fill:#FFD580,stroke:#FF8C00")
     lines.append(
+        "    classDef file_frozen fill:#E0F0FF,stroke:#4682B4,"
+        "stroke-width:2px,stroke-dasharray:6 4"
+    )
+    lines.append(
         "    classDef exception fill:#E6E6FA,stroke:#8A2BE2,"
         "stroke-width:2px,stroke-dasharray:6 4"
     )
@@ -145,6 +149,7 @@ def add_file_nodes(
     is_script_rerun_verified: bool = False,
     failed_files: set = None,
     suspect_files: set = None,
+    frozen_files: set = None,
 ) -> None:
     """Add file nodes and connections to the diagram.
 
@@ -156,10 +161,16 @@ def add_file_nodes(
     historical 2-colour output simply pass ``None`` (default) and the
     cascade falls back to file_ok / file_bad.
 
-    Severity preserved: failed > suspect > rerun > verified.
+    ``frozen_files`` is the blue-dashed signal for files whose hash is
+    trusted without re-reading (e.g. huge external datasets). A frozen
+    file is NEVER silently shown as file_ok — it always carries the
+    🔒 FROZEN marker in its label and uses the ``file_frozen`` class.
+
+    Severity preserved: failed > suspect > frozen > rerun > verified.
     """
     failed_files = failed_files or set()
     suspect_files = suspect_files or set()
+    frozen_files = frozen_files or set()
 
     for fpath, stored_hash in files.items():
         display_name = format_path(fpath, path_mode)
@@ -167,27 +178,43 @@ def add_file_nodes(
         icon = get_file_icon(fpath)
 
         if file_id not in file_nodes:
-            file_status = verify_file_hash(fpath, stored_hash)
-            is_failed = fpath in failed_files or not file_status
+            # For frozen files, skip the disk hash check — they trust recorded hash.
+            # A frozen file is shown as file_frozen (never file_bad from hash check).
+            is_explicitly_failed = fpath in failed_files
+            if fpath in frozen_files:
+                # Frozen: only fail if explicitly in failed_files (e.g. truly missing).
+                is_failed = is_explicitly_failed
+            else:
+                file_status = verify_file_hash(fpath, stored_hash)
+                is_failed = is_explicitly_failed or not file_status
             is_suspect = (not is_failed) and (fpath in suspect_files)
+            is_frozen = (not is_failed) and (not is_suspect) and (fpath in frozen_files)
 
             if is_failed:
                 file_class = "file_bad"
                 badge = "✗"
+                frozen_label = ""
             elif is_suspect:
                 file_class = "file_suspect"
                 badge = "?"
+                frozen_label = ""
+            elif is_frozen:
+                file_class = "file_frozen"
+                badge = "🔒"
+                frozen_label = "<br/>🔒 FROZEN (trusted, not re-hashed)"
             elif role == "output" and is_script_rerun_verified:
                 file_class = "file_rerun"
                 badge = "✓✓"
+                frozen_label = ""
             else:
                 file_class = "file_ok"
                 badge = "✓"
+                frozen_label = ""
 
             hash_display = f"<br/>{stored_hash[:8]}..." if show_hashes else ""
             lines.append(
                 f'    {file_id}[("{badge} {icon} {display_name}'
-                f'{hash_display}")]:::{file_class}'
+                f'{hash_display}{frozen_label}")]:::{file_class}'
             )
             file_nodes[file_id] = (fpath, stored_hash)
 
@@ -208,6 +235,7 @@ def add_grouped_nodes(
     is_script_rerun_verified: bool = False,
     failed_files: set = None,
     suspect_files: set = None,
+    frozen_files: set = None,
 ) -> None:
     """Add file-or-group nodes and connections.
 
@@ -220,9 +248,14 @@ def add_grouped_nodes(
     helpers so the SUSPECT (orange) band is honoured at every level of
     the DAG renderer. Default ``None`` → empty set → legacy 2-colour
     behaviour for callers that have not opted in yet.
+
+    ``frozen_files`` is propagated so the 🔒 FROZEN (blue-dashed) marker
+    is honoured at every level. Default ``None`` → empty set → frozen
+    behaviour only when explicitly passed.
     """
     failed_files = failed_files or set()
     suspect_files = suspect_files or set()
+    frozen_files = frozen_files or set()
 
     for item in items:
         if isinstance(item, Group):
@@ -237,6 +270,7 @@ def add_grouped_nodes(
                 is_script_rerun_verified,
                 failed_files,
                 suspect_files,
+                frozen_files,
             )
         else:  # FileEntry
             _add_single_file_node(
@@ -250,6 +284,7 @@ def add_grouped_nodes(
                 is_script_rerun_verified,
                 failed_files,
                 suspect_files,
+                frozen_files,
             )
 
 
@@ -264,8 +299,10 @@ def _add_single_file_node(
     is_rerun,
     failed_files,
     suspect_files=None,
+    frozen_files=None,
 ):
     suspect_files = suspect_files or set()
+    frozen_files = frozen_files or set()
     fpath = entry.path
     stored_hash = entry.hash
     display_name = format_path(fpath, path_mode)
@@ -273,20 +310,32 @@ def _add_single_file_node(
     icon = get_file_icon(fpath)
 
     if file_id not in node_ids:
-        ok = verify_file_hash(fpath, stored_hash)
-        is_failed = fpath in failed_files or not ok
-        is_suspect = (not is_failed) and (fpath in suspect_files)
-        if is_failed:
-            cls, badge = "file_bad", "✗"
-        elif is_suspect:
-            cls, badge = "file_suspect", "?"
-        elif role == "output" and is_rerun:
-            cls, badge = "file_rerun", "✓✓"
+        is_explicitly_failed = fpath in failed_files
+        if fpath in frozen_files:
+            is_failed = is_explicitly_failed
         else:
-            cls, badge = "file_ok", "✓"
+            ok = verify_file_hash(fpath, stored_hash)
+            is_failed = is_explicitly_failed or not ok
+        is_suspect = (not is_failed) and (fpath in suspect_files)
+        is_frozen = (not is_failed) and (not is_suspect) and (fpath in frozen_files)
+        if is_failed:
+            cls, badge, frozen_label = "file_bad", "✗", ""
+        elif is_suspect:
+            cls, badge, frozen_label = "file_suspect", "?", ""
+        elif is_frozen:
+            cls, badge, frozen_label = (
+                "file_frozen",
+                "🔒",
+                "<br/>🔒 FROZEN (trusted, not re-hashed)",
+            )
+        elif role == "output" and is_rerun:
+            cls, badge, frozen_label = "file_rerun", "✓✓", ""
+        else:
+            cls, badge, frozen_label = "file_ok", "✓", ""
         hash_display = f"<br/>{stored_hash[:8]}..." if show_hashes else ""
         lines.append(
-            f'    {file_id}[("{badge} {icon} {display_name}{hash_display}")]:::{cls}'
+            f'    {file_id}[("{badge} {icon} {display_name}'
+            f'{hash_display}{frozen_label}")]:::{cls}'
         )
         node_ids[file_id] = ("file", fpath)
 
@@ -307,17 +356,24 @@ def _add_group_node(
     is_rerun,
     failed_files,
     suspect_files=None,
+    frozen_files=None,
 ):
     suspect_files = suspect_files or set()
+    frozen_files = frozen_files or set()
     group_id = f"group_{group.root_hash[:12]}"
     if group_id not in node_ids:
         any_failed = any(m.path in failed_files for m in group.members)
         if not any_failed:
+            # Skip hash check for frozen members — they trust their recorded hash.
             any_failed = not all(
-                verify_file_hash(m.path, m.hash) for m in group.members
+                (m.path in frozen_files) or verify_file_hash(m.path, m.hash)
+                for m in group.members
             )
         any_suspect = (not any_failed) and any(
             m.path in suspect_files for m in group.members
+        )
+        any_frozen = (not any_failed) and (not any_suspect) and any(
+            m.path in frozen_files for m in group.members
         )
         if any_failed:
             cls, badge = "file_bad", "⚠"
@@ -325,6 +381,8 @@ def _add_group_node(
             # Group aggregates SUSPECT when no member is locally failed
             # but at least one member's upstream chain is broken.
             cls, badge = "file_suspect", "?"
+        elif any_frozen:
+            cls, badge = "file_frozen", "🔒"
         elif role == "output" and is_rerun:
             cls, badge = "file_rerun", "✓✓"
         else:

@@ -457,4 +457,100 @@ def test_print_mermaid_tracked_run_does_not_contain_exception_badge(runner, isol
     assert "⊘ EXCEPTION" not in result.output
 
 
+# ---------------------------------------------------------------------------
+# (7) Frozen/trusted-input — verify and print-mermaid annotations
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def frozen_run_db(isolated_db, tmp_path):
+    """DB with one session that has a frozen input file (no hash re-verification)."""
+    db = isolated_db
+    sid = "2026Y-06M-28D-10h00m00s_FrozenRun"
+    frozen_file = tmp_path / "huge_dataset.npz"
+    frozen_file.write_bytes(b"4.1TB placeholder data")
+    db.add_run(sid, script_path="/scripts/gpac_consumer.py")
+    # Register with a precomputed (not real) hash and frozen=True.
+    db.add_file_hash(
+        sid,
+        str(frozen_file.resolve()),
+        "precomputed_sha256_of_4tb_dataset",
+        "input",
+        frozen=True,
+    )
+    out_file = tmp_path / "output_result.csv"
+    out_file.write_text("result\n42\n")
+    db.add_file_hash(sid, str(out_file.resolve()), hash_file(out_file), "output")
+    db.finish_run(sid, status="success")
+    return {"db": db, "sid": sid, "frozen_file": frozen_file, "out_file": out_file}
+
+
+def test_verify_frozen_run_exits_zero(runner, frozen_run_db):
+    # Arrange
+    sid = frozen_run_db["sid"]
+    # Act
+    result = runner.invoke(main, ["verify", sid])
+    # Assert
+    assert result.exit_code == 0
+
+
+def test_verify_frozen_run_shows_frozen_marker(runner, frozen_run_db):
+    # Arrange
+    sid = frozen_run_db["sid"]
+    # Act
+    result = runner.invoke(main, ["verify", sid])
+    # Assert
+    assert "FROZEN" in result.output
+
+
+def test_verify_non_frozen_run_does_not_show_frozen_marker(runner, isolated_db, tmp_path):
+    # Arrange — plain tracked run with a real hash; no frozen marker should appear.
+    in_file = tmp_path / "normal_in.csv"
+    out_file = tmp_path / "normal_out.csv"
+    in_file.write_text("x\n1\n")
+    out_file.write_text("y\n2\n")
+    sid = "2026Y-06M-28D-11h00m00s_NonFrozenRun"
+    isolated_db.add_run(sid, script_path="/scripts/tracked.py")
+    isolated_db.add_file_hash(sid, str(in_file.resolve()), hash_file(in_file), "input")
+    isolated_db.add_file_hash(sid, str(out_file.resolve()), hash_file(out_file), "output")
+    isolated_db.finish_run(sid, status="success")
+    # Act
+    result = runner.invoke(main, ["verify", sid])
+    # Assert
+    assert "FROZEN" not in result.output
+
+
+def test_print_mermaid_frozen_run_contains_file_frozen_classdef(runner, frozen_run_db):
+    # Arrange
+    # Act
+    result = runner.invoke(main, ["print-mermaid"])
+    # Assert
+    assert "classDef file_frozen" in result.output
+
+
+def test_print_mermaid_frozen_run_contains_frozen_marker_in_node(runner, frozen_run_db):
+    # Arrange
+    # Act
+    result = runner.invoke(main, ["print-mermaid"])
+    # Assert
+    assert "FROZEN" in result.output
+
+
+def test_print_mermaid_normal_run_does_not_contain_frozen_marker(runner, isolated_db, tmp_path):
+    # Arrange — normal non-frozen run must not show the FROZEN marker.
+    in_file = tmp_path / "normal2_in.csv"
+    out_file = tmp_path / "normal2_out.csv"
+    in_file.write_text("a\n1\n")
+    out_file.write_text("b\n2\n")
+    sid = "2026Y-06M-28D-12h00m00s_NormalMermaid"
+    isolated_db.add_run(sid, script_path="/scripts/normal.py")
+    isolated_db.add_file_hash(sid, str(in_file.resolve()), hash_file(in_file), "input")
+    isolated_db.add_file_hash(sid, str(out_file.resolve()), hash_file(out_file), "output")
+    isolated_db.finish_run(sid, status="success")
+    # Act
+    result = runner.invoke(main, ["print-mermaid"])
+    # Assert
+    assert "FROZEN" not in result.output
+
+
 # EOF

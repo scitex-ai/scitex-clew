@@ -141,6 +141,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                     hash TEXT NOT NULL,
                     role TEXT NOT NULL,
                     size_bytes INTEGER,
+                    frozen INTEGER DEFAULT 0,
                     recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (session_id) REFERENCES runs(session_id),
                     UNIQUE(session_id, file_path, role)
@@ -192,6 +193,8 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         self._migrate_file_hashes_size_bytes()
         # Phase 3: add provenance + exception_reason to pre-existing runs tables (idempotent)
         self._migrate_runs_provenance()
+        # Phase 4: add frozen column to pre-existing file_hashes tables (idempotent)
+        self._migrate_file_hashes_frozen()
 
     @contextmanager
     def _connect(self):

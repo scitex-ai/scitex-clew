@@ -815,4 +815,95 @@ class TestAddRunProvenance:
         assert tracked["provenance"] != exception["provenance"]
 
 
+class TestFrozenMigration:
+    """Tests for the Phase-4 frozen migration (idempotent ALTER TABLE on file_hashes)."""
+
+    def test_migration_adds_frozen_column_to_fresh_db(self, tmp_path):
+        # Arrange
+        db = VerificationDB(tmp_path / "frozen_fresh.db")
+        # Act
+        with db._connect() as conn:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()}
+        # Assert
+        assert "frozen" in cols
+
+    def _make_legacy_db(self, db_path, include_file_row: bool = False):
+        """Helper: create a legacy DB mirroring the schema from the provenance tests.
+
+        Mirrors the column set used in TestProvenanceMigration so that the
+        _init_schema CREATE INDEX statements on runs(status) and
+        runs(parent_session) don't fail against a too-minimal legacy table.
+        """
+        import sqlite3
+
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "CREATE TABLE runs ("
+            "session_id TEXT PRIMARY KEY, "
+            "script_path TEXT, "
+            "script_hash TEXT, "
+            "started_at TIMESTAMP, "
+            "finished_at TIMESTAMP, "
+            "status TEXT, "
+            "exit_code INTEGER, "
+            "parent_session TEXT, "
+            "combined_hash TEXT, "
+            "metadata TEXT"
+            ")"
+        )
+        conn.execute(
+            "CREATE TABLE file_hashes ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "session_id TEXT NOT NULL, "
+            "file_path TEXT NOT NULL, "
+            "hash TEXT NOT NULL, "
+            "role TEXT NOT NULL, "
+            "size_bytes INTEGER, "
+            "recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            ")"
+        )
+        if include_file_row:
+            conn.execute(
+                "INSERT INTO file_hashes (session_id, file_path, hash, role) "
+                "VALUES ('s1', '/data/file.csv', 'abc123', 'input')"
+            )
+        conn.commit()
+        conn.close()
+
+    def test_migration_adds_frozen_column_to_pre_existing_db(self, tmp_path):
+        # Arrange — simulate a legacy DB without the frozen column (but with
+        # all columns that _init_schema expects in the runs table for indexing).
+        db_path = tmp_path / "frozen_legacy.db"
+        self._make_legacy_db(db_path)
+        # Act — open through VerificationDB which runs all migrations.
+        db = VerificationDB(db_path)
+        with db._connect() as conn:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()}
+        # Assert
+        assert "frozen" in cols
+
+    def test_migration_existing_rows_default_frozen_zero(self, tmp_path):
+        # Arrange — legacy DB with a pre-existing file_hashes row (no frozen col).
+        db_path = tmp_path / "frozen_legacy2.db"
+        self._make_legacy_db(db_path, include_file_row=True)
+        # Act
+        db = VerificationDB(db_path)
+        with db._connect() as conn:
+            row = conn.execute(
+                "SELECT frozen FROM file_hashes WHERE file_path = '/data/file.csv'"
+            ).fetchone()
+        # Assert
+        assert row["frozen"] == 0
+
+    def test_migration_is_idempotent(self, tmp_path):
+        # Arrange
+        db = VerificationDB(tmp_path / "frozen_idem.db")
+        # Act — call migration again; must not raise.
+        db._migrate_file_hashes_frozen()
+        with db._connect() as conn:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()}
+        # Assert
+        assert "frozen" in cols
+
+
 # EOF

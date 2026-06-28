@@ -55,6 +55,14 @@ class FileVerification:
     expected_hash: str
     current_hash: Optional[str]
     status: VerificationStatus
+    frozen: bool = False
+    """True when verification trusted the recorded hash without re-reading the file.
+
+    A frozen FileVerification counts as passing for chain purposes (it does not
+    block the run) but is NEVER conflated with a fully hash-verified result —
+    the flag propagates to CLI output and Mermaid nodes so the trust is always
+    explicit and visible.
+    """
 
     @property
     def is_verified(self) -> bool:
