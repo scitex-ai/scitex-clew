@@ -131,7 +131,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                     combined_hash TEXT,
                     metadata TEXT,
                     provenance TEXT DEFAULT 'tracked',
-                    assertion_reason TEXT
+                    exception_reason TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS file_hashes (
@@ -190,7 +190,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         self._migrate_session_parents()
         # Phase 2: add size_bytes column to pre-existing DBs (idempotent)
         self._migrate_file_hashes_size_bytes()
-        # Phase 3: add provenance + assertion_reason to pre-existing runs tables (idempotent)
+        # Phase 3: add provenance + exception_reason to pre-existing runs tables (idempotent)
         self._migrate_runs_provenance()
 
     @contextmanager
@@ -209,7 +209,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
     # -------------------------------------------------------------------------
 
     def _migrate_runs_provenance(self) -> None:
-        """Add provenance and assertion_reason columns to pre-existing runs tables (idempotent).
+        """Add provenance and exception_reason columns to pre-existing runs tables (idempotent).
 
         Safe to call even when the columns already exist: the PRAGMA check
         guards the ALTER TABLE so no exception is raised on repeated runs.
@@ -226,9 +226,9 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                 conn.execute(
                     "ALTER TABLE runs ADD COLUMN provenance TEXT DEFAULT 'tracked'"
                 )
-            if "assertion_reason" not in columns:
+            if "exception_reason" not in columns:
                 conn.execute(
-                    "ALTER TABLE runs ADD COLUMN assertion_reason TEXT"
+                    "ALTER TABLE runs ADD COLUMN exception_reason TEXT"
                 )
 
     # -------------------------------------------------------------------------
@@ -243,7 +243,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         parent_session: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         provenance: str = "tracked",
-        assertion_reason: Optional[str] = None,
+        exception_reason: Optional[str] = None,
     ) -> None:
         """
         Add a new run to the database.
@@ -262,10 +262,10 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
             Additional metadata to store
         provenance : str, optional
             Provenance marker: 'tracked' (auto-tracked via @stx.session, default)
-            or 'asserted' (manually/retrospectively registered by hand).
-        assertion_reason : str, optional
-            Structured justification for asserted nodes (required when
-            provenance='asserted' for operator accountability). E.g.
+            or 'exception' (manually/retrospectively registered by hand).
+        exception_reason : str, optional
+            Structured justification for exception nodes (required when
+            provenance='exception' for operator accountability). E.g.
             '4.1 TB gPAC job, recipe-known, never re-run'. NULL for tracked nodes.
         """
         with self._connect() as conn:
@@ -273,7 +273,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                 """
                 INSERT OR REPLACE INTO runs
                 (session_id, script_path, script_hash, started_at, status,
-                 parent_session, metadata, provenance, assertion_reason)
+                 parent_session, metadata, provenance, exception_reason)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
@@ -285,7 +285,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                     parent_session,
                     json.dumps(metadata) if metadata else None,
                     provenance,
-                    assertion_reason,
+                    exception_reason,
                 ),
             )
 

@@ -678,13 +678,13 @@ class TestProvenanceMigration:
         # Assert
         assert "provenance" in cols
 
-    def test_migration_adds_assertion_reason_column_to_fresh_db(self, db):
+    def test_migration_adds_exception_reason_column_to_fresh_db(self, db):
         # Arrange
         # Act
         with db._connect() as conn:
             cols = {row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()}
         # Assert
-        assert "assertion_reason" in cols
+        assert "exception_reason" in cols
 
     def test_migration_is_idempotent_for_provenance(self, tmp_path):
         # Arrange
@@ -749,7 +749,7 @@ class TestProvenanceMigration:
 
 
 class TestAddRunProvenance:
-    """Tests for provenance + assertion_reason in add_run."""
+    """Tests for provenance + exception_reason in add_run."""
 
     @pytest.fixture
     def db(self, tmp_path):
@@ -765,54 +765,54 @@ class TestAddRunProvenance:
         # Assert
         assert run["provenance"] == "tracked"
 
-    def test_add_run_defaults_assertion_reason_to_null(self, db):
+    def test_add_run_defaults_exception_reason_to_null(self, db):
         # Arrange
         db.add_run("default_session", "/path/script.py")
         # Act
         run = db.get_run("default_session")
         # Assert
-        assert run["assertion_reason"] is None
+        assert run["exception_reason"] is None
 
-    def test_add_run_stores_asserted_provenance(self, db):
+    def test_add_run_stores_exception_provenance(self, db):
         # Arrange
         db.add_run(
-            "asserted_session",
+            "exception_session",
             "/path/gpac.py",
-            provenance="asserted",
-            assertion_reason="4.1TB gPAC, recipe-known, never re-run",
+            provenance="exception",
+            exception_reason="4.1TB gPAC, recipe-known, never re-run",
         )
         # Act
-        run = db.get_run("asserted_session")
+        run = db.get_run("exception_session")
         # Assert
-        assert run["provenance"] == "asserted"
+        assert run["provenance"] == "exception"
 
-    def test_add_run_stores_assertion_reason(self, db):
+    def test_add_run_stores_exception_reason(self, db):
         # Arrange
         db.add_run(
-            "asserted_session",
+            "exception_session",
             "/path/gpac.py",
-            provenance="asserted",
-            assertion_reason="4.1TB gPAC, recipe-known, never re-run",
+            provenance="exception",
+            exception_reason="4.1TB gPAC, recipe-known, never re-run",
         )
         # Act
-        run = db.get_run("asserted_session")
+        run = db.get_run("exception_session")
         # Assert
-        assert run["assertion_reason"] == "4.1TB gPAC, recipe-known, never re-run"
+        assert run["exception_reason"] == "4.1TB gPAC, recipe-known, never re-run"
 
-    def test_add_run_asserted_is_distinct_from_tracked(self, db):
+    def test_add_run_exception_is_distinct_from_tracked(self, db):
         # Arrange
         db.add_run("tracked_s", "/script.py")
         db.add_run(
-            "asserted_s",
+            "exception_s",
             "/script.py",
-            provenance="asserted",
-            assertion_reason="reason",
+            provenance="exception",
+            exception_reason="reason",
         )
         # Act
         tracked = db.get_run("tracked_s")
-        asserted = db.get_run("asserted_s")
+        exception = db.get_run("exception_s")
         # Assert
-        assert tracked["provenance"] != asserted["provenance"]
+        assert tracked["provenance"] != exception["provenance"]
 
 
 # EOF

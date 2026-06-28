@@ -68,7 +68,7 @@ def append_class_definitions(lines: list) -> None:
     lines.append("    classDef file_bad fill:#FFB6C1,stroke:#DC143C")
     lines.append("    classDef file_suspect fill:#FFD580,stroke:#FF8C00")
     lines.append(
-        "    classDef asserted fill:#E6E6FA,stroke:#8A2BE2,"
+        "    classDef exception fill:#E6E6FA,stroke:#8A2BE2,"
         "stroke-width:2px,stroke-dasharray:6 4"
     )
 
@@ -97,9 +97,9 @@ def add_script_node(
     script_verified = verification.is_verified and not has_failed_input
     is_from_scratch = verification.is_verified_from_scratch and not has_failed_input
 
-    # Determine whether this run was manually asserted (not auto-tracked).
-    is_asserted = (run.get("provenance") == "asserted") if run else False
-    assertion_reason = run.get("assertion_reason") if run else None
+    # Determine whether this run was manually exception (not auto-tracked).
+    is_exception = (run.get("provenance") == "exception") if run else False
+    exception_reason = run.get("exception_reason") if run else None
 
     if has_failed_input:
         status_class = "failed"
@@ -109,10 +109,10 @@ def add_script_node(
     elif is_from_scratch:
         status_class = "verified_scratch"
     elif script_verified:
-        # Apply dashed asserted class only when the run is otherwise healthy
-        # (no local/upstream failure). An asserted node that fails keeps the
+        # Apply dashed exception class only when the run is otherwise healthy
+        # (no local/upstream failure). An exception node that fails keeps the
         # failure signal so the DAG view does not lie.
-        status_class = "asserted" if is_asserted else "verified"
+        status_class = "exception" if is_exception else "verified"
     else:
         status_class = "failed"
 
@@ -121,16 +121,16 @@ def add_script_node(
     icon = get_file_icon(script_path)
     short_id = sid.split("_")[-1][:4] if "_" in sid else sid[:8]
     badge = "✓✓" if is_from_scratch else ("✓" if script_verified else "✗")
-    # Asserted nodes always carry the badge + reason regardless of status.
-    asserted_label = ""
-    if is_asserted:
-        reason_text = assertion_reason or "no reason given"
-        asserted_label = f"<br/>⊘ ASSERTED<br/>[asserted: {reason_text}]"
+    # Exception nodes always carry the badge + reason regardless of status.
+    exception_label = ""
+    if is_exception:
+        reason_text = exception_reason or "no reason given"
+        exception_label = f"<br/>⊘ EXCEPTION<br/>[exception: {reason_text}]"
     script_hash = run.get("script_hash", "") if run else ""
     hash_display = f"<br/>{script_hash[:8]}..." if show_hashes and script_hash else ""
     lines.append(
         f'    {node_id}["{badge} {icon} {script_name}'
-        f'<br/>(RUN: {short_id}){hash_display}{asserted_label}"]:::{status_class}'
+        f'<br/>(RUN: {short_id}){hash_display}{exception_label}"]:::{status_class}'
     )
 
 

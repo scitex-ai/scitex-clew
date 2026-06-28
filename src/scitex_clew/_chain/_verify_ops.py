@@ -238,7 +238,7 @@ def verify_run(
         combined_hash_expected=run_info.get("combined_hash"),
         combined_hash_current=None,
         provenance=run_info.get("provenance", "tracked") or "tracked",
-        assertion_reason=run_info.get("assertion_reason"),
+        exception_reason=run_info.get("exception_reason"),
     )
 
 

@@ -376,71 +376,71 @@ def test_help_shows_max_depth_option(runner):
 
 
 # ---------------------------------------------------------------------------
-# (6) Asserted provenance — chain and verify CLI text output
+# (6) Exception provenance — chain and verify CLI text output
 # ---------------------------------------------------------------------------
 
 
 @pytest.fixture
-def asserted_run_db(isolated_db, tmp_path):
-    """DB with one asserted session (no real files — no file hashes)."""
+def exception_run_db(isolated_db, tmp_path):
+    """DB with one exception session (no real files — no file hashes)."""
     db = isolated_db
-    sid = "2026Y-06M-28D-00h00m00s_AssertedRun"
+    sid = "2026Y-06M-28D-00h00m00s_ExceptionRun"
     db.add_run(
         sid,
         script_path="/scripts/gpac_external.py",
-        provenance="asserted",
-        assertion_reason="4.1TB gPAC, recipe-known, never re-run",
+        provenance="exception",
+        exception_reason="4.1TB gPAC, recipe-known, never re-run",
     )
     db.finish_run(sid, status="success")
     return {"db": db, "sid": sid}
 
 
-def test_verify_single_run_asserted_shows_badge(runner, asserted_run_db):
+def test_verify_single_run_exception_shows_badge(runner, exception_run_db):
     # Arrange
-    sid = asserted_run_db["sid"]
+    sid = exception_run_db["sid"]
     # Act
     result = runner.invoke(main, ["verify", sid])
     # Assert
-    assert "ASSERTED" in result.output
+    assert "EXCEPTION" in result.output
 
 
-def test_verify_single_run_asserted_shows_reason(runner, asserted_run_db):
+def test_verify_single_run_exception_shows_reason(runner, exception_run_db):
     # Arrange
-    sid = asserted_run_db["sid"]
+    sid = exception_run_db["sid"]
     # Act
     result = runner.invoke(main, ["verify", sid])
     # Assert
     assert "4.1TB gPAC" in result.output
 
 
-def test_verify_single_run_tracked_does_not_show_asserted_badge(runner, isolated_db, tmp_path):
-    # Arrange — plain tracked run; asserted badge must NOT appear.
+def test_verify_single_run_tracked_does_not_show_exception_badge(runner, isolated_db, tmp_path):
+    # Arrange — plain tracked run; exception badge must NOT appear.
     sid = "2026Y-06M-28D-01h00m00s_TrackedRun"
     isolated_db.add_run(sid, script_path="/scripts/tracked.py")
     isolated_db.finish_run(sid, status="success")
     # Act
     result = runner.invoke(main, ["verify", sid])
     # Assert
-    assert "ASSERTED" not in result.output
+    assert "EXCEPTION" not in result.output
 
 
-def test_print_mermaid_asserted_run_contains_asserted_classdef(runner, asserted_run_db):
+def test_print_mermaid_exception_run_contains_exception_classdef(runner, exception_run_db):
     # Arrange
     # Act
     result = runner.invoke(main, ["print-mermaid"])
     # Assert
-    assert "classDef asserted" in result.output
+    assert "classDef exception" in result.output
 
 
-def test_print_mermaid_asserted_run_contains_badge_in_node(runner, asserted_run_db):
+def test_print_mermaid_exception_run_contains_badge_in_node(runner, exception_run_db):
     # Arrange
     # Act
     result = runner.invoke(main, ["print-mermaid"])
     # Assert
-    assert "⊘ ASSERTED" in result.output
+    assert "⊘ EXCEPTION" in result.output
 
 
-def test_print_mermaid_tracked_run_does_not_contain_asserted_badge(runner, isolated_db, tmp_path):
+def test_print_mermaid_tracked_run_does_not_contain_exception_badge(runner, isolated_db, tmp_path):
     # Arrange — tracked run; the mermaid output must not contain the badge.
     in_file = tmp_path / "tracked_in.csv"
     out_file = tmp_path / "tracked_out.csv"
@@ -454,7 +454,7 @@ def test_print_mermaid_tracked_run_does_not_contain_asserted_badge(runner, isola
     # Act
     result = runner.invoke(main, ["print-mermaid"])
     # Assert
-    assert "⊘ ASSERTED" not in result.output
+    assert "⊘ EXCEPTION" not in result.output
 
 
 # EOF

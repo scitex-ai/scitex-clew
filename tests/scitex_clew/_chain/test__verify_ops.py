@@ -32,7 +32,7 @@ def isolated_db(tmp_path):
 
 
 class TestVerifyRunProvenanceSurfacing:
-    """verify_run must populate provenance + assertion_reason from the DB."""
+    """verify_run must populate provenance + exception_reason from the DB."""
 
     def test_verify_run_returns_tracked_provenance_by_default(self, isolated_db):
         # Arrange
@@ -42,39 +42,39 @@ class TestVerifyRunProvenanceSurfacing:
         # Assert
         assert result.provenance == "tracked"
 
-    def test_verify_run_returns_none_assertion_reason_for_tracked(self, isolated_db):
+    def test_verify_run_returns_none_exception_reason_for_tracked(self, isolated_db):
         # Arrange
         isolated_db.add_run("tracked_002", "/script.py")
         # Act
         result = verify_run("tracked_002")
         # Assert
-        assert result.assertion_reason is None
+        assert result.exception_reason is None
 
-    def test_verify_run_surfaces_asserted_provenance(self, isolated_db):
+    def test_verify_run_surfaces_exception_provenance(self, isolated_db):
         # Arrange
         isolated_db.add_run(
-            "asserted_001",
+            "exception_001",
             "/script.py",
-            provenance="asserted",
-            assertion_reason="4.1TB gPAC, recipe-known, never re-run",
+            provenance="exception",
+            exception_reason="4.1TB gPAC, recipe-known, never re-run",
         )
         # Act
-        result = verify_run("asserted_001")
+        result = verify_run("exception_001")
         # Assert
-        assert result.provenance == "asserted"
+        assert result.provenance == "exception"
 
-    def test_verify_run_surfaces_assertion_reason(self, isolated_db):
+    def test_verify_run_surfaces_exception_reason(self, isolated_db):
         # Arrange
         isolated_db.add_run(
-            "asserted_002",
+            "exception_002",
             "/script.py",
-            provenance="asserted",
-            assertion_reason="4.1TB gPAC, recipe-known, never re-run",
+            provenance="exception",
+            exception_reason="4.1TB gPAC, recipe-known, never re-run",
         )
         # Act
-        result = verify_run("asserted_002")
+        result = verify_run("exception_002")
         # Assert
-        assert result.assertion_reason == "4.1TB gPAC, recipe-known, never re-run"
+        assert result.exception_reason == "4.1TB gPAC, recipe-known, never re-run"
 
     def test_verify_run_result_is_runverification_instance(self, isolated_db):
         # Arrange
@@ -84,41 +84,41 @@ class TestVerifyRunProvenanceSurfacing:
         # Assert
         assert isinstance(result, RunVerification)
 
-    def test_verify_run_asserted_with_no_files_is_verified(self, isolated_db):
-        # Arrange — an asserted node with no file hashes and success status
+    def test_verify_run_exception_with_no_files_is_verified(self, isolated_db):
+        # Arrange — an exception node with no file hashes and success status
         # should be VERIFIED (all files verify vacuously).
         isolated_db.add_run(
-            "asserted_nf_001",
+            "exception_nf_001",
             "/script.py",
-            provenance="asserted",
-            assertion_reason="reason",
+            provenance="exception",
+            exception_reason="reason",
         )
-        isolated_db.finish_run("asserted_nf_001", status="success")
+        isolated_db.finish_run("exception_nf_001", status="success")
         # Act
-        result = verify_run("asserted_nf_001")
+        result = verify_run("exception_nf_001")
         # Assert
         assert result.status == VerificationStatus.VERIFIED
 
-    def test_verify_run_asserted_node_with_missing_output_is_not_verified(
+    def test_verify_run_exception_node_with_missing_output_is_not_verified(
         self, isolated_db, tmp_path
     ):
-        # Arrange — asserted node registers an output file that doesn't exist;
-        # the asserted marker must NOT mask the missing-file failure.
+        # Arrange — exception node registers an output file that doesn't exist;
+        # the exception marker must NOT mask the missing-file failure.
         gone_path = str(tmp_path / "gone.csv")
         isolated_db.add_run(
-            "asserted_missing_001",
+            "exception_missing_001",
             "/script.py",
-            provenance="asserted",
-            assertion_reason="external job",
+            provenance="exception",
+            exception_reason="external job",
         )
         isolated_db.add_file_hash(
-            "asserted_missing_001",
+            "exception_missing_001",
             gone_path,
             "deadbeef" * 8,
             "output",
         )
         # Act
-        result = verify_run("asserted_missing_001")
+        result = verify_run("exception_missing_001")
         # Assert
         assert not result.is_verified
 
