@@ -43,6 +43,9 @@ cli = [
 mcp = [
     "fastmcp>=2.0.0",
 ]
+viz = [
+    "matplotlib",
+]
 dev = [
     "fastmcp",
     "click>=8.0.0",
@@ -62,6 +65,7 @@ docs = [
 all = [
     "scitex-clew[cli]",
     "scitex-clew[mcp]",
+    "scitex-clew[viz]",
 ]
 
 [project.scripts]

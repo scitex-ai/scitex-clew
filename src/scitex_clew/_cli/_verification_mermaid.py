@@ -33,7 +33,9 @@ _GROUPER_REGISTRY_NAMES = [
         "  $ scitex-clew print-mermaid --claims --json\n"
         "  $ scitex-clew print-mermaid --target results/foo.csv\n"
         "  $ scitex-clew print-mermaid --grouper directory --no-files\n"
-        "  $ scitex-clew print-mermaid --max-depth 3"
+        "  $ scitex-clew print-mermaid --max-depth 3\n"
+        "  $ scitex-clew print-mermaid --format png --output dag.png\n"
+        "  $ scitex-clew print-mermaid --format svg"
     ),
 )
 @click.option("--claims", is_flag=True, help="Build DAG from registered claims.")
@@ -74,6 +76,30 @@ _GROUPER_REGISTRY_NAMES = [
     metavar="N",
     help="Maximum chain depth to traverse.",
 )
+@click.option(
+    "--format",
+    "-f",
+    "fmt",
+    default="mermaid",
+    show_default=True,
+    type=click.Choice(["mermaid", "png", "svg"], case_sensitive=False),
+    help=(
+        "Output format. 'mermaid' (default) emits text identical to today's "
+        "behaviour. 'png' or 'svg' renders a static image via matplotlib "
+        "(requires scitex-clew[viz])."
+    ),
+)
+@click.option(
+    "--output",
+    "-o",
+    "output_path",
+    default=None,
+    metavar="PATH",
+    help=(
+        "Destination file when --format png|svg. "
+        "Defaults to ./clew_dag.<fmt> when omitted."
+    ),
+)
 @click.pass_context
 def mermaid(
     ctx: click.Context,
@@ -83,8 +109,10 @@ def mermaid(
     grouper_name: str | None,
     no_files: bool,
     max_depth: int,
+    fmt: str,
+    output_path: str | None,
 ):
-    """Generate Mermaid DAG diagram.
+    """Generate Mermaid DAG diagram or static image.
 
     \b
     DAG-slicing options scope large provenance graphs to manageable slices:
@@ -92,6 +120,10 @@ def mermaid(
       --grouper NAME     collapse related nodes (directory/pattern/etc.)
       --no-files         session-to-session edges only (fewest nodes)
       --max-depth N      limit traversal depth
+
+    When --format mermaid (default), output is identical to the historical
+    text-only behaviour.  When --format png|svg, a static image is written
+    via matplotlib (no mmdc / headless Chrome required).
 
     When --claims is combined with slicing options, the claims-based DAG is
     built first and then the slicing options are applied.
@@ -119,7 +151,26 @@ def mermaid(
 
     show_files = not no_files
     target_files_list = list(target_files) if target_files else None
+    fmt_lower = fmt.lower()
 
+    # ---- Image path: png / svg ------------------------------------------------
+    if fmt_lower in ("png", "svg"):
+        from scitex_clew._viz._image import render_dag_image
+
+        dest = output_path if output_path else f"./clew_dag.{fmt_lower}"
+        written = render_dag_image(
+            dest,
+            targets=target_files_list,
+            claims=claims,
+            max_depth=max_depth,
+            show_files=show_files,
+            grouper=grouper,
+            fmt=fmt_lower,
+        )
+        click.echo(written)
+        return
+
+    # ---- Default: mermaid text (behaviour-preserving) -------------------------
     code = generate_mermaid_dag(
         claims=claims,
         target_files=target_files_list,

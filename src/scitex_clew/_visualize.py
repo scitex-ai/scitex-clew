@@ -24,6 +24,7 @@ from ._viz import (
     generate_mermaid_dag,
     print_verification_summary,
     render_dag,
+    render_dag_image,
 )
 
 __all__ = [
@@ -37,6 +38,7 @@ __all__ = [
     "generate_mermaid_dag",
     "generate_html_dag",
     "render_dag",
+    "render_dag_image",
     "print_verification_summary",
 ]
 

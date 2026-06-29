@@ -17,6 +17,7 @@ from ._format import (
     format_run_verification,
     format_status,
 )
+from ._image import render_dag_image
 from ._mermaid import generate_html_dag, generate_mermaid_dag, render_dag
 from ._utils import print_verification_summary
 
@@ -31,6 +32,7 @@ __all__ = [
     "generate_mermaid_dag",
     "generate_html_dag",
     "render_dag",
+    "render_dag_image",
     "print_verification_summary",
 ]
 
