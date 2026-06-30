@@ -679,7 +679,7 @@ def v11_sandbox(tmp_path, env_sandbox):
 
 
 def test_v11_schema_version_in_exported_json(v11_sandbox, env_sandbox):
-    """Exported JSON has schema_version == '1.2' (bumped from v1.1 when attestation+legend blocks were added)."""
+    """Exported JSON has schema_version == '1.3' (bumped from v1.2 for 4-state color-only taxonomy)."""
     # Arrange
     workdir = v11_sandbox
     _seed_claim(workdir)
@@ -688,11 +688,11 @@ def test_v11_schema_version_in_exported_json(v11_sandbox, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     payload = json.loads(out.read_text())
     # Assert
-    assert payload.get("schema_version") == "1.2"
+    assert payload.get("schema_version") == "1.3"
 
 
 def test_v11_palette_keys_in_exported_json(v11_sandbox, env_sandbox):
-    """Exported JSON has a 'palette' dict with all canonical status keys."""
+    """Exported JSON has a 'palette' dict with all canonical status keys (v1.3: partial->suspect)."""
     # Arrange
     workdir = v11_sandbox
     _seed_claim(workdir)
@@ -700,9 +700,9 @@ def test_v11_palette_keys_in_exported_json(v11_sandbox, env_sandbox):
     # Act
     clew.export_claims_json(path=out, read_only=False)
     payload = json.loads(out.read_text())
-    # Assert
+    # Assert — v1.3 renames "partial" to "suspect"
     assert set(payload.get("palette", {}).keys()) == {
-        "verified", "partial", "mismatch", "missing", "registered"
+        "verified", "suspect", "mismatch", "missing", "registered"
     }
 
 
@@ -1442,13 +1442,13 @@ def _export_v12(tmp_path, env_sandbox, *, num_verified: int = 1, num_registered:
 
 
 def test_v12_schema_version_is_1_2(tmp_path, env_sandbox):
-    """schema_version field is exactly '1.2' after the bump."""
+    """schema_version field is exactly '1.3' after the v1.3 bump."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
     version = payload["schema_version"]
-    # Assert
-    assert version == "1.2"
+    # Assert — bumped to 1.3 in this release
+    assert version == "1.3"
 
 
 def test_v12_attestation_text_present(tmp_path, env_sandbox):
@@ -1512,15 +1512,14 @@ def test_v12_attestation_counts_sum_to_claims_count(tmp_path, env_sandbox):
     assert total == payload["claims_count"]
 
 
-def test_v12_legend_statuses_has_one_entry_per_palette_status(tmp_path, env_sandbox):
-    """legend.statuses has exactly one entry per _CLAIM_PALETTE key."""
+def test_v12_legend_statuses_has_four_display_states(tmp_path, env_sandbox):
+    """legend.statuses has exactly 4 display states (v1.3: verified/suspect/unverified/exception)."""
     # Arrange
-    from scitex_clew._claim import _CLAIM_PALETTE
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
     status_names = {entry["status"] for entry in payload["legend"]["statuses"]}
-    # Assert
-    assert status_names == set(_CLAIM_PALETTE.keys())
+    # Assert — v1.3: 4 display buckets, not per-palette-key
+    assert status_names == {"verified", "suspect", "unverified", "exception"}
 
 
 def test_v12_legend_statuses_colors_are_bare_hex(tmp_path, env_sandbox):
@@ -1536,24 +1535,24 @@ def test_v12_legend_statuses_colors_are_bare_hex(tmp_path, env_sandbox):
     )
 
 
-def test_v12_legend_subbadges_has_exception_entry(tmp_path, env_sandbox):
-    """legend.subbadges contains an entry with key='exception' and symbol='⊘'."""
+def test_v13_legend_has_no_subbadges_key(tmp_path, env_sandbox):
+    """v1.3 legend has no 'subbadges' key — icons removed, color-only."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
-    exception_badges = [b for b in payload["legend"]["subbadges"] if b["key"] == "exception"]
-    # Assert
-    assert len(exception_badges) == 1 and exception_badges[0]["symbol"] == "⊘"
+    has_subbadges = "subbadges" in payload.get("legend", {})
+    # Assert — subbadges deleted in v1.3
+    assert not has_subbadges
 
 
-def test_v12_legend_subbadges_has_frozen_entry(tmp_path, env_sandbox):
-    """legend.subbadges contains an entry with key='frozen' and symbol='🔒'."""
+def test_v13_legend_statuses_exactly_4_entries(tmp_path, env_sandbox):
+    """v1.3 legend.statuses has exactly 4 entries."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
-    frozen_badges = [b for b in payload["legend"]["subbadges"] if b["key"] == "frozen"]
+    count = len(payload["legend"]["statuses"])
     # Assert
-    assert len(frozen_badges) == 1 and frozen_badges[0]["symbol"] == "🔒"
+    assert count == 4
 
 
 def test_v12_backward_compat_palette_still_present(tmp_path, env_sandbox):
@@ -1597,3 +1596,360 @@ def test_v12_backward_compat_per_claim_chain_flags_present(tmp_path, env_sandbox
     ]
     # Assert
     assert missing_flags == []
+
+
+# ---------------------------------------------------------------------------
+# Schema v1.3 tests: 4-state display_group / display_color / display_palette
+# (PA-307 §3: AAA comment markers + ONE observable assertion per test)
+# ---------------------------------------------------------------------------
+
+
+def test_v13_display_palette_present_in_payload(tmp_path, env_sandbox):
+    """Schema v1.3 payload has a top-level 'display_palette' dict."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    dp = payload.get("display_palette")
+    # Assert
+    assert isinstance(dp, dict) and set(dp.keys()) == {"verified", "suspect", "unverified", "exception"}
+
+
+def test_v13_display_palette_verified_hex(tmp_path, env_sandbox):
+    """display_palette.verified == '2da44e' (green)."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    verified_hex = payload["display_palette"]["verified"]
+    # Assert
+    assert verified_hex == "2da44e"
+
+
+def test_v13_display_palette_exception_hex(tmp_path, env_sandbox):
+    """display_palette.exception == '8250df' (violet)."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    exception_hex = payload["display_palette"]["exception"]
+    # Assert
+    assert exception_hex == "8250df"
+
+
+def test_v13_display_groups_present_in_payload(tmp_path, env_sandbox):
+    """Schema v1.3 payload has a top-level 'display_groups' mapping."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    dg = payload.get("display_groups")
+    # Assert
+    assert isinstance(dg, dict) and "mismatch" in dg and dg["mismatch"] == "unverified"
+
+
+def test_v13_per_claim_display_group_present(tmp_path, env_sandbox):
+    """Every claim entry carries a 'display_group' field in v1.3."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox, num_registered=1)
+    # Act
+    missing_dg = [c for c in payload["claims"] if "display_group" not in c]
+    # Assert
+    assert missing_dg == []
+
+
+def test_v13_per_claim_display_color_present(tmp_path, env_sandbox):
+    """Every claim entry carries a 'display_color' field in v1.3."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox, num_registered=1)
+    # Act
+    missing_dc = [c for c in payload["claims"] if "display_color" not in c]
+    # Assert
+    assert missing_dc == []
+
+
+def test_v13_suspect_status_display_group_is_suspect(tmp_path, env_sandbox):
+    """A claim that source-verifies but chain fails → status 'suspect', display_group 'suspect'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = _make_source(workdir)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(src),
+    )
+    import sqlite3
+    db = clew.get_db()
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'suspect' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v13.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert
+    assert claim_dict["display_group"] == "suspect"
+
+
+def test_v13_mismatch_status_display_group_is_unverified(tmp_path, env_sandbox):
+    """A claim with status 'mismatch' → display_group 'unverified'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = _make_source(workdir)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(src),
+    )
+    import sqlite3
+    db = clew.get_db()
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'mismatch' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v13.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert
+    assert claim_dict["display_group"] == "unverified"
+
+
+def test_v13_missing_status_display_group_is_unverified(tmp_path, env_sandbox):
+    """A claim with status 'missing' → display_group 'unverified'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+    )
+    import sqlite3
+    db = clew.get_db()
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'missing' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v13.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert
+    assert claim_dict["display_group"] == "unverified"
+
+
+def test_v13_registered_status_display_group_is_unverified(tmp_path, env_sandbox):
+    """A claim with status 'registered' → display_group 'unverified'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+    )
+    # status is 'registered' by default
+    out = workdir / "claims_v13.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert
+    assert claim_dict["display_group"] == "unverified"
+
+
+def test_v13_verified_with_exception_chain_display_group_is_exception(tmp_path, env_sandbox):
+    """A verified claim whose chain has an exception → display_group 'exception', display_color '8250df'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-01M-01D-00h00m00s_EXCV3"
+    script = str(workdir / "run.py")
+    out_file = workdir / "result_exc.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="exception")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "abc789", role="output")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    import sqlite3
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'verified' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v13_exc.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert — verified + chain exception → exception display bucket
+    assert claim_dict["display_group"] == "exception"
+
+
+def test_v13_verified_with_exception_chain_display_color_is_violet(tmp_path, env_sandbox):
+    """A verified claim with exception chain → display_color '8250df' (violet)."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-01M-01D-00h00m00s_EXCV4"
+    script = str(workdir / "run.py")
+    out_file = workdir / "result_exc2.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="exception")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "abc790", role="output")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    import sqlite3
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'verified' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v13_exc2.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert
+    assert claim_dict["display_color"] == "8250df"
+
+
+def test_v13_verified_with_frozen_chain_display_group_is_verified(tmp_path, env_sandbox):
+    """A verified claim whose chain has a frozen file → display_group 'verified' (frozen folds in)."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-01M-01D-00h00m00s_FRV3"
+    script = str(workdir / "run.py")
+    out_file = workdir / "frozen_v3.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="tracked")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "deadbeef3", role="output", frozen=True)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    import sqlite3
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'verified' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v13_froz.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert — frozen folds into verified (has_frozen never changes the bucket)
+    assert claim_dict["display_group"] == "verified"
+
+
+def test_v13_legend_has_exactly_four_display_state_entries(tmp_path, env_sandbox):
+    """legend has exactly the 4 display states and no subbadges key."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    legend = payload["legend"]
+    # Act
+    statuses = {e["status"] for e in legend["statuses"]}
+    # Assert — exactly 4 display states
+    assert statuses == {"verified", "suspect", "unverified", "exception"} and "subbadges" not in legend
+
+
+def test_v13_legend_all_statuses_have_wavy_underline_marker(tmp_path, env_sandbox):
+    """Every legend entry has marker == 'wavy-underline'."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    markers = {e["marker"] for e in payload["legend"]["statuses"]}
+    # Assert
+    assert markers == {"wavy-underline"}
+
+
+def test_v13_back_compat_partial_stored_status_surfaces_as_suspect(tmp_path, env_sandbox):
+    """A row stored with status 'partial' in the DB surfaces as 'suspect' via list_claims."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+    )
+    # Simulate a legacy DB row with old "partial" status
+    import sqlite3
+    db = clew.get_db()
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'partial' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    # Act — list_claims must normalize "partial" -> "suspect"
+    claims = clew.list_claims()
+    # Assert
+    assert claims[0].status == "suspect"

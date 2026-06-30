@@ -201,7 +201,7 @@ def claim_add(
     "--status",
     "status",
     default=None,
-    help="Filter by verification status (registered/verified/mismatch/missing/partial/superseded).",
+    help="Filter by verification status (registered/verified/mismatch/missing/suspect/superseded).",
 )
 @click.option("--limit", type=int, default=100, help="Maximum claims to list.")
 @click.option(

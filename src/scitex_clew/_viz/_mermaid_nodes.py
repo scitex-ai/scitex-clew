@@ -46,8 +46,16 @@ def get_file_icon(filename: str) -> str:
 def append_class_definitions(lines: list) -> None:
     """Append Mermaid class definitions for styling.
 
+    Schema v1.3: 4-state color-only palette. Node fills match the
+    display_palette in claims.json:
+      - verified  → green  #2da44e
+      - suspect   → amber  #d29922
+      - failed/mismatch/missing → red #cf222e
+      - exception → violet #8250df  (solid fill, no dashed)
+      - frozen    → folds into verified green #2da44e  (solid, no dashed)
+
     Three colour bands are emitted so the DAG view can distinguish
-    locally-valid runs whose UPSTREAM chain is broken (orange ``suspect``
+    locally-valid runs whose UPSTREAM chain is broken (amber ``suspect``
     band) from runs whose own artifacts are wrong (red ``failed`` /
     ``file_bad`` band). See ``VerificationStatus.SUSPECT`` in
     ``_chain/_types.py`` for the underlying enum. Renderers that pass an
@@ -56,24 +64,22 @@ def append_class_definitions(lines: list) -> None:
     """
     lines.append("")
     lines.append("    classDef script fill:#87CEEB,stroke:#4169E1,stroke-width:2px")
-    lines.append("    classDef verified fill:#90EE90,stroke:#228B22")
+    lines.append("    classDef verified fill:#2da44e,stroke:#1a6b32")
     lines.append(
-        "    classDef verified_scratch fill:#90EE90,stroke:#228B22,stroke-width:4px"
+        "    classDef verified_scratch fill:#2da44e,stroke:#1a6b32,stroke-width:4px"
     )
-    lines.append("    classDef failed fill:#FFB6C1,stroke:#DC143C")
-    lines.append("    classDef suspect fill:#FFD580,stroke:#FF8C00")
+    lines.append("    classDef failed fill:#cf222e,stroke:#8b1a1a")
+    lines.append("    classDef suspect fill:#d29922,stroke:#8a5c00")
     lines.append("    classDef file fill:#FFF8DC,stroke:#DAA520")
-    lines.append("    classDef file_ok fill:#90EE90,stroke:#228B22")
-    lines.append("    classDef file_rerun fill:#90EE90,stroke:#228B22,stroke-width:4px")
-    lines.append("    classDef file_bad fill:#FFB6C1,stroke:#DC143C")
-    lines.append("    classDef file_suspect fill:#FFD580,stroke:#FF8C00")
+    lines.append("    classDef file_ok fill:#2da44e,stroke:#1a6b32")
+    lines.append("    classDef file_rerun fill:#2da44e,stroke:#1a6b32,stroke-width:4px")
+    lines.append("    classDef file_bad fill:#cf222e,stroke:#8b1a1a")
+    lines.append("    classDef file_suspect fill:#d29922,stroke:#8a5c00")
     lines.append(
-        "    classDef file_frozen fill:#E0F0FF,stroke:#4682B4,"
-        "stroke-width:2px,stroke-dasharray:6 4"
+        "    classDef file_frozen fill:#2da44e,stroke:#1a6b32"
     )
     lines.append(
-        "    classDef exception fill:#E6E6FA,stroke:#8A2BE2,"
-        "stroke-width:2px,stroke-dasharray:6 4"
+        "    classDef exception fill:#8250df,stroke:#4a1c8a"
     )
 
 
@@ -125,11 +131,12 @@ def add_script_node(
     icon = get_file_icon(script_path)
     short_id = sid.split("_")[-1][:4] if "_" in sid else sid[:8]
     badge = "✓✓" if is_from_scratch else ("✓" if script_verified else "✗")
-    # Exception nodes always carry the badge + reason regardless of status.
+    # Schema v1.3: exception label shows reason text only (no ⊘/EXCEPTION glyph).
+    # The node COLOR (violet #8250df) conveys exception status.
     exception_label = ""
     if is_exception:
         reason_text = exception_reason or "no reason given"
-        exception_label = f"<br/>⊘ EXCEPTION<br/>[exception: {reason_text}]"
+        exception_label = f"<br/>[exception: {reason_text}]"
     script_hash = run.get("script_hash", "") if run else ""
     hash_display = f"<br/>{script_hash[:8]}..." if show_hashes and script_hash else ""
     lines.append(
@@ -199,9 +206,11 @@ def add_file_nodes(
                 badge = "?"
                 frozen_label = ""
             elif is_frozen:
+                # Schema v1.3: frozen folds into verified green (no 🔒 icon).
+                # The trusted-source state is conveyed by the green color.
                 file_class = "file_frozen"
-                badge = "🔒"
-                frozen_label = "<br/>🔒 FROZEN (trusted, not re-hashed)"
+                badge = "✓"
+                frozen_label = "<br/>(frozen, not re-hashed)"
             elif role == "output" and is_script_rerun_verified:
                 file_class = "file_rerun"
                 badge = "✓✓"
@@ -323,10 +332,11 @@ def _add_single_file_node(
         elif is_suspect:
             cls, badge, frozen_label = "file_suspect", "?", ""
         elif is_frozen:
+            # Schema v1.3: frozen folds into verified green (no 🔒 icon).
             cls, badge, frozen_label = (
                 "file_frozen",
-                "🔒",
-                "<br/>🔒 FROZEN (trusted, not re-hashed)",
+                "✓",
+                "<br/>(frozen, not re-hashed)",
             )
         elif role == "output" and is_rerun:
             cls, badge, frozen_label = "file_rerun", "✓✓", ""
@@ -382,7 +392,8 @@ def _add_group_node(
             # but at least one member's upstream chain is broken.
             cls, badge = "file_suspect", "?"
         elif any_frozen:
-            cls, badge = "file_frozen", "🔒"
+            # Schema v1.3: frozen folds into verified green (no 🔒 icon).
+            cls, badge = "file_frozen", "✓"
         elif role == "output" and is_rerun:
             cls, badge = "file_rerun", "✓✓"
         else:

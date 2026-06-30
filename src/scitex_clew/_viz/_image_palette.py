@@ -14,19 +14,18 @@ from __future__ import annotations
 # ---------------------------------------------------------------------------
 
 NODE_FILL: dict[str, str] = {
-    "verified": "#90EE90",
-    "verified_scratch": "#90EE90",
-    "failed": "#FFB6C1",
-    "mismatch": "#FFB6C1",
-    "missing": "#FFB6C1",
-    "suspect": "#FFD580",
-    "partial": "#FFD580",
-    "exception": "#E6E6FA",
-    "file_ok": "#90EE90",
-    "file_rerun": "#90EE90",
-    "file_bad": "#FFB6C1",
-    "file_suspect": "#FFD580",
-    "file_frozen": "#E0F0FF",
+    "verified": "#2da44e",
+    "verified_scratch": "#2da44e",
+    "failed": "#cf222e",
+    "mismatch": "#cf222e",
+    "missing": "#cf222e",
+    "suspect": "#d29922",
+    "exception": "#8250df",
+    "file_ok": "#2da44e",
+    "file_rerun": "#2da44e",
+    "file_bad": "#cf222e",
+    "file_suspect": "#d29922",
+    "file_frozen": "#2da44e",  # frozen folds into verified green
     "script": "#87CEEB",
     "unknown": "#F8F8F8",
     "registered": "#F8F8F8",
@@ -35,27 +34,26 @@ NODE_FILL: dict[str, str] = {
 
 # Border (edge) colours per status class
 NODE_EDGE: dict[str, str] = {
-    "verified": "#228B22",
-    "verified_scratch": "#228B22",
-    "failed": "#DC143C",
-    "mismatch": "#DC143C",
-    "missing": "#DC143C",
-    "suspect": "#FF8C00",
-    "partial": "#FF8C00",
-    "exception": "#8A2BE2",  # purple dashed
-    "file_ok": "#228B22",
-    "file_rerun": "#228B22",
-    "file_bad": "#DC143C",
-    "file_suspect": "#FF8C00",
-    "file_frozen": "#4682B4",  # steel-blue dashed
+    "verified": "#1a6b32",
+    "verified_scratch": "#1a6b32",
+    "failed": "#8b1a1a",
+    "mismatch": "#8b1a1a",
+    "missing": "#8b1a1a",
+    "suspect": "#8a5c00",
+    "exception": "#4a1c8a",  # darker purple
+    "file_ok": "#1a6b32",
+    "file_rerun": "#1a6b32",
+    "file_bad": "#8b1a1a",
+    "file_suspect": "#8a5c00",
+    "file_frozen": "#1a6b32",  # frozen folds into verified green
     "script": "#4169E1",
     "unknown": "#6e7781",
     "registered": "#6e7781",
     "not_found": "#6e7781",
 }
 
-# Dashed-border statuses
-_DASHED_STATUSES: frozenset[str] = frozenset({"exception", "file_frozen"})
+# Dashed-border statuses (schema v1.3: exception and frozen are solid, not dashed)
+_DASHED_STATUSES: frozenset[str] = frozenset()
 
 
 def status_color(status: str) -> tuple[str, str, str | None]:
