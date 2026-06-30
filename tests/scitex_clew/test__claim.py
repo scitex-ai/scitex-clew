@@ -650,6 +650,425 @@ def test_strict_chain_memo_no_lineage_claim_preserves_outcome(tmp_path, env_sand
 
 
 # ---------------------------------------------------------------------------
+# Schema v1.1 marker-fields tests
+# (PA-306 §3 no mocks — real temp DBs via package DB API;
+#  PA-307 §3 AAA + one observable assertion per test)
+#
+# Covers:
+#  (a) schema_version "1.1" + canonical palette in exported JSON
+#  (b) color field resolved correctly per status
+#  (c) chain_has_exception flag from run provenance
+#  (d) chain_has_frozen flag from file_hashes.frozen
+#  (e) all pre-existing claim fields still present (backward-compat guard)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def v11_sandbox(tmp_path, env_sandbox):
+    """Isolated per-test DB wired at tmp_path; auto-export OFF.
+
+    Returns the workdir Path so callers can add claims and call
+    export_claims_json() explicitly.
+    """
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    return workdir
+
+
+def test_v11_schema_version_in_exported_json(v11_sandbox, env_sandbox):
+    """Exported JSON has schema_version == '1.1'."""
+    # Arrange
+    workdir = v11_sandbox
+    _seed_claim(workdir)
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    payload = json.loads(out.read_text())
+    # Assert
+    assert payload.get("schema_version") == "1.1"
+
+
+def test_v11_palette_keys_in_exported_json(v11_sandbox, env_sandbox):
+    """Exported JSON has a 'palette' dict with all canonical status keys."""
+    # Arrange
+    workdir = v11_sandbox
+    _seed_claim(workdir)
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    payload = json.loads(out.read_text())
+    # Assert
+    assert set(payload.get("palette", {}).keys()) == {
+        "verified", "partial", "mismatch", "missing", "registered"
+    }
+
+
+def test_v11_palette_verified_hex(v11_sandbox, env_sandbox):
+    """Canonical hex for 'verified' is '#2da44e'."""
+    # Arrange
+    workdir = v11_sandbox
+    _seed_claim(workdir)
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    palette = json.loads(out.read_text()).get("palette", {})
+    # Assert
+    assert palette.get("verified") == "2da44e"
+
+
+def test_v11_palette_mismatch_hex(v11_sandbox, env_sandbox):
+    """Canonical hex for 'mismatch' is '#cf222e'."""
+    # Arrange
+    workdir = v11_sandbox
+    _seed_claim(workdir)
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    palette = json.loads(out.read_text()).get("palette", {})
+    # Assert
+    assert palette.get("mismatch") == "cf222e"
+
+
+def test_v11_color_verified_claim_gets_green(tmp_path, env_sandbox):
+    """A 'verified' claim's color field resolves to '#2da44e'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = _make_source(workdir)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(src),
+    )
+    # Force status to 'verified' directly in the DB
+    import sqlite3
+    db = clew.get_db()
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'verified' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claims = json.loads(out.read_text()).get("claims", [])
+    # Assert
+    assert claims[0]["color"] == "2da44e"
+
+
+def test_v11_color_mismatch_claim_gets_red(tmp_path, env_sandbox):
+    """A 'mismatch' claim's color field resolves to '#cf222e'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = _make_source(workdir)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(src),
+    )
+    import sqlite3
+    db = clew.get_db()
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'mismatch' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claims = json.loads(out.read_text()).get("claims", [])
+    # Assert
+    assert claims[0]["color"] == "cf222e"
+
+
+def test_v11_color_unknown_status_gets_grey(tmp_path, env_sandbox):
+    """An unknown/future status falls back to grey '#6e7781'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = _make_source(workdir)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(src),
+    )
+    import sqlite3
+    db = clew.get_db()
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'future_unknown_status' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claims = json.loads(out.read_text()).get("claims", [])
+    # Assert
+    assert claims[0]["color"] == "6e7781"
+
+
+def test_v11_color_registered_claim_gets_grey(tmp_path, env_sandbox):
+    """A 'registered' claim's color field resolves to '#6e7781' (grey)."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = _make_source(workdir)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(src),
+    )
+    out = workdir / "claims_v11.json"
+    # Act — claim is still 'registered' (no verify pass run)
+    clew.export_claims_json(path=out, read_only=False)
+    claims = json.loads(out.read_text()).get("claims", [])
+    # Assert
+    assert claims[0]["color"] == "6e7781"
+
+
+def test_v11_chain_has_exception_true_for_exception_run(tmp_path, env_sandbox):
+    """A claim whose source chain has provenance='exception' → chain_has_exception True."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    # Register a run with provenance='exception' + output file
+    session_id = "2026Y-01M-01D-00h00m00s_EXCEP"
+    script = str(workdir / "run.py")
+    out_file = workdir / "result.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="exception")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "abc123", role="output")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claims = json.loads(out.read_text()).get("claims", [])
+    # Assert
+    assert claims[0]["chain_has_exception"] is True
+
+
+def test_v11_chain_has_exception_false_for_tracked_run(tmp_path, env_sandbox):
+    """A claim whose source chain has only provenance='tracked' → chain_has_exception False."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-01M-01D-00h00m00s_TRACK"
+    script = str(workdir / "run.py")
+    out_file = workdir / "result_tracked.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="tracked")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "abc456", role="output")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claims = json.loads(out.read_text()).get("claims", [])
+    # Assert
+    assert claims[0]["chain_has_exception"] is False
+
+
+def test_v11_chain_has_frozen_true_for_frozen_file(tmp_path, env_sandbox):
+    """A claim whose source chain has a frozen file → chain_has_frozen True."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-01M-01D-00h00m00s_FROZN"
+    script = str(workdir / "run.py")
+    out_file = workdir / "frozen_result.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="tracked")
+    db.finish_run(session_id, status="success")
+    # Add the output file WITH frozen=True
+    db.add_file_hash(session_id, str(out_file), "deadbeef", role="output", frozen=True)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claims = json.loads(out.read_text()).get("claims", [])
+    # Assert
+    assert claims[0]["chain_has_frozen"] is True
+
+
+def test_v11_chain_has_frozen_false_for_non_frozen_file(tmp_path, env_sandbox):
+    """A claim whose source chain has no frozen files → chain_has_frozen False."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-01M-01D-00h00m00s_NFROZ"
+    script = str(workdir / "run.py")
+    out_file = workdir / "normal_result.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="tracked")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "deadbeef2", role="output", frozen=False)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claims = json.loads(out.read_text()).get("claims", [])
+    # Assert
+    assert claims[0]["chain_has_frozen"] is False
+
+
+def test_v11_chain_has_exception_false_when_no_source(tmp_path, env_sandbox):
+    """A claim with no source_file/session → chain_has_exception is False."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    paper = workdir / "paper.tex"
+    paper.write_text("fabricated\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="statistic",
+        line_number=1,
+        claim_value="p=0.001",
+        # source_file and source_session omitted
+    )
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claims = json.loads(out.read_text()).get("claims", [])
+    # Assert
+    assert claims[0]["chain_has_exception"] is False
+
+
+def test_v11_chain_has_frozen_false_when_no_source(tmp_path, env_sandbox):
+    """A claim with no source_file/session → chain_has_frozen is False."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    paper = workdir / "paper.tex"
+    paper.write_text("fabricated\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="statistic",
+        line_number=1,
+        claim_value="p=0.001",
+        # source_file and source_session omitted
+    )
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claims = json.loads(out.read_text()).get("claims", [])
+    # Assert
+    assert claims[0]["chain_has_frozen"] is False
+
+
+def test_v11_existing_fields_unchanged(tmp_path, env_sandbox):
+    """All pre-existing claim fields are present and have expected values (backward-compat guard)."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = _make_source(workdir, content="evidence\n")
+    paper = workdir / "paper.tex"
+    paper.write_text("the claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=7,
+        claim_value="0.94",
+        source_file=str(src),
+    )
+    out = workdir / "claims_v11.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert — all pre-v1.1 keys must be present
+    required_old_keys = {
+        "claim_id", "file_path", "line_number", "claim_type", "claim_value",
+        "source_session", "source_file", "source_hash",
+        "registered_at", "verified_at", "status",
+    }
+    assert required_old_keys.issubset(set(claim_dict.keys()))
+
+
+# ---------------------------------------------------------------------------
 # Tests for remove_claim / supersede_claim / file_path_prefix filter
 # (PA-306 §3 no mocks — real temp DBs; PA-307 §3 AAA + one assert per test)
 # ---------------------------------------------------------------------------
