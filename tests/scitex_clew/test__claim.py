@@ -650,12 +650,13 @@ def test_strict_chain_memo_no_lineage_claim_preserves_outcome(tmp_path, env_sand
 
 
 # ---------------------------------------------------------------------------
-# Schema v1.1 marker-fields tests
+# Schema v1.1/v1.2 marker-fields tests
 # (PA-306 §3 no mocks — real temp DBs via package DB API;
 #  PA-307 §3 AAA + one observable assertion per test)
 #
 # Covers:
-#  (a) schema_version "1.1" + canonical palette in exported JSON
+#  (a) schema_version "1.2" (bumped from v1.1; attestation+legend added) +
+#      canonical palette in exported JSON
 #  (b) color field resolved correctly per status
 #  (c) chain_has_exception flag from run provenance
 #  (d) chain_has_frozen flag from file_hashes.frozen
@@ -678,7 +679,7 @@ def v11_sandbox(tmp_path, env_sandbox):
 
 
 def test_v11_schema_version_in_exported_json(v11_sandbox, env_sandbox):
-    """Exported JSON has schema_version == '1.1'."""
+    """Exported JSON has schema_version == '1.2' (bumped from v1.1 when attestation+legend blocks were added)."""
     # Arrange
     workdir = v11_sandbox
     _seed_claim(workdir)
@@ -687,7 +688,7 @@ def test_v11_schema_version_in_exported_json(v11_sandbox, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     payload = json.loads(out.read_text())
     # Assert
-    assert payload.get("schema_version") == "1.1"
+    assert payload.get("schema_version") == "1.2"
 
 
 def test_v11_palette_keys_in_exported_json(v11_sandbox, env_sandbox):
@@ -1406,3 +1407,193 @@ def test_supersede_claims_by_prefix_hides_from_default_list(tmp_path, env_sandbo
     remaining = clew.list_claims()
     # Assert
     assert len(remaining) == 0
+
+
+# ---------------------------------------------------------------------------
+# Schema v1.2 tests: attestation + legend blocks
+# (PA-307 §3: AAA comment markers + ONE observable assertion per test)
+# ---------------------------------------------------------------------------
+
+
+def _export_v12(tmp_path, env_sandbox, *, num_verified: int = 1, num_registered: int = 0) -> dict:
+    """Helper: build a fresh DB, seed claims, export, return parsed payload."""
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = _make_source(workdir)
+    for i in range(num_verified):
+        clew.add_claim(
+            file_path=str(workdir / "paper.tex"),
+            claim_type="value",
+            line_number=i + 1,
+            claim_value=f"v{i}",
+            source_file=str(src),
+        )
+    for j in range(num_registered):
+        clew.add_claim(
+            file_path=str(workdir / "paper.tex"),
+            claim_type="text",
+            line_number=100 + j,
+            claim_value=f"reg{j}",
+        )
+    out = clew.export_claims_json(path=workdir / "claims.json", read_only=False)
+    return json.loads(out.read_text())
+
+
+def test_v12_schema_version_is_1_2(tmp_path, env_sandbox):
+    """schema_version field is exactly '1.2' after the bump."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    version = payload["schema_version"]
+    # Assert
+    assert version == "1.2"
+
+
+def test_v12_attestation_text_present(tmp_path, env_sandbox):
+    """attestation.text is the canonical provenance string."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    text = payload["attestation"]["text"]
+    # Assert
+    assert text == "Provenance checked by SciTeX Clew."
+
+
+def test_v12_attestation_url_present(tmp_path, env_sandbox):
+    """attestation.url points to the scitex-clew GitHub repo."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    url = payload["attestation"]["url"]
+    # Assert
+    assert url == "https://github.com/ywatanabe1989/scitex-clew"
+
+
+def test_v12_attestation_tool_present(tmp_path, env_sandbox):
+    """attestation.tool is 'scitex-clew'."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    tool = payload["attestation"]["tool"]
+    # Assert
+    assert tool == "scitex-clew"
+
+
+def test_v12_attestation_version_is_nonempty_str(tmp_path, env_sandbox):
+    """attestation.version is a non-empty string (dynamic, not hardcoded)."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    ver = payload["attestation"]["version"]
+    # Assert
+    assert isinstance(ver, str) and len(ver) > 0
+
+
+def test_v12_attestation_verified_count_counts_only_verified_status(tmp_path, env_sandbox):
+    """attestation.verified_count equals the number of claims with status=='verified'."""
+    # Arrange — seed 1 claim (registered, not verified) so verified_count should be 0
+    payload = _export_v12(tmp_path, env_sandbox, num_verified=0, num_registered=2)
+    # Act
+    verified_count = payload["attestation"]["verified_count"]
+    actual_verified = sum(1 for c in payload["claims"] if c["status"] == "verified")
+    # Assert
+    assert verified_count == actual_verified
+
+
+def test_v12_attestation_counts_sum_to_claims_count(tmp_path, env_sandbox):
+    """attestation.verified_count + unverified_count == claims_count."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox, num_verified=2, num_registered=1)
+    # Act
+    total = payload["attestation"]["verified_count"] + payload["attestation"]["unverified_count"]
+    # Assert
+    assert total == payload["claims_count"]
+
+
+def test_v12_legend_statuses_has_one_entry_per_palette_status(tmp_path, env_sandbox):
+    """legend.statuses has exactly one entry per _CLAIM_PALETTE key."""
+    # Arrange
+    from scitex_clew._claim import _CLAIM_PALETTE
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    status_names = {entry["status"] for entry in payload["legend"]["statuses"]}
+    # Assert
+    assert status_names == set(_CLAIM_PALETTE.keys())
+
+
+def test_v12_legend_statuses_colors_are_bare_hex(tmp_path, env_sandbox):
+    """legend.statuses colors are 6-char hex strings without a leading '#'."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    colors = [entry["color"] for entry in payload["legend"]["statuses"]]
+    # Assert — every color is a 6-char hex string with no '#' prefix
+    assert all(
+        isinstance(c, str) and len(c) == 6 and not c.startswith("#")
+        for c in colors
+    )
+
+
+def test_v12_legend_subbadges_has_exception_entry(tmp_path, env_sandbox):
+    """legend.subbadges contains an entry with key='exception' and symbol='⊘'."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    exception_badges = [b for b in payload["legend"]["subbadges"] if b["key"] == "exception"]
+    # Assert
+    assert len(exception_badges) == 1 and exception_badges[0]["symbol"] == "⊘"
+
+
+def test_v12_legend_subbadges_has_frozen_entry(tmp_path, env_sandbox):
+    """legend.subbadges contains an entry with key='frozen' and symbol='🔒'."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    frozen_badges = [b for b in payload["legend"]["subbadges"] if b["key"] == "frozen"]
+    # Assert
+    assert len(frozen_badges) == 1 and frozen_badges[0]["symbol"] == "🔒"
+
+
+def test_v12_backward_compat_palette_still_present(tmp_path, env_sandbox):
+    """v1.1 'palette' top-level key is still present (backward-compat)."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    palette = payload.get("palette")
+    # Assert
+    assert isinstance(palette, dict) and len(palette) > 0
+
+
+def test_v12_backward_compat_claims_count_present(tmp_path, env_sandbox):
+    """v1.1 'claims_count' top-level key is still present."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    claims_count = payload.get("claims_count")
+    # Assert
+    assert isinstance(claims_count, int)
+
+
+def test_v12_backward_compat_per_claim_color_present(tmp_path, env_sandbox):
+    """Every claim entry still carries the v1.1 'color' field."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox, num_registered=1)
+    # Act
+    missing_color = [c for c in payload["claims"] if "color" not in c]
+    # Assert
+    assert missing_color == []
+
+
+def test_v12_backward_compat_per_claim_chain_flags_present(tmp_path, env_sandbox):
+    """Every claim entry still carries v1.1 chain_has_exception + chain_has_frozen."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox, num_registered=1)
+    # Act
+    missing_flags = [
+        c for c in payload["claims"]
+        if "chain_has_exception" not in c or "chain_has_frozen" not in c
+    ]
+    # Assert
+    assert missing_flags == []
