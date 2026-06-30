@@ -61,3 +61,14 @@ intransitive_verbs:
   # positionally. Renaming (e.g. `estimate-runtime`) would be redundant and
   # worse UX than the natural `clew estimate <script>`.
   - estimate
+
+  # `clew claim remove` — hard-delete a claim row. "remove" is a clean
+  # transitive English verb; registered here in case the §1 classifier
+  # encounters a noun-reading variant in Moby's POS data.
+  - remove
+
+  # `clew claim supersede` — soft-retire a claim by marking it superseded.
+  # "supersede" is a clean transitive English verb; registered here as a
+  # precautionary entry so the §1 audit recognises it as a verb even if
+  # Moby's POS data has an unusual classification for it.
+  - supersede

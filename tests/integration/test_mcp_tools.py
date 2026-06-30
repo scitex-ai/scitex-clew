@@ -259,6 +259,8 @@ class TestRegisterAllTools:
             "clew_list_claims",
             "clew_verify_claim",
             "clew_register_intermediate",
+            "clew_remove_claim",
+            "clew_supersede_claim",
             "clew_hash_file",
             "clew_hash_directory",
             "clew_stamp",

@@ -144,5 +144,50 @@ def register_tools(mcp: FastMCP) -> None:
             return _json({"error": str(exc), "claim": None})
         return _json(c.to_dict())
 
+    @mcp.tool()
+    async def clew_remove_claim(
+        claim_id_or_location: str,
+    ) -> str:
+        """Hard-delete a claim from the database by claim_id, location string,
+        or file path. After deletion, claims.json is re-exported. Returns
+        ``{"removed": true}`` if a row was deleted, ``{"removed": false}``
+        otherwise.
+
+        Mirrors ``scitex_clew.remove_claim``.
+
+        Parameters
+        ----------
+        claim_id_or_location : str
+            A claim_id (e.g., 'claim_abc123'), a location string
+            ('paper.tex:L42'), or a bare file path (first matching row).
+        """
+        from scitex_clew import remove_claim
+
+        found = remove_claim(claim_id_or_location)
+        return _json({"removed": found, "claim_id_or_location": claim_id_or_location})
+
+    @mcp.tool()
+    async def clew_supersede_claim(
+        claim_id_or_location: str,
+    ) -> str:
+        """Soft-retire a claim by setting its status to 'superseded'. The row
+        is kept in the database (audit trail) but excluded from
+        ``verify_all_claims`` and the default claims list/export.
+
+        Use this to retire stale/dead claims so ``clew verify`` can reach
+        exit 0 without deleting the historical record.
+
+        Mirrors ``scitex_clew.supersede_claim``.
+
+        Parameters
+        ----------
+        claim_id_or_location : str
+            A claim_id, location string ('paper.tex:L42'), or bare file path.
+        """
+        from scitex_clew import supersede_claim
+
+        found = supersede_claim(claim_id_or_location)
+        return _json({"superseded": found, "claim_id_or_location": claim_id_or_location})
+
 
 # EOF

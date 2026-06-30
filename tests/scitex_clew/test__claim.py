@@ -1066,3 +1066,343 @@ def test_v11_existing_fields_unchanged(tmp_path, env_sandbox):
         "registered_at", "verified_at", "status",
     }
     assert required_old_keys.issubset(set(claim_dict.keys()))
+
+
+# ---------------------------------------------------------------------------
+# Tests for remove_claim / supersede_claim / file_path_prefix filter
+# (PA-306 §3 no mocks — real temp DBs; PA-307 §3 AAA + one assert per test)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def claim_sandbox(tmp_path, env_sandbox):
+    """Isolated DB with one active claim pointing at a real source file."""
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = workdir / "results.csv"
+    src.write_text("a,b\n1,2\n")
+    clew.add_claim(
+        file_path=str(workdir / "paper.tex"),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(src),
+    )
+    return {"workdir": workdir, "src": src}
+
+
+# ---- remove_claim ----
+
+
+def test_remove_claim_returns_true_when_found(claim_sandbox, env_sandbox):
+    """remove_claim returns True when the claim_id exists."""
+    # Arrange
+    claims = clew.list_claims()
+    target_id = claims[0].claim_id
+    # Act
+    result = clew.remove_claim(target_id)
+    # Assert
+    assert result is True
+
+
+def test_remove_claim_deletes_row_from_list(claim_sandbox, env_sandbox):
+    """After remove_claim, the claim no longer appears in list_claims."""
+    # Arrange
+    claims = clew.list_claims()
+    target_id = claims[0].claim_id
+    # Act
+    clew.remove_claim(target_id)
+    # Assert
+    assert len(clew.list_claims()) == 0
+
+
+def test_remove_claim_returns_false_for_unknown_id(claim_sandbox, env_sandbox):
+    """remove_claim returns False when the claim_id is not found."""
+    # Arrange
+    # Act
+    result = clew.remove_claim("claim_nonexistent_000")
+    # Assert
+    assert result is False
+
+
+def test_remove_claim_verify_all_does_not_see_removed_claim(claim_sandbox, env_sandbox):
+    """After remove_claim, verify_all_claims sees NO_CLAIMS (empty DB)."""
+    # Arrange
+    from scitex_clew._cli import _exit_codes as codes
+    claims = clew.list_claims()
+    target_id = claims[0].claim_id
+    clew.remove_claim(target_id)
+    # Act
+    result = clew.verify_all_claims()
+    # Assert
+    assert result.exit_code == codes.NO_CLAIMS
+
+
+def test_remove_claim_accepts_location_string(tmp_path, env_sandbox):
+    """remove_claim resolves a location string like 'paper.tex:L42'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    paper = workdir / "paper.tex"
+    paper.write_text("line1\n")
+    clew.add_claim(file_path=str(paper), claim_type="value", line_number=42, claim_value="x")
+    location = f"{paper}:L42"
+    # Act
+    result = clew.remove_claim(location)
+    # Assert
+    assert result is True
+
+
+# ---- supersede_claim ----
+
+
+def test_supersede_claim_returns_true_when_found(claim_sandbox, env_sandbox):
+    """supersede_claim returns True when the claim_id exists."""
+    # Arrange
+    claims = clew.list_claims()
+    target_id = claims[0].claim_id
+    # Act
+    result = clew.supersede_claim(target_id)
+    # Assert
+    assert result is True
+
+
+def test_supersede_claim_row_still_exists_with_include_superseded(claim_sandbox, env_sandbox):
+    """After supersede_claim, the row is still in DB (include_superseded=True sees it)."""
+    # Arrange
+    from scitex_clew._claim import list_claims as _list_claims
+    claims = clew.list_claims()
+    target_id = claims[0].claim_id
+    # Act
+    clew.supersede_claim(target_id)
+    # Assert
+    all_claims = _list_claims(include_superseded=True)
+    assert any(c.claim_id == target_id for c in all_claims)
+
+
+def test_supersede_claim_sets_status_to_superseded(claim_sandbox, env_sandbox):
+    """After supersede_claim, the row's status is 'superseded'."""
+    # Arrange
+    from scitex_clew._claim import list_claims as _list_claims
+    claims = clew.list_claims()
+    target_id = claims[0].claim_id
+    # Act
+    clew.supersede_claim(target_id)
+    # Assert
+    all_claims = _list_claims(include_superseded=True)
+    superseded = [c for c in all_claims if c.claim_id == target_id]
+    assert superseded[0].status == "superseded"
+
+
+def test_supersede_claim_excluded_from_default_list(claim_sandbox, env_sandbox):
+    """After supersede_claim, default list_claims does NOT return it."""
+    # Arrange
+    claims = clew.list_claims()
+    target_id = claims[0].claim_id
+    # Act
+    clew.supersede_claim(target_id)
+    # Assert
+    assert len(clew.list_claims()) == 0
+
+
+def test_supersede_claim_returns_false_for_unknown_id(claim_sandbox, env_sandbox):
+    """supersede_claim returns False when no claim matches."""
+    # Arrange
+    # Act
+    result = clew.supersede_claim("claim_nonexistent_000")
+    # Assert
+    assert result is False
+
+
+# ---- verify_all_claims excludes superseded ----
+
+
+def test_verify_all_claims_skips_superseded_claim(claim_sandbox, env_sandbox):
+    """verify_all_claims treats superseded claims as invisible (hits NO_CLAIMS)."""
+    # Arrange
+    from scitex_clew._cli import _exit_codes as codes
+    claims = clew.list_claims()
+    target_id = claims[0].claim_id
+    clew.supersede_claim(target_id)
+    # Act
+    result = clew.verify_all_claims()
+    # Assert
+    assert result.exit_code == codes.NO_CLAIMS
+
+
+def test_verify_all_claims_supersede_only_failing_claim_makes_gate_pass(tmp_path, env_sandbox):
+    """Superseding the only MISMATCH claim lets verify_all_claims exit 0 or NO_CLAIMS."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    src = workdir / "data.txt"
+    src.write_text("original\n")
+    paper = workdir / "paper.tex"
+    paper.write_text("c1\n")
+    clew.add_claim(file_path=str(paper), claim_type="value", line_number=1, claim_value="v", source_file=str(src))
+    # Mutate to force HASH_MISMATCH
+    src.write_text("tampered\n")
+    result_before = clew.verify_all_claims()
+    claims = clew.list_claims(include_superseded=True)
+    clew.supersede_claim(claims[0].claim_id)
+    # Act
+    result_after = clew.verify_all_claims()
+    # Assert — gate must not be failing after supersede (NO_CLAIMS or OK)
+    assert result_after.exit_code != result_before.exit_code
+
+
+def test_verify_all_claims_all_superseded_hits_no_claims_not_crash(tmp_path, env_sandbox):
+    """When all claims are superseded, verify_all_claims returns NO_CLAIMS (not a crash)."""
+    # Arrange
+    from scitex_clew._cli import _exit_codes as codes
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    paper = workdir / "paper.tex"
+    paper.write_text("c1\n")
+    clew.add_claim(file_path=str(paper), claim_type="value", line_number=1, claim_value="v")
+    clew.supersede_claim(clew.list_claims(include_superseded=True)[0].claim_id)
+    # Act
+    result = clew.verify_all_claims()
+    # Assert
+    assert result.exit_code == codes.NO_CLAIMS
+
+
+# ---- claims.json excludes superseded by default ----
+
+
+def test_export_claims_json_excludes_superseded_by_default(tmp_path, env_sandbox):
+    """Default export_claims_json does NOT include superseded claims."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    paper = workdir / "paper.tex"
+    paper.write_text("c1\n")
+    clew.add_claim(file_path=str(paper), claim_type="value", line_number=1, claim_value="v")
+    claims_before = clew.list_claims(include_superseded=True)
+    clew.supersede_claim(claims_before[0].claim_id)
+    import json
+    # Act
+    out = clew.export_claims_json(read_only=False)
+    payload = json.loads(out.read_text())
+    # Assert
+    assert payload["claims_count"] == 0
+
+
+# ---- file_path_prefix filter ----
+
+
+def test_list_claims_file_path_prefix_returns_matching_claims(tmp_path, env_sandbox):
+    """list_claims(file_path_prefix=...) returns only claims under that prefix."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    # Two papers in different dirs
+    dir_a = workdir / "proj_a"
+    dir_b = workdir / "proj_b"
+    dir_a.mkdir()
+    dir_b.mkdir()
+    clew.add_claim(file_path=str(dir_a / "paper.tex"), claim_type="value", line_number=1, claim_value="a")
+    clew.add_claim(file_path=str(dir_b / "paper.tex"), claim_type="value", line_number=1, claim_value="b")
+    # Act
+    from scitex_clew._claim import list_claims as _list_claims
+    results = _list_claims(file_path_prefix=str(dir_a))
+    # Assert
+    assert all(c.file_path.startswith(str(dir_a.resolve())) for c in results)
+
+
+def test_list_claims_file_path_prefix_excludes_non_matching(tmp_path, env_sandbox):
+    """list_claims(file_path_prefix=...) does NOT return claims outside the prefix."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    dir_a = workdir / "proj_a"
+    dir_b = workdir / "proj_b"
+    dir_a.mkdir()
+    dir_b.mkdir()
+    clew.add_claim(file_path=str(dir_a / "paper.tex"), claim_type="value", line_number=1, claim_value="a")
+    clew.add_claim(file_path=str(dir_b / "paper.tex"), claim_type="value", line_number=1, claim_value="b")
+    # Act
+    from scitex_clew._claim import list_claims as _list_claims
+    results = _list_claims(file_path_prefix=str(dir_a))
+    # Assert — proj_b claim must NOT appear
+    assert not any(str(dir_b.resolve()) in c.file_path for c in results)
+
+
+# ---- bulk remove / supersede by prefix ----
+
+
+def test_remove_claims_by_prefix_returns_count(tmp_path, env_sandbox):
+    """remove_claims_by_prefix returns the count of deleted rows."""
+    # Arrange
+    from scitex_clew._claim import remove_claims_by_prefix
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    dir_a = workdir / "proj_a"
+    dir_a.mkdir()
+    clew.add_claim(file_path=str(dir_a / "paper.tex"), claim_type="value", line_number=1, claim_value="a")
+    clew.add_claim(file_path=str(dir_a / "paper.tex"), claim_type="value", line_number=2, claim_value="b")
+    # Act
+    deleted = remove_claims_by_prefix(str(dir_a))
+    # Assert
+    assert deleted == 2
+
+
+def test_remove_claims_by_prefix_purges_all_matching(tmp_path, env_sandbox):
+    """After remove_claims_by_prefix, no claims under that prefix remain."""
+    # Arrange
+    from scitex_clew._claim import remove_claims_by_prefix
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    dir_a = workdir / "proj_a"
+    dir_a.mkdir()
+    clew.add_claim(file_path=str(dir_a / "paper.tex"), claim_type="value", line_number=1, claim_value="a")
+    remove_claims_by_prefix(str(dir_a))
+    # Act
+    from scitex_clew._claim import list_claims as _list_claims
+    remaining = _list_claims(file_path_prefix=str(dir_a))
+    # Assert
+    assert len(remaining) == 0
+
+
+def test_supersede_claims_by_prefix_returns_count(tmp_path, env_sandbox):
+    """supersede_claims_by_prefix returns the count of updated rows."""
+    # Arrange
+    from scitex_clew._claim import supersede_claims_by_prefix
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    dir_a = workdir / "proj_a"
+    dir_a.mkdir()
+    clew.add_claim(file_path=str(dir_a / "paper.tex"), claim_type="value", line_number=1, claim_value="a")
+    clew.add_claim(file_path=str(dir_a / "paper.tex"), claim_type="value", line_number=2, claim_value="b")
+    # Act
+    updated = supersede_claims_by_prefix(str(dir_a))
+    # Assert
+    assert updated == 2
+
+
+def test_supersede_claims_by_prefix_hides_from_default_list(tmp_path, env_sandbox):
+    """After supersede_claims_by_prefix, default list_claims returns none of them."""
+    # Arrange
+    from scitex_clew._claim import supersede_claims_by_prefix
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    dir_a = workdir / "proj_a"
+    dir_a.mkdir()
+    clew.add_claim(file_path=str(dir_a / "paper.tex"), claim_type="value", line_number=1, claim_value="a")
+    supersede_claims_by_prefix(str(dir_a))
+    # Act
+    remaining = clew.list_claims()
+    # Assert
+    assert len(remaining) == 0
