@@ -114,11 +114,10 @@ call (each call is sub-millisecond for typical files).
 **Confirmed no mtime.** A project-wide grep for `mtime`, `getmtime`, and
 `st_mtime` across `src/` returns zero results.
 
-### (b) Per-pass hash cache (pending: `perf/verify-hash-cache`)
+### (b) Per-pass hash cache (SHIPPED in v0.2.19, on `develop`)
 
-This is an in-flight performance optimisation, not yet merged to `develop`.
-It is documented here so a reviewer or hook author can assess the safety of
-the change before it lands.
+`_chain/_hash_cache.py` and `new_hash_cache()` are present on `develop` and
+in the v0.2.19 tag. This is not pending — it shipped.
 
 **What it adds.** `_chain/_hash_cache.py` introduces `HashCache = Dict[str, str]`
 and `new_hash_cache()` which returns a fresh empty dict. `hash_file` gains an
@@ -138,9 +137,10 @@ mtime or size shortcut in the cache key or the miss path.
 **Only assumption.** A file is not rewritten during a single pass (passes are
 short-lived; same assumption as (a)).
 
-### (c) Freshness-skip for incremental rerun (pending: `perf/rerun-incremental-skip`)
+### (c) Freshness-skip for incremental rerun (SHIPPED in v0.2.19, on `develop`)
 
-Also in-flight, not yet merged to `develop`.
+`_chain/_freshness.py` and `_is_session_fresh()` are present on `develop` and
+in the v0.2.19 tag. This is not pending — it shipped.
 
 **What it adds.** `rerun_dag(skip_unchanged=True)` is an opt-in flag. Before
 launching a subprocess re-execution for each session, `_is_session_fresh()`
