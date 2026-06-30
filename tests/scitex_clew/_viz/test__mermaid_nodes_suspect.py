@@ -32,8 +32,8 @@ class _FakeVerification:
 # ----- classDef line ------------------------------------------------------- #
 
 
-def test_class_definitions_emits_file_suspect_orange_band():
-    # Arrange
+def test_class_definitions_emits_file_suspect_amber_band():
+    # Arrange — schema v1.3: suspect uses amber #d29922 (not old orange #FFD580)
     lines: list = []
 
     # Act
@@ -43,13 +43,12 @@ def test_class_definitions_emits_file_suspect_orange_band():
     suspect_lines = [ln for ln in lines if "file_suspect" in ln]
     assert (
         len(suspect_lines) == 1
-        and "FFD580" in suspect_lines[0]
-        and "FF8C00" in suspect_lines[0]
+        and "d29922" in suspect_lines[0].lower()
     )
 
 
-def test_class_definitions_emits_suspect_script_class_orange_band():
-    # Arrange
+def test_class_definitions_emits_suspect_script_class_amber_band():
+    # Arrange — schema v1.3: suspect script class uses amber #d29922
     lines: list = []
 
     # Act
@@ -61,8 +60,7 @@ def test_class_definitions_emits_suspect_script_class_orange_band():
     ]
     assert (
         len(suspect_script) == 1
-        and "FFD580" in suspect_script[0]
-        and "FF8C00" in suspect_script[0]
+        and "d29922" in suspect_script[0].lower()
     )
 
 
@@ -228,8 +226,8 @@ def test_add_script_node_failed_input_outranks_suspect_input():
 # ----- Exception provenance marker ------------------------------------------ #
 
 
-def test_class_definitions_emits_exception_classDef_with_dashed_style():
-    # Arrange
+def test_class_definitions_emits_exception_classDef_solid_no_dashes():
+    # Arrange — schema v1.3: exception uses solid violet fill, no dashed border
     lines: list = []
 
     # Act
@@ -237,11 +235,11 @@ def test_class_definitions_emits_exception_classDef_with_dashed_style():
 
     # Assert
     exception_lines = [ln for ln in lines if "classDef exception" in ln]
-    assert len(exception_lines) == 1 and "stroke-dasharray" in exception_lines[0]
+    assert len(exception_lines) == 1 and "stroke-dasharray" not in exception_lines[0]
 
 
-def test_class_definitions_exception_classDef_uses_lavender_fill():
-    # Arrange
+def test_class_definitions_exception_classDef_uses_violet_fill():
+    # Arrange — schema v1.3: exception fill is violet #8250df
     lines: list = []
 
     # Act
@@ -249,7 +247,7 @@ def test_class_definitions_exception_classDef_uses_lavender_fill():
 
     # Assert
     exception_lines = [ln for ln in lines if "classDef exception" in ln]
-    assert len(exception_lines) == 1 and "E6E6FA" in exception_lines[0]
+    assert len(exception_lines) == 1 and "8250df" in exception_lines[0].lower()
 
 
 def test_add_script_node_exception_verified_uses_exception_class():
@@ -281,8 +279,8 @@ def test_add_script_node_exception_verified_uses_exception_class():
     assert len(lines) == 1 and ":::exception" in lines[0]
 
 
-def test_add_script_node_exception_verified_label_contains_badge():
-    # Arrange
+def test_add_script_node_exception_verified_label_no_glyph_icon():
+    # Arrange — schema v1.3: no ⊘ EXCEPTION glyph in label; color conveys it
     lines: list = []
     run = {
         "script_path": "/scripts/gpac.py",
@@ -305,8 +303,8 @@ def test_add_script_node_exception_verified_label_contains_badge():
         has_suspect_input=False,
     )
 
-    # Assert
-    assert len(lines) == 1 and "⊘ EXCEPTION" in lines[0]
+    # Assert — ⊘ EXCEPTION removed in v1.3 (color conveys exception status)
+    assert len(lines) == 1 and "⊘ EXCEPTION" not in lines[0]
 
 
 def test_add_script_node_exception_verified_label_contains_reason():
@@ -366,9 +364,9 @@ def test_add_script_node_exception_failed_uses_failed_class_not_exception():
     assert len(lines) == 1 and ":::failed" in lines[0] and ":::exception" not in lines[0]
 
 
-def test_add_script_node_exception_failed_still_shows_badge():
-    # Arrange — even when the exception node fails, the ⊘ EXCEPTION badge
-    # must still appear in the label (so the user knows it was hand-exception).
+def test_add_script_node_exception_failed_no_glyph_icon():
+    # Arrange — schema v1.3: even when the exception node fails, no ⊘ EXCEPTION glyph.
+    # The COLOR (violet for exception class, red for failed class) conveys the state.
     lines: list = []
     run = {
         "script_path": "/scripts/gpac.py",
@@ -391,8 +389,8 @@ def test_add_script_node_exception_failed_still_shows_badge():
         has_suspect_input=False,
     )
 
-    # Assert
-    assert len(lines) == 1 and "⊘ EXCEPTION" in lines[0]
+    # Assert — ⊘ EXCEPTION glyph removed in v1.3
+    assert len(lines) == 1 and "⊘ EXCEPTION" not in lines[0]
 
 
 def test_add_script_node_tracked_verified_uses_verified_class_not_exception():
@@ -439,8 +437,8 @@ def test_class_definitions_emits_file_frozen_classDef():
     assert len(frozen_lines) == 1
 
 
-def test_class_definitions_file_frozen_has_dashed_border():
-    # Arrange
+def test_class_definitions_file_frozen_no_dashed_border():
+    # Arrange — schema v1.3: frozen folds into verified green, no dashed border
     lines: list = []
 
     # Act
@@ -448,7 +446,7 @@ def test_class_definitions_file_frozen_has_dashed_border():
 
     # Assert
     frozen_lines = [ln for ln in lines if "classDef file_frozen" in ln]
-    assert len(frozen_lines) == 1 and "stroke-dasharray" in frozen_lines[0]
+    assert len(frozen_lines) == 1 and "stroke-dasharray" not in frozen_lines[0]
 
 
 def test_add_file_nodes_frozen_file_uses_file_frozen_class(tmp_path):
@@ -480,8 +478,8 @@ def test_add_file_nodes_frozen_file_uses_file_frozen_class(tmp_path):
     assert len(node_decls) == 1 and "file_frozen" in node_decls[0]
 
 
-def test_add_file_nodes_frozen_file_contains_frozen_marker(tmp_path):
-    # Arrange
+def test_add_file_nodes_frozen_file_no_frozen_glyph_icon(tmp_path):
+    # Arrange — schema v1.3: frozen folds into verified green, no 🔒 FROZEN glyph
     from scitex_clew._hash import hash_file
 
     target = tmp_path / "huge2.npz"
@@ -503,9 +501,9 @@ def test_add_file_nodes_frozen_file_contains_frozen_marker(tmp_path):
         frozen_files={str(target)},
     )
 
-    # Assert
+    # Assert — 🔒 FROZEN glyph removed in v1.3 (color conveys frozen/verified state)
     node_line = " ".join(out_lines)
-    assert "FROZEN" in node_line
+    assert "🔒" not in node_line and "🔒 FROZEN" not in node_line
 
 
 def test_add_file_nodes_normal_file_not_in_frozen_files_uses_file_ok(tmp_path):
@@ -562,3 +560,82 @@ def test_add_file_nodes_explicitly_failed_outranks_frozen(tmp_path):
     # Assert — explicit failure outranks frozen trust.
     node_decls = [ln for ln in out_lines if ":::" in ln]
     assert len(node_decls) == 1 and "file_bad" in node_decls[0] and "file_frozen" not in node_decls[0]
+
+
+# ----- Schema v1.3 specific: 4-state color-only recolor -------------------- #
+
+
+def test_v13_verified_classDef_uses_2da44e_fill():
+    # Arrange — schema v1.3: verified nodes use #2da44e (green)
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    verified_lines = [ln for ln in lines if "classDef verified " in ln and "scratch" not in ln]
+    assert len(verified_lines) == 1 and "2da44e" in verified_lines[0].lower()
+
+
+def test_v13_failed_classDef_uses_cf222e_fill():
+    # Arrange — schema v1.3: failed nodes use #cf222e (red)
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    failed_lines = [ln for ln in lines if "classDef failed " in ln]
+    assert len(failed_lines) == 1 and "cf222e" in failed_lines[0].lower()
+
+
+def test_v13_exception_classDef_uses_8250df_fill():
+    # Arrange — schema v1.3: exception nodes use #8250df (violet)
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    exception_lines = [ln for ln in lines if "classDef exception" in ln]
+    assert len(exception_lines) == 1 and "8250df" in exception_lines[0].lower()
+
+
+def test_v13_file_frozen_classDef_uses_verified_green():
+    # Arrange — schema v1.3: frozen folds into verified green #2da44e
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    frozen_lines = [ln for ln in lines if "classDef file_frozen" in ln]
+    assert len(frozen_lines) == 1 and "2da44e" in frozen_lines[0].lower()
+
+
+def test_v13_exception_node_reason_text_still_present():
+    # Arrange — schema v1.3: reason text still shown (no ⊘ EXCEPTION glyph)
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "exception",
+        "exception_reason": "4.1TB gPAC never re-run",
+    }
+    verification = _FakeVerification(verified=True, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="exception_reason_s1",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert — reason text preserved, but no ⊘ glyph
+    assert len(lines) == 1 and "4.1TB gPAC never re-run" in lines[0] and "⊘" not in lines[0]

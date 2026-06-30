@@ -37,15 +37,66 @@ CLAIM_TYPES = ("statistic", "figure", "table", "text", "value")
 # Hexes are locked with the live-paper consumer (scitex-writer) — do NOT
 # change without a coordinated bump to both packages.
 # Introduced in schema v1.1; referenced by legend block added in v1.2.
+# Updated in schema v1.3: "partial" renamed to "suspect".
 # ---------------------------------------------------------------------------
 _CLAIM_PALETTE: Dict[str, str] = {
     "verified": "2da44e",
-    "partial": "d29922",
+    "suspect": "d29922",
     "mismatch": "cf222e",
     "missing": "cf222e",
     "registered": "6e7781",
 }
 _PALETTE_FALLBACK = "6e7781"  # grey — used for any unknown/future status
+
+# ---------------------------------------------------------------------------
+# Schema v1.3: 4-state display palette (reader-facing, color-only, no icons).
+# Maps the 4 display buckets to accessible hex values.
+# ---------------------------------------------------------------------------
+_DISPLAY_PALETTE: Dict[str, str] = {
+    "verified": "2da44e",
+    "suspect": "d29922",
+    "unverified": "cf222e",
+    "exception": "8250df",
+}
+
+
+def _resolve_display_group(
+    status: str, has_exception: bool, has_frozen: bool
+) -> str:
+    """Resolve the 4-state display bucket for a claim.
+
+    Precedence: unverified > suspect > exception > verified.
+    Frozen folds into verified — it never changes the bucket.
+
+    Parameters
+    ----------
+    status : str
+        The claim's internal status (verified, suspect, mismatch, missing, registered).
+    has_exception : bool
+        True if the claim's provenance chain contains an exception node.
+    has_frozen : bool
+        True if the claim's provenance chain contains a frozen file.
+
+    Returns
+    -------
+    str
+        One of: "verified", "suspect", "unverified", "exception".
+    """
+    if status in ("mismatch", "missing", "registered"):
+        return "unverified"
+    if status == "suspect":
+        return "suspect"
+    if has_exception:
+        return "exception"
+    return "verified"  # plain verified; frozen folds in here
+
+
+# ---------------------------------------------------------------------------
+# Back-compat helper: normalise legacy stored "partial" -> "suspect".
+# ---------------------------------------------------------------------------
+_LEGACY_STATUS_MAP: Dict[str, str] = {
+    "partial": "suspect",
+}
 
 
 @dataclass
@@ -491,9 +542,13 @@ def export_claims_json(
         base["color"] = color
         base["chain_has_exception"] = chain_has_exception
         base["chain_has_frozen"] = chain_has_frozen
+        # Schema v1.3: display group + display color (4-state, color-only)
+        display_group = _resolve_display_group(c.status, chain_has_exception, chain_has_frozen)
+        base["display_group"] = display_group
+        base["display_color"] = _DISPLAY_PALETTE[display_group]
         enriched_claims.append(base)
     # ---------------------------------------------------------------------------
-    # Schema v1.2 additions: attestation + legend blocks.
+    # Schema v1.3: attestation + legend blocks (4-state, no subbadges).
     # ---------------------------------------------------------------------------
     try:
         _pkg_version = importlib.metadata.version("scitex-clew")
@@ -504,24 +559,42 @@ def export_claims_json(
     verified_count = sum(1 for c in claims if c.status == "verified")
     unverified_count = claims_count - verified_count
 
-    # Human-readable labels for each status — one entry per palette key.
-    _STATUS_LABELS: Dict[str, str] = {
-        "verified": "verified — matches source",
-        "partial": "partial — upstream unconfirmed",
-        "mismatch": "mismatch — no longer matches source",
-        "missing": "missing — source not found",
-        "registered": "registered — not yet verified",
-    }
-
+    # Schema v1.3: 4 display states — the reader's legend (color-only, no icons).
     legend_statuses = [
         {
-            "status": status_name,
-            "color": hex_color,
+            "status": "verified",
+            "color": "2da44e",
             "marker": "wavy-underline",
-            "label": _STATUS_LABELS.get(status_name, status_name),
-        }
-        for status_name, hex_color in _CLAIM_PALETTE.items()
+            "label": "verified — matches its source",
+        },
+        {
+            "status": "suspect",
+            "color": "d29922",
+            "marker": "wavy-underline",
+            "label": "suspect — upstream unverified, possibly contaminated",
+        },
+        {
+            "status": "unverified",
+            "color": "cf222e",
+            "marker": "wavy-underline",
+            "label": "unverified — could not confirm against source",
+        },
+        {
+            "status": "exception",
+            "color": "8250df",
+            "marker": "wavy-underline",
+            "label": "exception — author-declared, outside auto-verification",
+        },
     ]
+
+    # Static map: internal status -> display bucket (for plain/no-flag claims).
+    display_groups_map: Dict[str, str] = {
+        "verified": "verified",
+        "suspect": "suspect",
+        "mismatch": "unverified",
+        "missing": "unverified",
+        "registered": "unverified",
+    }
 
     payload = {
         "_note": (
@@ -530,9 +603,11 @@ def export_claims_json(
             "scitex_clew.export_claims_json() (default-on after every "
             "clew.add_claim()) or by re-running your pipeline."
         ),
-        "schema_version": "1.2",
+        "schema_version": "1.3",
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "palette": dict(_CLAIM_PALETTE),
+        "display_palette": dict(_DISPLAY_PALETTE),
+        "display_groups": display_groups_map,
         "claims_count": claims_count,
         "attestation": {
             "text": "Provenance checked by SciTeX Clew.",
@@ -545,22 +620,6 @@ def export_claims_json(
         },
         "legend": {
             "statuses": legend_statuses,
-            "subbadges": [
-                {
-                    "key": "exception",
-                    "symbol": "⊘",
-                    "fill": "e6e6fa",
-                    "stroke": "8a2be2",
-                    "label": "human-declared exception",
-                },
-                {
-                    "key": "frozen",
-                    "symbol": "\U0001f512",
-                    "fill": "e0f0ff",
-                    "stroke": "4682b4",
-                    "label": "trusted / frozen source",
-                },
-            ],
             "badge": {
                 "template": "{verified} verified · {unverified} unverified",
                 "all_clear": "Clew Verified — all {n} claims match source",
@@ -673,7 +732,8 @@ def list_claims(
                 source_hash=row["source_hash"],
                 registered_at=row["registered_at"],
                 verified_at=row["verified_at"],
-                status=row["status"],
+                # Back-compat: normalize legacy "partial" -> "suspect"
+                status=_LEGACY_STATUS_MAP.get(row["status"], row["status"]),
             )
             for row in rows
         ]
@@ -783,8 +843,8 @@ def verify_claim(
         _update_claim_status(claim.claim_id, "verified", db)
         result["claim"]["status"] = "verified"
     elif result["source_verified"]:
-        _update_claim_status(claim.claim_id, "partial", db)
-        result["claim"]["status"] = "partial"
+        _update_claim_status(claim.claim_id, "suspect", db)
+        result["claim"]["status"] = "suspect"
 
     return result
 
@@ -1064,7 +1124,8 @@ def _resolve_claim(identifier: str, db) -> Optional[Claim]:
                 source_hash=row["source_hash"],
                 registered_at=row["registered_at"],
                 verified_at=row["verified_at"],
-                status=row["status"],
+                # Back-compat: normalize legacy "partial" -> "suspect"
+                status=_LEGACY_STATUS_MAP.get(row["status"], row["status"]),
             )
         return None
     finally:
@@ -1100,7 +1161,7 @@ def format_claims(claims: List[Claim], verbose: bool = False) -> str:
         "verified": "\u2713",  # ✓
         "mismatch": "\u2717",  # ✗
         "missing": "?",
-        "partial": "~",
+        "suspect": "~",
         "superseded": "⊘",  # ⊘
     }
 
