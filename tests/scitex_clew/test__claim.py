@@ -715,7 +715,7 @@ def test_v11_palette_verified_hex(v11_sandbox, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     palette = json.loads(out.read_text()).get("palette", {})
     # Assert
-    assert palette.get("verified") == "#2da44e"
+    assert palette.get("verified") == "2da44e"
 
 
 def test_v11_palette_mismatch_hex(v11_sandbox, env_sandbox):
@@ -728,7 +728,7 @@ def test_v11_palette_mismatch_hex(v11_sandbox, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     palette = json.loads(out.read_text()).get("palette", {})
     # Assert
-    assert palette.get("mismatch") == "#cf222e"
+    assert palette.get("mismatch") == "cf222e"
 
 
 def test_v11_color_verified_claim_gets_green(tmp_path, env_sandbox):
@@ -762,7 +762,7 @@ def test_v11_color_verified_claim_gets_green(tmp_path, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     claims = json.loads(out.read_text()).get("claims", [])
     # Assert
-    assert claims[0]["color"] == "#2da44e"
+    assert claims[0]["color"] == "2da44e"
 
 
 def test_v11_color_mismatch_claim_gets_red(tmp_path, env_sandbox):
@@ -795,7 +795,7 @@ def test_v11_color_mismatch_claim_gets_red(tmp_path, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     claims = json.loads(out.read_text()).get("claims", [])
     # Assert
-    assert claims[0]["color"] == "#cf222e"
+    assert claims[0]["color"] == "cf222e"
 
 
 def test_v11_color_unknown_status_gets_grey(tmp_path, env_sandbox):
@@ -828,7 +828,7 @@ def test_v11_color_unknown_status_gets_grey(tmp_path, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     claims = json.loads(out.read_text()).get("claims", [])
     # Assert
-    assert claims[0]["color"] == "#6e7781"
+    assert claims[0]["color"] == "6e7781"
 
 
 def test_v11_color_registered_claim_gets_grey(tmp_path, env_sandbox):
@@ -853,7 +853,7 @@ def test_v11_color_registered_claim_gets_grey(tmp_path, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     claims = json.loads(out.read_text()).get("claims", [])
     # Assert
-    assert claims[0]["color"] == "#6e7781"
+    assert claims[0]["color"] == "6e7781"
 
 
 def test_v11_chain_has_exception_true_for_exception_run(tmp_path, env_sandbox):

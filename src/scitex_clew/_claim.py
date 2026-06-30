@@ -37,13 +37,13 @@ CLAIM_TYPES = ("statistic", "figure", "table", "text", "value")
 # change without a coordinated bump to both packages.
 # ---------------------------------------------------------------------------
 _CLAIM_PALETTE: Dict[str, str] = {
-    "verified": "#2da44e",
-    "partial": "#d29922",
-    "mismatch": "#cf222e",
-    "missing": "#cf222e",
-    "registered": "#6e7781",
+    "verified": "2da44e",
+    "partial": "d29922",
+    "mismatch": "cf222e",
+    "missing": "cf222e",
+    "registered": "6e7781",
 }
-_PALETTE_FALLBACK = "#6e7781"  # grey — used for any unknown/future status
+_PALETTE_FALLBACK = "6e7781"  # grey — used for any unknown/future status
 
 
 @dataclass
