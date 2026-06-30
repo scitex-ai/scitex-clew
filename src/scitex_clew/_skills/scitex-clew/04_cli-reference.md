@@ -7,7 +7,7 @@ tags: [scitex-clew-cli-reference]
 
 # CLI Reference
 
-`clew` is the entry point installed by `pip install scitex-clew[cli]`.
+`clew` is the entry point installed by `uv pip install 'scitex-clew[all]'`.
 
 ## Subcommands
 

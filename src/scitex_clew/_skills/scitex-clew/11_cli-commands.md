@@ -1,13 +1,13 @@
 ---
 description: |
   [TOPIC] Cli Commands
-  [DETAILS] CLI reference for the clew command (requires pip install scitex-clew[cli]).
+  [DETAILS] CLI reference for the clew command (requires uv pip install 'scitex-clew[all]').
 tags: [scitex-clew-cli-commands]
 ---
 
 # CLI Commands
 
-Requires `pip install scitex-clew[cli]` (adds `click` dependency).
+Requires `uv pip install 'scitex-clew[all]'` (adds `click` and other optional deps).
 
 Entry point: `clew` (also installed as `scitex-clew`).
 

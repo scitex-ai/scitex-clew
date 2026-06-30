@@ -358,26 +358,24 @@ def test_frozen_run_dag_image_file_node_is_frozen_flag(frozen_run_db, tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_render_dag_image_error_message_string_contains_viz():
+def test_render_dag_image_error_message_string_contains_all():
     # Arrange — read the source of _image.py to verify the error message text
-    import ast
     from pathlib import Path as _Path
     src = _Path(__file__).parent.parent.parent.parent / "src" / "scitex_clew" / "_viz" / "_image.py"
     # Act
     source_text = src.read_text()
-    # Assert — the lazy ImportError must mention the viz extra in its message
-    assert "scitex-clew[viz]" in source_text
+    # Assert — the lazy ImportError must mention the [all] extra (two-bucket convention)
+    assert "scitex-clew[all]" in source_text
 
 
-def test_render_dag_image_error_message_string_mentions_pip_install():
+def test_render_dag_image_error_message_string_mentions_uv_pip_install():
     # Arrange
-    import ast
     from pathlib import Path as _Path
     src = _Path(__file__).parent.parent.parent.parent / "src" / "scitex_clew" / "_viz" / "_image.py"
     # Act
     source_text = src.read_text()
-    # Assert — the hint must include pip install guidance
-    assert "pip install" in source_text
+    # Assert — the hint must include uv pip install guidance
+    assert "uv pip install" in source_text
 
 
 # ---------------------------------------------------------------------------

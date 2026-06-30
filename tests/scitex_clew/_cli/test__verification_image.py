@@ -83,7 +83,7 @@ except ImportError:
 
 _skip_no_mpl = pytest.mark.skipif(
     not _matplotlib_available,
-    reason="matplotlib not installed; install scitex-clew[viz]",
+    reason="matplotlib not installed; install scitex-clew[all]",
 )
 
 # ---------------------------------------------------------------------------

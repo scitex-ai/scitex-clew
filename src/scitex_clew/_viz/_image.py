@@ -73,7 +73,7 @@ def render_dag_image(
         from matplotlib.patches import FancyBboxPatch
     except ImportError as exc:
         raise ImportError(
-            "DAG image export needs matplotlib — pip install scitex-clew[viz]"
+            "DAG image export needs matplotlib — uv pip install 'scitex-clew[all]'"
         ) from exc
 
     from ._image_dag import build_dag_graph

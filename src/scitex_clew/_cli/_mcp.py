@@ -114,7 +114,7 @@ def list_tools(verbose: int, compact: bool, as_json: bool) -> None:
         from .._mcp.server import mcp as mcp_server
     except ImportError as e:
         raise click.ClickException(
-            f"fastmcp not installed. Install with: pip install scitex-clew[mcp]\n{e}"
+            f"fastmcp not installed. Install with: uv pip install 'scitex-clew[all]'\n{e}"
         ) from e
 
     from .._mcp import get_tools_sync
@@ -187,7 +187,7 @@ def start_server(dry_run: bool, yes: bool) -> None:
     except ImportError as e:
         raise click.ClickException(
             f"Failed to import MCP server. "
-            f"Install fastmcp: pip install scitex-clew[mcp]\n{e}"
+            f"Install fastmcp: uv pip install 'scitex-clew[all]'\n{e}"
         ) from e
 
     if dry_run:
@@ -239,7 +239,7 @@ def install(dry_run, yes) -> None:
     del dry_run, yes  # audit §2 — no-op flags
     click.echo("Install scitex-clew with MCP support:")
     click.echo()
-    click.echo("  pip install scitex-clew[mcp]")
+    click.echo("  uv pip install 'scitex-clew[all]'")
     click.echo()
     click.echo("Add to your MCP client configuration:")
     click.echo()
@@ -271,7 +271,7 @@ def doctor() -> None:
         click.echo(f"  [OK] fastmcp {fastmcp.__version__}")
     except ImportError:
         click.echo("  [!!] fastmcp not installed")
-        click.echo("    Install with: pip install scitex-clew[mcp]")
+        click.echo("    Install with: uv pip install 'scitex-clew[all]'")
         return
 
     try:

@@ -86,7 +86,7 @@ _GROUPER_REGISTRY_NAMES = [
     help=(
         "Output format. 'mermaid' (default) emits text identical to today's "
         "behaviour. 'png' or 'svg' renders a static image via matplotlib "
-        "(requires scitex-clew[viz])."
+        "(requires scitex-clew[all])."
     ),
 )
 @click.option(
