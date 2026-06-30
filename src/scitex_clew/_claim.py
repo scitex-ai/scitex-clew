@@ -464,6 +464,72 @@ def _resolve_chain_flags(claim: "Claim") -> tuple:
     return chain_has_exception, chain_has_frozen
 
 
+def _resolve_exception_reasons(claim: "Claim") -> List[tuple]:
+    """Return the list of exception nodes in a claim's provenance chain.
+
+    Walks the SAME provenance DAG that :func:`_resolve_chain_flags` walks,
+    reusing :func:`scitex_clew._chain._routes.resolve_file_dag` exactly —
+    no custom traversal.
+
+    Parameters
+    ----------
+    claim : Claim
+        The claim to inspect.
+
+    Returns
+    -------
+    list of (str, str)
+        ``[(session_id, reason), ...]`` for every run in the resolved session
+        set whose ``provenance == 'exception'``. A NULL/empty ``exception_reason``
+        in the DB is replaced by the string ``"no reason given"``.
+        Returns an empty list when the claim has no provenance link or there
+        are no exception nodes in the chain.
+    """
+    from ._chain._routes import resolve_file_dag
+
+    db = get_db()
+
+    # Determine the leaf session to start the backward DAG walk.
+    session_id = claim.source_session
+    if not session_id and claim.source_file:
+        sessions = db.find_session_by_file(
+            str(Path(claim.source_file).resolve()), role="output"
+        )
+        if sessions:
+            session_id = sessions[0]
+
+    if not session_id:
+        return []
+
+    # Walk the provenance DAG from the leaf session backward.
+    _, all_ids = resolve_file_dag([session_id], db=db)
+
+    if not all_ids:
+        return []
+
+    placeholders = ", ".join("?" * len(all_ids))
+    id_list = list(all_ids)
+
+    with db._connect() as conn:
+        rows = conn.execute(
+            f"SELECT session_id, exception_reason FROM runs"
+            f" WHERE session_id IN ({placeholders})"
+            f" AND provenance = 'exception'"
+            f" ORDER BY session_id",
+            id_list,
+        ).fetchall()
+
+    result = []
+    for row in rows:
+        sid = row[0]
+        reason = row[1]
+        if not reason:
+            reason = "no reason given"
+        result.append((sid, reason))
+
+    return result
+
+
 def export_claims_json(
     path: Optional[Union[str, Path]] = None,
     *,
@@ -535,6 +601,8 @@ def export_claims_json(
     # existing fields so the existing field order (and thus byte-positions for
     # streaming parsers) is unchanged.  New fields are purely additive.
     enriched_claims = []
+    # Accumulate all exception nodes across all claims for top-level dedup list.
+    _all_exception_pairs: Dict[str, str] = {}  # session_id -> reason (deduped)
     for c in claims:
         base = c.to_dict()  # all existing fields, byte-identical
         color = _CLAIM_PALETTE.get(c.status, _PALETTE_FALLBACK)
@@ -546,6 +614,15 @@ def export_claims_json(
         display_group = _resolve_display_group(c.status, chain_has_exception, chain_has_frozen)
         base["display_group"] = display_group
         base["display_color"] = _DISPLAY_PALETTE[display_group]
+        # Schema v1.3 additive: exception_reasons for this claim's chain.
+        if chain_has_exception:
+            exc_pairs = _resolve_exception_reasons(c)
+            base["exception_reasons"] = [reason for _, reason in exc_pairs]
+            # Accumulate into the dedup dict.
+            for sid, reason in exc_pairs:
+                _all_exception_pairs.setdefault(sid, reason)
+        else:
+            base["exception_reasons"] = []
         enriched_claims.append(base)
     # ---------------------------------------------------------------------------
     # Schema v1.3: attestation + legend blocks (4-state, no subbadges).
@@ -583,7 +660,7 @@ def export_claims_json(
             "status": "exception",
             "color": "8250df",
             "marker": "wavy-underline",
-            "label": "exception — author-declared, outside auto-verification",
+            "label": "exception — auto-verification chain does not connect through this declared node (transparently NOT auto-verified)",
         },
     ]
 
@@ -625,6 +702,12 @@ def export_claims_json(
                 "all_clear": "Clew Verified — all {n} claims match source",
             },
         },
+        # Schema v1.3 additive: deduped exception nodes across all claims.
+        # Stable sort by session_id for determinism.
+        "exceptions": [
+            {"session_id": sid, "reason": reason}
+            for sid, reason in sorted(_all_exception_pairs.items())
+        ],
         "claims": enriched_claims,
     }
 

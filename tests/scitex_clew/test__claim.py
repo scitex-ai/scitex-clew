@@ -1953,3 +1953,190 @@ def test_v13_back_compat_partial_stored_status_surfaces_as_suspect(tmp_path, env
     claims = clew.list_claims()
     # Assert
     assert claims[0].status == "suspect"
+
+
+# ---------------------------------------------------------------------------
+# Schema v1.3 additive: exception_reasons per-claim + top-level exceptions
+# + honest legend label (Change 1 + Change 2)
+# (PA-306 §3 no mocks — real temp DBs via DB API;
+#  PA-307 §3 AAA + one observable assertion per test)
+# ---------------------------------------------------------------------------
+
+
+def _make_exception_run(db, workdir, session_id, out_filename, reason=None):
+    """Register an exception run + output file; return the output Path."""
+    script = str(workdir / "run.py")
+    out_file = workdir / out_filename
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="exception", exception_reason=reason)
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "hashXYZ", role="output")
+    return out_file
+
+
+def test_v13_exception_reasons_contains_reason_for_exception_chain(tmp_path, env_sandbox):
+    """A claim whose chain has an exception run with a recorded reason → exception_reasons has that reason."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-06M-01D-00h00m00s_EXCR1"
+    out_file = _make_exception_run(db, workdir, session_id, "result_r1.csv", reason="4.1 TB gPAC job, too expensive to re-run")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    out = workdir / "claims_exc_reason.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    payload = json.loads(out.read_text())
+    # Assert — the claim's exception_reasons contains the recorded reason
+    assert "4.1 TB gPAC job, too expensive to re-run" in payload["claims"][0]["exception_reasons"]
+
+
+def test_v13_exception_reasons_empty_for_no_exception_chain(tmp_path, env_sandbox):
+    """A claim with NO exception in its chain → exception_reasons == []."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-06M-01D-00h00m00s_NXCR1"
+    script = str(workdir / "run.py")
+    out_file = workdir / "result_nxcr.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="tracked")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "hashTRK", role="output")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    out = workdir / "claims_no_exc.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    payload = json.loads(out.read_text())
+    # Assert
+    assert payload["claims"][0]["exception_reasons"] == []
+
+
+def test_v13_exception_reason_null_becomes_no_reason_given(tmp_path, env_sandbox):
+    """An exception run with NULL reason → emitted reason is 'no reason given'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-06M-01D-00h00m00s_NULLR"
+    # reason=None → NULL in DB
+    out_file = _make_exception_run(db, workdir, session_id, "result_null.csv", reason=None)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    out = workdir / "claims_null_reason.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    payload = json.loads(out.read_text())
+    # Assert
+    assert payload["claims"][0]["exception_reasons"] == ["no reason given"]
+
+
+def test_v13_top_level_exceptions_deduped_across_claims(tmp_path, env_sandbox):
+    """Two claims sharing one exception node → top-level exceptions has exactly one entry."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-06M-01D-00h00m00s_DEDUP"
+    out_file = _make_exception_run(db, workdir, session_id, "result_dedup.csv", reason="shared exception reason")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim1\nclaim2\n")
+    # Two claims pointing at the same exception session
+    for line in [1, 2]:
+        clew.add_claim(
+            file_path=str(paper),
+            claim_type="value",
+            line_number=line,
+            claim_value=f"v{line}",
+            source_file=str(out_file),
+            source_session=session_id,
+        )
+    out = workdir / "claims_dedup.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    payload = json.loads(out.read_text())
+    # Assert — only ONE entry in the top-level exceptions list
+    assert len(payload["exceptions"]) == 1
+
+
+def test_v13_top_level_exceptions_has_session_id_and_reason(tmp_path, env_sandbox):
+    """top-level exceptions entry has session_id and reason keys."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-06M-01D-00h00m00s_EXCS1"
+    out_file = _make_exception_run(db, workdir, session_id, "result_excs.csv", reason="known provenance gap")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    out = workdir / "claims_excs.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    exceptions = json.loads(out.read_text())["exceptions"]
+    # Assert — the one entry has both fields
+    assert exceptions[0]["session_id"] == session_id and exceptions[0]["reason"] == "known provenance gap"
+
+
+def test_v13_legend_exception_label_is_honest_wording(tmp_path, env_sandbox):
+    """The exception legend label uses the operator-locked honest (non-vouching) wording."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    _seed_claim(workdir)
+    out = workdir / "claims_legend.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    legend_statuses = json.loads(out.read_text())["legend"]["statuses"]
+    exc_entry = next(e for e in legend_statuses if e["status"] == "exception")
+    # Assert — operator-locked wording: transparent, no vouching
+    assert exc_entry["label"] == (
+        "exception — auto-verification chain does not connect through this declared node"
+        " (transparently NOT auto-verified)"
+    )
