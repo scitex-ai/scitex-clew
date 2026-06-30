@@ -190,21 +190,21 @@ def test_render_dag_image_creates_parent_dirs(isolated_db, tmp_path):
 
 
 def test_status_color_verified_fill_is_light_green():
-    # Arrange
+    # Arrange — schema v1.3: verified fill updated to #2da44e (matching display_palette)
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("verified")
     # Assert
-    assert fill == "#90EE90"
+    assert fill == "#2da44e"
 
 
 def test_status_color_verified_edge_is_dark_green():
-    # Arrange
+    # Arrange — schema v1.3: verified edge updated to #1a6b32 (darker green)
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("verified")
     # Assert
-    assert edge == "#228B22"
+    assert edge == "#1a6b32"
 
 
 def test_status_color_verified_linestyle_is_solid():
@@ -217,12 +217,12 @@ def test_status_color_verified_linestyle_is_solid():
 
 
 def test_status_color_failed_fill_is_red():
-    # Arrange
+    # Arrange — schema v1.3: failed fill updated to #cf222e (matching display_palette unverified)
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("failed")
     # Assert
-    assert fill == "#FFB6C1"
+    assert fill == "#cf222e"
 
 
 def test_status_color_mismatch_fill_matches_failed():
@@ -236,12 +236,12 @@ def test_status_color_mismatch_fill_matches_failed():
 
 
 def test_status_color_suspect_fill_is_amber():
-    # Arrange
+    # Arrange — schema v1.3: suspect fill updated to #d29922 (matching display_palette suspect)
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("suspect")
     # Assert
-    assert fill == "#FFD580"
+    assert fill == "#d29922"
 
 
 def test_status_color_unknown_returns_tuple_of_three():
@@ -254,62 +254,63 @@ def test_status_color_unknown_returns_tuple_of_three():
 
 
 # ---------------------------------------------------------------------------
-# (c) Exception node style: dashed/lavender; frozen file: dashed/steel-blue
+# (c) Exception node style: solid violet; frozen file: solid verified green
+# (Schema v1.3: exception and frozen use solid fills, color-only, no dashes)
 # ---------------------------------------------------------------------------
 
 
 def test_exception_status_fill_is_lavender():
-    # Arrange
+    # Arrange — schema v1.3: exception fill is violet #8250df (solid, not lavender)
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("exception")
     # Assert
-    assert fill == "#E6E6FA"
+    assert fill == "#8250df"
 
 
 def test_exception_status_edge_is_purple():
-    # Arrange
+    # Arrange — schema v1.3: exception edge is #4a1c8a (darker purple)
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("exception")
     # Assert
-    assert edge == "#8A2BE2"
+    assert edge == "#4a1c8a"
 
 
 def test_exception_status_linestyle_is_dashed():
-    # Arrange
+    # Arrange — schema v1.3: exception uses solid fill, NOT dashed (color conveys exception)
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("exception")
-    # Assert
-    assert ls == "--"
+    # Assert — v1.3: solid (None), not dashed
+    assert ls is None
 
 
 def test_file_frozen_status_fill_is_light_blue():
-    # Arrange
+    # Arrange — schema v1.3: frozen folds into verified green #2da44e (not light blue)
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("file_frozen")
     # Assert
-    assert fill == "#E0F0FF"
+    assert fill == "#2da44e"
 
 
 def test_file_frozen_status_edge_is_steel_blue():
-    # Arrange
+    # Arrange — schema v1.3: frozen uses verified green edge #1a6b32 (not steel blue)
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("file_frozen")
     # Assert
-    assert edge == "#4682B4"
+    assert edge == "#1a6b32"
 
 
 def test_file_frozen_status_linestyle_is_dashed():
-    # Arrange
+    # Arrange — schema v1.3: frozen is solid (not dashed); folds into verified green
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("file_frozen")
-    # Assert
-    assert ls == "--"
+    # Assert — v1.3: solid (None), not dashed
+    assert ls is None
 
 
 def test_exception_run_dag_image_node_has_exception_status(exception_run_db, tmp_path):

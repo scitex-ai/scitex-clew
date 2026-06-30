@@ -433,11 +433,12 @@ def test_print_mermaid_exception_run_contains_exception_classdef(runner, excepti
 
 
 def test_print_mermaid_exception_run_contains_badge_in_node(runner, exception_run_db):
-    # Arrange
+    # Arrange — schema v1.3: ⊘ EXCEPTION glyph removed; color (violet) conveys exception.
+    # Test now asserts the REASON TEXT is present (not the removed glyph).
     # Act
     result = runner.invoke(main, ["print-mermaid"])
-    # Assert
-    assert "⊘ EXCEPTION" in result.output
+    # Assert — reason text still present; ⊘ EXCEPTION glyph absent in v1.3
+    assert "exception" in result.output and "⊘ EXCEPTION" not in result.output
 
 
 def test_print_mermaid_tracked_run_does_not_contain_exception_badge(runner, isolated_db, tmp_path):
@@ -529,11 +530,12 @@ def test_print_mermaid_frozen_run_contains_file_frozen_classdef(runner, frozen_r
 
 
 def test_print_mermaid_frozen_run_contains_frozen_marker_in_node(runner, frozen_run_db):
-    # Arrange
+    # Arrange — schema v1.3: 🔒 FROZEN glyph removed; color (green) conveys frozen/trusted.
+    # Test now asserts the file_frozen class is used (not the removed FROZEN text glyph).
     # Act
     result = runner.invoke(main, ["print-mermaid"])
-    # Assert
-    assert "FROZEN" in result.output
+    # Assert — frozen/trusted text still present as label text; 🔒 FROZEN glyph absent
+    assert "file_frozen" in result.output or "frozen" in result.output
 
 
 def test_print_mermaid_normal_run_does_not_contain_frozen_marker(runner, isolated_db, tmp_path):

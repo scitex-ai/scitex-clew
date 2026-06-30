@@ -37,15 +37,66 @@ CLAIM_TYPES = ("statistic", "figure", "table", "text", "value")
 # Hexes are locked with the live-paper consumer (scitex-writer) — do NOT
 # change without a coordinated bump to both packages.
 # Introduced in schema v1.1; referenced by legend block added in v1.2.
+# Updated in schema v1.3: "partial" renamed to "suspect".
 # ---------------------------------------------------------------------------
 _CLAIM_PALETTE: Dict[str, str] = {
     "verified": "2da44e",
-    "partial": "d29922",
+    "suspect": "d29922",
     "mismatch": "cf222e",
     "missing": "cf222e",
     "registered": "6e7781",
 }
 _PALETTE_FALLBACK = "6e7781"  # grey — used for any unknown/future status
+
+# ---------------------------------------------------------------------------
+# Schema v1.3: 4-state display palette (reader-facing, color-only, no icons).
+# Maps the 4 display buckets to accessible hex values.
+# ---------------------------------------------------------------------------
+_DISPLAY_PALETTE: Dict[str, str] = {
+    "verified": "2da44e",
+    "suspect": "d29922",
+    "unverified": "cf222e",
+    "exception": "8250df",
+}
+
+
+def _resolve_display_group(
+    status: str, has_exception: bool, has_frozen: bool
+) -> str:
+    """Resolve the 4-state display bucket for a claim.
+
+    Precedence: unverified > suspect > exception > verified.
+    Frozen folds into verified — it never changes the bucket.
+
+    Parameters
+    ----------
+    status : str
+        The claim's internal status (verified, suspect, mismatch, missing, registered).
+    has_exception : bool
+        True if the claim's provenance chain contains an exception node.
+    has_frozen : bool
+        True if the claim's provenance chain contains a frozen file.
+
+    Returns
+    -------
+    str
+        One of: "verified", "suspect", "unverified", "exception".
+    """
+    if status in ("mismatch", "missing", "registered"):
+        return "unverified"
+    if status == "suspect":
+        return "suspect"
+    if has_exception:
+        return "exception"
+    return "verified"  # plain verified; frozen folds in here
+
+
+# ---------------------------------------------------------------------------
+# Back-compat helper: normalise legacy stored "partial" -> "suspect".
+# ---------------------------------------------------------------------------
+_LEGACY_STATUS_MAP: Dict[str, str] = {
+    "partial": "suspect",
+}
 
 
 @dataclass
@@ -413,6 +464,72 @@ def _resolve_chain_flags(claim: "Claim") -> tuple:
     return chain_has_exception, chain_has_frozen
 
 
+def _resolve_exception_reasons(claim: "Claim") -> List[tuple]:
+    """Return the list of exception nodes in a claim's provenance chain.
+
+    Walks the SAME provenance DAG that :func:`_resolve_chain_flags` walks,
+    reusing :func:`scitex_clew._chain._routes.resolve_file_dag` exactly —
+    no custom traversal.
+
+    Parameters
+    ----------
+    claim : Claim
+        The claim to inspect.
+
+    Returns
+    -------
+    list of (str, str)
+        ``[(session_id, reason), ...]`` for every run in the resolved session
+        set whose ``provenance == 'exception'``. A NULL/empty ``exception_reason``
+        in the DB is replaced by the string ``"no reason given"``.
+        Returns an empty list when the claim has no provenance link or there
+        are no exception nodes in the chain.
+    """
+    from ._chain._routes import resolve_file_dag
+
+    db = get_db()
+
+    # Determine the leaf session to start the backward DAG walk.
+    session_id = claim.source_session
+    if not session_id and claim.source_file:
+        sessions = db.find_session_by_file(
+            str(Path(claim.source_file).resolve()), role="output"
+        )
+        if sessions:
+            session_id = sessions[0]
+
+    if not session_id:
+        return []
+
+    # Walk the provenance DAG from the leaf session backward.
+    _, all_ids = resolve_file_dag([session_id], db=db)
+
+    if not all_ids:
+        return []
+
+    placeholders = ", ".join("?" * len(all_ids))
+    id_list = list(all_ids)
+
+    with db._connect() as conn:
+        rows = conn.execute(
+            f"SELECT session_id, exception_reason FROM runs"
+            f" WHERE session_id IN ({placeholders})"
+            f" AND provenance = 'exception'"
+            f" ORDER BY session_id",
+            id_list,
+        ).fetchall()
+
+    result = []
+    for row in rows:
+        sid = row[0]
+        reason = row[1]
+        if not reason:
+            reason = "no reason given"
+        result.append((sid, reason))
+
+    return result
+
+
 def export_claims_json(
     path: Optional[Union[str, Path]] = None,
     *,
@@ -484,6 +601,8 @@ def export_claims_json(
     # existing fields so the existing field order (and thus byte-positions for
     # streaming parsers) is unchanged.  New fields are purely additive.
     enriched_claims = []
+    # Accumulate all exception nodes across all claims for top-level dedup list.
+    _all_exception_pairs: Dict[str, str] = {}  # session_id -> reason (deduped)
     for c in claims:
         base = c.to_dict()  # all existing fields, byte-identical
         color = _CLAIM_PALETTE.get(c.status, _PALETTE_FALLBACK)
@@ -491,9 +610,22 @@ def export_claims_json(
         base["color"] = color
         base["chain_has_exception"] = chain_has_exception
         base["chain_has_frozen"] = chain_has_frozen
+        # Schema v1.3: display group + display color (4-state, color-only)
+        display_group = _resolve_display_group(c.status, chain_has_exception, chain_has_frozen)
+        base["display_group"] = display_group
+        base["display_color"] = _DISPLAY_PALETTE[display_group]
+        # Schema v1.3 additive: exception_reasons for this claim's chain.
+        if chain_has_exception:
+            exc_pairs = _resolve_exception_reasons(c)
+            base["exception_reasons"] = [reason for _, reason in exc_pairs]
+            # Accumulate into the dedup dict.
+            for sid, reason in exc_pairs:
+                _all_exception_pairs.setdefault(sid, reason)
+        else:
+            base["exception_reasons"] = []
         enriched_claims.append(base)
     # ---------------------------------------------------------------------------
-    # Schema v1.2 additions: attestation + legend blocks.
+    # Schema v1.3: attestation + legend blocks (4-state, no subbadges).
     # ---------------------------------------------------------------------------
     try:
         _pkg_version = importlib.metadata.version("scitex-clew")
@@ -504,24 +636,42 @@ def export_claims_json(
     verified_count = sum(1 for c in claims if c.status == "verified")
     unverified_count = claims_count - verified_count
 
-    # Human-readable labels for each status — one entry per palette key.
-    _STATUS_LABELS: Dict[str, str] = {
-        "verified": "verified — matches source",
-        "partial": "partial — upstream unconfirmed",
-        "mismatch": "mismatch — no longer matches source",
-        "missing": "missing — source not found",
-        "registered": "registered — not yet verified",
-    }
-
+    # Schema v1.3: 4 display states — the reader's legend (color-only, no icons).
     legend_statuses = [
         {
-            "status": status_name,
-            "color": hex_color,
+            "status": "verified",
+            "color": "2da44e",
             "marker": "wavy-underline",
-            "label": _STATUS_LABELS.get(status_name, status_name),
-        }
-        for status_name, hex_color in _CLAIM_PALETTE.items()
+            "label": "verified — matches its source",
+        },
+        {
+            "status": "suspect",
+            "color": "d29922",
+            "marker": "wavy-underline",
+            "label": "suspect — upstream unverified, possibly contaminated",
+        },
+        {
+            "status": "unverified",
+            "color": "cf222e",
+            "marker": "wavy-underline",
+            "label": "unverified — could not confirm against source",
+        },
+        {
+            "status": "exception",
+            "color": "8250df",
+            "marker": "wavy-underline",
+            "label": "exception — auto-verification chain does not connect through this declared node (transparently NOT auto-verified)",
+        },
     ]
+
+    # Static map: internal status -> display bucket (for plain/no-flag claims).
+    display_groups_map: Dict[str, str] = {
+        "verified": "verified",
+        "suspect": "suspect",
+        "mismatch": "unverified",
+        "missing": "unverified",
+        "registered": "unverified",
+    }
 
     payload = {
         "_note": (
@@ -530,9 +680,11 @@ def export_claims_json(
             "scitex_clew.export_claims_json() (default-on after every "
             "clew.add_claim()) or by re-running your pipeline."
         ),
-        "schema_version": "1.2",
+        "schema_version": "1.3",
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "palette": dict(_CLAIM_PALETTE),
+        "display_palette": dict(_DISPLAY_PALETTE),
+        "display_groups": display_groups_map,
         "claims_count": claims_count,
         "attestation": {
             "text": "Provenance checked by SciTeX Clew.",
@@ -545,27 +697,17 @@ def export_claims_json(
         },
         "legend": {
             "statuses": legend_statuses,
-            "subbadges": [
-                {
-                    "key": "exception",
-                    "symbol": "⊘",
-                    "fill": "e6e6fa",
-                    "stroke": "8a2be2",
-                    "label": "human-declared exception",
-                },
-                {
-                    "key": "frozen",
-                    "symbol": "\U0001f512",
-                    "fill": "e0f0ff",
-                    "stroke": "4682b4",
-                    "label": "trusted / frozen source",
-                },
-            ],
             "badge": {
                 "template": "{verified} verified · {unverified} unverified",
                 "all_clear": "Clew Verified — all {n} claims match source",
             },
         },
+        # Schema v1.3 additive: deduped exception nodes across all claims.
+        # Stable sort by session_id for determinism.
+        "exceptions": [
+            {"session_id": sid, "reason": reason}
+            for sid, reason in sorted(_all_exception_pairs.items())
+        ],
         "claims": enriched_claims,
     }
 
@@ -673,7 +815,8 @@ def list_claims(
                 source_hash=row["source_hash"],
                 registered_at=row["registered_at"],
                 verified_at=row["verified_at"],
-                status=row["status"],
+                # Back-compat: normalize legacy "partial" -> "suspect"
+                status=_LEGACY_STATUS_MAP.get(row["status"], row["status"]),
             )
             for row in rows
         ]
@@ -783,8 +926,8 @@ def verify_claim(
         _update_claim_status(claim.claim_id, "verified", db)
         result["claim"]["status"] = "verified"
     elif result["source_verified"]:
-        _update_claim_status(claim.claim_id, "partial", db)
-        result["claim"]["status"] = "partial"
+        _update_claim_status(claim.claim_id, "suspect", db)
+        result["claim"]["status"] = "suspect"
 
     return result
 
@@ -1064,7 +1207,8 @@ def _resolve_claim(identifier: str, db) -> Optional[Claim]:
                 source_hash=row["source_hash"],
                 registered_at=row["registered_at"],
                 verified_at=row["verified_at"],
-                status=row["status"],
+                # Back-compat: normalize legacy "partial" -> "suspect"
+                status=_LEGACY_STATUS_MAP.get(row["status"], row["status"]),
             )
         return None
     finally:
@@ -1100,7 +1244,7 @@ def format_claims(claims: List[Claim], verbose: bool = False) -> str:
         "verified": "\u2713",  # ✓
         "mismatch": "\u2717",  # ✗
         "missing": "?",
-        "partial": "~",
+        "suspect": "~",
         "superseded": "⊘",  # ⊘
     }
 
