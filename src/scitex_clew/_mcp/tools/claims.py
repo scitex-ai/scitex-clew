@@ -35,6 +35,7 @@ def register_tools(mcp: FastMCP) -> None:
         claim_value: Optional[str] = None,
         source_file: Optional[str] = None,
         source_session: Optional[str] = None,
+        claim_id: Optional[str] = None,
     ) -> str:
         """Register a manuscript claim linking an assertion to its source file/session.
 
@@ -54,6 +55,10 @@ def register_tools(mcp: FastMCP) -> None:
             Path to the source file that produced the claim.
         source_session : str, optional
             Session ID that produced the source.
+        claim_id : str, optional
+            Explicit, stable claim id used verbatim (e.g. a figure save-path).
+            When omitted, the id is derived from file/line/type/value so
+            distinct values no longer collapse.
         """
         from scitex_clew import add_claim
 
@@ -65,6 +70,7 @@ def register_tools(mcp: FastMCP) -> None:
                 claim_value=claim_value,
                 source_file=source_file,
                 source_session=source_session,
+                claim_id=claim_id,
             )
         except ValueError as exc:
             return _json({"error": str(exc), "claim": None})

@@ -111,6 +111,16 @@ def claim() -> None:
     default=None,
     help="Session ID that produced the source.",
 )
+@click.option(
+    "--claim-id",
+    "claim_id",
+    default=None,
+    help=(
+        "Explicit, stable claim id used verbatim (e.g. a figure save-path or a "
+        "semantic key). When omitted the id is derived from "
+        "file/line/type/value so distinct values never collapse."
+    ),
+)
 @click.pass_context
 def claim_add(
     ctx: click.Context,
@@ -120,6 +130,7 @@ def claim_add(
     claim_value,
     source_file,
     source_session,
+    claim_id,
     dry_run: bool,
     yes: bool,
 ) -> None:
@@ -135,6 +146,7 @@ def claim_add(
             "claim_value": claim_value,
             "source_file": source_file,
             "source_session": source_session,
+            "claim_id": claim_id,
         }
         if _json_mode(ctx):
             click.echo(_json.dumps({"dry_run": True, "claim": preview}, indent=2))
@@ -152,6 +164,7 @@ def claim_add(
             claim_value=claim_value,
             source_file=source_file,
             source_session=source_session,
+            claim_id=claim_id,
         )
     except ValueError as exc:
         msg = {"error": str(exc), "claim": None}
