@@ -33,7 +33,7 @@ def main(
         .round(2)
     )
 
-    stx.io.save(stats.reset_index(), "stats_by_source.csv")
+    stx.io.save(stats.reset_index(), str(CONFIG.SDIR_OUT / "stats_by_source.csv"))
 
     # Final report
     report = {
@@ -44,7 +44,7 @@ def main(
         "overall_std": float(data["value"].std()),
         "max_combined_score": float(data["combined_score"].max()),
     }
-    stx.io.save(report, "report.json")
+    stx.io.save(report, str(CONFIG.SDIR_OUT / "report.json"))
 
     logger.info("Analysis complete")
     return 0

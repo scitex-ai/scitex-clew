@@ -37,7 +37,7 @@ def main(
     merged = pd.concat([data_a, data_b, data_c], ignore_index=True)
     merged["combined_score"] = merged["value"] * 1.1
 
-    stx.io.save(merged, "final.csv")
+    stx.io.save(merged, str(CONFIG.SDIR_OUT / "final.csv"))
     logger.info(f"Merged {len(merged)} total rows from 3 sources")
     return 0
 

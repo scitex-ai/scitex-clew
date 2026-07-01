@@ -29,7 +29,7 @@ def main(
     data_clean = data[data["value"] > 70].copy()
     data_clean["source"] = "C"
 
-    stx.io.save(data_clean, "clean_C.csv")
+    stx.io.save(data_clean, str(CONFIG.SDIR_OUT / "clean_C.csv"))
     logger.info(f"Preprocessed {len(data_clean)} rows from source C")
     return 0
 

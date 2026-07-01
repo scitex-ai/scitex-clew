@@ -32,7 +32,8 @@ def main(
             "category": rng.choice(["X", "Y", "Z"], n_samples),
         }
     )
-    stx.io.save(data, "source_B.csv")
+    # PATH BUG FIX: see 01_source_a.py
+    stx.io.save(data, str(CONFIG.SDIR_OUT / "source_B.csv"))
 
     logger.info(f"Generated {n_samples} samples for source B")
     return 0

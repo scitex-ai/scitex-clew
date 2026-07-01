@@ -32,10 +32,13 @@ def main(
             "category": rng.choice(["X", "Y"], n_samples),
         }
     )
-    stx.io.save(data, "source_A.csv")
+    # PATH BUG FIX: write into CONFIG.SDIR_OUT (== 01_source_a_out/) so the
+    # next stage finds the file at the canonical 01_source_a_out/source_A.csv
+    # path even before scitex.session finalizes the run.
+    stx.io.save(data, str(CONFIG.SDIR_OUT / "source_A.csv"))
 
     config = {"threshold": 0.5, "method": "mean", "source": "A"}
-    stx.io.save(config, "config_A.json")
+    stx.io.save(config, str(CONFIG.SDIR_OUT / "config_A.json"))
 
     logger.info(f"Generated {n_samples} samples for source A")
     return 0

@@ -1,0 +1,34 @@
+graph TD
+    script_0["✓✓ 🐍 01_source_a.py<br/>(RUN: pWOE)<br/>3d3065a9..."]:::verified_scratch
+    file_source_A_csv_ec8a6b92[("✓✓ 📊 source_A.csv<br/>971118e4...")]:::file_rerun
+    script_0 --> file_source_A_csv_ec8a6b92
+    file_config_A_json_907c35d5[("✓✓ 📋 config_A.json<br/>400824f7...")]:::file_rerun
+    script_0 --> file_config_A_json_907c35d5
+    script_1["✓ 🐍 02_preprocess_a.py<br/>(RUN: b6sK)<br/>b1d26ee3..."]:::verified
+    file_source_A_csv_ec8a6b92 --> script_1
+    file_config_A_json_907c35d5 --> script_1
+    file_clean_A_csv_7645875a[("✓ 📊 clean_A.csv<br/>9ae11e41...")]:::file_ok
+    script_1 --> file_clean_A_csv_7645875a
+    script_2["✗ 🐍 07_merge.py<br/>(RUN: lv2m)<br/>bfed3fd9..."]:::failed
+    file_clean_A_csv_7645875a --> script_2
+    file_clean_B_csv_142f09e4[("✓ 📊 clean_B.csv<br/>5cf6e83d...")]:::file_ok
+    file_clean_B_csv_142f09e4 --> script_2
+    file_clean_C_csv_cfcdf5bd[("✗ 📊 clean_C.csv<br/>001e4208...")]:::file_bad
+    file_clean_C_csv_cfcdf5bd --> script_2
+    file_final_csv_27d0dbae[("✗ 📊 final.csv<br/>5bfc229c...")]:::file_bad
+    script_2 --> file_final_csv_27d0dbae
+    script_3["✗ 🐍 08_analyze.py<br/>(RUN: XI4o)<br/>389bff25..."]:::failed
+    file_final_csv_27d0dbae --> script_3
+    file_stats_by_source_csv_3c5fb90a[("✗ 📊 stats_by_source.csv<br/>73f05f47...")]:::file_bad
+    script_3 --> file_stats_by_source_csv_3c5fb90a
+    file_report_json_76a84217[("✗ 📋 report.json<br/>cf546fd3...")]:::file_bad
+    script_3 --> file_report_json_76a84217
+
+    classDef script fill:#87CEEB,stroke:#4169E1,stroke-width:2px
+    classDef verified fill:#90EE90,stroke:#228B22
+    classDef verified_scratch fill:#90EE90,stroke:#228B22,stroke-width:4px
+    classDef failed fill:#FFB6C1,stroke:#DC143C
+    classDef file fill:#FFF8DC,stroke:#DAA520
+    classDef file_ok fill:#90EE90,stroke:#228B22
+    classDef file_rerun fill:#90EE90,stroke:#228B22,stroke-width:4px
+    classDef file_bad fill:#FFB6C1,stroke:#DC143C
