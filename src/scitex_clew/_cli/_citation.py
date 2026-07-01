@@ -148,17 +148,33 @@ def citation() -> None:
     """Citation-node operations (list / verify \\cite -> scholar source)."""
 
 
-@citation.command("list")
+@citation.command(
+    "list",
+    epilog=(
+        "Example:\n"
+        "  $ scitex-clew citation list\n"
+        "  $ scitex-clew citation list --status stub --json"
+    ),
+)
 @click.option(
     "--manuscript", "manuscript", default=None, help="Filter by manuscript file."
 )
 @click.option("--status", "status", default=None, help="Filter by status.")
 @click.option("--limit", type=int, default=1000, help="Maximum nodes to list.")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    help="Emit JSON (also accepted at top level).",
+)
 @click.pass_context
 def citation_list(
-    ctx: click.Context, manuscript, status, limit: int
+    ctx: click.Context, manuscript, status, limit: int, as_json: bool
 ) -> None:
     """List registered citation nodes."""
+    if as_json:
+        ctx.obj = ctx.obj or {}
+        ctx.obj["json"] = True
     from scitex_clew._citation import format_citations, list_citations
 
     cits = list_citations(manuscript_file=manuscript, status=status, limit=limit)

@@ -52,7 +52,7 @@ _BIB = """
 
 
 def test_verified_bib_key_exits_zero(runner, tmp_path):
-    # Arrange — scholar pushed Berens as a real source; bib matches.
+    # Arrange
     import scitex_clew as clew
 
     clew.add_citation("Berens2009", doi="10.18637/jss.v031.i10")
@@ -67,7 +67,7 @@ def test_verified_bib_key_exits_zero(runner, tmp_path):
 
 
 def test_stub_bib_key_exits_citation_stub(runner, tmp_path):
-    # Arrange — Pinto is an auto-generated stub in the bib, never resolved.
+    # Arrange
     bib = tmp_path / "refs.bib"
     bib.write_text(_BIB)
     # Act
@@ -91,9 +91,11 @@ def test_json_format_emits_per_key_map(runner, tmp_path):
     assert json.loads(result.output)["citations"]["Pinto2023"]["status"] == "stub"
 
 
-def test_missing_bib_errors(runner, tmp_path):
-    # Arrange / Act — nonexistent bib path.
-    result = runner.invoke(main, ["verify-citations", "--bib", str(tmp_path / "no.bib")])
+def test_missing_bib_file_errors(runner, tmp_path):
+    # Arrange
+    missing = tmp_path / "no.bib"
+    # Act
+    result = runner.invoke(main, ["verify-citations", "--bib", str(missing)])
     # Assert
     assert result.exit_code != 0
 

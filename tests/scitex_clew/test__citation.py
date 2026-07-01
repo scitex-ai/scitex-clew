@@ -34,25 +34,30 @@ def isolated_db(tmp_path):
 
 class TestAddCitation:
     def test_resolved_with_doi_is_verified(self, isolated_db):
-        # Arrange / Act
+        # Arrange
+        # Act
         c = clew.add_citation("Berens2009", doi="10.1/x", source_id="s1")
         # Assert
         assert c.status == "verified"
 
     def test_stub_flag_is_stub(self, isolated_db):
-        # Arrange / Act
+        # Arrange
+        # Act
         c = clew.add_citation("Pinto2023", is_stub=True, resolved=False)
         # Assert
         assert c.status == "stub"
 
     def test_resolved_without_doi_is_unverified(self, isolated_db):
-        # Arrange / Act
+        # Arrange
+        # Act
         c = clew.add_citation("NoDoi2020", resolved=True)
         # Assert
         assert c.status == "unverified"
 
-    def test_empty_key_raises(self, isolated_db):
-        # Arrange / Act / Assert
+    def test_empty_key_raises_value_error(self, isolated_db):
+        # Arrange
+        # Act
+        # Assert
         with pytest.raises(ValueError):
             clew.add_citation("  ")
 
@@ -77,15 +82,16 @@ class TestVerifyCitationsPerKey:
         # Assert
         assert result["Pinto2023"]["status"] == "stub"
 
-    def test_local_stub_heuristic_no_doi(self, isolated_db):
-        # Arrange — never pushed; bib entry has no DOI.
+    def test_local_stub_heuristic_flags_no_doi(self, isolated_db):
+        # Arrange
+        entry = {"key": "X", "journal": "Nature"}
         # Act
-        result = clew.verify_citations([{"key": "X", "journal": "Nature"}])
+        result = clew.verify_citations([entry])
         # Assert
         assert result["X"]["status"] == "stub"
 
-    def test_local_stub_heuristic_pending_journal(self, isolated_db):
-        # Arrange — never pushed; journal marks a scholar-pending stub.
+    def test_local_stub_heuristic_flags_pending_journal(self, isolated_db):
+        # Arrange
         entry = {"key": "Y", "journal": "Pending scitex-scholar metadata lookup"}
         # Act
         result = clew.verify_citations([entry])
@@ -93,26 +99,30 @@ class TestVerifyCitationsPerKey:
         assert result["Y"]["status"] == "stub"
 
     def test_in_bib_not_registered_is_unverified(self, isolated_db):
-        # Arrange — real-looking DOI-bearing entry but scholar never pushed it.
+        # Arrange
+        entry = {"key": "Z", "doi": "10.2/y"}
         # Act
-        result = clew.verify_citations([{"key": "Z", "doi": "10.2/y"}])
+        result = clew.verify_citations([entry])
         # Assert
         assert result["Z"]["status"] == "unverified"
 
     def test_bare_key_is_unknown(self, isolated_db):
-        # Arrange / Act — no node, no metadata.
-        result = clew.verify_citations([{"key": "Ghost"}])
+        # Arrange
+        entry = {"key": "Ghost"}
+        # Act
+        result = clew.verify_citations([entry])
         # Assert
         assert result["Ghost"]["status"] == "unknown"
 
-    def test_bare_string_entry_accepted(self, isolated_db):
-        # Arrange / Act — list[str] form is coerced to {"key": ...}.
+    def test_bare_string_entry_is_accepted(self, isolated_db):
+        # Arrange
+        # Act
         result = clew.verify_citations(["Ghost"])
         # Assert
         assert result["Ghost"]["status"] == "unknown"
 
     def test_changed_doi_trips_drift(self, isolated_db):
-        # Arrange — registered with one DOI, cited with another.
+        # Arrange
         clew.add_citation("Berens2009", doi="10.1/x")
         # Act
         result = clew.verify_citations([{"key": "Berens2009", "doi": "10.9/wrong"}])
@@ -124,7 +134,7 @@ class TestVerifyCitationsPerKey:
 
 
 class TestVerifyAllCitations:
-    def test_all_verified_is_ok(self, isolated_db):
+    def test_all_verified_set_is_ok(self, isolated_db):
         # Arrange
         clew.add_citation("Berens2009", doi="10.1/x")
         # Act
@@ -141,7 +151,7 @@ class TestVerifyAllCitations:
         assert result.exit_code == codes.CITATION_STUB
 
     def test_mixed_set_reports_worst_code(self, isolated_db):
-        # Arrange — a stub co-occurs with an unknown; stub is worst.
+        # Arrange
         clew.add_citation("Pinto2023", is_stub=True, resolved=False)
         entries = [{"key": "Pinto2023"}, {"key": "Ghost"}]
         # Act
@@ -150,19 +160,24 @@ class TestVerifyAllCitations:
         assert result.exit_name == "CITATION_STUB"
 
     def test_unknown_key_maps_to_unlinked(self, isolated_db):
-        # Arrange / Act
-        result = clew.verify_all_citations([{"key": "Ghost"}])
+        # Arrange
+        entries = [{"key": "Ghost"}]
+        # Act
+        result = clew.verify_all_citations(entries)
         # Assert
         assert result.exit_code == codes.CITATION_UNLINKED
 
     def test_unresolved_key_maps_to_unresolved(self, isolated_db):
-        # Arrange / Act — in-bib, not scholar-registered.
-        result = clew.verify_all_citations([{"key": "Z", "doi": "10.2/y"}])
+        # Arrange
+        entries = [{"key": "Z", "doi": "10.2/y"}]
+        # Act
+        result = clew.verify_all_citations(entries)
         # Assert
         assert result.exit_code == codes.CITATION_UNRESOLVED
 
     def test_empty_set_is_no_claims(self, isolated_db):
-        # Arrange / Act
+        # Arrange
+        # Act
         result = clew.verify_all_citations([])
         # Assert
         assert result.exit_code == codes.NO_CLAIMS
@@ -173,11 +188,15 @@ class TestVerifyAllCitations:
 
 class TestCitationExitCodes:
     def test_codes_are_stable_integers(self):
-        # Arrange / Act / Assert — the documented contract downstream branches on.
-        assert (codes.CITATION_STUB, codes.CITATION_UNRESOLVED, codes.CITATION_UNLINKED) == (14, 15, 16)
+        # Arrange
+        actual = (codes.CITATION_STUB, codes.CITATION_UNRESOLVED, codes.CITATION_UNLINKED)
+        # Act
+        # Assert
+        assert actual == (14, 15, 16)
 
-    def test_citation_patterns_default_error(self):
-        # Arrange / Act
+    def test_citation_patterns_default_to_error(self):
+        # Arrange
+        # Act
         sev = codes.resolve_severity()
         # Assert
         assert sev[codes.CITATION_STUB] == codes.Severity.ERROR
@@ -187,7 +206,7 @@ class TestCitationExitCodes:
 
 
 class TestListCitations:
-    def test_status_filter(self, isolated_db):
+    def test_status_filter_returns_only_matching(self, isolated_db):
         # Arrange
         clew.add_citation("A", doi="10.1/a")
         clew.add_citation("B", is_stub=True, resolved=False)
