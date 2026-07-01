@@ -1,0 +1,11 @@
+ID: 2026Y-06M-01D-17h03m47s_GmgW
+PID: 1067
+START_DATETIME: 2026-06-01 17:03:47.184781
+FILE: /home/ywatanabe/proj/scitex-clew/examples/01_basic_verification.py
+SDIR_OUT: /home/ywatanabe/proj/scitex-clew/examples/01_basic_verification_out
+SDIR_RUN: 
+    /home/ywatanabe/proj/scitex-clew/examples/01_basic_verification_out/RUNNING/2026Y-06M-01D-17h03m47s_GmgW-main
+ARGS: {}
+EXIT_STATUS: 0
+END_DATETIME: 2026-06-01 17:03:50.502246
+RUN_DURATION: 00:00:03
