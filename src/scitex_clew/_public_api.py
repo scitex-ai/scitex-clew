@@ -45,6 +45,7 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     "verify_claim": ("._claim", "verify_claim"),
     "verify_all_claims": ("._claim", "verify_all_claims"),
     "export_claims_json": ("._claim", "export_claims_json"),
+    "export_manuscript_claims": ("._claim", "export_manuscript_claims"),
     "format_claims": ("._claim", "format_claims"),
     "verify_claims_dag": ("._claim", "verify_claims_dag"),
     "remove_claim": ("._claim", "remove_claim"),

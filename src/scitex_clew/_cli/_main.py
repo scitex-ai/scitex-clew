@@ -23,6 +23,7 @@ import click
 from ._citation import citation, verify_citations_cmd
 from ._claim import claim
 from ._estimate import estimate
+from ._export import export_claims as export_claims_cmd
 from ._hash import hash_directory, hash_file
 from ._introspect import list_python_apis
 from ._mcp import mcp
@@ -56,7 +57,7 @@ COMMAND_CATEGORIES = [
             "estimate",
         ],
     ),
-    ("Claims", ["claim"]),
+    ("Claims", ["claim", "export-claims"]),
     ("Citations", ["verify-citations", "citation"]),
     ("Hashing", ["hash-file", "hash-directory"]),
     ("Stamping", ["stamp", "list-stamps", "check-stamp"]),
@@ -225,6 +226,7 @@ main.add_command(mcp)
 
 # F1: claim group, hash-file/-directory, stamp / list-stamps / check-stamp.
 main.add_command(claim)
+main.add_command(export_claims_cmd)
 
 # Citation gate: verify-citations (compiler pre-flight) + citation group.
 main.add_command(verify_citations_cmd)

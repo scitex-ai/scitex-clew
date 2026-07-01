@@ -235,6 +235,18 @@ def render_dag(
         finally:
             Path(mmd_path).unlink(missing_ok=True)
 
+    elif ext in (".sqlite", ".db"):
+        # A caller passed the clew STORE path as the render target. clew reads
+        # the DAG from the store INTERNALLY (via session_id/claims) and infers
+        # the output format from THIS path's suffix — the store is never a
+        # render target. Pass a dag.<ext> output path instead.
+        raise ValueError(
+            f"'{ext}' is the clew store, not a render target — render_dag reads "
+            "the DAG from the store internally. Pass an OUTPUT path ending in "
+            ".png, .svg, .html, .json, or .mmd "
+            "(e.g. render_dag('dag.png', claims=True))."
+        )
+
     else:
         raise ValueError(
             f"Unsupported format: {ext}. Use .html, .png, .svg, .json, or .mmd"

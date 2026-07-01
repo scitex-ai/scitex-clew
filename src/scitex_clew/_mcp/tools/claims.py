@@ -195,5 +195,30 @@ def register_tools(mcp: FastMCP) -> None:
         found = supersede_claim(claim_id_or_location)
         return _json({"superseded": found, "claim_id_or_location": claim_id_or_location})
 
+    @mcp.tool()
+    async def clew_export_manuscript_claims(
+        path: Optional[str] = None,
+        read_only: bool = True,
+    ) -> str:
+        """Emit the UNIFIED render feed (value + citation + figure) to claims.json.
+
+        Reads both clew ledgers (claims + citations) and writes ONE ``claims``
+        list in scitex-writer's frozen render schema. This is the compile-time
+        exporter the writer "Clew Render" pre-flight calls.
+
+        Mirrors ``scitex_clew.export_manuscript_claims``.
+
+        Parameters
+        ----------
+        path : str, optional
+            Output path (default: canonical .scitex/clew/runtime/claims.json).
+        read_only : bool, optional
+            chmod 0o444 the file after writing (default True).
+        """
+        from scitex_clew import export_manuscript_claims
+
+        out = export_manuscript_claims(path=path, read_only=read_only)
+        return _json({"path": str(out)})
+
 
 # EOF

@@ -9,7 +9,7 @@ import scitex_clew as clew
 class TestPublicAPI:
     """Verify __all__ contains the expected public names."""
 
-    def test_all_count_len_clew_all_is_33(self):
+    def test_all_count_len_clew_all_is_34(self):
         # 26 public names + canonical __version__ string (per PA201).
         # +1 over the previous 26 for ``estimate`` (the Phase 1 pre-flight
         # compute estimate, 2026-06-27). ``EstimateResult`` is intentionally
@@ -17,10 +17,11 @@ class TestPublicAPI:
         # +2 for ``remove_claim`` and ``supersede_claim`` (2026-06-30).
         # +4 for the citation gate: ``add_citation`` / ``list_citations`` /
         # ``verify_citations`` / ``verify_all_citations`` (2026-07-01).
+        # +1 for ``export_manuscript_claims`` (unified render bridge, 2026-07-02).
         # Arrange
         # Act
         # Assert
-        assert len(clew.__all__) == 33
+        assert len(clew.__all__) == 34
 
     def test_all_names_set_clew_all_expected(self):
         # Arrange
@@ -42,6 +43,7 @@ class TestPublicAPI:
             "verify_claim",
             "verify_all_claims",
             "export_claims_json",
+            "export_manuscript_claims",
             "register_intermediate",
             "remove_claim",
             "supersede_claim",
