@@ -54,6 +54,13 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     "Claim": ("._claim", "Claim"),
     "ClaimVerification": ("._claim", "ClaimVerification"),
     "VerificationResult": ("._claim", "VerificationResult"),
+    # _citation (citation -> scholar-verified source gate)
+    "add_citation": ("._citation", "add_citation"),
+    "list_citations": ("._citation", "list_citations"),
+    "verify_citations": ("._citation", "verify_citations"),
+    "verify_all_citations": ("._citation", "verify_all_citations"),
+    "format_citations": ("._citation", "format_citations"),
+    "Citation": ("._citation", "Citation"),
     # _cli._exit_codes (configurable verify severity)
     "Severity": ("._cli._exit_codes", "Severity"),
     # _estimate (Phase 1: pre-flight compute estimate)

@@ -51,6 +51,19 @@ NO_LINEAGE    13     ``--strict`` only: a claim's source hashes fine but
                      hand-written leaf (e.g. a hand-edited ``results.json``)
                      with no ``@stx.session`` / processing chain. Source
                      integrity is intact but provenance is absent.
+CITATION_STUB 14     At least one ``\\cite{}`` key resolves to a scholar
+                     STUB (note="Auto-generated stub" / journal="Pending
+                     scitex-scholar metadata lookup" / no DOI) — a
+                     hallucinated / placeholder reference. THE FLAGSHIP
+                     "一発アウト" catch (per-key status ``stub``).
+CITATION_UNRESOLVED 15  At least one cited key has no confirmed real
+                     source yet — registered but scholar has not resolved
+                     it to a DOI-bearing source (per-key status
+                     ``unverified``).
+CITATION_UNLINKED 16  At least one ``\\cite{}`` key present in the
+                     manuscript has no clew citation node at all — never
+                     registered by scholar and nothing to judge it against
+                     (per-key status ``unknown``).
 ============  =====  ====================================================
 
 When more than one failure class is present across the claim set, the
@@ -73,6 +86,15 @@ UNVERIFIED: int = 10
 SOURCE_MISSING: int = 11
 HASH_MISMATCH: int = 12
 NO_LINEAGE: int = 13
+# Citation gate (``\cite`` -> scholar-verified source). The per-key status
+# vocabulary {verified, stub, unverified, unknown} (returned by
+# :func:`scitex_clew.verify_citations`) reduces onto these aggregate codes:
+#   stub       -> CITATION_STUB        (hallucinated / auto-generated stub)
+#   unverified -> CITATION_UNRESOLVED  (cited but no confirmed real source)
+#   unknown    -> CITATION_UNLINKED    (cited key with no clew citation node)
+CITATION_STUB: int = 14
+CITATION_UNRESOLVED: int = 15
+CITATION_UNLINKED: int = 16
 NO_CLAIMS: int = 20
 
 # Human-readable name per code (for summaries / JSON payloads).
@@ -82,6 +104,9 @@ NAMES: Dict[int, str] = {
     SOURCE_MISSING: "SOURCE_MISSING",
     HASH_MISMATCH: "HASH_MISMATCH",
     NO_LINEAGE: "NO_LINEAGE",
+    CITATION_STUB: "CITATION_STUB",
+    CITATION_UNRESOLVED: "CITATION_UNRESOLVED",
+    CITATION_UNLINKED: "CITATION_UNLINKED",
     NO_CLAIMS: "NO_CLAIMS",
 }
 
@@ -98,11 +123,25 @@ REASONS: Dict[int, str] = {
         "a claim's source has no upstream @stx.session lineage "
         "(hand-written leaf) — strict mode"
     ),
+    CITATION_STUB: (
+        "a cited source is a scholar stub (auto-generated / journal pending "
+        "/ no DOI) — a hallucinated or placeholder reference"
+    ),
+    CITATION_UNRESOLVED: (
+        "a cited key has no confirmed real source yet "
+        "(registered but not resolved to a DOI-bearing source)"
+    ),
+    CITATION_UNLINKED: (
+        "a cited key has no clew citation node at all "
+        "(never registered by scholar)"
+    ),
     NO_CLAIMS: "no claims registered — nothing to verify",
 }
 
 # Severity ranking: higher wins when several failure classes co-occur.
-# Ordered by "what the agent must fix first".
+# Ordered by "what the agent must fix first". Citation failures rank above the
+# value-integrity failures: a hallucinated source (CITATION_STUB) is the
+# flagship "一発アウト" catch and should be the reported code when it co-occurs.
 SEVERITY: Dict[int, int] = {
     OK: 0,
     NO_CLAIMS: 1,
@@ -110,6 +149,9 @@ SEVERITY: Dict[int, int] = {
     UNVERIFIED: 3,
     SOURCE_MISSING: 4,
     HASH_MISMATCH: 5,
+    CITATION_UNLINKED: 6,
+    CITATION_UNRESOLVED: 7,
+    CITATION_STUB: 8,
 }
 
 
@@ -152,6 +194,9 @@ KEY_BY_CODE: Dict[int, str] = {
     SOURCE_MISSING: "source_missing",
     HASH_MISMATCH: "hash_mismatch",
     NO_LINEAGE: "no_lineage",
+    CITATION_STUB: "citation_stub",
+    CITATION_UNRESOLVED: "citation_unresolved",
+    CITATION_UNLINKED: "citation_unlinked",
     NO_CLAIMS: "no_claims",
 }
 CODE_BY_KEY: Dict[str, int] = {key: code for code, key in KEY_BY_CODE.items()}
@@ -159,11 +204,16 @@ CODE_BY_KEY: Dict[str, int] = {key: code for code, key in KEY_BY_CODE.items()}
 # Default posture: fail-loud on every integrity/fabrication pattern. NO_LINEAGE
 # defaults to WARNING because it only fires under --strict, which itself
 # promotes it to ERROR (the flag means "require real computation, fatally").
+# All citation patterns default ERROR: a hallucinated / unresolved / unlinked
+# citation must block a research-project compile ("一発アウト").
 DEFAULT_SEVERITY: Dict[int, Severity] = {
     UNVERIFIED: Severity.ERROR,
     SOURCE_MISSING: Severity.ERROR,
     HASH_MISMATCH: Severity.ERROR,
     NO_LINEAGE: Severity.WARNING,
+    CITATION_STUB: Severity.ERROR,
+    CITATION_UNRESOLVED: Severity.ERROR,
+    CITATION_UNLINKED: Severity.ERROR,
     NO_CLAIMS: Severity.ERROR,
 }
 
@@ -258,6 +308,9 @@ __all__ = [
     "SOURCE_MISSING",
     "HASH_MISMATCH",
     "NO_LINEAGE",
+    "CITATION_STUB",
+    "CITATION_UNRESOLVED",
+    "CITATION_UNLINKED",
     "NO_CLAIMS",
     "NAMES",
     "REASONS",

@@ -20,6 +20,7 @@ import sys
 
 import click
 
+from ._citation import citation, verify_citations_cmd
 from ._claim import claim
 from ._estimate import estimate
 from ._hash import hash_directory, hash_file
@@ -56,6 +57,7 @@ COMMAND_CATEGORIES = [
         ],
     ),
     ("Claims", ["claim"]),
+    ("Citations", ["verify-citations", "citation"]),
     ("Hashing", ["hash-file", "hash-directory"]),
     ("Stamping", ["stamp", "list-stamps", "check-stamp"]),
     ("Visualization", ["print-mermaid"]),
@@ -223,6 +225,10 @@ main.add_command(mcp)
 
 # F1: claim group, hash-file/-directory, stamp / list-stamps / check-stamp.
 main.add_command(claim)
+
+# Citation gate: verify-citations (compiler pre-flight) + citation group.
+main.add_command(verify_citations_cmd)
+main.add_command(citation)
 main.add_command(hash_file)
 main.add_command(hash_directory)
 main.add_command(stamp)
