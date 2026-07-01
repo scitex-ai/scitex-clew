@@ -45,6 +45,12 @@ import click
     help="chmod 0o444 the output after writing (default: read-only).",
 )
 @click.option(
+    "--dry-run",
+    "dry_run",
+    is_flag=True,
+    help="Print the target path + mode that WOULD be written; do not write.",
+)
+@click.option(
     "-y",
     "--yes",
     "yes",
@@ -59,10 +65,25 @@ import click
 )
 @click.pass_context
 def export_claims(
-    ctx: click.Context, unified: bool, path, read_only: bool, yes: bool, as_json: bool
+    ctx: click.Context,
+    unified: bool,
+    path,
+    read_only: bool,
+    dry_run: bool,
+    yes: bool,
+    as_json: bool,
 ) -> None:
     """Regenerate the claims.json artifact (per-claim, or --unified render feed)."""
     del yes  # accepted for §2 compliance
+    if dry_run:
+        kind = "unified render feed" if unified else "per-claim v1.3"
+        target = path if path else "<canonical .scitex/clew/runtime/claims.json>"
+        preview = {"dry_run": True, "unified": unified, "path": str(target)}
+        if as_json or (ctx.obj and ctx.obj.get("json")):
+            click.echo(_json.dumps(preview, indent=2))
+        else:
+            click.echo(f"DRY RUN — would export {kind} -> {target}")
+        return
     if unified:
         from scitex_clew import export_manuscript_claims
 
