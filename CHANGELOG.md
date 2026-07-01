@@ -18,6 +18,14 @@ versions follow [Semantic Versioning](https://semver.org/).
 ### Why
 Concrete failure 2026-06-19: a blocked solver hand-coded "estimated" metrics into `results.json`, registered 24 claims pointing at it, and printed "DONE" — but the claims were `status="registered"`, `verified_at=null`, with no `@stx.session` computation behind the source (submission scored 0.0). Clew recorded the missing provenance, but nothing forced verification before DONE and a quick `verify` had no loud, machine-actionable signal. The contract: a solver MUST run `clew verify [--strict]` before signalling DONE; DONE is legitimate only on exit `0`, otherwise the agent must abstain honestly (`null` + reason). Documented in skills `21_agentic-reasoning.md`, `04_cli-reference.md`, `03_python-api.md`, `SKILL.md`.
 
+## [0.3.0]
+
+### Added
+- **Citation gate — `\cite` → scholar-verified source.** Extends clew's claim→source verification from VALUES to CITATIONS: a hallucinated / stub / unresolved citation is caught fail-loud at compile ("一発アウト"). New `scitex_clew.add_citation(...)` (scholar push model — clew is the ledger, never re-does DOI resolution), `verify_citations(entries) -> {key: {status, doi, source_id, link, reason}}` (per-key; `status ∈ {verified, stub, unverified, unknown}`; `link` resolves scholar url → `https://doi.org/<doi>` → None for the render layer), `verify_all_citations(...) -> VerificationResult` (same-run fail-loud aggregate), `list_citations(...)`. New exit codes `CITATION_STUB=14` / `CITATION_UNRESOLVED=15` / `CITATION_UNLINKED=16` (ERROR-default, config-tunable under `verify.severity`). CLI `clew verify-citations --bib <merged.bib> --keys … --format json` (compiler pre-flight) + `clew citation list`; 4 MCP tools. DOI-keyed drift detection; local stub heuristic identical to scitex-writer's fallback.
+
+### Fixed
+- **`add_claim` no longer silently collapses distinct claims.** The claim id was `hash(file_path, line_number, claim_type)` with `claim_value` excluded, so two distinct numbers sharing a `(file, line, type)` overwrote each other under `INSERT OR REPLACE` — dropping claims at scale (many numbers per manuscript line). `claim_value` is now folded into the derived id (idempotent re-registration preserved), and `add_claim(..., claim_id=...)` accepts an explicit, stable id used verbatim (e.g. a figure image save-path, or a semantic key per number) so render macros can join deterministically. CLI `claim add --claim-id` + MCP `clew_add_claim(claim_id=)` mirror it.
+
 ## [0.2.16]
 
 ### Fixed
