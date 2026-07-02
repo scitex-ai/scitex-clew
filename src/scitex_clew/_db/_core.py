@@ -73,6 +73,37 @@ def _default_db_path(project_root: Path) -> Path:
     return new
 
 
+def resolve_db_path(
+    db_path: Optional[Union[str, Path]] = None,
+) -> "tuple[Path, str]":
+    """Resolve the store path via the three-tier precedence.
+
+    Parameters
+    ----------
+    db_path : str or Path, optional
+        Explicit store path (tier 1). When ``None``, falls through to the
+        ``SCITEX_CLEW_DB_PATH`` environment variable (tier 2) and finally
+        the project-root walk from the current working directory (tier 3).
+
+    Returns
+    -------
+    tuple of (Path, str)
+        The resolved path and a human-readable label of the tier that
+        produced it. This function only resolves — it neither creates
+        nor requires the file; read-side callers (e.g. ``render_dag``)
+        use the label to fail loud when the store is missing.
+    """
+    if db_path is not None:
+        return Path(db_path), "explicit db_path argument"
+    env_path = os.environ.get("SCITEX_CLEW_DB_PATH")
+    if env_path:
+        return Path(env_path), "SCITEX_CLEW_DB_PATH environment variable"
+    return (
+        _default_db_path(_find_project_root()),
+        "project-root walk from the current working directory",
+    )
+
+
 class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
     """
     SQLite database for tracking session runs and file hashes.
@@ -104,12 +135,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                .git / pyproject.toml is found; falls back to cwd if no
                root marker is found.
         """
-        if db_path is None:
-            env_path = os.environ.get("SCITEX_CLEW_DB_PATH")
-            if env_path:
-                db_path = Path(env_path)
-            else:
-                db_path = _default_db_path(_find_project_root())
+        db_path, _tier = resolve_db_path(db_path)
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
@@ -415,6 +441,32 @@ def set_db(db_path: Union[str, Path]) -> VerificationDB:
     global _DB_INSTANCE
     _DB_INSTANCE = VerificationDB(db_path=db_path)
     return _DB_INSTANCE
+
+
+def get_active_db_path() -> Optional[Path]:
+    """Return the path of the already-configured global DB instance, if any.
+
+    ``None`` means no global instance has been created yet (neither
+    ``get_db()`` nor ``set_db()`` has run in this process).
+    """
+    return _DB_INSTANCE.db_path if _DB_INSTANCE is not None else None
+
+
+@contextmanager
+def use_db(db_path: Union[str, Path]):
+    """Temporarily point the global DB instance at ``db_path``.
+
+    Restores the previous global instance on exit, so scoped out-of-tree
+    reads (e.g. ``render_dag(..., db_path=...)``) do not leak into later
+    calls in the same process.
+    """
+    global _DB_INSTANCE
+    previous = _DB_INSTANCE
+    _DB_INSTANCE = VerificationDB(db_path=db_path)
+    try:
+        yield _DB_INSTANCE
+    finally:
+        _DB_INSTANCE = previous
 
 
 # EOF

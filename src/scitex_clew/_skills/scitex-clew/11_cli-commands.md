@@ -71,6 +71,9 @@ clew print-mermaid
 
 # Generate Mermaid DAG from registered claims
 clew print-mermaid --claims
+
+# Target a store outside the current tree (host-side / post-run)
+clew print-mermaid --claims --db runs/capsule/.scitex/clew/runtime/db.sqlite
 ```
 
 ## Claim commands
