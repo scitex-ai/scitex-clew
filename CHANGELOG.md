@@ -5,7 +5,7 @@ All notable changes to `scitex-clew` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
-## [0.7.0] — Unreleased
+## [0.7.0] — 2026-07-03
 
 ### Changed
 - **claims.json v1.3 finalized: color-only full-7 status taxonomy** (operator-approved defaults; supersedes the interim v1.3 shape in-place — coordinated with scitex-writer / scitex-live-paper).
