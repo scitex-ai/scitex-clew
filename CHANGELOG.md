@@ -30,6 +30,18 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Documentation
+- **Verification caching guarantee** documented across the skill
+  (`03_python-api.md` — audited against v0.6.0), sphinx (`concepts.rst`),
+  and README: all caches are content-keyed (SHA-256 of live bytes, zero
+  mtime logic in `src/`), per-pass hash caches are fresh per pass and never
+  persisted, `rerun_dag(skip_unchanged=True)` re-hashes script + all inputs
+  (inputs-only; skipped sessions are `level=CACHE`, pair with L1
+  `verify_chain` for output tampering), and the v0.2.20-planned persistent
+  verdict cache is explicitly recorded as NOT implemented (design key spec
+  `H(level ‖ script_hash ‖ sorted(input_hashes) ‖ source_hash)` kept for
+  when it is built).
+
 ### Added
 - **Explicit-store rendering: `render_dag(..., db_path=...)`** (clew-feat-render-dag-explicit-store). `render_dag` gains a `db_path` keyword so host-side/post-run callers can target a store outside the current tree (e.g. `<runs>/<capsule>/.scitex/clew/runtime/db.sqlite`) without chdir. Resolution precedence matches `VerificationDB`: (1) explicit `db_path`, (2) `SCITEX_CLEW_DB_PATH`, (3) project-root walk from cwd; the store is activated only for the duration of the call (a `set_db()`-configured global instance is untouched and is restored afterwards). Fail-loud, no silent no-op renders: a missing store raises `FileNotFoundError` naming the path tried and the three-tier precedence, and a store that exists but yields an EMPTY view (`claims=True` with zero claims, or session/target filters matching nothing) raises `ValueError` instead of returning without writing the requested file. New internals `scitex_clew._db.resolve_db_path()` / `use_db()` / `get_active_db_path()`. CLI: `clew print-mermaid --db PATH` pins the store explicitly (fail-loud when missing).
 - **Fail-loud `clew verify` claim-set mode + documented exit codes.** `clew verify` (no `SESSION_ID`) now verifies **every** registered claim and exits with a nuanced, machine-actionable code: `0` `OK`, `10` `UNVERIFIED` (registered-but-never-verified — the fabrication case), `11` `SOURCE_MISSING`, `12` `HASH_MISMATCH`, `13` `NO_LINEAGE` (`--strict` only), `20` `NO_CLAIMS`. When several failure classes co-occur the highest-severity code wins. The codes are stable constants in `scitex_clew._cli._exit_codes` and surface as `exit_code`/`exit_name`/`counts` under `--json`.

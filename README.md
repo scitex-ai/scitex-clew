@@ -77,6 +77,10 @@ This classification turns the DAG into a navigable map of the research project. 
 
 <p align="center"><sub><b>Table 2.</b> Three verification modes. Each mode supports both <b>cache verification</b> (millisecond hash comparison) and <b>re-run verification</b> (sandbox re-execution with <code>rerun_dag</code> / <code>rerun_claims</code>).</sub></p>
 
+### Verification Caching Guarantee
+
+All caching in Clew is **content-keyed**: every cache key is a SHA-256 hash of live file bytes — no mtime logic exists anywhere in the package. Per-pass hash caches are created fresh for each verification pass and never persisted; the opt-in `rerun_dag(skip_unchanged=True)` skip re-hashes the script and every recorded input before skipping (skipped sessions are marked `level=CACHE`, never `RERUN`); and stored verdicts are an append-only history, never read back to skip live hashing. A cache can speed up verification but can never return "verified" for content that has changed. Full audited statement: [Verification caching — correctness guarantee](src/scitex_clew/_skills/scitex-clew/03_python-api.md).
+
 ### Grouping for Readable DAGs
 
 Large pipelines emit many per-patient / per-fold files. The grouping API collapses related files into a single DAG node while preserving every underlying hash via a **Merkle root** — aggregate verification remains cryptographically meaningful.
