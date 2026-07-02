@@ -5,6 +5,11 @@ All notable changes to `scitex-clew` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.5.0]
+
+### Added
+- **Citation-via-io-observer ingest seam** (loose-coupling / acyclic design). scitex-scholar no longer needs to import clew to populate the citation ledger: it saves a `citation_status.json` via `stx.io`, and clew's io post-save observer recognizes the artifact by its schema marker (`"scitex-clew/citations/v1"`) and ingests it — `scitex_clew._citation.ingest_citations_artifact(obj)` maps each entry (`cite_key` required; `doi`/`source_id`/`resolved`/`is_stub`/`url`/`manuscript_file`/`line_number`/`metadata` optional) 1:1 to `add_citation` (idempotent upsert). Ingestion runs on `on_io_save` **before** the track/session gate (citations are a manuscript-level ledger, not session-scoped) and is exception-safe. scholar imports nothing from clew; deps stay acyclic (io exposes the hook, clew subscribes; io never imports clew).
+
 ## [0.4.0]
 
 ### Added
