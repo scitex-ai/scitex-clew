@@ -44,6 +44,11 @@ from ._api import (
     verify_all_citations,
     verify_citations,
 )
+from ._ingest import (
+    CITATION_ARTIFACT_SCHEMA_PREFIX,
+    ingest_citations_artifact,
+    is_citation_artifact,
+)
 from ._model import (
     CITATION_STATUSES,
     Citation,
@@ -60,6 +65,9 @@ __all__ = [
     "format_citations",
     "format_verify_map",
     "migrate_add_citations_table",
+    "ingest_citations_artifact",
+    "is_citation_artifact",
+    "CITATION_ARTIFACT_SCHEMA_PREFIX",
 ]
 
 # EOF

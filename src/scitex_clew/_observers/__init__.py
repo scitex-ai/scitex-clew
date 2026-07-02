@@ -34,8 +34,10 @@ def on_io_save(path: Path, obj: Any, kwargs: Dict[str, Any]) -> None:
     path : Path
         Path that was just saved.
     obj : Any
-        The saved object (unused — the umbrella's prior implementation
-        didn't use it either).
+        The saved object. Inspected for the citation-artifact schema marker so
+        scitex-scholar can populate the citation ledger by saving a
+        ``citation_status.json`` via ``stx.io`` — no scholar→clew import (the
+        decoupled seam; see :mod:`scitex_clew._citation._ingest`).
     kwargs : dict
         Original kwargs passed to ``scitex_io.save``. We honour
         ``track`` (default True) for parity with the umbrella shim.
@@ -46,6 +48,17 @@ def on_io_save(path: Path, obj: Any, kwargs: Dict[str, Any]) -> None:
         get_db()  # Ensure DB exists
     except Exception as e:
         logger.debug("clew: failed to initialise DB: %s", e)
+
+    # Citation-artifact ingestion (the scholar↔clew decoupled seam). Runs
+    # BEFORE the track/session gate: citations are a manuscript-level ledger,
+    # not session-scoped, so a saved citation_status.json is ingested whether or
+    # not a tracker is active or ``track`` was requested.
+    try:
+        from scitex_clew._citation._ingest import ingest_citations_artifact
+
+        ingest_citations_artifact(obj)
+    except Exception as e:
+        logger.debug("clew: citation-artifact ingest failed: %s", e)
 
     track = bool(kwargs.get("track", True)) if isinstance(kwargs, dict) else True
     if not track:
