@@ -51,6 +51,15 @@ The DAG is a structured, machine-readable representation of an entire research p
 - **Re-execute** scripts in a sandbox to confirm reproducibility
 - **Link** manuscript claims to the computational sessions that produced them
 
+### Case Study: The Broken Twin
+
+A real incident (NeuroVista seizure-forecasting analysis, 2026-06-30) shows why claim→source binding matters. Two same-named "warning-metrics Table 03/04" scripts coexisted in the repository:
+
+- **Broken twin** — `compute_warning_tables.py` fabricated timestamps (`times = arange(n) * 60 s`) from a block-ordered CSV that had no time column. On that surrogate timeline, a uniform-Poisson alarm *beat* the real model: AUC 0.46, IoC < 0.
+- **Valid script** — `_table03_warning_fullwindow.py` used the real `window_datetime` column with `forecasting.evaluate_stream`: sensitivity 0.70, specificity 0.96, 0.17 false positives/h, 10.7 min median lead time, IoC +0.56.
+
+Without a claim→source→`@stx.session` binding, both scripts were equally plausible as "the source" of the table. Hours went into diagnosing the broken twin, and near-chance numbers were almost shipped. With clew, "which code produced this value?" has exactly one answer: the claim resolves to its registered source session, and the broken twin — which has no registered claim — cannot masquerade as evidence. This incident drove **ADR-0021**: clew registration is mandatory for every manuscript value.
+
 ### Five Node Classes
 
 Every node in the DAG is classified into one of five semantic roles:

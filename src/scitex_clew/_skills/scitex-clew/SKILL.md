@@ -19,6 +19,20 @@ interfaces:
 
 Hash-based verification tracking for reproducible science. Zero dependencies (pure stdlib + sqlite3). Auto-integrates with `@stx.session` and `stx.io` when scitex is present.
 
+## Why clew — the broken-twin incident
+
+Real incident (NeuroVista, 2026-06-30): two same-named "warning-metrics
+Table 03/04" scripts coexisted. The broken twin fabricated timestamps
+(`times = arange(n) * 60 s` from a block-ordered, no-time-column CSV), so a
+uniform-Poisson alarm surrogate beat the real model (AUC 0.46, IoC < 0); the
+valid script used real `window_datetime` + `forecasting.evaluate_stream`
+(sens 0.70 / spec 0.96 / 0.17 FP/h / lead 10.7 min / IoC +0.56). With no
+claim→source→`@stx.session` binding, the two were indistinguishable as "the
+source"; hours were lost and near-chance numbers were almost shipped.
+Claim→source provenance makes "which code produced this value" unambiguous —
+the broken twin has no registered claim. Drove ADR-0021: clew registration
+is mandatory for every manuscript value.
+
 ## Installation & import
 
 `pip install scitex-clew` exposes `import scitex_clew`. To also reach

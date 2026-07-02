@@ -30,7 +30,7 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Documentation
+### Docs
 - **Verification caching guarantee** documented across the skill
   (`03_python-api.md` — audited against v0.6.0), sphinx (`concepts.rst`),
   and README: all caches are content-keyed (SHA-256 of live bytes, zero
@@ -41,6 +41,7 @@ versions follow [Semantic Versioning](https://semver.org/).
   verdict cache is explicitly recorded as NOT implemented (design key spec
   `H(level ‖ script_hash ‖ sorted(input_hashes) ‖ source_hash)` kept for
   when it is built).
+- **Broken-twin case study in README + intro skill.** Documented the real NeuroVista incident (2026-06-30) as the "why clew" motivating example: two same-named warning-metrics Table 03/04 scripts coexisted — the broken twin fabricated timestamps (`times = arange(n) * 60 s` from a block-ordered no-time-column CSV; a uniform-Poisson alarm surrogate beat the real model, AUC 0.46 / IoC < 0) while the valid script used real `window_datetime` + `forecasting.evaluate_stream` (sens 0.70 / spec 0.96 / 0.17 FP/h / lead 10.7 min / IoC +0.56) — and with no claim→source→`@stx.session` binding the two were indistinguishable as "the source"; near-chance numbers were almost shipped. Landed as `README.md` "Case Study: The Broken Twin" + `SKILL.md` "Why clew — the broken-twin incident": claim→source provenance makes "which code produced this value" unambiguous (the broken twin has no registered claim). The incident drove ADR-0021 — clew registration mandatory for every manuscript value.
 
 ### Added
 - **Explicit-store rendering: `render_dag(..., db_path=...)`** (clew-feat-render-dag-explicit-store). `render_dag` gains a `db_path` keyword so host-side/post-run callers can target a store outside the current tree (e.g. `<runs>/<capsule>/.scitex/clew/runtime/db.sqlite`) without chdir. Resolution precedence matches `VerificationDB`: (1) explicit `db_path`, (2) `SCITEX_CLEW_DB_PATH`, (3) project-root walk from cwd; the store is activated only for the duration of the call (a `set_db()`-configured global instance is untouched and is restored afterwards). Fail-loud, no silent no-op renders: a missing store raises `FileNotFoundError` naming the path tried and the three-tier precedence, and a store that exists but yields an EMPTY view (`claims=True` with zero claims, or session/target filters matching nothing) raises `ValueError` instead of returning without writing the requested file. New internals `scitex_clew._db.resolve_db_path()` / `use_db()` / `get_active_db_path()`. CLI: `clew print-mermaid --db PATH` pins the store explicitly (fail-loud when missing).
