@@ -144,4 +144,59 @@ def register_with_scitex_io() -> bool:
         return False
 
 
+def register_with_scitex_session() -> bool:
+    """Register clew's session hooks with scitex-session's registry if available.
+
+    Mirrors :func:`register_with_scitex_io`: scitex-session OWNS the lifecycle
+    hook registry (``register_session_start_hook`` / ``register_session_close_hook``)
+    and clew SUBSCRIBES — scitex-session never imports clew, so the seam is
+    acyclic. Guarded so an OLD scitex-session without the registry API is a
+    silent no-op (same contract as the fallback-import path on the session
+    side). Never raises.
+
+    scitex-session fires hooks POSITIONALLY — ``start(session_id, script_path,
+    metadata)`` / ``close(status, exit_code)`` — whereas clew's public
+    :func:`~scitex_clew.on_session_start` positional order is
+    ``(session_id, script_path, parent_session, verbose, metadata)``. So we
+    register keyword-mapping ADAPTERS (not the raw callables); a positional
+    ``metadata`` never lands in ``parent_session``, and the public hooks stay
+    unchanged.
+
+    Returns
+    -------
+    bool
+        True if both hooks were registered. False if scitex-session is not
+        installed or its registry API is unavailable.
+    """
+    try:
+        import scitex_session
+    except Exception as e:
+        logger.debug(
+            "clew: scitex_session not importable, skipping session hooks: %s", e
+        )
+        return False
+
+    reg_start = getattr(scitex_session, "register_session_start_hook", None)
+    reg_close = getattr(scitex_session, "register_session_close_hook", None)
+    if reg_start is None or reg_close is None:
+        logger.debug(
+            "clew: scitex_session has no lifecycle-hook registry; skipping"
+        )
+        return False
+
+    def _start_adapter(session_id, script_path=None, metadata=None):
+        on_session_start(session_id, script_path=script_path, metadata=metadata)
+
+    def _close_adapter(status="success", exit_code=0):
+        on_session_close(status=status, exit_code=exit_code)
+
+    try:
+        reg_start(_start_adapter)
+        reg_close(_close_adapter)
+        return True
+    except Exception as e:
+        logger.debug("clew: failed to register hooks with scitex_session: %s", e)
+        return False
+
+
 # EOF

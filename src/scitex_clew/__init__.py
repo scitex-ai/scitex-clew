@@ -277,31 +277,34 @@ from ._core._convenience import (  # noqa: E402
 )
 
 # ---------------------------------------------------------------------------
-# SOC R6: self-register post-save / post-load hooks with scitex-io.
+# SOC R6: self-register clew's observer hooks with peer packages (scitex-io
+# post-save/load, scitex-session lifecycle) WITHOUT those packages importing
+# clew — the acyclic observer seam. clew SUBSCRIBES; the peer owns the registry.
 #
 # Audit §10 cold-start: the legacy eager ``from ._observers import …``
-# pulled in _logging + _session + _tracker + _db (>125 ms). We now defer
-# registration until ``scitex_io`` is actually imported, via a tiny
-# ``sys.meta_path`` finder (constant-time string check per import).
+# pulled in _logging + _session + _tracker + _db (>125 ms). We defer
+# registration until the peer package is actually imported, via a tiny
+# ``sys.meta_path`` finder (constant-time string check per import). Handles both
+# landing orders (peer-first via sys.modules check, or clew-first via finder).
 # ---------------------------------------------------------------------------
-def _bootstrap_io_hooks() -> None:
+def _bootstrap_pkg_hooks(module_name: str, register_attr: str) -> None:
     import sys
 
     def _register_now() -> None:
         try:
-            from ._observers import register_with_scitex_io
+            from . import _observers
 
-            register_with_scitex_io()
+            getattr(_observers, register_attr)()
         except Exception:
             pass
 
-    if "scitex_io" in sys.modules:
+    if module_name in sys.modules:
         _register_now()
         return
 
     class _F:
         def find_spec(self, fullname, path, target=None):
-            if fullname != "scitex_io":
+            if fullname != module_name:
                 return None
             try:
                 sys.meta_path.remove(self)
@@ -329,8 +332,9 @@ def _bootstrap_io_hooks() -> None:
     sys.meta_path.insert(0, _F())
 
 
-_bootstrap_io_hooks()
-del _bootstrap_io_hooks
+_bootstrap_pkg_hooks("scitex_io", "register_with_scitex_io")
+_bootstrap_pkg_hooks("scitex_session", "register_with_scitex_session")
+del _bootstrap_pkg_hooks
 
 
 # EOF
