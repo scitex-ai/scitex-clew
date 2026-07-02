@@ -81,10 +81,12 @@ except ImportError:  # pragma: no cover — only on ancient Pythons
 
 # ---------------------------------------------------------------------------
 # Public API registry (lazy map) — extracted to keep this file under the
-# 512-line limit while preserving the full public surface. ``__all__`` itself
-# is declared as a literal below (PA-101 requires it in __init__.py).
+# 512-line limit while preserving the full public surface. Lives in
+# ``_core/`` (a subpackage, not a flat root module, per PS-108b).
+# ``__all__`` itself is declared as a literal below (PA-101 requires it
+# in __init__.py).
 # ---------------------------------------------------------------------------
-from ._public_api import _LAZY_ATTRS  # noqa: E402, F401
+from ._core._public_api import _LAZY_ATTRS  # noqa: E402, F401
 
 # Public API — only these names show in dir() and tab-completion. Result
 # dataclasses (e.g. EstimateResult) stay lazy-only via _LAZY_ATTRS, matching
@@ -153,6 +155,8 @@ if TYPE_CHECKING:
         VerificationStatus,
         get_status,
         verify_chain,
+        verify_dag,
+        verify_dag_strict,
         verify_file,
         verify_run,
     )
@@ -181,8 +185,14 @@ if TYPE_CHECKING:
         verify_all_citations,
         verify_citations,
     )
+    from ._attest._registry import ClewRegistry, get_registry  # noqa: F401
+    from ._attest._stamp import (  # noqa: F401
+        Stamp,
+        check_stamp,
+        list_stamps,
+        stamp,
+    )
     from ._cli._exit_codes import Severity  # noqa: F401
-    from ._dag import verify_dag, verify_dag_strict  # noqa: F401
     from ._db import VerificationDB, get_db, set_db  # noqa: F401
     from ._estimate import (  # noqa: F401
         HEAVY_THRESHOLD_SECONDS,
@@ -199,9 +209,7 @@ if TYPE_CHECKING:
     )
     from ._observers import on_session_close, on_session_start  # noqa: F401
     from ._register_intermediate import register_intermediate  # noqa: F401
-    from ._registry import ClewRegistry, get_registry  # noqa: F401
     from ._rerun import rerun_claims, rerun_dag, verify_by_rerun  # noqa: F401
-    from ._stamp import Stamp, check_stamp, list_stamps, stamp  # noqa: F401
     from ._tracker import (  # noqa: F401
         SessionTracker,
         get_tracker,
@@ -209,7 +217,7 @@ if TYPE_CHECKING:
         start_tracking,
         stop_tracking,
     )
-    from ._visualize import (  # noqa: F401
+    from ._viz import (  # noqa: F401
         format_chain_verification,
         format_list,
         format_run_detailed,

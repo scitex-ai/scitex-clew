@@ -145,7 +145,7 @@ def verify_claims_dag(
         Unified verification result covering all claim source chains merged.
     """
     from .._chain import DAGVerification, VerificationStatus
-    from .._dag import verify_dag
+    from .._chain import verify_dag
 
     claims = list_claims(file_path=file_path, claim_type=claim_type)
 

@@ -16,7 +16,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-from ._db import get_db
+from .._db import get_db
 
 logger = logging.getLogger(__name__)
 

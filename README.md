@@ -143,21 +143,22 @@ scitex-clew/
 │   │   ├── _queries.py          # VerificationQueryMixin
 │   │   └── _parents.py          # Parent-session operations
 │   ├── _hash.py                 # file + directory Merkle hashing
-│   ├── _chain.py                # VerificationLevel, ChainEntry
-│   ├── _claim.py                # Claim CRUD + verification (single file)
-│   ├── _dag.py                  # DAG verification
-│   ├── _node_class.py           # DAG node classification
-│   ├── _stamp.py                # Temporal stamping backends (single file)
+│   ├── _chain/                  # chain/DAG verification (types, ops, routes)
+│   ├── _claim/                  # Claim CRUD + verification
+│   ├── _citation/               # \cite -> scholar-verified source gate
+│   ├── _core/                   # config, logging, node classes, public-API registry
+│   ├── _attest/                 # external attestation
+│   │   ├── _stamp.py            # Temporal stamping backends (file/RFC3161/Zenodo)
+│   │   └── _registry.py         # Clew Registry client (scitex.ai)
 │   ├── _rerun.py                # Sandbox re-execution
 │   ├── _tracker.py              # Session tracking
-│   ├── _registry.py             # Clew Registry client (scitex.ai)
 │   ├── _register_intermediate.py# Agentic intermediate-value registration
-│   ├── _visualize.py            # Visualization helpers
-│   ├── _viz/                    # Graphviz-based DAG rendering
+│   ├── _viz/                    # Mermaid/HTML/Graphviz DAG rendering
+│   ├── _estimate.py             # Pre-flight runtime/success estimate
 │   ├── _examples.py             # Bundled example locator
-│   ├── _logging.py              # Optional scitex.logging integration
 │   ├── _linter_plugin.py        # scitex-linter plugin entry point
-│   ├── groupers/                # Pattern / directory / auto / compose
+│   ├── _observers/              # scitex-io / scitex-session hook subscribers
+│   ├── _groupers/               # Pattern / directory / auto / compose
 │   │   ├── __init__.py
 │   │   └── _config.py           # Per-project grouper config loader
 │   ├── groupers.py              # Public re-exports

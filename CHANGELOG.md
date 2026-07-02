@@ -5,6 +5,11 @@ All notable changes to `scitex-clew` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **Root-layout refactor (PS-108b headroom) — no behavior change, public API identical** (`scitex_clew.__all__` unchanged: all 34 names and every lazy attribute resolve exactly as before). Flat root files went 15 → 9: `_stamp.py` + `_registry.py` moved into a new `_attest/` subpackage (external attestation: temporal stamping + remote Clew Registry; `scitex_clew._attest` re-exports both surfaces); `_public_api.py` (the `_LAZY_ATTRS` registry) moved to `_core/_public_api.py`; the pure re-export shims `_dag.py` (→ `_chain`) and `_visualize.py` (→ `_viz`) were removed with all internal importers rewired to the real modules; the dead legacy `_chain.py` (shadowed by the `_chain/` package since the split, never importable) was deleted. Test mirrors moved accordingly (`tests/scitex_clew/_attest/`; `test__chain.py` → `_chain/test__types.py`). Internal-only import paths `scitex_clew._stamp` / `._registry` / `._dag` / `._visualize` / `._public_api` no longer exist — use `scitex_clew._attest._stamp` / `._attest._registry` / `._chain` / `._viz` / `._core._public_api` (private modules; the supported surface is the top-level `scitex_clew.*` names, which are untouched).
+
 ## [0.6.0]
 
 ### Added

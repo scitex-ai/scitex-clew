@@ -184,7 +184,7 @@ def generate_multi_target_dag(
 
         dag = verify_claims_dag()
     elif target_files:
-        from .._dag import verify_dag
+        from .._chain import verify_dag
 
         dag = verify_dag(target_files)
     else:

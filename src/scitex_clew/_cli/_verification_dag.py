@@ -102,7 +102,7 @@ def dag(
       clew dag --claims --strict --json
     """
     from scitex_clew._claim import verify_claims_dag
-    from scitex_clew._dag import verify_dag, verify_dag_strict
+    from scitex_clew._chain import verify_dag, verify_dag_strict
 
     if as_json:
         ctx.obj = ctx.obj or {}

@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 """Public API registry for scitex_clew.
 
-Extracted from __init__.py to keep that file under the 512-line limit.
+Extracted from __init__.py to keep that file under the 512-line limit;
+lives in ``_core/`` so the package root stays under the PS-108b flat-file
+threshold.
 
 Contains:
 - _LAZY_ATTRS  — mapping of public name to (submodule, attr) for PEP-562
@@ -73,9 +75,9 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     # _observers (session hooks)
     "on_session_start": ("._observers", "on_session_start"),
     "on_session_close": ("._observers", "on_session_close"),
-    # _dag
-    "verify_dag": ("._dag", "verify_dag"),
-    "verify_dag_strict": ("._dag", "verify_dag_strict"),
+    # _chain._dag (re-exported via _chain)
+    "verify_dag": ("._chain", "verify_dag"),
+    "verify_dag_strict": ("._chain", "verify_dag_strict"),
     # _db
     "VerificationDB": ("._db", "VerificationDB"),
     "get_db": ("._db", "get_db"),
@@ -88,35 +90,35 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     "hash_files": ("._hash", "hash_files"),
     "combine_hashes": ("._hash", "combine_hashes"),
     "verify_hash": ("._hash", "verify_hash"),
-    # _registry
-    "ClewRegistry": ("._registry", "ClewRegistry"),
-    "get_registry": ("._registry", "get_registry"),
+    # _attest._registry
+    "ClewRegistry": ("._attest._registry", "ClewRegistry"),
+    "get_registry": ("._attest._registry", "get_registry"),
     # _rerun
     "rerun_claims": ("._rerun", "rerun_claims"),
     "rerun_dag": ("._rerun", "rerun_dag"),
     "verify_by_rerun": ("._rerun", "verify_by_rerun"),
     "verify_run_from_scratch": ("._rerun", "verify_by_rerun"),
-    # _stamp
-    "Stamp": ("._stamp", "Stamp"),
-    "check_stamp": ("._stamp", "check_stamp"),
-    "list_stamps": ("._stamp", "list_stamps"),
-    "stamp": ("._stamp", "stamp"),
+    # _attest._stamp
+    "Stamp": ("._attest._stamp", "Stamp"),
+    "check_stamp": ("._attest._stamp", "check_stamp"),
+    "list_stamps": ("._attest._stamp", "list_stamps"),
+    "stamp": ("._attest._stamp", "stamp"),
     # _tracker
     "SessionTracker": ("._tracker", "SessionTracker"),
     "get_tracker": ("._tracker", "get_tracker"),
     "set_tracker": ("._tracker", "set_tracker"),
     "start_tracking": ("._tracker", "start_tracking"),
     "stop_tracking": ("._tracker", "stop_tracking"),
-    # _visualize
-    "generate_mermaid_dag": ("._visualize", "generate_mermaid_dag"),
-    "generate_html_dag": ("._visualize", "generate_html_dag"),
-    "render_dag": ("._visualize", "render_dag"),
-    "format_chain_verification": ("._visualize", "format_chain_verification"),
-    "format_list": ("._visualize", "format_list"),
-    "format_run_detailed": ("._visualize", "format_run_detailed"),
-    "format_run_verification": ("._visualize", "format_run_verification"),
-    "format_status": ("._visualize", "format_status"),
-    "print_verification_summary": ("._visualize", "print_verification_summary"),
+    # _viz
+    "generate_mermaid_dag": ("._viz", "generate_mermaid_dag"),
+    "generate_html_dag": ("._viz", "generate_html_dag"),
+    "render_dag": ("._viz", "render_dag"),
+    "format_chain_verification": ("._viz", "format_chain_verification"),
+    "format_list": ("._viz", "format_list"),
+    "format_run_detailed": ("._viz", "format_run_detailed"),
+    "format_run_verification": ("._viz", "format_run_verification"),
+    "format_status": ("._viz", "format_status"),
+    "print_verification_summary": ("._viz", "print_verification_summary"),
 }
 
 

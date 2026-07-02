@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for scitex_clew._stamp module."""
+"""Tests for scitex_clew._attest._stamp module."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import pytest
 
 import scitex_clew._db as _db_module
 from scitex_clew._db import set_db
-from scitex_clew._stamp import (
+from scitex_clew._attest._stamp import (
     STAMP_BACKENDS,
     Stamp,
     check_stamp,

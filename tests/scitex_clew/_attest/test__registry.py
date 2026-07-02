@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Timestamp: "2026-03-14 (ywatanabe)"
 # File: /home/ywatanabe/proj/scitex-clew/tests/test__registry.py
-"""Tests for scitex_clew._registry module (ClewRegistry)."""
+"""Tests for scitex_clew._attest._registry module (ClewRegistry)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import pytest
 
 import scitex_clew._db as _db_module
 from scitex_clew._db import set_db
-from scitex_clew._registry import ClewRegistry, DEFAULT_REGISTRY_URL, get_registry
+from scitex_clew._attest._registry import ClewRegistry, DEFAULT_REGISTRY_URL, get_registry
 
 
 # ---------------------------------------------------------------------------
@@ -103,7 +103,7 @@ def isolated_db(tmp_path):
 @pytest.fixture(autouse=True)
 def reset_registry_singleton():
     """Reset the module-level registry singleton between tests."""
-    import scitex_clew._registry as _reg_module
+    import scitex_clew._attest._registry as _reg_module
 
     original = _reg_module._registry_instance
     yield
@@ -859,7 +859,7 @@ class TestRegistryModuleAll:
         """Module exports exactly ClewRegistry and get_registry."""
         # Arrange
         # Act
-        from scitex_clew._registry import __all__
+        from scitex_clew._attest._registry import __all__
 
         # Assert
         assert set(__all__) == {"ClewRegistry", "get_registry"}

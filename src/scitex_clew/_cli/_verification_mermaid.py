@@ -130,7 +130,7 @@ def mermaid(
     Note: --target is only honoured in multi-target / direct mode;
     in claims-only mode the full claims DAG is built.
     """
-    from scitex_clew._visualize import generate_mermaid_dag
+    from scitex_clew._viz import generate_mermaid_dag
 
     if as_json:
         ctx.obj = ctx.obj or {}

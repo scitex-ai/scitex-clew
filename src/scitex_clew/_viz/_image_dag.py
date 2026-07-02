@@ -117,7 +117,7 @@ def build_dag_graph(
         dag = verify_claims_dag()
         runs_data = _collect_runs_from_dag(dag, db)
     elif targets:
-        from .._dag import verify_dag
+        from .._chain import verify_dag
         dag = verify_dag(targets)
         runs_data = _collect_runs_from_dag(dag, db)
     else:

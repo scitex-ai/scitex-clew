@@ -129,14 +129,14 @@ def dag(targets=None, claims=False, strict=False):
         ``still_valid_claims`` instead of a ``DAGVerification``.
     """
     if strict:
-        from .._dag import verify_dag_strict
+        from .._chain import verify_dag_strict
 
         return verify_dag_strict(targets=targets, claims=claims)
     if claims:
         from .._claim import verify_claims_dag
 
         return verify_claims_dag()
-    from .._dag import verify_dag
+    from .._chain import verify_dag
 
     return verify_dag(targets or [])
 
@@ -189,7 +189,7 @@ def mermaid(
         from .._groupers._config import load_project_config
 
         grouper = load_project_config().get("grouper")
-    from .._visualize import generate_mermaid_dag
+    from .._viz import generate_mermaid_dag
 
     return generate_mermaid_dag(
         session_id=session_id,

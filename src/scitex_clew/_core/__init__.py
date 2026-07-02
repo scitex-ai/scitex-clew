@@ -4,9 +4,10 @@
 
 Groups the package's cross-cutting, dependency-free primitives that the
 rest of the codebase builds on: configuration loading (`_config`),
-logging setup (`_logging`), and DAG-node type classification
-(`_node_class`). Kept in one subpackage per PS-108b so the package root
-stays under the flat-file threshold.
+logging setup (`_logging`), DAG-node type classification
+(`_node_class`), the eager convenience wrappers (`_convenience`), and the
+lazy public-API registry (`_public_api`). Kept in one subpackage per
+PS-108b so the package root stays under the flat-file threshold.
 
 The public surface is re-exported here so callers can write
 ``from scitex_clew._core import load_config, getLogger`` without reaching

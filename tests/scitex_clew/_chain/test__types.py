@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # Timestamp: "2026-02-01 (ywatanabe)"
-# File: /home/ywatanabe/proj/scitex-python/tests/scitex/verify/test__chain.py
+# File: tests/scitex_clew/_chain/test__types.py
 
-"""Tests for scitex.clew._chain module."""
+"""Tests for the verification status/level enums and result dataclasses
+(scitex_clew._chain._types), via the public scitex_clew API."""
 
 from scitex_clew import (
     ChainVerification,

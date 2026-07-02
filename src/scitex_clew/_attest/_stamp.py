@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Timestamp: "2026-02-09 (ywatanabe)"
-# File: /home/ywatanabe/proj/scitex-python/src/scitex/verify/_stamp.py
+# File: src/scitex_clew/_attest/_stamp.py
 """External hash timestamping for temporal integrity.
 
 Provides independent temporal proof that a verification chain was consistent
@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from ._db import get_db
+from .._db import get_db
 
 STAMP_BACKENDS = ("file", "rfc3161", "zenodo", "scitex_cloud")
 

@@ -125,8 +125,8 @@ Architecture
    │    clew verify ...     │    9 tools              │
    ├─────────────────────────────────────────────────┤
    │  Core Engine                                     │
-   │    _hash.py    _chain.py    _dag.py    _claim.py │
-   │    _tracker.py _stamp.py   _rerun.py             │
+   │    _hash.py    _chain/     _claim/    _attest/   │
+   │    _tracker.py _rerun.py   _estimate.py          │
    ├─────────────────────────────────────────────────┤
    │  Storage: SQLite (db.sqlite)                      │
    │    runs, file_hashes, session_parents, claims    │
