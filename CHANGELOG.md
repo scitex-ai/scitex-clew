@@ -5,6 +5,11 @@ All notable changes to `scitex-clew` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.6.0]
+
+### Added
+- **Subscribe to scitex-session's lifecycle-hook registry (acyclic seam).** `@scitex.session` no longer imports `scitex_clew`: scitex-session exposes `register_session_start_hook` / `register_session_close_hook` (mirroring the `scitex_io` post-save/load hook seam) and clew subscribes lazily via a `sys.meta_path` finder on `import scitex_session`. `scitex_clew._observers.register_with_scitex_session()` is guarded (a scitex-session without the registry API is a silent no-op) and registers keyword-mapping adapters so scitex-session's positional firing — `start(session_id, script_path, metadata)` / `close(status, exit_code)` — routes correctly (metadata never lands in `parent_session`); the public `on_session_start` / `on_session_close` are unchanged. The io-hook bootstrap was generalized to `_bootstrap_pkg_hooks(module, attr)` and now serves both the io and session seams. Completes the loose-coupling design: io, session, and (via the citation io-observer) scholar are all clew-agnostic — clew is the optional observer, peers never import it.
+
 ## [0.5.0]
 
 ### Added
