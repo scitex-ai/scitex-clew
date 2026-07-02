@@ -75,7 +75,16 @@ def _resolve_status(status: str, has_exception: bool, has_frozen: bool) -> str:
     """Resolve a claim to its single full-7 status (color precedence).
 
     Precedence (schema v1.3, operator-approved):
-    ``mismatch/missing > exception > frozen > suspect > verified > registered``.
+    ``mismatch/missing > [verified claims only: exception > frozen] >
+    suspect > verified > registered``.
+
+    Chain-provenance overrides (exception violet / frozen blue) apply ONLY
+    to claims that have PASSED verification (``status == "verified"``). A
+    never-verified (``registered``) or chain-broken (``suspect``) claim is
+    NEVER promoted by its chain flags — a frozen or declared-exception
+    chain must not green/violet a claim whose value was never checked
+    (false-green is the cardinal sin). Failure dominance is absolute:
+    ``mismatch``/``missing`` always win.
 
     Parameters
     ----------
@@ -95,12 +104,14 @@ def _resolve_status(status: str, has_exception: bool, has_frozen: bool) -> str:
     """
     if status in ("mismatch", "missing"):
         return status
-    if has_exception:
-        return "exception"
-    if has_frozen:
-        return "frozen"
-    if status in ("suspect", "verified"):
-        return status
+    if status == "verified":
+        if has_exception:
+            return "exception"
+        if has_frozen:
+            return "frozen"
+        return "verified"
+    if status == "suspect":
+        return "suspect"
     return "registered"
 
 

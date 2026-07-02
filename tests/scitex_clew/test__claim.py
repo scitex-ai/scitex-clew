@@ -1946,8 +1946,8 @@ def test_v13_verified_with_frozen_chain_resolved_status_is_frozen(tmp_path, env_
     assert claim_dict["resolved_status"] == "frozen" and claim_dict["color"] == "0072b2"
 
 
-def test_v13_suspect_with_exception_chain_display_group_is_exception(tmp_path, env_sandbox):
-    """Precedence: chain exception outranks suspect → display_group 'exception'."""
+def test_v13_suspect_with_exception_chain_stays_suspect(tmp_path, env_sandbox):
+    """Chain overrides apply to VERIFIED claims only → suspect stays 'suspect' despite exception chain."""
     # Arrange
     workdir = _fresh_db(tmp_path, env_sandbox)
     env_sandbox.chdir(workdir)
@@ -1982,8 +1982,46 @@ def test_v13_suspect_with_exception_chain_display_group_is_exception(tmp_path, e
     # Act
     clew.export_claims_json(path=out, read_only=False)
     claim_dict = json.loads(out.read_text())["claims"][0]
-    # Assert — precedence: mismatch/missing > exception > frozen > suspect
-    assert claim_dict["display_group"] == "exception"
+    # Assert — chain-exception never promotes a non-verified claim
+    assert claim_dict["display_group"] == "suspect" and claim_dict["resolved_status"] == "suspect"
+
+
+def test_v13_registered_with_frozen_chain_stays_registered(tmp_path, env_sandbox):
+    """A never-verified claim over a frozen chain stays 'registered' (grey) — no false-green."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-01M-01D-00h00m00s_FRV5"
+    script = str(workdir / "run.py")
+    out_file = workdir / "frozen_v5.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="tracked")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "deadbeef5", role="output", frozen=True)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    # status stays 'registered' — no verify pass
+    out = workdir / "claims_v13_froz5.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert — frozen chain never greens a never-verified claim
+    assert (
+        claim_dict["resolved_status"] == "registered"
+        and claim_dict["color"] == "6e7781"
+        and claim_dict["display_group"] == "suspect"
+    )
 
 
 def test_v13_mismatch_with_exception_chain_stays_failed(tmp_path, env_sandbox):

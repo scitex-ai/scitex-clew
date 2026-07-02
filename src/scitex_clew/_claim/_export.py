@@ -235,8 +235,9 @@ def export_claims_json(
     for c in claims:
         base = c.to_dict()  # all existing fields, byte-identical
         chain_has_exception, chain_has_frozen = _resolve_chain_flags(c)
-        # Schema v1.3: resolved full-7 status via color precedence
-        # (mismatch/missing > exception > frozen > suspect > verified > registered)
+        # Schema v1.3: resolved full-7 status via color precedence —
+        # mismatch/missing > [verified claims only: exception > frozen]
+        # > suspect > verified > registered
         resolved_status = _resolve_status(
             c.status, chain_has_exception, chain_has_frozen
         )
