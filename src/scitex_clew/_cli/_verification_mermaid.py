@@ -35,7 +35,8 @@ _GROUPER_REGISTRY_NAMES = [
         "  $ scitex-clew print-mermaid --grouper directory --no-files\n"
         "  $ scitex-clew print-mermaid --max-depth 3\n"
         "  $ scitex-clew print-mermaid --format png --output dag.png\n"
-        "  $ scitex-clew print-mermaid --format svg"
+        "  $ scitex-clew print-mermaid --format svg\n"
+        "  $ scitex-clew print-mermaid --claims --db runs/capsule/.scitex/clew/runtime/db.sqlite"
     ),
 )
 @click.option("--claims", is_flag=True, help="Build DAG from registered claims.")
@@ -100,6 +101,17 @@ _GROUPER_REGISTRY_NAMES = [
         "Defaults to ./clew_dag.<fmt> when omitted."
     ),
 )
+@click.option(
+    "--db",
+    "db_path",
+    default=None,
+    metavar="PATH",
+    help=(
+        "Explicit path to the clew store (db.sqlite). Overrides "
+        "SCITEX_CLEW_DB_PATH and the project-root walk — use it to render "
+        "a store outside the current tree."
+    ),
+)
 @click.pass_context
 def mermaid(
     ctx: click.Context,
@@ -111,6 +123,7 @@ def mermaid(
     max_depth: int,
     fmt: str,
     output_path: str | None,
+    db_path: str | None,
 ):
     """Generate Mermaid DAG diagram or static image.
 
@@ -135,6 +148,21 @@ def mermaid(
     if as_json:
         ctx.obj = ctx.obj or {}
         ctx.obj["json"] = True
+
+    # Explicit store (tier 1) — fail loud when missing, then pin the global
+    # instance for this process so both text and image paths read it.
+    if db_path is not None:
+        from pathlib import Path
+
+        from scitex_clew._db import set_db
+
+        store = Path(db_path)
+        if not store.exists():
+            raise click.ClickException(
+                f"clew store not found: {store} (from --db). "
+                "Precedence: --db > SCITEX_CLEW_DB_PATH > project-root walk."
+            )
+        set_db(store)
 
     # Resolve grouper callable from bare name
     grouper = None
