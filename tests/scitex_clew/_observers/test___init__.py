@@ -101,7 +101,8 @@ def fake_scitex_session():
 
 
 def test_register_with_scitex_session_returns_true(fake_scitex_session):
-    # Arrange / Act
+    # Arrange
+    # Act
     ok = register_with_scitex_session()
     # Assert
     assert ok is True
@@ -110,9 +111,10 @@ def test_register_with_scitex_session_returns_true(fake_scitex_session):
 def test_register_with_scitex_session_captures_start_hook(fake_scitex_session):
     # Arrange
     register_with_scitex_session()
+    captured_start = fake_scitex_session.get("start")
     # Act
     # Assert
-    assert callable(fake_scitex_session.get("start"))
+    assert callable(captured_start)
 
 
 def test_bare_module_without_registry_returns_false():
