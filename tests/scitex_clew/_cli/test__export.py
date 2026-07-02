@@ -50,7 +50,7 @@ def test_unified_export_writes_unified_schema(runner, tmp_path):
         ["export-claims", "--unified", "--path", str(out), "--no-read-only"],
     )
     # Assert
-    assert json.loads(out.read_text())["schema_version"] == "1.4-unified"
+    assert json.loads(out.read_text())["schema_version"] == "1.5-unified"
 
 
 def test_unified_export_exits_zero(runner, tmp_path):

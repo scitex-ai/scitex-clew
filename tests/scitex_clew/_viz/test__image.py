@@ -254,7 +254,7 @@ def test_status_color_unknown_returns_tuple_of_three():
 
 
 # ---------------------------------------------------------------------------
-# (c) Exception node style: solid violet; frozen file: solid verified green
+# (c) Exception node style: solid violet; frozen file: solid frozen blue
 # (Schema v1.3: exception and frozen use solid fills, color-only, no dashes)
 # ---------------------------------------------------------------------------
 
@@ -286,31 +286,40 @@ def test_exception_status_linestyle_is_dashed():
     assert ls is None
 
 
-def test_file_frozen_status_fill_is_light_blue():
-    # Arrange — schema v1.3: frozen folds into verified green #2da44e (not light blue)
+def test_file_frozen_status_fill_is_frozen_blue():
+    # Arrange — schema v1.3 full-7: frozen keeps its distinct blue #0072b2
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("file_frozen")
     # Assert
-    assert fill == "#2da44e"
+    assert fill == "#0072b2"
 
 
-def test_file_frozen_status_edge_is_steel_blue():
-    # Arrange — schema v1.3: frozen uses verified green edge #1a6b32 (not steel blue)
+def test_file_frozen_status_edge_is_dark_blue():
+    # Arrange — schema v1.3: frozen edge is the darker blue #004a75
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("file_frozen")
     # Assert
-    assert edge == "#1a6b32"
+    assert edge == "#004a75"
 
 
-def test_file_frozen_status_linestyle_is_dashed():
-    # Arrange — schema v1.3: frozen is solid (not dashed); folds into verified green
+def test_file_frozen_status_linestyle_is_solid():
+    # Arrange — schema v1.3: frozen is solid (not dashed); color-only signal
     from scitex_clew._viz._image_palette import status_color
     # Act
     fill, edge, ls = status_color("file_frozen")
     # Assert — v1.3: solid (None), not dashed
     assert ls is None
+
+
+def test_missing_status_fill_is_distinct_dark_red():
+    # Arrange — schema v1.3 full-7: missing has its own dark red #a40e26
+    from scitex_clew._viz._image_palette import status_color
+    # Act
+    fill, edge, ls = status_color("missing")
+    # Assert
+    assert fill == "#a40e26"
 
 
 def test_exception_run_dag_image_node_has_exception_status(exception_run_db, tmp_path):

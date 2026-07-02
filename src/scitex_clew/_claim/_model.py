@@ -28,41 +28,69 @@ CLAIM_TYPES = ("statistic", "figure", "table", "text", "value")
 # Hexes are locked with the live-paper consumer (scitex-writer) — do NOT
 # change without a coordinated bump to both packages.
 # Introduced in schema v1.1; referenced by legend block added in v1.2.
-# Updated in schema v1.3: "partial" renamed to "suspect".
+# Schema v1.3 (color-only taxonomy): "partial" renamed to "suspect";
+# full-7 statuses, each a distinct CUD-accessible hue (bare 6-hex, no '#').
 # ---------------------------------------------------------------------------
 _CLAIM_PALETTE: Dict[str, str] = {
-    "verified": "2da44e",
-    "suspect": "d29922",
-    "mismatch": "cf222e",
-    "missing": "cf222e",
-    "registered": "6e7781",
+    "verified": "2da44e",  # green
+    "suspect": "d29922",  # amber
+    "mismatch": "cf222e",  # red
+    "missing": "a40e26",  # dark red (distinct from mismatch)
+    "registered": "6e7781",  # grey
+    "exception": "8250df",  # violet
+    "frozen": "0072b2",  # blue (CUD/Okabe-Ito)
 }
 _PALETTE_FALLBACK = "6e7781"  # grey — used for any unknown/future status
 
 # ---------------------------------------------------------------------------
-# Schema v1.3: 4-state display palette (reader-facing, color-only, no icons).
+# Schema v1.3: 4-bucket display palette (reader-facing, color-only, no icons).
 # Maps the 4 display buckets to accessible hex values.
 # ---------------------------------------------------------------------------
 _DISPLAY_PALETTE: Dict[str, str] = {
     "verified": "2da44e",
     "suspect": "d29922",
-    "unverified": "cf222e",
+    "failed": "cf222e",
     "exception": "8250df",
 }
 
+# ---------------------------------------------------------------------------
+# Schema v1.3: per-status display_group — collapses the full-7 taxonomy to
+# the MINIMAL 4-bucket reader set. registered folds into suspect (amber:
+# "not confirmed"), mismatch+missing fold into failed (red), frozen folds
+# into verified (green). clew still EMITS full-7 (author tooling + DAG
+# fidelity); readers see only the 4 buckets.
+# ---------------------------------------------------------------------------
+_DISPLAY_GROUPS: Dict[str, str] = {
+    "verified": "verified",
+    "suspect": "suspect",
+    "mismatch": "failed",
+    "missing": "failed",
+    "registered": "suspect",
+    "exception": "exception",
+    "frozen": "verified",
+}
 
-def _resolve_display_group(
-    status: str, has_exception: bool, has_frozen: bool
-) -> str:
-    """Resolve the 4-state display bucket for a claim.
 
-    Precedence: unverified > suspect > exception > verified.
-    Frozen folds into verified — it never changes the bucket.
+def _resolve_status(status: str, has_exception: bool, has_frozen: bool) -> str:
+    """Resolve a claim to its single full-7 status (color precedence).
+
+    Precedence (schema v1.3, operator-approved):
+    ``mismatch/missing > [verified claims only: exception > frozen] >
+    suspect > verified > registered``.
+
+    Chain-provenance overrides (exception violet / frozen blue) apply ONLY
+    to claims that have PASSED verification (``status == "verified"``). A
+    never-verified (``registered``) or chain-broken (``suspect``) claim is
+    NEVER promoted by its chain flags — a frozen or declared-exception
+    chain must not green/violet a claim whose value was never checked
+    (false-green is the cardinal sin). Failure dominance is absolute:
+    ``mismatch``/``missing`` always win.
 
     Parameters
     ----------
     status : str
-        The claim's internal status (verified, suspect, mismatch, missing, registered).
+        The claim's stored status (verified, suspect, mismatch, missing,
+        registered; legacy "partial" is normalized to "suspect" upstream).
     has_exception : bool
         True if the claim's provenance chain contains an exception node.
     has_frozen : bool
@@ -71,15 +99,36 @@ def _resolve_display_group(
     Returns
     -------
     str
-        One of: "verified", "suspect", "unverified", "exception".
+        One of the full-7 statuses: "verified", "suspect", "mismatch",
+        "missing", "registered", "exception", "frozen".
     """
-    if status in ("mismatch", "missing", "registered"):
-        return "unverified"
+    if status in ("mismatch", "missing"):
+        return status
+    if status == "verified":
+        if has_exception:
+            return "exception"
+        if has_frozen:
+            return "frozen"
+        return "verified"
     if status == "suspect":
         return "suspect"
-    if has_exception:
-        return "exception"
-    return "verified"  # plain verified; frozen folds in here
+    return "registered"
+
+
+def _resolve_display_group(
+    status: str, has_exception: bool, has_frozen: bool
+) -> str:
+    """Resolve the 4-bucket display group for a claim.
+
+    Composes :func:`_resolve_status` (full-7 precedence) with the
+    per-status ``_DISPLAY_GROUPS`` collapse map.
+
+    Returns
+    -------
+    str
+        One of: "verified", "suspect", "failed", "exception".
+    """
+    return _DISPLAY_GROUPS[_resolve_status(status, has_exception, has_frozen)]
 
 
 # ---------------------------------------------------------------------------

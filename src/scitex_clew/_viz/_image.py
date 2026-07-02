@@ -170,10 +170,10 @@ def render_dag_image(
                        edgecolor=NODE_EDGE["suspect"], label="suspect (upstream)"),
         mpatches.Patch(facecolor=NODE_FILL["exception"],
                        edgecolor=NODE_EDGE["exception"],
-                       linestyle="--", label="exception (dashed)"),
+                       label="exception (declared)"),
         mpatches.Patch(facecolor=NODE_FILL["file_frozen"],
                        edgecolor=NODE_EDGE["file_frozen"],
-                       linestyle="--", label="frozen file (dashed)"),
+                       label="frozen file (trusted hash)"),
     ]
     ax.legend(handles=legend_items, loc="lower right",
               fontsize=6, framealpha=0.85, ncol=1)

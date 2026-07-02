@@ -74,16 +74,14 @@ See [02_quick-start.md](02_quick-start.md) for usage examples and
 ## Verification caching — correctness guarantee
 
 Operator invariant (neurovista, 2026-06-30): dev-speed caching is fine; a
-correctness-breaking cache is not. A "false green" is a cached `VERIFIED`
-returned for content that has since changed — no mechanism below can produce
-one. Every statement here is audited against the source at **v0.6.0**
-(2026-07-02); file paths are current.
+correctness-breaking cache is not. A "false green" — a cached `VERIFIED` for
+content that has since changed — must never occur; no mechanism below can
+produce one. Audited against the source at **v0.6.0**; paths are current.
 
 > **Summary.** Every clew cache is keyed by content hash — SHA-256 of the
-> live file bytes, truncated to the first 32 hex chars (`_hash.py`). There
-> is no mtime-based logic anywhere in the package:
-> `rg -n "mtime" src/ -g '*.py'` returns zero matches (re-verified at
-> v0.6.0; the only occurrences of "mtime" under `src/` are in this document).
+> live file bytes, first 32 hex chars (`_hash.py`). No mtime-based logic
+> exists anywhere in the package: `rg -n "mtime" src/ -g '*.py'` → zero
+> matches (re-verified at v0.6.0; only this document mentions "mtime").
 
 ### Verification levels at a glance
 
@@ -94,9 +92,8 @@ one. Every statement here is audited against the source at **v0.6.0**
 | L3 | `REGISTERED` | L2 + hash registered with a server-side timestamp (scitex.ai) |
 
 Source: `src/scitex_clew/_chain/_types.py` (`VerificationLevel`).
-`RunVerification.is_verified_from_scratch` is `True` only when
-`level == RERUN`, so a strict hook can require full re-execution by checking
-that property.
+`RunVerification.is_verified_from_scratch` is `True` only for `level ==
+RERUN`, so a strict hook can require full re-execution via that property.
 
 ### (a) L1 CACHE — direct content hashing
 

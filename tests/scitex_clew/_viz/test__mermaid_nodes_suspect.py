@@ -601,8 +601,8 @@ def test_v13_exception_classDef_uses_8250df_fill():
     assert len(exception_lines) == 1 and "8250df" in exception_lines[0].lower()
 
 
-def test_v13_file_frozen_classDef_uses_verified_green():
-    # Arrange — schema v1.3: frozen folds into verified green #2da44e
+def test_v13_file_frozen_classDef_uses_frozen_blue():
+    # Arrange — schema v1.3 full-7: frozen keeps its distinct blue #0072b2
     lines: list = []
 
     # Act
@@ -610,7 +610,7 @@ def test_v13_file_frozen_classDef_uses_verified_green():
 
     # Assert
     frozen_lines = [ln for ln in lines if "classDef file_frozen" in ln]
-    assert len(frozen_lines) == 1 and "2da44e" in frozen_lines[0].lower()
+    assert len(frozen_lines) == 1 and "0072b2" in frozen_lines[0].lower()
 
 
 def test_v13_exception_node_reason_text_still_present():

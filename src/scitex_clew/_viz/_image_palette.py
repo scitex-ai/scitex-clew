@@ -18,14 +18,14 @@ NODE_FILL: dict[str, str] = {
     "verified_scratch": "#2da44e",
     "failed": "#cf222e",
     "mismatch": "#cf222e",
-    "missing": "#cf222e",
+    "missing": "#a40e26",  # distinct dark red (schema v1.3 full-7)
     "suspect": "#d29922",
     "exception": "#8250df",
     "file_ok": "#2da44e",
     "file_rerun": "#2da44e",
     "file_bad": "#cf222e",
     "file_suspect": "#d29922",
-    "file_frozen": "#2da44e",  # frozen folds into verified green
+    "file_frozen": "#0072b2",  # distinct frozen blue (schema v1.3 full-7)
     "script": "#87CEEB",
     "unknown": "#F8F8F8",
     "registered": "#F8F8F8",
@@ -38,14 +38,14 @@ NODE_EDGE: dict[str, str] = {
     "verified_scratch": "#1a6b32",
     "failed": "#8b1a1a",
     "mismatch": "#8b1a1a",
-    "missing": "#8b1a1a",
+    "missing": "#6e0918",  # darker missing red
     "suspect": "#8a5c00",
     "exception": "#4a1c8a",  # darker purple
     "file_ok": "#1a6b32",
     "file_rerun": "#1a6b32",
     "file_bad": "#8b1a1a",
     "file_suspect": "#8a5c00",
-    "file_frozen": "#1a6b32",  # frozen folds into verified green
+    "file_frozen": "#004a75",  # darker frozen blue
     "script": "#4169E1",
     "unknown": "#6e7781",
     "registered": "#6e7781",

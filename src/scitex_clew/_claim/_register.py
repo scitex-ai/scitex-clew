@@ -260,13 +260,14 @@ def format_claims(claims: List[Claim], verbose: bool = False) -> str:
         return "No claims registered."
 
     lines = []
+    # Schema v1.3: ASCII-ish markers only — no ⊘/🔒 status glyphs.
     status_icons = {
         "registered": "○",  # ○
         "verified": "✓",  # ✓
         "mismatch": "✗",  # ✗
         "missing": "?",
         "suspect": "~",
-        "superseded": "⊘",  # ⊘
+        "superseded": "-",
     }
 
     for c in claims:

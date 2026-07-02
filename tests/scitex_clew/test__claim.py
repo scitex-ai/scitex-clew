@@ -700,9 +700,10 @@ def test_v11_palette_keys_in_exported_json(v11_sandbox, env_sandbox):
     # Act
     clew.export_claims_json(path=out, read_only=False)
     payload = json.loads(out.read_text())
-    # Assert — v1.3 renames "partial" to "suspect"
+    # Assert — v1.3 renames "partial" to "suspect" and adds the full-7 keys
     assert set(payload.get("palette", {}).keys()) == {
-        "verified", "suspect", "mismatch", "missing", "registered"
+        "verified", "suspect", "mismatch", "missing", "registered",
+        "exception", "frozen",
     }
 
 
@@ -1513,13 +1514,13 @@ def test_v12_attestation_counts_sum_to_claims_count(tmp_path, env_sandbox):
 
 
 def test_v12_legend_statuses_has_four_display_states(tmp_path, env_sandbox):
-    """legend.statuses has exactly 4 display states (v1.3: verified/suspect/unverified/exception)."""
+    """legend.statuses has exactly 4 display states (v1.3: verified/suspect/failed/exception)."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
     status_names = {entry["status"] for entry in payload["legend"]["statuses"]}
     # Assert — v1.3: 4 display buckets, not per-palette-key
-    assert status_names == {"verified", "suspect", "unverified", "exception"}
+    assert status_names == {"verified", "suspect", "failed", "exception"}
 
 
 def test_v12_legend_statuses_colors_are_bare_hex(tmp_path, env_sandbox):
@@ -1611,7 +1612,7 @@ def test_v13_display_palette_present_in_payload(tmp_path, env_sandbox):
     # Act
     dp = payload.get("display_palette")
     # Assert
-    assert isinstance(dp, dict) and set(dp.keys()) == {"verified", "suspect", "unverified", "exception"}
+    assert isinstance(dp, dict) and set(dp.keys()) == {"verified", "suspect", "failed", "exception"}
 
 
 def test_v13_display_palette_verified_hex(tmp_path, env_sandbox):
@@ -1641,7 +1642,7 @@ def test_v13_display_groups_present_in_payload(tmp_path, env_sandbox):
     # Act
     dg = payload.get("display_groups")
     # Assert
-    assert isinstance(dg, dict) and "mismatch" in dg and dg["mismatch"] == "unverified"
+    assert isinstance(dg, dict) and "mismatch" in dg and dg["mismatch"] == "failed"
 
 
 def test_v13_per_claim_display_group_present(tmp_path, env_sandbox):
@@ -1697,8 +1698,8 @@ def test_v13_suspect_status_display_group_is_suspect(tmp_path, env_sandbox):
     assert claim_dict["display_group"] == "suspect"
 
 
-def test_v13_mismatch_status_display_group_is_unverified(tmp_path, env_sandbox):
-    """A claim with status 'mismatch' → display_group 'unverified'."""
+def test_v13_mismatch_status_display_group_is_failed(tmp_path, env_sandbox):
+    """A claim with status 'mismatch' → display_group 'failed'."""
     # Arrange
     workdir = _fresh_db(tmp_path, env_sandbox)
     env_sandbox.chdir(workdir)
@@ -1727,11 +1728,11 @@ def test_v13_mismatch_status_display_group_is_unverified(tmp_path, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     claim_dict = json.loads(out.read_text())["claims"][0]
     # Assert
-    assert claim_dict["display_group"] == "unverified"
+    assert claim_dict["display_group"] == "failed"
 
 
-def test_v13_missing_status_display_group_is_unverified(tmp_path, env_sandbox):
-    """A claim with status 'missing' → display_group 'unverified'."""
+def test_v13_missing_status_display_group_is_failed(tmp_path, env_sandbox):
+    """A claim with status 'missing' → display_group 'failed'."""
     # Arrange
     workdir = _fresh_db(tmp_path, env_sandbox)
     env_sandbox.chdir(workdir)
@@ -1758,11 +1759,11 @@ def test_v13_missing_status_display_group_is_unverified(tmp_path, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     claim_dict = json.loads(out.read_text())["claims"][0]
     # Assert
-    assert claim_dict["display_group"] == "unverified"
+    assert claim_dict["display_group"] == "failed"
 
 
-def test_v13_registered_status_display_group_is_unverified(tmp_path, env_sandbox):
-    """A claim with status 'registered' → display_group 'unverified'."""
+def test_v13_registered_status_display_group_is_suspect(tmp_path, env_sandbox):
+    """A claim with status 'registered' → display_group 'suspect' (never-verified folds into amber)."""
     # Arrange
     workdir = _fresh_db(tmp_path, env_sandbox)
     env_sandbox.chdir(workdir)
@@ -1782,7 +1783,7 @@ def test_v13_registered_status_display_group_is_unverified(tmp_path, env_sandbox
     clew.export_claims_json(path=out, read_only=False)
     claim_dict = json.loads(out.read_text())["claims"][0]
     # Assert
-    assert claim_dict["display_group"] == "unverified"
+    assert claim_dict["display_group"] == "suspect"
 
 
 def test_v13_verified_with_exception_chain_display_group_is_exception(tmp_path, env_sandbox):
@@ -1901,8 +1902,243 @@ def test_v13_verified_with_frozen_chain_display_group_is_verified(tmp_path, env_
     # Act
     clew.export_claims_json(path=out, read_only=False)
     claim_dict = json.loads(out.read_text())["claims"][0]
-    # Assert — frozen folds into verified (has_frozen never changes the bucket)
+    # Assert — frozen folds into verified (reader bucket stays green)
     assert claim_dict["display_group"] == "verified"
+
+
+def test_v13_verified_with_frozen_chain_resolved_status_is_frozen(tmp_path, env_sandbox):
+    """A verified claim whose chain has a frozen file → resolved_status 'frozen', color '0072b2'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-01M-01D-00h00m00s_FRV4"
+    script = str(workdir / "run.py")
+    out_file = workdir / "frozen_v4.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="tracked")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "deadbeef4", role="output", frozen=True)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    import sqlite3
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'verified' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v13_froz2.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert — full-7 resolved status keeps the distinct frozen blue
+    assert claim_dict["resolved_status"] == "frozen" and claim_dict["color"] == "0072b2"
+
+
+def test_v13_suspect_with_exception_chain_stays_suspect(tmp_path, env_sandbox):
+    """Chain overrides apply to VERIFIED claims only → suspect stays 'suspect' despite exception chain."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-01M-01D-00h00m00s_EXCV5"
+    script = str(workdir / "run.py")
+    out_file = workdir / "result_exc5.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="exception")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "abc795", role="output")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    import sqlite3
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'suspect' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v13_exc5.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert — chain-exception never promotes a non-verified claim
+    assert claim_dict["display_group"] == "suspect" and claim_dict["resolved_status"] == "suspect"
+
+
+def test_v13_registered_with_frozen_chain_stays_registered(tmp_path, env_sandbox):
+    """A never-verified claim over a frozen chain stays 'registered' (grey) — no false-green."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-01M-01D-00h00m00s_FRV5"
+    script = str(workdir / "run.py")
+    out_file = workdir / "frozen_v5.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="tracked")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "deadbeef5", role="output", frozen=True)
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    # status stays 'registered' — no verify pass
+    out = workdir / "claims_v13_froz5.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert — frozen chain never greens a never-verified claim
+    assert (
+        claim_dict["resolved_status"] == "registered"
+        and claim_dict["color"] == "6e7781"
+        and claim_dict["display_group"] == "suspect"
+    )
+
+
+def test_v13_mismatch_with_exception_chain_stays_failed(tmp_path, env_sandbox):
+    """Precedence: mismatch outranks chain exception → display_group stays 'failed'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    db = clew.get_db()
+    session_id = "2026Y-01M-01D-00h00m00s_EXCV6"
+    script = str(workdir / "run.py")
+    out_file = workdir / "result_exc6.csv"
+    out_file.write_text("x=1\n")
+    db.add_run(session_id, script, provenance="exception")
+    db.finish_run(session_id, status="success")
+    db.add_file_hash(session_id, str(out_file), "abc796", role="output")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+        source_file=str(out_file),
+        source_session=session_id,
+    )
+    import sqlite3
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'mismatch' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v13_exc6.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert — hard failure is never masked by a declared exception
+    assert claim_dict["display_group"] == "failed" and claim_dict["resolved_status"] == "mismatch"
+
+
+def test_v13_missing_claim_color_is_distinct_dark_red(tmp_path, env_sandbox):
+    """A 'missing' claim's color resolves to the distinct dark red 'a40e26'."""
+    # Arrange
+    workdir = _fresh_db(tmp_path, env_sandbox)
+    env_sandbox.chdir(workdir)
+    _make_project_root(workdir)
+    env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
+    paper = workdir / "paper.tex"
+    paper.write_text("claim\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="0.94",
+    )
+    import sqlite3
+    db = clew.get_db()
+    conn = sqlite3.connect(str(db.db_path))
+    try:
+        conn.execute("UPDATE claims SET status = 'missing' WHERE 1=1")
+        conn.commit()
+    finally:
+        conn.close()
+    out = workdir / "claims_v13_missing.json"
+    # Act
+    clew.export_claims_json(path=out, read_only=False)
+    claim_dict = json.loads(out.read_text())["claims"][0]
+    # Assert — missing has its own hue, distinct from mismatch cf222e
+    assert claim_dict["color"] == "a40e26"
+
+
+def test_v13_palette_full7_hexes_match_locked_convention(tmp_path, env_sandbox):
+    """Top-level palette carries the operator-locked full-7 hexes (bare, no '#')."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    palette = payload["palette"]
+    # Assert — one locked hue per status
+    assert palette == {
+        "verified": "2da44e",
+        "suspect": "d29922",
+        "mismatch": "cf222e",
+        "missing": "a40e26",
+        "registered": "6e7781",
+        "exception": "8250df",
+        "frozen": "0072b2",
+    }
+
+
+def test_v13_display_groups_full7_collapse_map(tmp_path, env_sandbox):
+    """display_groups collapses each full-7 status onto the 4-bucket reader set."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox)
+    # Act
+    dg = payload["display_groups"]
+    # Assert — per-status collapse map (registered→suspect, frozen→verified)
+    assert dg == {
+        "verified": "verified",
+        "suspect": "suspect",
+        "mismatch": "failed",
+        "missing": "failed",
+        "registered": "suspect",
+        "exception": "exception",
+        "frozen": "verified",
+    }
+
+
+def test_v13_per_claim_resolved_status_present(tmp_path, env_sandbox):
+    """Every claim entry carries a full-7 'resolved_status' field in v1.3."""
+    # Arrange
+    payload = _export_v12(tmp_path, env_sandbox, num_registered=1)
+    # Act
+    missing_rs = [c for c in payload["claims"] if "resolved_status" not in c]
+    # Assert
+    assert missing_rs == []
 
 
 def test_v13_legend_has_exactly_four_display_state_entries(tmp_path, env_sandbox):
@@ -1913,7 +2149,7 @@ def test_v13_legend_has_exactly_four_display_state_entries(tmp_path, env_sandbox
     # Act
     statuses = {e["status"] for e in legend["statuses"]}
     # Assert — exactly 4 display states
-    assert statuses == {"verified", "suspect", "unverified", "exception"} and "subbadges" not in legend
+    assert statuses == {"verified", "suspect", "failed", "exception"} and "subbadges" not in legend
 
 
 def test_v13_legend_all_statuses_have_wavy_underline_marker(tmp_path, env_sandbox):

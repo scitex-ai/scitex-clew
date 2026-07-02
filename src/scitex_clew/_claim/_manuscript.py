@@ -15,16 +15,19 @@ Per-entry frozen schema (what writer joins/renders on)::
       "claim_id":     join key — value: claim_id; citation: cite_key;
                                  figure: the (explicit) claim_id (image save-path),
       "claim_type":   "value" | "citation" | "figure"  (render style),
-      "status":       4-state "verified" | "suspect" | "unverified" | "exception",
+      "status":       4-bucket "verified" | "suspect" | "failed" | "exception",
       "claim_value":  verbatim value (value; optional for citation/figure),
       "display_color": resolved 6-hex for the status (no '#'),
       "link":         href — citation: DOI url; value/figure: source path,
-      ... extra provenance (raw_status / doi / source_file / …) — writer ignores.
+      ... extra provenance (raw_status / resolved_status / doi / …) — writer
+      ignores for rendering.
     }
 
-Top-level adds ``palette`` (status→hex) + ``attestation`` (counts). Status
-mapping for citations: verified→verified, stub→unverified (red), unverified→
-suspect (amber) — clew's stored citation statuses; ``unknown`` is a verify-time
+Top-level adds ``palette`` (4-bucket display palette), ``status_palette``
+(full-7 status→hex), ``display_groups`` (full-7 status → display bucket) +
+``attestation`` (badge facts: ``badge_state`` + ``counts``). Status mapping
+for citations: verified→verified, stub→failed (red), unverified→suspect
+(amber) — clew's stored citation statuses; ``unknown`` is a verify-time
 verdict only, never a stored row, so it never appears here.
 
 Emit model (writer's Option A): the compile calls this LAST (last-write-wins) so
@@ -44,13 +47,18 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 from ._export import _resolve_chain_flags
-from ._model import _DISPLAY_PALETTE, _resolve_display_group
+from ._model import (
+    _CLAIM_PALETTE,
+    _DISPLAY_GROUPS,
+    _DISPLAY_PALETTE,
+    _resolve_status,
+)
 from ._register import list_claims
 
-# Stored citation status -> writer's 4-state render bucket.
+# Stored citation status -> writer's 4-bucket render group.
 _CITATION_STATUS_TO_GROUP: Dict[str, str] = {
     "verified": "verified",
-    "stub": "unverified",  # hallucinated / placeholder -> RED
+    "stub": "failed",  # hallucinated / placeholder -> RED
     "unverified": "suspect",  # cited, not yet scholar-confirmed -> amber
 }
 
@@ -58,7 +66,8 @@ _CITATION_STATUS_TO_GROUP: Dict[str, str] = {
 def _claim_entry(claim) -> Dict:
     """Map a value/figure/statistic/table/text claim to a unified render entry."""
     has_exception, has_frozen = _resolve_chain_flags(claim)
-    group = _resolve_display_group(claim.status, has_exception, has_frozen)
+    resolved = _resolve_status(claim.status, has_exception, has_frozen)
+    group = _DISPLAY_GROUPS[resolved]
     claim_type = "figure" if claim.claim_type == "figure" else "value"
     return {
         "claim_id": claim.claim_id,
@@ -71,6 +80,8 @@ def _claim_entry(claim) -> Dict:
         # --- provenance (writer ignores for rendering) ---
         "raw_claim_type": claim.claim_type,
         "raw_status": claim.status,
+        # Full-7 resolved status (author tooling / DAG fidelity).
+        "resolved_status": resolved,
         "file_path": claim.file_path,
         "line_number": claim.line_number,
         "source_file": claim.source_file,
@@ -82,7 +93,7 @@ def _claim_entry(claim) -> Dict:
 
 def _citation_entry(citation) -> Dict:
     """Map a citation node to a unified render entry."""
-    group = _CITATION_STATUS_TO_GROUP.get(citation.status, "unverified")
+    group = _CITATION_STATUS_TO_GROUP.get(citation.status, "failed")
     return {
         "claim_id": citation.cite_key,
         "claim_type": "citation",
@@ -149,7 +160,25 @@ def export_manuscript_claims(
     except Exception:  # noqa: BLE001 — citation ledger optional
         pass
 
-    verified_count = sum(1 for e in entries if e["status"] == "verified")
+    total = len(entries)
+    bucket_counts = {
+        bucket: sum(1 for e in entries if e["status"] == bucket)
+        for bucket in ("verified", "suspect", "failed", "exception")
+    }
+    verified_count = bucket_counts["verified"]
+    # Raw ledger statuses (claims only; citations never carry these).
+    mismatch_count = sum(1 for e in entries if e.get("raw_status") == "mismatch")
+    missing_count = sum(1 for e in entries if e.get("raw_status") == "missing")
+
+    # Badge state: failing if ANY entry is in the failed bucket (claim
+    # mismatch/missing or stub citation); all_verified iff every entry is
+    # verified (vacuously true for an empty ledger); else partial.
+    if bucket_counts["failed"] > 0:
+        badge_state = "failing"
+    elif verified_count == total:
+        badge_state = "all_verified"
+    else:
+        badge_state = "partial"
 
     try:
         _pkg_version = importlib.metadata.version("scitex-clew")
@@ -160,18 +189,40 @@ def export_manuscript_claims(
         "_note": (
             "AUTO-GENERATED by scitex_clew.export_manuscript_claims() — the "
             "UNIFIED render feed (value + citation + figure) in scitex-writer's "
-            "frozen schema. Regenerated at compile; do NOT edit by hand."
+            "frozen schema. Regenerated at compile; do NOT edit by hand. "
+            "Per-entry status is the 4-bucket display group "
+            "(verified|suspect|failed|exception); attestation.counts maps the "
+            "ledger statuses onto it: failed = claim mismatch+missing + stub "
+            "citations; suspect includes registered (never-verified) claims "
+            "and scholar-unconfirmed citations; unverified = total - verified. "
+            "Superseded claims are excluded from all entries and counts."
         ),
-        "schema_version": "1.4-unified",
+        "schema_version": "1.5-unified",
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        # 4-bucket display palette (what writer renders with).
         "palette": dict(_DISPLAY_PALETTE),
+        # Full-7 status palette + collapse map (author tooling / DAG fidelity).
+        "status_palette": dict(_CLAIM_PALETTE),
+        "display_groups": dict(_DISPLAY_GROUPS),
         "attestation": {
             "text": "Provenance checked by SciTeX Clew.",
             "tool": "scitex-clew",
             "version": _pkg_version,
-            "total": len(entries),
+            "total": total,
             "verified_count": verified_count,
-            "unverified_count": len(entries) - verified_count,
+            "unverified_count": total - verified_count,
+            # Badge facts (writer renders the badge from attestation+palette).
+            "badge_state": badge_state,
+            "counts": {
+                "total": total,
+                "verified": verified_count,
+                "unverified": total - verified_count,
+                "suspect": bucket_counts["suspect"],
+                "failed": bucket_counts["failed"],
+                "exception": bucket_counts["exception"],
+                "mismatch": mismatch_count,
+                "missing": missing_count,
+            },
         },
         "claims": entries,
     }

@@ -46,21 +46,22 @@ def get_file_icon(filename: str) -> str:
 def append_class_definitions(lines: list) -> None:
     """Append Mermaid class definitions for styling.
 
-    Schema v1.3: 4-state color-only palette. Node fills match the
-    display_palette in claims.json:
+    Schema v1.3: color-only palette, zero status glyphs. The DAG view keeps
+    full-7 fidelity (author tooling) — node fills match the full-7 ``palette``
+    in claims.json:
       - verified  → green  #2da44e
       - suspect   → amber  #d29922
-      - failed/mismatch/missing → red #cf222e
+      - failed/mismatch → red #cf222e
       - exception → violet #8250df  (solid fill, no dashed)
-      - frozen    → folds into verified green #2da44e  (solid, no dashed)
+      - frozen    → blue   #0072b2  (distinct trusted-hash hue; readers see
+        it collapsed into the verified bucket, the DAG keeps it distinct)
 
-    Three colour bands are emitted so the DAG view can distinguish
-    locally-valid runs whose UPSTREAM chain is broken (amber ``suspect``
-    band) from runs whose own artifacts are wrong (red ``failed`` /
-    ``file_bad`` band). See ``VerificationStatus.SUSPECT`` in
-    ``_chain/_types.py`` for the underlying enum. Renderers that pass an
-    empty ``suspect_files`` set degrade cleanly to the historical 2-colour
-    output.
+    The colour bands let the DAG view distinguish locally-valid runs whose
+    UPSTREAM chain is broken (amber ``suspect`` band) from runs whose own
+    artifacts are wrong (red ``failed`` / ``file_bad`` band). See
+    ``VerificationStatus.SUSPECT`` in ``_chain/_types.py`` for the underlying
+    enum. Renderers that pass an empty ``suspect_files`` set degrade cleanly
+    to the historical 2-colour output.
     """
     lines.append("")
     lines.append("    classDef script fill:#87CEEB,stroke:#4169E1,stroke-width:2px")
@@ -76,7 +77,7 @@ def append_class_definitions(lines: list) -> None:
     lines.append("    classDef file_bad fill:#cf222e,stroke:#8b1a1a")
     lines.append("    classDef file_suspect fill:#d29922,stroke:#8a5c00")
     lines.append(
-        "    classDef file_frozen fill:#2da44e,stroke:#1a6b32"
+        "    classDef file_frozen fill:#0072b2,stroke:#004a75"
     )
     lines.append(
         "    classDef exception fill:#8250df,stroke:#4a1c8a"
@@ -168,10 +169,10 @@ def add_file_nodes(
     historical 2-colour output simply pass ``None`` (default) and the
     cascade falls back to file_ok / file_bad.
 
-    ``frozen_files`` is the blue-dashed signal for files whose hash is
-    trusted without re-reading (e.g. huge external datasets). A frozen
-    file is NEVER silently shown as file_ok — it always carries the
-    🔒 FROZEN marker in its label and uses the ``file_frozen`` class.
+    ``frozen_files`` is the blue signal for files whose hash is trusted
+    without re-reading (e.g. huge external datasets). A frozen file is
+    NEVER silently shown as file_ok — it uses the ``file_frozen`` class
+    (blue #0072b2, color-only) plus a plain-text label suffix.
 
     Severity preserved: failed > suspect > frozen > rerun > verified.
     """
@@ -206,8 +207,8 @@ def add_file_nodes(
                 badge = "?"
                 frozen_label = ""
             elif is_frozen:
-                # Schema v1.3: frozen folds into verified green (no 🔒 icon).
-                # The trusted-source state is conveyed by the green color.
+                # Schema v1.3: color-only — no 🔒 icon. The trusted-hash state
+                # is conveyed by the distinct frozen blue (#0072b2).
                 file_class = "file_frozen"
                 badge = "✓"
                 frozen_label = "<br/>(frozen, not re-hashed)"
@@ -258,8 +259,8 @@ def add_grouped_nodes(
     the DAG renderer. Default ``None`` → empty set → legacy 2-colour
     behaviour for callers that have not opted in yet.
 
-    ``frozen_files`` is propagated so the 🔒 FROZEN (blue-dashed) marker
-    is honoured at every level. Default ``None`` → empty set → frozen
+    ``frozen_files`` is propagated so the frozen (blue #0072b2) band is
+    honoured at every level. Default ``None`` → empty set → frozen
     behaviour only when explicitly passed.
     """
     failed_files = failed_files or set()
@@ -332,7 +333,7 @@ def _add_single_file_node(
         elif is_suspect:
             cls, badge, frozen_label = "file_suspect", "?", ""
         elif is_frozen:
-            # Schema v1.3: frozen folds into verified green (no 🔒 icon).
+            # Schema v1.3: color-only — frozen blue (#0072b2), no 🔒 icon.
             cls, badge, frozen_label = (
                 "file_frozen",
                 "✓",
@@ -392,7 +393,7 @@ def _add_group_node(
             # but at least one member's upstream chain is broken.
             cls, badge = "file_suspect", "?"
         elif any_frozen:
-            # Schema v1.3: frozen folds into verified green (no 🔒 icon).
+            # Schema v1.3: color-only — frozen blue (#0072b2), no 🔒 icon.
             cls, badge = "file_frozen", "✓"
         elif role == "output" and is_rerun:
             cls, badge = "file_rerun", "✓✓"

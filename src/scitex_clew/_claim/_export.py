@@ -14,9 +14,11 @@ from typing import Dict, List, Optional, Union
 from .._db import get_db
 from ._model import (
     _CLAIM_PALETTE,
+    _DISPLAY_GROUPS,
     _DISPLAY_PALETTE,
     _PALETTE_FALLBACK,
     _resolve_display_group,
+    _resolve_status,
 )
 
 
@@ -232,12 +234,18 @@ def export_claims_json(
     _all_exception_pairs: Dict[str, str] = {}  # session_id -> reason (deduped)
     for c in claims:
         base = c.to_dict()  # all existing fields, byte-identical
-        color = _CLAIM_PALETTE.get(c.status, _PALETTE_FALLBACK)
         chain_has_exception, chain_has_frozen = _resolve_chain_flags(c)
-        base["color"] = color
+        # Schema v1.3: resolved full-7 status via color precedence —
+        # mismatch/missing > [verified claims only: exception > frozen]
+        # > suspect > verified > registered
+        resolved_status = _resolve_status(
+            c.status, chain_has_exception, chain_has_frozen
+        )
+        base["color"] = _CLAIM_PALETTE.get(resolved_status, _PALETTE_FALLBACK)
+        base["resolved_status"] = resolved_status
         base["chain_has_exception"] = chain_has_exception
         base["chain_has_frozen"] = chain_has_frozen
-        # Schema v1.3: display group + display color (4-state, color-only)
+        # Schema v1.3: display group + display color (4-bucket, color-only)
         display_group = _resolve_display_group(c.status, chain_has_exception, chain_has_frozen)
         base["display_group"] = display_group
         base["display_color"] = _DISPLAY_PALETTE[display_group]
@@ -263,42 +271,33 @@ def export_claims_json(
     verified_count = sum(1 for c in claims if c.status == "verified")
     unverified_count = claims_count - verified_count
 
-    # Schema v1.3: 4 display states — the reader's legend (color-only, no icons).
+    # Schema v1.3: 4 display buckets — the reader's legend (color-only, no icons).
     legend_statuses = [
         {
             "status": "verified",
-            "color": "2da44e",
+            "color": _DISPLAY_PALETTE["verified"],
             "marker": "wavy-underline",
             "label": "verified — matches its source",
         },
         {
             "status": "suspect",
-            "color": "d29922",
+            "color": _DISPLAY_PALETTE["suspect"],
             "marker": "wavy-underline",
-            "label": "suspect — upstream unverified, possibly contaminated",
+            "label": "suspect — not confirmed: upstream unverified or never verified",
         },
         {
-            "status": "unverified",
-            "color": "cf222e",
+            "status": "failed",
+            "color": _DISPLAY_PALETTE["failed"],
             "marker": "wavy-underline",
-            "label": "unverified — could not confirm against source",
+            "label": "failed — mismatch or missing against source",
         },
         {
             "status": "exception",
-            "color": "8250df",
+            "color": _DISPLAY_PALETTE["exception"],
             "marker": "wavy-underline",
             "label": "exception — auto-verification chain does not connect through this declared node (transparently NOT auto-verified)",
         },
     ]
-
-    # Static map: internal status -> display bucket (for plain/no-flag claims).
-    display_groups_map: Dict[str, str] = {
-        "verified": "verified",
-        "suspect": "suspect",
-        "mismatch": "unverified",
-        "missing": "unverified",
-        "registered": "unverified",
-    }
 
     payload = {
         "_note": (
@@ -309,9 +308,12 @@ def export_claims_json(
         ),
         "schema_version": "1.3",
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        # Full-7 status palette (author tooling + DAG fidelity).
         "palette": dict(_CLAIM_PALETTE),
+        # 4-bucket reader palette (color-only, no icons).
         "display_palette": dict(_DISPLAY_PALETTE),
-        "display_groups": display_groups_map,
+        # Per-status collapse map: full-7 status -> display bucket.
+        "display_groups": dict(_DISPLAY_GROUPS),
         "claims_count": claims_count,
         "attestation": {
             "text": "Provenance checked by SciTeX Clew.",

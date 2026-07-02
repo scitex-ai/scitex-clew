@@ -215,12 +215,12 @@ def verify(ctx: click.Context, session_id, strict: bool, config, as_json: bool):
     click.echo(f"[{icon}] {result.session_id} ({result.status.value})")
     if getattr(result, "provenance", "tracked") == "exception":
         reason = getattr(result, "exception_reason", None) or "no reason given"
-        click.echo(f"  ⊘ EXCEPTION (reason: {reason})")
+        click.echo(f"  EXCEPTION (reason: {reason})")
     for f in result.files:
         ficon = "OK" if f.is_verified else "!!"
         if getattr(f, "frozen", False):
             click.echo(
-                f"  [{ficon}] {f.role:<6} 🔒 FROZEN (trusted hash, not re-read): {f.path}"
+                f"  [{ficon}] {f.role:<6} FROZEN (trusted hash, not re-read): {f.path}"
             )
         else:
             click.echo(f"  [{ficon}] {f.role:<6} {f.path}")

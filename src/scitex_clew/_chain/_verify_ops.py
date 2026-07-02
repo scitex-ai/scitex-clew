@@ -51,8 +51,9 @@ def verify_file(
         still reported MISSING (frozen means "trust the hash without
         re-reading", not "ignore missing files").  Returns a FileVerification
         with ``status=VERIFIED`` and ``frozen=True`` — never silently rendered
-        as a normal verified file; callers and renderers must show the 🔒 FROZEN
-        marker.
+        as a normal verified file; callers and renderers must surface the
+        frozen state (frozen blue #0072b2 / "FROZEN" label — color-only, no
+        glyph).
 
     Returns
     -------

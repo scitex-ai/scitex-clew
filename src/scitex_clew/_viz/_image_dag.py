@@ -44,8 +44,9 @@ def _add_file_node(
         status = "file_bad"
         label = f"✗ {display_name}"  # ✗
     elif is_frozen:
+        # Schema v1.3: color-only — no 🔒 glyph; blue conveys frozen state.
         status = "file_frozen"
-        label = f"\U0001f512 {display_name}\nFROZEN"  # 🔒
+        label = f"{display_name}\nFROZEN"
     elif role == "output" and is_rerun:
         status = "file_rerun"
         label = f"✓✓ {display_name}"  # ✓✓
@@ -191,8 +192,9 @@ def build_dag_graph(
         badge = "✓✓" if is_from_scratch else ("✓" if script_verified else "✗")
         label = f"{badge} {script_name}"
         if is_exception:
+            # Schema v1.3: color-only — no ⊘ glyph; violet conveys exception.
             reason_text = exception_reason or "no reason given"
-            label += f"\n⊘ EXCEPTION\n[{reason_text}]"  # ⊘
+            label += f"\nEXCEPTION\n[{reason_text}]"
 
         script_node_id = f"script_{i}"
         nodes.append({
