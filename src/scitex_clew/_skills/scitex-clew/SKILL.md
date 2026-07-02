@@ -50,6 +50,7 @@ scitex_clew.status(...)
 * [02_quick-start.md](02_quick-start.md) — minimal usage
 * [03_python-api.md](03_python-api.md) — public callables
 * [04_cli-reference.md](04_cli-reference.md) — `clew` subcommands
+* [05_verify-claim-contract.md](05_verify-claim-contract.md) — `verify_claim` consumer contract: signature/return shape, the two status vocabularies (v0.7.0 `partial`→`suspect`), full-7 palette + 4-bucket display collapse, DB precedence, git-agnostic re-verify recipe
 * [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — workflows + CLI detail + MCP refs
 * [20_env-vars.md](20_env-vars.md), [14_grouping.md](14_grouping.md) — env vars + DAG-node grouping
 * [21_agentic-reasoning.md](21_agentic-reasoning.md) — when-to-call discipline for AI agents using Clew as an active reasoning substrate (v2 framing)

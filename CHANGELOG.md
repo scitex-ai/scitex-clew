@@ -38,6 +38,27 @@ versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Docs
+- **`verify_claim` consumer contract** documented (new skill leaf
+  `05_verify-claim-contract.md` + sphinx `verify-claim-contract.rst`),
+  fixing the 4-axis contract mismatch a consumer (scitex-live-paper,
+  2026-06-28) integrated against: single positional
+  `claim_id_or_location` (no `against=`/`bundle_root=`/commit kwargs);
+  clew is git-agnostic (host owns checkout; clew re-hashes
+  `source_file` at its current on-disk state); the exact return shape
+  (top-level `status` ONLY for `not_found`; otherwise
+  `claim`/`source_verified`/`chain_verified`/`details`, with
+  `status`/`verified_at` inside `claim`); the two status vocabularies
+  (`VerificationStatus` enum vs claim statuses `{registered, verified,
+  suspect, mismatch, missing}` after the 0.7.0 `partial`→`suspect`
+  rename, with client-side transient UI states and paper-level badge
+  vocabularies kept explicitly distinct); the claims.json v1.3
+  enrichment fields (`resolved_status`/`color`/`display_group`/
+  `display_color` + the no-false-green precedence rule); the three-tier
+  DB selection precedence (explicit `db_path` incl. `render_dag`'s new
+  kwarg → `SCITEX_CLEW_DB_PATH` → project-root walk); and the canonical
+  full-7 palette + 4-bucket display collapse, superseding the stale
+  pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
+  variants) some consumers still hold.
 - **Verification caching guarantee** documented across the skill
   (`03_python-api.md` — audited against v0.6.0), sphinx (`concepts.rst`),
   and README: all caches are content-keyed (SHA-256 of live bytes, zero
