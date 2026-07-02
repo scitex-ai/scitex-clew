@@ -73,14 +73,17 @@ See [02_quick-start.md](02_quick-start.md) for usage examples and
 
 ## Verification caching — correctness guarantee
 
-This section records the no-false-green invariant for every cache mechanism
-in clew. A "false-green" is a cached `VERIFIED` result returned for content
-that has since changed. The operator's hard invariant is that this must never
-happen. The guarantees below are audited against the source.
+Operator invariant (neurovista, 2026-06-30): dev-speed caching is fine; a
+correctness-breaking cache is not. A "false green" is a cached `VERIFIED`
+returned for content that has since changed — no mechanism below can produce
+one. Every statement here is audited against the source at **v0.6.0**
+(2026-07-02); file paths are current.
 
-> **Summary.** All clew caches are content-hash-keyed; there is no mtime-based
-> logic anywhere in the package — so no cache can return verified for content
-> that has changed.
+> **Summary.** Every clew cache is keyed by content hash — SHA-256 of the
+> live file bytes, truncated to the first 32 hex chars (`_hash.py`). There
+> is no mtime-based logic anywhere in the package:
+> `rg -n "mtime" src/ -g '*.py'` returns zero matches (re-verified at
+> v0.6.0; the only occurrences of "mtime" under `src/` are in this document).
 
 ### Verification levels at a glance
 
@@ -90,111 +93,111 @@ happen. The guarantees below are audited against the source.
 | L2 | `RERUN` | Re-execute the script in a sandbox and compare outputs |
 | L3 | `REGISTERED` | L2 + hash registered with a server-side timestamp (scitex.ai) |
 
-Source: `_chain/_types.py` (`VerificationLevel`). `RunVerification.is_verified_from_scratch`
-is `True` only when `level == RERUN`, so a strict hook can require full
-re-execution by checking that property.
+Source: `src/scitex_clew/_chain/_types.py` (`VerificationLevel`).
+`RunVerification.is_verified_from_scratch` is `True` only when
+`level == RERUN`, so a strict hook can require full re-execution by checking
+that property.
 
-### (a) L1 CACHE — direct content hashing (on `develop`)
+### (a) L1 CACHE — direct content hashing
 
-**What it does.** `verify_run()` in `_chain/_verify_ops.py` calls `hash_file(path)`
-from `_hash.py` for every input, output, and script file recorded in the
-session. `hash_file` reads the file in 8 KiB chunks through `hashlib.sha256`
-and returns the first 32 hex characters of the digest. There is no module-global
-state, no mtime/size shortcut, and no cross-call caching — every invocation
-reads the bytes fresh from disk.
+`verify_run()` in `src/scitex_clew/_chain/_verify_ops.py` calls `hash_file()`
+from `src/scitex_clew/_hash.py` for every input, output, and script file
+recorded in the session. `hash_file` reads the file in 8 KiB chunks through
+`hashlib.sha256` and returns the first 32 hex characters. Unless a per-pass
+cache is explicitly threaded in (see (b)), every invocation reads the bytes
+fresh from disk — no module-global state, no mtime/size shortcut.
 
-**Guarantee.** Because the hash is computed from file bytes on each call, a
-changed file is always detected. There is no fast-path that skips the read.
-A git hook running `clew run <session>` (L1) correctly reports MISMATCH if
-any tracked file has been modified since the session was recorded.
+**Guarantee.** A changed file is always detected; there is no fast path that
+skips the read. **Only assumption:** the file is not overwritten during the
+single `hash_file` call.
 
-**Only assumption.** The file is not overwritten during a single `hash_file`
-call (each call is sub-millisecond for typical files).
+### (b) Per-pass hash cache — `src/scitex_clew/_chain/_hash_cache.py` (since v0.2.19)
 
-**Confirmed no mtime.** A project-wide grep for `mtime`, `getmtime`, and
-`st_mtime` across `src/` returns zero results.
+`HashCache = Dict[str, str]` maps `str(Path(p).resolve())` → content hash.
+`new_hash_cache()` returns a fresh empty dict at each top-level verify entry
+point (`verify_chain` and the status pass in `_chain/_chain_ops.py`,
+`verify_dag` in `_chain/_dag.py`, `verify_all_claims` in
+`_claim/_verify.py`, `rerun_dag(skip_unchanged=True)` in `_rerun.py`) and is
+threaded down the call stack — never persisted, never a module-global, never
+a mutable default argument.
 
-### (b) Per-pass hash cache (SHIPPED in v0.2.19, on `develop`)
+**Guarantee.** Within one pass a file is hashed at most once (the perf win
+when one config file feeds many sessions). Across independent passes the
+dict is discarded, so a file changed between two calls is always re-hashed.
+The cached value is the content hash itself; the key carries no mtime or
+size. **Only assumption:** a file is not rewritten mid-pass (passes are
+short-lived; same as (a)).
 
-`_chain/_hash_cache.py` and `new_hash_cache()` are present on `develop` and
-in the v0.2.19 tag. This is not pending — it shipped.
+### (c) Freshness-skip incremental rerun — `src/scitex_clew/_chain/_freshness.py` (since v0.2.19)
 
-**What it adds.** `_chain/_hash_cache.py` introduces `HashCache = Dict[str, str]`
-and `new_hash_cache()` which returns a fresh empty dict. `hash_file` gains an
-optional `hash_cache=` parameter: on a cache hit (resolved path already in
-the dict) the stored hash is returned without re-reading the file; on a miss
-the file is read, hashed, and the result stored. The cache is created once
-at the top-level verify entry point and passed down through the call stack —
-it is never a module-global and never a mutable default argument.
+`rerun_dag(skip_unchanged=True)` (`src/scitex_clew/_rerun.py`) is opt-in
+(default `False`). Before each sandbox re-execution, `_is_session_fresh()`
+re-hashes the script and EVERY recorded input file and compares against the
+values stored at record time. Any mismatch — or a missing `script_hash`
+baseline — falls through to the normal re-execution path. Only a
+fully-matching session is skipped, returning
+`RunVerification(status=VERIFIED, level=CACHE)`.
 
-**Guarantee.** Within a single pass a file is hashed at most once (perf win
-for DAGs where a shared config file is an input to many sessions). Across
-independent passes the cache is discarded and every file is re-hashed from
-scratch, so a file changed between two independent calls to `verify_run()`
-is always detected. The cached value is the content hash itself — there is no
-mtime or size shortcut in the cache key or the miss path.
-
-**Only assumption.** A file is not rewritten during a single pass (passes are
-short-lived; same assumption as (a)).
-
-### (c) Freshness-skip for incremental rerun (SHIPPED in v0.2.19, on `develop`)
-
-`_chain/_freshness.py` and `_is_session_fresh()` are present on `develop` and
-in the v0.2.19 tag. This is not pending — it shipped.
-
-**What it adds.** `rerun_dag(skip_unchanged=True)` is an opt-in flag. Before
-launching a subprocess re-execution for each session, `_is_session_fresh()`
-in `_chain/_freshness.py` is called. It re-hashes the script and every
-recorded input file and compares each hash to the value stored in the
-database. Any mismatch returns `False` immediately, causing `rerun_dag` to
-fall through to the normal subprocess re-execution path. Only when every
-check passes is the session skipped, returning
-`RunVerification(level=CACHE, status=VERIFIED)`.
-
-**Guarantee.** A changed script or input can never be skipped — every freshness
-check re-reads the actual file bytes; there is no mtime shortcut.
+**Guarantee.** A changed script or input can never be skipped — every
+freshness check re-reads actual file bytes.
 
 **Honest caveats.**
-- The check covers inputs and the script; it does NOT re-hash output files.
-  The purpose is to answer "would re-running this session produce the same
-  outputs?" (i.e., are inputs unchanged?), not "are the on-disk outputs
-  untampered?". To also catch a hand-edited output file, pair
-  `skip_unchanged=True` with an L1 `verify_chain()` pass — the L1 pass
-  compares stored output hashes against the current files.
-- A skipped session is recorded as `level=CACHE` (not `RERUN`), so
-  `RunVerification.is_verified_from_scratch` is `False`. A strict hook that
-  requires full re-execution can enforce this by asserting
-  `result.is_verified_from_scratch`.
-- The freshness check assumes the script is deterministic given identical
-  inputs. Scripts that fetch live data or use unseeded randomness should not
-  use `skip_unchanged=True`.
+- Inputs-only: output files are NOT re-hashed by the freshness check (its
+  question is "would a re-run produce the same outputs?", not "are the
+  on-disk outputs untampered?"). To also catch a hand-edited output, pair
+  `skip_unchanged=True` with an L1 `verify_chain()` pass, which compares
+  stored output hashes against the current files.
+- A skipped session is `level=CACHE` (not `RERUN`), so
+  `is_verified_from_scratch` is `False`; a strict hook can assert that
+  property to force real re-runs.
+- Determinism is assumed: scripts that fetch live data or use unseeded
+  randomness should not use `skip_unchanged=True`.
 
-### (d) Proposed persistent verdict cache (design — NOT yet implemented)
+### (d) Per-pass chain memo — `src/scitex_clew/_claim/_verify.py`
 
-ROADMAP: planned for v0.2.20. No code implementing this has been merged.
-The design is recorded here for review.
+`verify_all_claims()` also keeps a per-pass `chain_cache`
+(`{resolved source_file: ChainVerification}`) so N claims sharing one source
+walk its provenance chain once per pass. Same discipline as (b): a fresh
+dict per call, never persisted; the memoized chain result was itself
+computed from live bytes within the same pass.
 
-**Design intent.** Avoid re-running the expensive L2 subprocess or the L3
-registry round-trip when nothing in the pipeline has changed since the last
-verified run. L1 is already fast (just hashing); the persistent cache
-primarily benefits repeated L2/L3 calls in CI or git hooks.
+### (e) `frozen` flag — the one explicit hash-trust opt-out
 
-**Proposed cache key.**
+Not a cache, but the only mechanism that skips re-reading bytes: a file
+recorded with `frozen=1` (`file_hashes.frozen`,
+`src/scitex_clew/_db/_file_hashes.py`) is trusted at its recorded hash
+during verification (`src/scitex_clew/_chain/_verify_ops.py`). It is
+per-file, opt-in at record time, and always visible: existence is still
+checked (a missing frozen file is `MISSING`), and the result carries
+`frozen=True` end-to-end (`FileVerification.frozen`, CLI output, Mermaid
+nodes) — a frozen pass is never rendered as fully hash-verified. Freezing a
+file is an explicit trust declaration (e.g. archived raw data), not a silent
+cache.
+
+### (f) Persistent verdict cache — NOT implemented (design record)
+
+A persistent L2/L3 verdict cache was planned for v0.2.20, but v0.2.20
+shipped claim CRUD instead; as of v0.6.0 there is **no persistent verdict
+cache in `src/`**. The `verification_results` table
+(`src/scitex_clew/_db/_core.py`) is an append-only history log keyed by
+`session_id`; its only reader is the Mermaid view
+(`src/scitex_clew/_viz/_mermaid_dag.py`), which still performs a live L1
+pass and uses the log solely to annotate the level badge when a past
+rerun-verified exists — a stored verdict never skips or overrides live
+hashing.
+
+The recorded design, kept for when it is built:
+
 ```
 key = H(verification_level ‖ script_hash ‖ sorted(input_hashes) ‖ source_hash)
 ```
-where each component is a SHA-256 of the current file bytes, computed at
-lookup time. The key is never path+mtime.
 
-**Automatic invalidation.** Because the key IS the content fingerprint, any
-change to the script, any input, or the source file yields a different key
-(cache miss) and triggers re-verification. No separate invalidation step is
-needed and none can be accidentally skipped.
-
-**Critical safety property.** Forming the key requires re-hashing all
-relevant files on every lookup. The persistent cache therefore cannot skip
-the content read — it only skips the expensive subprocess (L2) or registry
-call (L3) after the hashes confirm nothing has changed. Corollary: the cache
-saves essentially nothing on L1 (L1 is only hashing anyway); the real
-hook-speed lever is L1 combined with a `frozen-input` flag planned alongside
-this feature.
+with every component a SHA-256 of live file bytes computed at lookup time —
+never path+mtime. The key IS the content fingerprint, so invalidation is
+automatic and total: any changed byte yields a different key (miss) and
+triggers re-verification; no separate invalidation step exists to be
+skipped. Forming the key REQUIRES re-hashing all relevant files on every
+lookup, so the cache can only ever skip the expensive L2 subprocess / L3
+registry round-trip — never the content read. Corollary: it saves nothing
+on L1 (L1 is only hashing); the shipped `frozen` flag (e) is the L1-speed
+lever instead.

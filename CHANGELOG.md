@@ -31,6 +31,16 @@ versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Docs
+- **Verification caching guarantee** documented across the skill
+  (`03_python-api.md` — audited against v0.6.0), sphinx (`concepts.rst`),
+  and README: all caches are content-keyed (SHA-256 of live bytes, zero
+  mtime logic in `src/`), per-pass hash caches are fresh per pass and never
+  persisted, `rerun_dag(skip_unchanged=True)` re-hashes script + all inputs
+  (inputs-only; skipped sessions are `level=CACHE`, pair with L1
+  `verify_chain` for output tampering), and the v0.2.20-planned persistent
+  verdict cache is explicitly recorded as NOT implemented (design key spec
+  `H(level ‖ script_hash ‖ sorted(input_hashes) ‖ source_hash)` kept for
+  when it is built).
 - **Broken-twin case study in README + intro skill.** Documented the real NeuroVista incident (2026-06-30) as the "why clew" motivating example: two same-named warning-metrics Table 03/04 scripts coexisted — the broken twin fabricated timestamps (`times = arange(n) * 60 s` from a block-ordered no-time-column CSV; a uniform-Poisson alarm surrogate beat the real model, AUC 0.46 / IoC < 0) while the valid script used real `window_datetime` + `forecasting.evaluate_stream` (sens 0.70 / spec 0.96 / 0.17 FP/h / lead 10.7 min / IoC +0.56) — and with no claim→source→`@stx.session` binding the two were indistinguishable as "the source"; near-chance numbers were almost shipped. Landed as `README.md` "Case Study: The Broken Twin" + `SKILL.md` "Why clew — the broken-twin incident": claim→source provenance makes "which code produced this value" unambiguous (the broken twin has no registered claim). The incident drove ADR-0021 — clew registration mandatory for every manuscript value.
 
 ### Added
