@@ -22,6 +22,14 @@ from ._session import on_session_close, on_session_start
 
 logger = getLogger(__name__)
 
+# Idempotency guards for peer-hook registration. The import-time bootstrap AND
+# the entry-point activation path may both invoke register_with_*; keying on the
+# peer module's ``id()`` registers exactly ONCE per distinct peer instance — so
+# repeat calls against the same instance are no-ops (no double-firing), while a
+# genuine two-instance module split still registers each instance that fires.
+_registered_io_ids: set = set()
+_registered_session_ids: set = set()
+
 
 def on_io_save(path: Path, obj: Any, kwargs: Dict[str, Any]) -> None:
     """Post-save hook fired by scitex-io after a successful save.
@@ -73,6 +81,16 @@ def on_io_save(path: Path, obj: Any, kwargs: Dict[str, Any]) -> None:
         return
 
     if tracker is None:
+        # No active session at save time -> nothing to attach the file_hash to.
+        # Log it (not a silent bail): a save firing here with no tracker is
+        # either a legitimate out-of-session save OR the symptom of a tracker
+        # not being live across session-start->save. DEBUG, because out-of-
+        # session saves are normal and WARNING would cry wolf on every one.
+        logger.debug(
+            "clew: on_io_save fired for %s but no active session tracker — "
+            "provenance NOT recorded (out-of-session save, or tracker not live)",
+            path,
+        )
         return
 
     try:
@@ -166,9 +184,13 @@ def register_with_scitex_io() -> bool:
         )
         return False
 
+    if id(scitex_io) in _registered_io_ids:
+        return True  # idempotent: already registered against THIS instance
+
     try:
         scitex_io.register_post_save_hook(on_io_save)
         scitex_io.register_post_load_hook(on_io_load)
+        _registered_io_ids.add(id(scitex_io))
         # Diagnostic (module-identity): logs WHICH scitex_io instance clew
         # registered against, so a "registered True but hooks never fire"
         # symptom (a distinct scitex_io module firing a different hook list)
@@ -223,6 +245,9 @@ def register_with_scitex_session() -> bool:
             "clew: scitex_session has no lifecycle-hook registry; skipping"
         )
         return False
+
+    if id(scitex_session) in _registered_session_ids:
+        return True  # idempotent: already registered against THIS instance
 
     def _start_adapter(session_id, script_path=None, metadata=None):
         on_session_start(session_id, script_path=script_path, metadata=metadata)

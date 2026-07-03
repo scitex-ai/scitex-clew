@@ -32,9 +32,15 @@ def isolated_state(tmp_path):
     db_path = tmp_path / "hooks_test.db"
     set_db(db_path)
     set_tracker(None)
+    import scitex_clew._observers as _obs
+
+    _obs._registered_io_ids.clear()
+    _obs._registered_session_ids.clear()
     yield
     _db_module._DB_INSTANCE = None
     set_tracker(None)
+    _obs._registered_io_ids.clear()
+    _obs._registered_session_ids.clear()
 
 
 # --- io seam ----------------------------------------------------------------
@@ -59,6 +65,19 @@ def test_on_io_save_no_tracker_does_not_raise(tmp_path):
     assert result is None
 
 
+def test_on_io_save_logs_debug_when_no_tracker(tmp_path, caplog):
+    # Arrange
+    path = tmp_path / "out.csv"
+    set_tracker(None)
+    # Act
+    with caplog.at_level(logging.DEBUG, logger="scitex_clew._observers"):
+        on_io_save(path, obj=None, kwargs={"track": True})
+    # Assert
+    assert any(
+        "no active session tracker" in r.getMessage() for r in caplog.records
+    )
+
+
 def test_on_io_load_returns_none_without_raising(tmp_path):
     # Arrange
     path = tmp_path / "in.csv"
@@ -75,6 +94,38 @@ def test_register_with_scitex_io_returns_true_when_importable():
     ok = register_with_scitex_io()
     # Assert
     assert ok is True
+
+
+@pytest.fixture
+def fake_scitex_io():
+    """A real synthetic scitex_io module capturing hook registrations (PA-306).
+
+    Not a mock — a real module installed in sys.modules; its register_* append
+    to lists so a test can count registrations.
+    """
+    save_hooks: list = []
+    load_hooks: list = []
+    mod = types.ModuleType("scitex_io")
+    mod.register_post_save_hook = lambda fn: save_hooks.append(fn)
+    mod.register_post_load_hook = lambda fn: load_hooks.append(fn)
+    prev = sys.modules.get("scitex_io")
+    sys.modules["scitex_io"] = mod
+    try:
+        yield {"save": save_hooks, "load": load_hooks}
+    finally:
+        if prev is not None:
+            sys.modules["scitex_io"] = prev
+        else:
+            sys.modules.pop("scitex_io", None)
+
+
+def test_register_with_scitex_io_is_idempotent(fake_scitex_io):
+    # Arrange — register once against this instance.
+    register_with_scitex_io()
+    # Act — a second call must NOT double-register the same instance.
+    register_with_scitex_io()
+    # Assert
+    assert len(fake_scitex_io["save"]) == 1
 
 
 # --- scitex-session lifecycle-hook registry seam ----------------------------

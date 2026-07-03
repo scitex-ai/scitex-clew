@@ -30,6 +30,34 @@ versions follow [Semantic Versioning](https://semver.org/).
   pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
   variants) some consumers still hold.
 
+## [0.11.0] — 2026-07-04
+
+### Added
+- **Observer entry-point federation.** clew now registers its peer-hook
+  registrars under two entry-point groups —
+  `scitex_io.observers` → `register_with_scitex_io` and
+  `scitex_session.observers` → `register_with_scitex_session`. A peer package
+  that scans its group on import (importlib.metadata) and invokes each 0-arg
+  registrar will self-activate clew's auto-provenance hooks from
+  `import scitex_io` / `import scitex_session` **alone** — with no
+  `import scitex_clew` in the mission script (the clean-idiom path that the
+  legacy import-time bootstrap could not reach). Acyclic: the peer discovers the
+  callable via entry-point metadata and never imports clew in source.
+
+### Changed
+- **`register_with_scitex_io` / `register_with_scitex_session` are now
+  idempotent**, keyed on the peer module's `id()`: registration happens exactly
+  once per distinct peer instance, so the legacy import-time bootstrap and the
+  new entry-point activation path can both be live during rollout with no
+  double-registration (no double-firing), while a genuine two-instance module
+  split still registers each firing instance.
+- **`on_io_save` no longer silently bails when no session tracker is active.**
+  It now logs (DEBUG) that a save fired with no active session so nothing was
+  recorded — the silent `return` had hidden a real symptom (a save firing while
+  the tracker wasn't live across session-start→save). DEBUG, not WARNING,
+  because out-of-session saves are legitimate and the loud enforcement is
+  already the submission gate (an unrecorded save → unsourced claim → blocked).
+
 ## [0.10.1] — 2026-07-04
 
 ### Changed

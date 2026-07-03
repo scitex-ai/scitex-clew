@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-clew"
-version = "0.10.1"
+version = "0.11.0"
 description = "Verifiable knowledge graph for scientific experiments"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -72,6 +72,19 @@ clew = "scitex_clew._linter_plugin:get_plugin"
 
 [project.entry-points."scitex_dev.gate.checks"]
 scitex-clew = "scitex_clew._gate_plugin:provide"
+
+# Observer federation: scitex-io / scitex-session scan these entry-point groups
+# on THEIR import and invoke each 0-arg registrar, so clew's auto-provenance
+# hooks self-activate from `import scitex_io` / `import scitex_session` ALONE —
+# no `import scitex_clew` needed in the mission script (the clean-idiom path).
+# Acyclic: the peer discovers the callable via importlib.metadata, never imports
+# clew in source. register_with_* are idempotent (safe alongside the legacy
+# import-time bootstrap during rollout).
+[project.entry-points."scitex_io.observers"]
+scitex-clew = "scitex_clew._observers:register_with_scitex_io"
+
+[project.entry-points."scitex_session.observers"]
+scitex-clew = "scitex_clew._observers:register_with_scitex_session"
 [project.urls]
 Homepage = "https://github.com/ywatanabe1989/scitex-clew"
 Repository = "https://github.com/ywatanabe1989/scitex-clew"
