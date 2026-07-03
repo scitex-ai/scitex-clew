@@ -322,9 +322,21 @@ def _bootstrap_pkg_hooks(module_name: str, register_attr: str) -> None:
         try:
             from . import _observers
 
-            getattr(_observers, register_attr)()
-        except Exception:
-            pass
+            register = getattr(_observers, register_attr)
+        except Exception as exc:  # never fatal to ``import scitex_clew``
+            import logging
+
+            logging.getLogger("scitex_clew").warning(
+                "clew could not load observer registrar %s (%s) — "
+                "auto-provenance disabled",
+                register_attr,
+                exc,
+            )
+            return
+        # Surface (never swallow) the registration outcome: bootstrap_register
+        # logs a WARNING if register() raised or returned False, so a silent
+        # registration failure (peer API skew) stops hiding.
+        _observers.bootstrap_register(register, module_name)
 
     if module_name in sys.modules:
         _register_now()

@@ -30,6 +30,28 @@ versions follow [Semantic Versioning](https://semver.org/).
   pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
   variants) some consumers still hold.
 
+## [0.10.1] — 2026-07-04
+
+### Changed
+- **Observer registration no longer fails silently.** The import-time peer-hook
+  bootstrap (`scitex_io` / `scitex_session` observer self-registration) wrapped
+  its registration in a bare `except: pass` and ignored the `register_with_*`
+  boolean return, so a registration failure (peer hook-API skew, or the
+  registrar returning `False`) was completely invisible — clew's auto-provenance
+  hooks would silently not fire, with no signal. Registration now routes through
+  a new `scitex_clew._observers.bootstrap_register(register, peer_name)` helper
+  that logs a `WARNING` when the registrar raises or returns `False` (naming the
+  peer and the failure), while still never being fatal to `import scitex_clew`.
+  This surfaces the exact "installed but the hook didn't attach" failure mode
+  that otherwise requires code-reading to find. Pure visibility — no behavior
+  change on the success path.
+- **io-hook registration logs its target module identity (DEBUG).** On
+  successful `scitex_io` hook registration, clew now logs (at DEBUG) the
+  `id()` and `__file__` of the `scitex_io` module it registered against, so a
+  "registered True but the hooks never fire" symptom — a *distinct* `scitex_io`
+  instance firing a different hook list than the one clew subscribed to — is
+  diagnosable by comparing this id with the firing instance's.
+
 ## [0.10.0] — 2026-07-04
 
 ### Added

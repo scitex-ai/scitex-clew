@@ -8,6 +8,7 @@ registry, clew subscribes, the peer never imports clew.
 
 from __future__ import annotations
 
+import logging
 import sys
 import types
 
@@ -16,6 +17,7 @@ import pytest
 import scitex_clew._db as _db_module
 from scitex_clew._db import get_db, set_db
 from scitex_clew._observers import (
+    bootstrap_register,
     on_io_load,
     on_io_save,
     register_with_scitex_io,
@@ -162,6 +164,45 @@ def test_close_adapter_finalizes_run(fake_scitex_session):
     fake_scitex_session["close"]("success", 0)
     # Assert
     assert get_db().get_run("sess-adapter-3")["status"] == "success"
+
+
+# --- bootstrap_register (un-swallowed registration outcome) -----------------
+
+
+def test_bootstrap_register_returns_true_when_registrar_succeeds():
+    # Arrange
+    # Act
+    result = bootstrap_register(lambda: True, "scitex_io")
+    # Assert
+    assert result is True
+
+
+def test_bootstrap_register_returns_false_when_registrar_returns_false():
+    # Arrange
+    # Act
+    result = bootstrap_register(lambda: False, "scitex_io")
+    # Assert
+    assert result is False
+
+
+def test_bootstrap_register_returns_false_when_registrar_raises():
+    # Arrange
+    def _boom():
+        raise ValueError("no register_post_save_hook")
+
+    # Act
+    result = bootstrap_register(_boom, "scitex_io")
+    # Assert
+    assert result is False
+
+
+def test_bootstrap_register_warns_when_registrar_returns_false(caplog):
+    # Arrange
+    # Act
+    with caplog.at_level(logging.WARNING, logger="scitex_clew._observers"):
+        bootstrap_register(lambda: False, "scitex_io")
+    # Assert
+    assert any("returned False" in r.getMessage() for r in caplog.records)
 
 
 # EOF
