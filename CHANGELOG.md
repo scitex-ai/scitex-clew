@@ -30,6 +30,24 @@ versions follow [Semantic Versioning](https://semver.org/).
   pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
   variants) some consumers still hold.
 
+## [0.9.0] — 2026-07-03
+
+### Added
+- **Pre-submission GateCheck plugin** (`scitex_clew._gate_plugin:provide`,
+  registered via the `scitex_dev.gate.checks` entry point). `scitex-dev gate
+  --stage=pre-submission <capsule>` now discovers a `clew-source-reachability`
+  check that reads the capsule's OWN clew DB (+ registered-source manifest) and
+  FAILS a submission whose claims are not backed by a tracked `@stx.session`
+  run reaching a registered source — i.e. `runs == 0` (outputs saved outside
+  `@stx.session`) OR any backing claim unverified/`unsourced`. This is the
+  v0.8.0 UNSOURCED rule packaged as the paper's layer-2 pre-submission gate;
+  it runs clew's real gate (`is_grounded` chain-walk, pointed at the capsule DB
+  via `use_db`) so a verified-but-ungrounded claim is caught, not just a
+  raw-status read. scitex-clew owns the rule + reading its own DB; scitex-dev
+  owns the CLI/aggregation and stays clew-agnostic. `scitex_dev.gate` is
+  lazy-imported, so the plugin is a graceful no-op when scitex-dev lacks the
+  gate runner. Severity/enforcement is config-driven on scitex-dev's side.
+
 ## [0.8.1] — 2026-07-03
 
 ### Changed
