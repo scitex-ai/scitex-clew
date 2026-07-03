@@ -168,9 +168,10 @@ class TestUnifiedExportTopLevel:
         clew.add_citation("Berens2009", doi="10.1/x")
         # Act
         payload = _export(tmp_path)
-        # Assert — display palette keys (v1.6-unified adds the amber unsourced bucket)
+        # Assert — display palette keys (v1.4.1: unsourced folds into suspect,
+        # so the 4-bucket display palette has NO separate unsourced key)
         assert set(payload["palette"].keys()) == {
-            "verified", "suspect", "failed", "exception", "unsourced"}
+            "verified", "suspect", "failed", "exception"}
 
     def test_toplevel_status_palette_is_full7(self, isolated_db, tmp_path):
         # Arrange

@@ -91,12 +91,13 @@ class TestResolveStatusGate:
         # Assert
         assert resolved == "exception"
 
-    def test_display_group_unsourced_is_own_bucket(self):
+    def test_display_group_unsourced_folds_to_suspect(self):
         # Arrange
         # Act
         group = _resolve_display_group("verified", False, False, False)
-        # Assert — NOT verified, NOT failed — its own reader bucket.
-        assert group == "unsourced"
+        # Assert — v1.4.1: unsourced folds into the amber suspect bucket
+        # (NOT verified, NOT failed, NOT its own bucket).
+        assert group == "suspect"
 
 
 class TestPaletteMembership:
@@ -108,21 +109,22 @@ class TestPaletteMembership:
         # Assert
         assert hue == "b26a00"
 
-    def test_display_palette_has_unsourced(self):
+    def test_display_palette_has_no_unsourced_bucket(self):
         # Arrange
         key = "unsourced"
         # Act
-        hue = _DISPLAY_PALETTE[key]
-        # Assert
-        assert hue == "b26a00"
+        present = key in _DISPLAY_PALETTE
+        # Assert — v1.4.1: unsourced folds into suspect, so it is NOT its own
+        # reader bucket; the full-8 _CLAIM_PALETTE still carries its b26a00 hue.
+        assert present is False
 
-    def test_display_groups_maps_unsourced_to_itself(self):
+    def test_display_groups_folds_unsourced_to_suspect(self):
         # Arrange
         key = "unsourced"
         # Act
         group = _DISPLAY_GROUPS[key]
-        # Assert
-        assert group == "unsourced"
+        # Assert — v1.4.1 operator decision: unsourced folds into suspect.
+        assert group == "suspect"
 
     def test_palette_has_exactly_eight_states(self):
         # Arrange
