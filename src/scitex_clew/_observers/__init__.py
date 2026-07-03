@@ -14,7 +14,7 @@ into so the umbrella package never has to wire them:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 from scitex_clew._core import getLogger
 
@@ -118,6 +118,37 @@ def on_io_load(path: Path, result: Any) -> None:
         logger.debug("clew: failed to record input %s: %s", path, e)
 
 
+def bootstrap_register(register: Callable[[], bool], peer_name: str) -> bool:
+    """Invoke a peer-registration callable, surfacing failures (never raises).
+
+    Wraps a zero-arg ``register_with_scitex_*`` call so a silent registration
+    failure stops hiding: logs a WARNING if ``register`` raised or returned
+    ``False`` (peer registry unavailable or hook-API skew) — meaning clew's
+    auto-provenance hooks will NOT fire for ``peer_name``. Returns the result
+    (True registered / False skipped-or-failed). Used by the import-time
+    bootstrap AND the entry-point activation path.
+    """
+    try:
+        ok = register()
+    except Exception as exc:  # a broken registrar must never break import
+        logger.warning(
+            "clew observer registration with %s failed (%s: %s) — "
+            "auto-provenance hooks will NOT fire for it",
+            peer_name,
+            type(exc).__name__,
+            exc,
+        )
+        return False
+    if not ok:
+        logger.warning(
+            "clew observer registration with %s returned False "
+            "(peer registry unavailable or hook-API skew) — "
+            "auto-provenance hooks will NOT fire for it",
+            peer_name,
+        )
+    return bool(ok)
+
+
 def register_with_scitex_io() -> bool:
     """Register clew's hooks with scitex-io if it is importable.
 
@@ -138,6 +169,15 @@ def register_with_scitex_io() -> bool:
     try:
         scitex_io.register_post_save_hook(on_io_save)
         scitex_io.register_post_load_hook(on_io_load)
+        # Diagnostic (module-identity): logs WHICH scitex_io instance clew
+        # registered against, so a "registered True but hooks never fire"
+        # symptom (a distinct scitex_io module firing a different hook list)
+        # is visible by comparing this id with the firing instance's.
+        logger.debug(
+            "clew registered io hooks against scitex_io id=%s file=%s",
+            id(scitex_io),
+            getattr(scitex_io, "__file__", "?"),
+        )
         return True
     except Exception as e:
         logger.debug("clew: failed to register hooks with scitex_io: %s", e)
