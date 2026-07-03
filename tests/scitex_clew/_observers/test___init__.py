@@ -65,6 +65,19 @@ def test_on_io_save_no_tracker_does_not_raise(tmp_path):
     assert result is None
 
 
+def test_on_io_save_logs_debug_when_no_tracker(tmp_path, caplog):
+    # Arrange
+    path = tmp_path / "out.csv"
+    set_tracker(None)
+    # Act
+    with caplog.at_level(logging.DEBUG, logger="scitex_clew._observers"):
+        on_io_save(path, obj=None, kwargs={"track": True})
+    # Assert
+    assert any(
+        "no active session tracker" in r.getMessage() for r in caplog.records
+    )
+
+
 def test_on_io_load_returns_none_without_raising(tmp_path):
     # Arrange
     path = tmp_path / "in.csv"

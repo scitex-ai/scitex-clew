@@ -51,6 +51,12 @@ versions follow [Semantic Versioning](https://semver.org/).
   new entry-point activation path can both be live during rollout with no
   double-registration (no double-firing), while a genuine two-instance module
   split still registers each firing instance.
+- **`on_io_save` no longer silently bails when no session tracker is active.**
+  It now logs (DEBUG) that a save fired with no active session so nothing was
+  recorded — the silent `return` had hidden a real symptom (a save firing while
+  the tracker wasn't live across session-start→save). DEBUG, not WARNING,
+  because out-of-session saves are legitimate and the loud enforcement is
+  already the submission gate (an unrecorded save → unsourced claim → blocked).
 
 ## [0.10.1] — 2026-07-04
 

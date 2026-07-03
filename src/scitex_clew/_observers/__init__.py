@@ -81,6 +81,16 @@ def on_io_save(path: Path, obj: Any, kwargs: Dict[str, Any]) -> None:
         return
 
     if tracker is None:
+        # No active session at save time -> nothing to attach the file_hash to.
+        # Log it (not a silent bail): a save firing here with no tracker is
+        # either a legitimate out-of-session save OR the symptom of a tracker
+        # not being live across session-start->save. DEBUG, because out-of-
+        # session saves are normal and WARNING would cry wolf on every one.
+        logger.debug(
+            "clew: on_io_save fired for %s but no active session tracker — "
+            "provenance NOT recorded (out-of-session save, or tracker not live)",
+            path,
+        )
         return
 
     try:
