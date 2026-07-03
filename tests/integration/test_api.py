@@ -18,10 +18,14 @@ class TestPublicAPI:
         # +4 for the citation gate: ``add_citation`` / ``list_citations`` /
         # ``verify_citations`` / ``verify_all_citations`` (2026-07-01).
         # +1 for ``export_manuscript_claims`` (unified render bridge, 2026-07-02).
+        # +7 for the registered-source gate: ``register_source`` /
+        # ``unregister_source`` / ``list_sources`` / ``is_grounded`` /
+        # ``load_sources_manifest`` / ``resolve_sources_path`` /
+        # ``SourcesManifest`` (2026-07-03).
         # Arrange
         # Act
         # Assert
-        assert len(clew.__all__) == 34
+        assert len(clew.__all__) == 41
 
     def test_all_names_set_clew_all_expected(self):
         # Arrange
@@ -51,6 +55,13 @@ class TestPublicAPI:
             "list_citations",
             "verify_citations",
             "verify_all_citations",
+            "register_source",
+            "unregister_source",
+            "list_sources",
+            "is_grounded",
+            "load_sources_manifest",
+            "resolve_sources_path",
+            "SourcesManifest",
             "stamp",
             "list_stamps",
             "check_stamp",

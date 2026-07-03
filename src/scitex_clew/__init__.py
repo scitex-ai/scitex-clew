@@ -120,6 +120,14 @@ __all__ = [
     "list_citations",
     "verify_citations",
     "verify_all_citations",
+    # Registered-source gate (chain-walk grounding -> unsourced verdict)
+    "register_source",
+    "unregister_source",
+    "list_sources",
+    "is_grounded",
+    "load_sources_manifest",
+    "resolve_sources_path",
+    "SourcesManifest",
     # Stamping
     "stamp",
     "list_stamps",
@@ -184,6 +192,15 @@ if TYPE_CHECKING:
         list_citations,
         verify_all_citations,
         verify_citations,
+    )
+    from ._sources import (  # noqa: F401
+        SourcesManifest,
+        is_grounded,
+        list_sources,
+        load_sources_manifest,
+        register_source,
+        resolve_sources_path,
+        unregister_source,
     )
     from ._attest._registry import ClewRegistry, get_registry  # noqa: F401
     from ._attest._stamp import (  # noqa: F401

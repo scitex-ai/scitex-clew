@@ -161,6 +161,8 @@ def verify(ctx: click.Context, session_id, strict: bool, config, as_json: bool):
       11  SOURCE_MISSING  a claim's source file is gone
       12  HASH_MISMATCH   a claim's source changed since registration
       13  NO_LINEAGE      --strict: source has no @stx.session lineage
+      17  UNSOURCED       link-verified but ungrounded (no registered source);
+                          only when the source gate is active (a manifest exists)
       20  NO_CLAIMS       no claims registered — nothing to verify
 
     A solver MUST run ``clew verify [--strict]`` before signalling DONE.

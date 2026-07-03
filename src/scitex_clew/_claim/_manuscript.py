@@ -63,10 +63,14 @@ _CITATION_STATUS_TO_GROUP: Dict[str, str] = {
 }
 
 
-def _claim_entry(claim) -> Dict:
-    """Map a value/figure/statistic/table/text claim to a unified render entry."""
+def _claim_entry(claim, grounded=None) -> Dict:
+    """Map a value/figure/statistic/table/text claim to a unified render entry.
+
+    ``grounded`` is the registered-source gate signal (None => gate inactive,
+    identical to the pre-gate behavior; False => demote to ``unsourced``).
+    """
     has_exception, has_frozen = _resolve_chain_flags(claim)
-    resolved = _resolve_status(claim.status, has_exception, has_frozen)
+    resolved = _resolve_status(claim.status, has_exception, has_frozen, grounded)
     group = _DISPLAY_GROUPS[resolved]
     claim_type = "figure" if claim.claim_type == "figure" else "value"
     return {
@@ -149,7 +153,23 @@ def export_manuscript_claims(
     path = Path(path).resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    entries: List[Dict] = [_claim_entry(c) for c in list_claims(limit=100_000)]
+    # Registered-source gate (opt-in): load the manifest ONCE. Absent -> None
+    # -> gate inactive (grounded stays None). Malformed -> ValueError.
+    from .._db import get_db
+    from .._sources import is_grounded, load_sources_manifest
+
+    _manifest = load_sources_manifest()
+    _gate_active = _manifest is not None and _manifest.active
+    _gate_db = get_db()
+
+    def _grounded_for(claim):
+        if not _gate_active:
+            return None
+        return is_grounded(claim, _manifest, _gate_db)
+
+    entries: List[Dict] = [
+        _claim_entry(c, _grounded_for(c)) for c in list_claims(limit=100_000)
+    ]
 
     # Citations live in their own ledger; a missing citations table (e.g. no
     # citations ever registered) must not break the export.
@@ -163,7 +183,7 @@ def export_manuscript_claims(
     total = len(entries)
     bucket_counts = {
         bucket: sum(1 for e in entries if e["status"] == bucket)
-        for bucket in ("verified", "suspect", "failed", "exception")
+        for bucket in ("verified", "suspect", "failed", "exception", "unsourced")
     }
     verified_count = bucket_counts["verified"]
     # Raw ledger statuses (claims only; citations never carry these).
@@ -197,7 +217,7 @@ def export_manuscript_claims(
             "and scholar-unconfirmed citations; unverified = total - verified. "
             "Superseded claims are excluded from all entries and counts."
         ),
-        "schema_version": "1.5-unified",
+        "schema_version": "1.6-unified",
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         # 4-bucket display palette (what writer renders with).
         "palette": dict(_DISPLAY_PALETTE),
@@ -220,6 +240,8 @@ def export_manuscript_claims(
                 "suspect": bucket_counts["suspect"],
                 "failed": bucket_counts["failed"],
                 "exception": bucket_counts["exception"],
+                # Schema v1.6-unified: source-gate demotions (0 if inactive).
+                "unsourced": bucket_counts["unsourced"],
                 "mismatch": mismatch_count,
                 "missing": missing_count,
             },

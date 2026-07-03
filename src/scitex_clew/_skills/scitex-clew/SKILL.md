@@ -52,6 +52,7 @@ scitex_clew.status(...)
 * [04_cli-reference.md](04_cli-reference.md) — `clew` subcommands
 * [05_verify-claim-contract.md](05_verify-claim-contract.md) — `verify_claim` consumer contract: signature/return shape, the two status vocabularies (v0.7.0 `partial`→`suspect`), full-7 palette + 4-bucket display collapse, DB precedence, git-agnostic re-verify recipe
 * [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — workflows + CLI detail + MCP refs
+* [13_registered-source-gate.md](13_registered-source-gate.md) — the registered-source whitelist + the amber `unsourced` verdict: `clew register-source`, the hash-pinned manifest, the chain-walk grounding gate, exit code `17`, opt-in + monotonic semantics
 * [20_env-vars.md](20_env-vars.md), [14_grouping.md](14_grouping.md) — env vars + DAG-node grouping
 * [21_agentic-reasoning.md](21_agentic-reasoning.md) — when-to-call discipline for AI agents using Clew as an active reasoning substrate (v2 framing)
 * [22_agentic-reasoning-examples.md](22_agentic-reasoning-examples.md) — rationale (cache/tamper/provenance), anti-patterns, and a worked five-step example for 21_agentic-reasoning
@@ -79,6 +80,8 @@ clew verify              # Verify ALL claims; fail-loud exit code (DONE gate)
 clew verify --strict     # + require @stx.session lineage per claim
 clew verify --config F   # tune per-pattern severity (.scitex/clew/config.yaml)
 clew verify <SESSION_ID> # Verify a specific run (fail-loud)
+clew register-source F   # Whitelist a trusted source (hash-pinned; human path)
+clew list-sources        # Show registered sources + OK/TAMPERED/MISSING
 clew stats               # Database statistics
 clew mermaid             # Generate Mermaid DAG diagram
 clew mcp start           # Start MCP server
@@ -89,7 +92,9 @@ clew skills get SKILL    # Get a specific skill page
 `clew verify` (no arg) is the agent DONE gate: exit `0` only when every
 registered claim is source-verified; distinct nonzero codes for the
 fabrication case (`10`), missing/changed source (`11`/`12`), missing
-lineage under `--strict` (`13`), and no claims (`20`). Per-pattern severity
+lineage under `--strict` (`13`), ungrounded-against-a-registered-source
+(`17`, when the [source gate](13_registered-source-gate.md) is active), and
+no claims (`20`). Per-pattern severity
 (`error`/`warning`/`ignore`) is tunable in `.scitex/clew/config.yaml`. See
 [04_cli-reference.md](04_cli-reference.md#clew-verify--fail-loud-exit-codes-the-done-gate).
 

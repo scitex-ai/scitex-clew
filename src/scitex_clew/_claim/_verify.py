@@ -270,6 +270,7 @@ def verify_all_claims(
         KEY_BY_CODE,
         NO_CLAIMS,
         OK,
+        UNSOURCED,
         classify_exit,
         name_of,
         reason_of,
@@ -277,6 +278,14 @@ def verify_all_claims(
     )
 
     severities = resolve_severity(explicit=config, strict=strict)
+
+    # Registered-source gate (opt-in): load the manifest ONCE per pass. When
+    # absent -> None -> gate inactive (zero behavior change). A malformed
+    # manifest fails loud (ValueError) rather than silently disabling the gate.
+    from .._sources import is_grounded, load_sources_manifest
+
+    manifest = load_sources_manifest()
+    gate_active = manifest is not None and manifest.active
     severity_view = {KEY_BY_CODE[code]: lvl.value for code, lvl in severities.items()}
 
     claims = list_claims(file_path=file_path, claim_type=claim_type, limit=10_000)
@@ -317,9 +326,21 @@ def verify_all_claims(
     verified = 0
     counts: Dict[str, int] = {}
 
+    db = get_db()
+
     for c in claims:
         result = verify_claim(c.claim_id, hash_cache=hash_cache, chain_cache=chain_cache)
         code = _classify_claim(result, strict=strict)
+
+        # Source gate: an otherwise-OK (link-verified) claim whose chain reaches
+        # NO registered source is DEMOTED to UNSOURCED. Hash/lineage failures
+        # already carry a stronger code and are never overridden here.
+        gate_status = None
+        if gate_active and code == OK:
+            if not is_grounded(c, manifest, db):
+                code = UNSOURCED
+                gate_status = "unsourced"
+
         per_codes.append(code)
         cname = name_of(code)
         counts[cname] = counts.get(cname, 0) + 1
@@ -333,7 +354,7 @@ def verify_all_claims(
                 claim_id=c.claim_id,
                 location=c.location,
                 claim_value=c.claim_value,
-                status=rclaim.get("status", c.status),
+                status=gate_status or rclaim.get("status", c.status),
                 source_file=rclaim.get("source_file", c.source_file),
                 source_session=rclaim.get("source_session", c.source_session),
                 source_verified=result.get("source_verified", False),

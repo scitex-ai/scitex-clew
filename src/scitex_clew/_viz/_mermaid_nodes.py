@@ -82,6 +82,11 @@ def append_class_definitions(lines: list) -> None:
     lines.append(
         "    classDef exception fill:#8250df,stroke:#4a1c8a"
     )
+    # Schema v1.4 (registered-source gate): burnt-amber for a node/claim whose
+    # provenance chain reaches no registered source. Distinct from suspect amber
+    # (#d29922) and clears the CUD delta-E floor against all 7 other states.
+    lines.append("    classDef unsourced fill:#b26a00,stroke:#5c3600")
+    lines.append("    classDef file_unsourced fill:#b26a00,stroke:#5c3600")
 
 
 def add_script_node(

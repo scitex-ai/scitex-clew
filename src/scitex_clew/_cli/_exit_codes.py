@@ -95,6 +95,12 @@ NO_LINEAGE: int = 13
 CITATION_STUB: int = 14
 CITATION_UNRESOLVED: int = 15
 CITATION_UNLINKED: int = 16
+# Registered-source gate: a claim is link-hash-verified but its provenance
+# chain reaches NO registered source (see :mod:`scitex_clew._sources`). The
+# gate colour is amber, but it still FAILS the run (colour != exit severity).
+# Outranked by the hard integrity failures (mismatch/missing) per the status
+# precedence; only fires when the gate is active (a non-empty valid manifest).
+UNSOURCED: int = 17
 NO_CLAIMS: int = 20
 
 # Human-readable name per code (for summaries / JSON payloads).
@@ -107,6 +113,7 @@ NAMES: Dict[int, str] = {
     CITATION_STUB: "CITATION_STUB",
     CITATION_UNRESOLVED: "CITATION_UNRESOLVED",
     CITATION_UNLINKED: "CITATION_UNLINKED",
+    UNSOURCED: "UNSOURCED",
     NO_CLAIMS: "NO_CLAIMS",
 }
 
@@ -135,6 +142,11 @@ REASONS: Dict[int, str] = {
         "a cited key has no clew citation node at all "
         "(never registered by scholar)"
     ),
+    UNSOURCED: (
+        "a claim is link-hash-verified but its provenance chain reaches no "
+        "registered source (ungrounded) — register the source or ground the "
+        "chain"
+    ),
     NO_CLAIMS: "no claims registered — nothing to verify",
 }
 
@@ -142,16 +154,21 @@ REASONS: Dict[int, str] = {
 # Ordered by "what the agent must fix first". Citation failures rank above the
 # value-integrity failures: a hallucinated source (CITATION_STUB) is the
 # flagship "一発アウト" catch and should be the reported code when it co-occurs.
+# UNSOURCED sits just above NO_LINEAGE and below the fabrication/integrity
+# failures: a hash-failing OR never-verified claim reports its stronger code,
+# never the amber source-gate one. This mirrors the status-colour precedence
+# (mismatch/missing outrank unsourced).
 SEVERITY: Dict[int, int] = {
     OK: 0,
     NO_CLAIMS: 1,
     NO_LINEAGE: 2,
-    UNVERIFIED: 3,
-    SOURCE_MISSING: 4,
-    HASH_MISMATCH: 5,
-    CITATION_UNLINKED: 6,
-    CITATION_UNRESOLVED: 7,
-    CITATION_STUB: 8,
+    UNSOURCED: 3,
+    UNVERIFIED: 4,
+    SOURCE_MISSING: 5,
+    HASH_MISMATCH: 6,
+    CITATION_UNLINKED: 7,
+    CITATION_UNRESOLVED: 8,
+    CITATION_STUB: 9,
 }
 
 
@@ -197,6 +214,7 @@ KEY_BY_CODE: Dict[int, str] = {
     CITATION_STUB: "citation_stub",
     CITATION_UNRESOLVED: "citation_unresolved",
     CITATION_UNLINKED: "citation_unlinked",
+    UNSOURCED: "unsourced",
     NO_CLAIMS: "no_claims",
 }
 CODE_BY_KEY: Dict[str, int] = {key: code for code, key in KEY_BY_CODE.items()}
@@ -214,6 +232,8 @@ DEFAULT_SEVERITY: Dict[int, Severity] = {
     CITATION_STUB: Severity.ERROR,
     CITATION_UNRESOLVED: Severity.ERROR,
     CITATION_UNLINKED: Severity.ERROR,
+    # The source gate fails the run by default (colour amber, exit non-zero).
+    UNSOURCED: Severity.ERROR,
     NO_CLAIMS: Severity.ERROR,
 }
 
@@ -311,6 +331,7 @@ __all__ = [
     "CITATION_STUB",
     "CITATION_UNRESOLVED",
     "CITATION_UNLINKED",
+    "UNSOURCED",
     "NO_CLAIMS",
     "NAMES",
     "REASONS",
