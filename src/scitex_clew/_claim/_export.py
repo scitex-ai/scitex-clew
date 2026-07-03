@@ -226,6 +226,15 @@ def export_claims_json(
         include_superseded=include_superseded,
     )
 
+    # Registered-source gate (opt-in): load the manifest ONCE. Absent -> None
+    # -> gate inactive (grounded stays None -> zero behavior change). Malformed
+    # -> ValueError (fail loud).
+    from .._sources import is_grounded, load_sources_manifest
+
+    _manifest = load_sources_manifest()
+    _gate_active = _manifest is not None and _manifest.active
+    _gate_db = get_db()
+
     # Build per-claim dicts with v1.1 enrichment fields appended AFTER all
     # existing fields so the existing field order (and thus byte-positions for
     # streaming parsers) is unchanged.  New fields are purely additive.
@@ -235,18 +244,28 @@ def export_claims_json(
     for c in claims:
         base = c.to_dict()  # all existing fields, byte-identical
         chain_has_exception, chain_has_frozen = _resolve_chain_flags(c)
-        # Schema v1.3: resolved full-7 status via color precedence —
-        # mismatch/missing > [verified claims only: exception > frozen]
-        # > suspect > verified > registered
+        # Schema v1.4: registered-source gate. grounded is None when the gate
+        # is inactive (no manifest) -> identical to v1.3. When active, False
+        # demotes an otherwise-green claim to "unsourced".
+        grounded = None
+        if _gate_active:
+            grounded = is_grounded(c, _manifest, _gate_db)
+        # Schema v1.3/1.4: resolved full-8 status via color precedence —
+        # mismatch/missing > unsourced > [verified claims only: exception >
+        # frozen] > suspect > verified > registered
         resolved_status = _resolve_status(
-            c.status, chain_has_exception, chain_has_frozen
+            c.status, chain_has_exception, chain_has_frozen, grounded
         )
         base["color"] = _CLAIM_PALETTE.get(resolved_status, _PALETTE_FALLBACK)
         base["resolved_status"] = resolved_status
         base["chain_has_exception"] = chain_has_exception
         base["chain_has_frozen"] = chain_has_frozen
-        # Schema v1.3: display group + display color (4-bucket, color-only)
-        display_group = _resolve_display_group(c.status, chain_has_exception, chain_has_frozen)
+        # Schema v1.4 additive: per-claim groundedness (None => gate inactive).
+        base["grounded"] = grounded
+        # Schema v1.3: display group + display color (color-only)
+        display_group = _resolve_display_group(
+            c.status, chain_has_exception, chain_has_frozen, grounded
+        )
         base["display_group"] = display_group
         base["display_color"] = _DISPLAY_PALETTE[display_group]
         # Schema v1.3 additive: exception_reasons for this claim's chain.
@@ -270,6 +289,10 @@ def export_claims_json(
     claims_count = len(claims)
     verified_count = sum(1 for c in claims if c.status == "verified")
     unverified_count = claims_count - verified_count
+    # Schema v1.4 additive: how many claims the source gate demoted to amber.
+    unsourced_count = sum(
+        1 for e in enriched_claims if e["resolved_status"] == "unsourced"
+    )
 
     # Schema v1.3: 4 display buckets — the reader's legend (color-only, no icons).
     legend_statuses = [
@@ -297,6 +320,12 @@ def export_claims_json(
             "marker": "wavy-underline",
             "label": "exception — auto-verification chain does not connect through this declared node (transparently NOT auto-verified)",
         },
+        {
+            "status": "unsourced",
+            "color": _DISPLAY_PALETTE["unsourced"],
+            "marker": "wavy-underline",
+            "label": "unsourced — link-hash-verified but its chain reaches no registered source (ungrounded)",
+        },
     ]
 
     payload = {
@@ -306,9 +335,9 @@ def export_claims_json(
             "scitex_clew.export_claims_json() (default-on after every "
             "clew.add_claim()) or by re-running your pipeline."
         ),
-        "schema_version": "1.3",
+        "schema_version": "1.4",
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        # Full-7 status palette (author tooling + DAG fidelity).
+        # Full-8 status palette (author tooling + DAG fidelity).
         "palette": dict(_CLAIM_PALETTE),
         # 4-bucket reader palette (color-only, no icons).
         "display_palette": dict(_DISPLAY_PALETTE),
@@ -323,6 +352,8 @@ def export_claims_json(
             "color": _CLAIM_PALETTE["verified"],
             "verified_count": verified_count,
             "unverified_count": unverified_count,
+            # Schema v1.4: source-gate demotions (0 when the gate is inactive).
+            "unsourced_count": unsourced_count,
         },
         "legend": {
             "statuses": legend_statuses,

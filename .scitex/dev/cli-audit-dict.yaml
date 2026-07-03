@@ -13,6 +13,15 @@
 # documented escape hatch the §1 violation message points to (the same one
 # `scitex-todo next` uses).
 
+transitive_verbs:
+  # `clew unregister-source` — remove a file from the registered-source
+  # whitelist. "unregister" is a clean transitive verb (unregister a source)
+  # and the natural antonym of the already-recognised `register-source`, but
+  # the un- prefix is absent from Moby's POS data, so the §1d classifier
+  # cannot resolve the leading token. Declared here so `unregister-source`
+  # reads as verb ("unregister") + noun ("source"), matching register-source.
+  - unregister
+
 intransitive_verbs:
   # `clew status` — git-status-like overview of verification state. The
   # action is a complete unit ("report the current verification state");

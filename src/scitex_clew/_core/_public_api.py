@@ -64,6 +64,14 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     "verify_all_citations": ("._citation", "verify_all_citations"),
     "format_citations": ("._citation", "format_citations"),
     "Citation": ("._citation", "Citation"),
+    # _sources (registered-source gate)
+    "register_source": ("._sources", "register_source"),
+    "unregister_source": ("._sources", "unregister_source"),
+    "list_sources": ("._sources", "list_sources"),
+    "is_grounded": ("._sources", "is_grounded"),
+    "load_sources_manifest": ("._sources", "load_sources_manifest"),
+    "resolve_sources_path": ("._sources", "resolve_sources_path"),
+    "SourcesManifest": ("._sources", "SourcesManifest"),
     # _cli._exit_codes (configurable verify severity)
     "Severity": ("._cli._exit_codes", "Severity"),
     # _estimate (Phase 1: pre-flight compute estimate)

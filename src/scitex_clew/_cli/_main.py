@@ -27,6 +27,11 @@ from ._export import export_claims as export_claims_cmd
 from ._hash import hash_directory, hash_file
 from ._introspect import list_python_apis
 from ._mcp import mcp
+from ._sources import (
+    list_sources_cmd,
+    register_source_cmd,
+    unregister_source_cmd,
+)
 from ._stamp import check_stamp, list_stamps, stamp
 from ._verification import (
     chain,
@@ -58,6 +63,7 @@ COMMAND_CATEGORIES = [
         ],
     ),
     ("Claims", ["claim", "export-claims"]),
+    ("Sources", ["register-source", "list-sources", "unregister-source"]),
     ("Citations", ["verify-citations", "citation"]),
     ("Hashing", ["hash-file", "hash-directory"]),
     ("Stamping", ["stamp", "list-stamps", "check-stamp"]),
@@ -227,6 +233,11 @@ main.add_command(mcp)
 # F1: claim group, hash-file/-directory, stamp / list-stamps / check-stamp.
 main.add_command(claim)
 main.add_command(export_claims_cmd)
+
+# Registered-source gate: register-source (human WRITE path) + list/unregister.
+main.add_command(register_source_cmd)
+main.add_command(list_sources_cmd)
+main.add_command(unregister_source_cmd)
 
 # Citation gate: verify-citations (compiler pre-flight) + citation group.
 main.add_command(verify_citations_cmd)

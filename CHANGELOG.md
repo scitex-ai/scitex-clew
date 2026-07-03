@@ -30,6 +30,61 @@ versions follow [Semantic Versioning](https://semver.org/).
   pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
   variants) some consumers still hold.
 
+## [0.8.0] — 2026-07-03
+
+### Added
+- **Registered-source gate + the amber `unsourced` verdict** (verify/export-time
+  core). `green = link-hash-consistency` is no longer enough: a claim is only
+  green if its provenance chain traces to a human-registered source; otherwise
+  it gets the new **`unsourced`** verdict and `clew verify` fails with exit code
+  **`UNSOURCED = 17`**. The gate is **opt-in** (no manifest ⇒ zero behavior
+  change) and **monotonic** (registering a source can only turn amber → green).
+  - **Hash-pinned manifest** `<project_root>/.scitex/clew/sources.json`
+    (`schema: sources-1.0`; per-file flat `{path, sha256}`; reserved
+    accepted-but-not-enforced top-level `signature` for the signing follow-on).
+    Resolution mirrors the DB path: explicit arg > `$SCITEX_CLEW_SOURCES` >
+    `<project_root>/.scitex/clew/sources.json`. Loaded entries are
+    **tamper-checked** (recompute each file's sha256 vs the pin); a changed
+    (`TAMPERED`) or absent (`MISSING`) file is not a trust anchor and is
+    surfaced. Malformed manifests fail loud (`ValueError`), never silent-empty.
+  - **Chain-walk gate** `is_grounded(claim, manifest, db)` — a pure, reusable
+    function (so the planned compute-time observer calls identical logic): walks
+    the provenance chain to its root(s) and returns True iff ≥1 file in the
+    chain (including the claim's own source) matches a valid registered entry by
+    `(path, sha256)`. Laundering guard: a mixed chain with ≥1 registered root is
+    grounded; only a chain whose every root is unregistered is `unsourced`.
+  - **Status precedence** (`_resolve_status`, opt-in via a new `grounded`
+    signal): `mismatch/missing > unsourced > exception/frozen/verified/suspect/
+    registered`. `unsourced` **demotes an otherwise-green (verified) claim** —
+    being link-hash-verified does not exempt it from the source gate — but hash
+    failures still outrank it (a hash-failing ungrounded claim reads red).
+  - **CLI** `clew register-source <file>…` (the one sanctioned WRITE path;
+    idempotent, hash-pinned), `clew list-sources` (entries + OK/TAMPERED/MISSING),
+    `clew unregister-source <file>…`.
+  - **Palette** state 8 `unsourced` = burnt amber `#b26a00`, its own reader
+    display bucket (not verified, not failed-red). Clears the palette's
+    colour-universal-design ΔE floor (CIE76 ≥ 12) against all 7 other states
+    across normal/protanopia/deuteranopia/tritanopia (Machado-2009, sev 1.0);
+    the new CUD test covers all 28 pairs of the 8-state palette. Mermaid gains
+    `unsourced`/`file_unsourced` class definitions.
+  - **Public API** (+7): `register_source`, `unregister_source`, `list_sources`,
+    `is_grounded`, `load_sources_manifest`, `resolve_sources_path`,
+    `SourcesManifest` (`scitex_clew.__all__` 34 → 41).
+
+### Changed
+- **claims.json `1.3` → `1.4`** (additive, backward-compatible): adds
+  `unsourced` to the status palette, a per-claim `grounded` bool (`null` when
+  the gate is inactive), an `unsourced` legend entry, and
+  `attestation.unsourced_count`.
+- **Unified render feed `1.5-unified` → `1.6-unified`** (additive): adds the
+  `unsourced` bucket to `attestation.counts`; an ungrounded claim makes the
+  badge `partial`. Consumers ignoring the new fields are unaffected.
+
+### Docs
+- New skill leaf `13_registered-source-gate.md` documenting the manifest, the
+  `register-source` CLI, the chain-walk grounding gate, exit code `17`, and the
+  opt-in + monotonic semantics.
+
 ## [0.7.0] — 2026-07-03
 
 ### Changed

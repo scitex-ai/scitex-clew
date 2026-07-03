@@ -679,7 +679,7 @@ def v11_sandbox(tmp_path, env_sandbox):
 
 
 def test_v11_schema_version_in_exported_json(v11_sandbox, env_sandbox):
-    """Exported JSON has schema_version == '1.3' (bumped from v1.2 for 4-state color-only taxonomy)."""
+    """Exported JSON has schema_version == '1.4' (bumped from v1.3 for the registered-source gate)."""
     # Arrange
     workdir = v11_sandbox
     _seed_claim(workdir)
@@ -688,7 +688,7 @@ def test_v11_schema_version_in_exported_json(v11_sandbox, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     payload = json.loads(out.read_text())
     # Assert
-    assert payload.get("schema_version") == "1.3"
+    assert payload.get("schema_version") == "1.4"
 
 
 def test_v11_palette_keys_in_exported_json(v11_sandbox, env_sandbox):
@@ -700,10 +700,10 @@ def test_v11_palette_keys_in_exported_json(v11_sandbox, env_sandbox):
     # Act
     clew.export_claims_json(path=out, read_only=False)
     payload = json.loads(out.read_text())
-    # Assert — v1.3 renames "partial" to "suspect" and adds the full-7 keys
+    # Assert — v1.4 adds the 8th status "unsourced" (registered-source gate)
     assert set(payload.get("palette", {}).keys()) == {
         "verified", "suspect", "mismatch", "missing", "registered",
-        "exception", "frozen",
+        "exception", "frozen", "unsourced",
     }
 
 
@@ -1442,14 +1442,14 @@ def _export_v12(tmp_path, env_sandbox, *, num_verified: int = 1, num_registered:
     return json.loads(out.read_text())
 
 
-def test_v12_schema_version_is_1_2(tmp_path, env_sandbox):
-    """schema_version field is exactly '1.3' after the v1.3 bump."""
+def test_v12_schema_version_is_1_4(tmp_path, env_sandbox):
+    """schema_version field is exactly '1.4' after the registered-source-gate bump."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
     version = payload["schema_version"]
-    # Assert — bumped to 1.3 in this release
-    assert version == "1.3"
+    # Assert — bumped to 1.4 in this release
+    assert version == "1.4"
 
 
 def test_v12_attestation_text_present(tmp_path, env_sandbox):
@@ -1513,14 +1513,16 @@ def test_v12_attestation_counts_sum_to_claims_count(tmp_path, env_sandbox):
     assert total == payload["claims_count"]
 
 
-def test_v12_legend_statuses_has_four_display_states(tmp_path, env_sandbox):
-    """legend.statuses has exactly 4 display states (v1.3: verified/suspect/failed/exception)."""
+def test_v12_legend_statuses_has_five_display_states(tmp_path, env_sandbox):
+    """legend.statuses has 5 display states (v1.4 adds the amber 'unsourced' bucket)."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
     status_names = {entry["status"] for entry in payload["legend"]["statuses"]}
-    # Assert — v1.3: 4 display buckets, not per-palette-key
-    assert status_names == {"verified", "suspect", "failed", "exception"}
+    # Assert — v1.4: unsourced joins the 4 v1.3 reader buckets
+    assert status_names == {
+        "verified", "suspect", "failed", "exception", "unsourced"
+    }
 
 
 def test_v12_legend_statuses_colors_are_bare_hex(tmp_path, env_sandbox):
@@ -1546,14 +1548,14 @@ def test_v13_legend_has_no_subbadges_key(tmp_path, env_sandbox):
     assert not has_subbadges
 
 
-def test_v13_legend_statuses_exactly_4_entries(tmp_path, env_sandbox):
-    """v1.3 legend.statuses has exactly 4 entries."""
+def test_v13_legend_statuses_exactly_5_entries(tmp_path, env_sandbox):
+    """v1.4 legend.statuses has exactly 5 entries (4 v1.3 buckets + unsourced)."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
     count = len(payload["legend"]["statuses"])
     # Assert
-    assert count == 4
+    assert count == 5
 
 
 def test_v12_backward_compat_palette_still_present(tmp_path, env_sandbox):
@@ -1612,7 +1614,9 @@ def test_v13_display_palette_present_in_payload(tmp_path, env_sandbox):
     # Act
     dp = payload.get("display_palette")
     # Assert
-    assert isinstance(dp, dict) and set(dp.keys()) == {"verified", "suspect", "failed", "exception"}
+    assert isinstance(dp, dict) and set(dp.keys()) == {
+        "verified", "suspect", "failed", "exception", "unsourced"
+    }
 
 
 def test_v13_display_palette_verified_hex(tmp_path, env_sandbox):
@@ -2110,6 +2114,7 @@ def test_v13_palette_full7_hexes_match_locked_convention(tmp_path, env_sandbox):
         "registered": "6e7781",
         "exception": "8250df",
         "frozen": "0072b2",
+        "unsourced": "b26a00",
     }
 
 
@@ -2128,6 +2133,7 @@ def test_v13_display_groups_full7_collapse_map(tmp_path, env_sandbox):
         "registered": "suspect",
         "exception": "exception",
         "frozen": "verified",
+        "unsourced": "unsourced",
     }
 
 
@@ -2141,15 +2147,17 @@ def test_v13_per_claim_resolved_status_present(tmp_path, env_sandbox):
     assert missing_rs == []
 
 
-def test_v13_legend_has_exactly_four_display_state_entries(tmp_path, env_sandbox):
-    """legend has exactly the 4 display states and no subbadges key."""
+def test_v13_legend_has_exactly_five_display_state_entries(tmp_path, env_sandbox):
+    """legend has exactly the 5 v1.4 display states and no subbadges key."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     legend = payload["legend"]
     # Act
     statuses = {e["status"] for e in legend["statuses"]}
-    # Assert — exactly 4 display states
-    assert statuses == {"verified", "suspect", "failed", "exception"} and "subbadges" not in legend
+    # Assert — 5 display states (v1.4 adds unsourced), still no subbadges
+    assert statuses == {
+        "verified", "suspect", "failed", "exception", "unsourced"
+    } and "subbadges" not in legend
 
 
 def test_v13_legend_all_statuses_have_wavy_underline_marker(tmp_path, env_sandbox):

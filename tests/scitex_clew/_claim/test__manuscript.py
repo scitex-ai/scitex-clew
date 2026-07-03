@@ -155,33 +155,33 @@ class TestUnifiedExportTopLevel:
         # Assert
         assert payload["attestation"]["total"] == 2
 
-    def test_schema_version_is_15_unified(self, isolated_db, tmp_path):
+    def test_schema_version_is_16_unified(self, isolated_db, tmp_path):
         # Arrange
         clew.add_citation("Berens2009", doi="10.1/x")
         # Act
         payload = _export(tmp_path)
-        # Assert — v1.5: suspect rename + failed bucket + badge facts
-        assert payload["schema_version"] == "1.5-unified"
+        # Assert — v1.6-unified: adds the registered-source gate (unsourced)
+        assert payload["schema_version"] == "1.6-unified"
 
     def test_toplevel_palette_has_failed_bucket(self, isolated_db, tmp_path):
         # Arrange
         clew.add_citation("Berens2009", doi="10.1/x")
         # Act
         payload = _export(tmp_path)
-        # Assert — 4-bucket display palette keys
+        # Assert — display palette keys (v1.6-unified adds the amber unsourced bucket)
         assert set(payload["palette"].keys()) == {
-            "verified", "suspect", "failed", "exception"}
+            "verified", "suspect", "failed", "exception", "unsourced"}
 
     def test_toplevel_status_palette_is_full7(self, isolated_db, tmp_path):
         # Arrange
         clew.add_citation("Berens2009", doi="10.1/x")
         # Act
         payload = _export(tmp_path)
-        # Assert — full-7 status palette (author tooling / DAG fidelity)
+        # Assert — full-8 status palette (author tooling / DAG fidelity)
         assert payload["status_palette"] == {
             "verified": "2da44e", "suspect": "d29922", "mismatch": "cf222e",
             "missing": "a40e26", "registered": "6e7781",
-            "exception": "8250df", "frozen": "0072b2"}
+            "exception": "8250df", "frozen": "0072b2", "unsourced": "b26a00"}
 
     def test_toplevel_display_groups_collapse_map(self, isolated_db, tmp_path):
         # Arrange
@@ -242,7 +242,7 @@ class TestUnifiedAttestationBadge:
         # Assert — badge-fact keys: totals + buckets + raw mismatch/missing
         assert set(counts.keys()) == {
             "total", "verified", "unverified", "suspect", "failed",
-            "exception", "mismatch", "missing"}
+            "exception", "unsourced", "mismatch", "missing"}
 
     def test_counts_unverified_is_total_minus_verified(self, isolated_db, tmp_path):
         # Arrange — 1 verified citation + 1 registered claim + 1 stub citation

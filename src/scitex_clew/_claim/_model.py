@@ -30,6 +30,10 @@ CLAIM_TYPES = ("statistic", "figure", "table", "text", "value")
 # Introduced in schema v1.1; referenced by legend block added in v1.2.
 # Schema v1.3 (color-only taxonomy): "partial" renamed to "suspect";
 # full-7 statuses, each a distinct CUD-accessible hue (bare 6-hex, no '#').
+# Schema v1.4 (registered-source gate): adds the 8th status "unsourced" — an
+# amber (#b26a00) for a claim whose provenance reaches NO registered source.
+# The hue clears the CUD delta-E floor (CIE76 >= 12) of the locked 7 across
+# normal/protan/deutan/tritan (see tests/scitex_clew/_claim/test__model.py).
 # ---------------------------------------------------------------------------
 _CLAIM_PALETTE: Dict[str, str] = {
     "verified": "2da44e",  # green
@@ -39,6 +43,7 @@ _CLAIM_PALETTE: Dict[str, str] = {
     "registered": "6e7781",  # grey
     "exception": "8250df",  # violet
     "frozen": "0072b2",  # blue (CUD/Okabe-Ito)
+    "unsourced": "b26a00",  # burnt amber — ungrounded (no registered source)
 }
 _PALETTE_FALLBACK = "6e7781"  # grey — used for any unknown/future status
 
@@ -51,6 +56,9 @@ _DISPLAY_PALETTE: Dict[str, str] = {
     "suspect": "d29922",
     "failed": "cf222e",
     "exception": "8250df",
+    # Schema v1.4: own bucket for the registered-source gate (NOT verified,
+    # NOT failed-red). Amber: ungrounded is unproven, not wrong.
+    "unsourced": "b26a00",
 }
 
 # ---------------------------------------------------------------------------
@@ -68,15 +76,23 @@ _DISPLAY_GROUPS: Dict[str, str] = {
     "registered": "suspect",
     "exception": "exception",
     "frozen": "verified",
+    # Schema v1.4: unsourced is its own reader bucket (amber), never folded
+    # into verified/failed — an ungrounded claim reads distinctly.
+    "unsourced": "unsourced",
 }
 
 
-def _resolve_status(status: str, has_exception: bool, has_frozen: bool) -> str:
-    """Resolve a claim to its single full-7 status (color precedence).
+def _resolve_status(
+    status: str,
+    has_exception: bool,
+    has_frozen: bool,
+    grounded: Optional[bool] = None,
+) -> str:
+    """Resolve a claim to its single full-8 status (color precedence).
 
-    Precedence (schema v1.3, operator-approved):
-    ``mismatch/missing > [verified claims only: exception > frozen] >
-    suspect > verified > registered``.
+    Precedence (schema v1.4, operator-approved):
+    ``mismatch/missing > unsourced > [verified claims only: exception >
+    frozen] > suspect > verified > registered``.
 
     Chain-provenance overrides (exception violet / frozen blue) apply ONLY
     to claims that have PASSED verification (``status == "verified"``). A
@@ -85,6 +101,21 @@ def _resolve_status(status: str, has_exception: bool, has_frozen: bool) -> str:
     chain must not green/violet a claim whose value was never checked
     (false-green is the cardinal sin). Failure dominance is absolute:
     ``mismatch``/``missing`` always win.
+
+    Registered-source gate (schema v1.4)
+    ------------------------------------
+    ``grounded`` is the OPT-IN gate signal:
+
+    * ``None`` (default) — the gate is INACTIVE (no manifest). Behavior is
+      IDENTICAL to schema v1.3: zero change for existing DAGs / tests.
+    * ``True`` — the claim's chain reaches a registered source; resolution
+      falls through to the existing full-7 logic.
+    * ``False`` — the gate is active and the claim reaches NO registered
+      source. It resolves to ``"unsourced"`` (amber), DEMOTING what would
+      otherwise be ``verified`` / ``suspect`` / ``registered``. Hash failures
+      (``mismatch`` / ``missing``) still outrank ``unsourced`` — a red claim
+      stays red. This is the whole point: being link-hash-verified does NOT
+      exempt a claim from the source gate.
 
     Parameters
     ----------
@@ -95,15 +126,22 @@ def _resolve_status(status: str, has_exception: bool, has_frozen: bool) -> str:
         True if the claim's provenance chain contains an exception node.
     has_frozen : bool
         True if the claim's provenance chain contains a frozen file.
+    grounded : bool or None, optional
+        Registered-source gate signal (see above). ``None`` keeps the gate
+        inactive (opt-in).
 
     Returns
     -------
     str
-        One of the full-7 statuses: "verified", "suspect", "mismatch",
-        "missing", "registered", "exception", "frozen".
+        One of the full-8 statuses: "verified", "suspect", "mismatch",
+        "missing", "registered", "exception", "frozen", "unsourced".
     """
     if status in ("mismatch", "missing"):
         return status
+    # Gate active + ungrounded: demote to unsourced (outranks a would-be
+    # verified/suspect/registered green; outranked only by mismatch/missing).
+    if grounded is False:
+        return "unsourced"
     if status == "verified":
         if has_exception:
             return "exception"
@@ -116,19 +154,24 @@ def _resolve_status(status: str, has_exception: bool, has_frozen: bool) -> str:
 
 
 def _resolve_display_group(
-    status: str, has_exception: bool, has_frozen: bool
+    status: str,
+    has_exception: bool,
+    has_frozen: bool,
+    grounded: Optional[bool] = None,
 ) -> str:
-    """Resolve the 4-bucket display group for a claim.
+    """Resolve the reader display group for a claim.
 
-    Composes :func:`_resolve_status` (full-7 precedence) with the
+    Composes :func:`_resolve_status` (full-8 precedence) with the
     per-status ``_DISPLAY_GROUPS`` collapse map.
 
     Returns
     -------
     str
-        One of: "verified", "suspect", "failed", "exception".
+        One of: "verified", "suspect", "failed", "exception", "unsourced".
     """
-    return _DISPLAY_GROUPS[_resolve_status(status, has_exception, has_frozen)]
+    return _DISPLAY_GROUPS[
+        _resolve_status(status, has_exception, has_frozen, grounded)
+    ]
 
 
 # ---------------------------------------------------------------------------
