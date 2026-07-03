@@ -117,6 +117,9 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     "set_tracker": ("._tracker", "set_tracker"),
     "start_tracking": ("._tracker", "start_tracking"),
     "stop_tracking": ("._tracker", "stop_tracking"),
+    "session": ("._tracker", "session"),
+    "record_input": ("._tracker", "record_input"),
+    "record_output": ("._tracker", "record_output"),
     # _viz
     "generate_mermaid_dag": ("._viz", "generate_mermaid_dag"),
     "generate_html_dag": ("._viz", "generate_html_dag"),

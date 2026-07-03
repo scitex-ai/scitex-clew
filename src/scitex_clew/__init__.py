@@ -230,6 +230,9 @@ if TYPE_CHECKING:
     from ._tracker import (  # noqa: F401
         SessionTracker,
         get_tracker,
+        record_input,
+        record_output,
+        session,
         set_tracker,
         start_tracking,
         stop_tracking,

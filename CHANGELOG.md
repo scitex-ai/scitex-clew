@@ -30,6 +30,27 @@ versions follow [Semantic Versioning](https://semver.org/).
   pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
   variants) some consumers still hold.
 
+## [0.10.0] — 2026-07-04
+
+### Added
+- **Zero-dependency `clew.session()` provenance recorder.** A public
+  context manager (`with clew.session(script_path=...) as run:`) plus
+  module-level `record_input` / `record_output` that write a REAL run
+  (the `runs` row + `input->output` file-hash edges) using ONLY clew's
+  pure-stdlib core — no numpy/h5py/matplotlib/scitex stack. This lets a
+  minimal-mode script in a stripped environment (where `import scitex` /
+  the `@stx.session` decorator cannot load) produce `runs >= 1` and a
+  source-reachable DAG that passes the provenance gate. A claim
+  registered against a recorded output grounds through the recorded run
+  to whatever registered source feeds it. It is clew's OWN recorder (it
+  does NOT import scitex-session — the inverse of the observer seam) and
+  is the zero-dep counterpart to `@stx.session`, sharing the same
+  `runs` / `file_hashes` tables; use one or the other per run. The
+  underlying `start_tracking` / `stop_tracking` / `SessionTracker` were
+  already public — this adds the ergonomic context manager, auto run-id
+  generation, and current-session `record_input`/`record_output`
+  convenience, and makes the zero-dep recording path discoverable.
+
 ## [0.9.0] — 2026-07-03
 
 ### Added
