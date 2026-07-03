@@ -306,7 +306,10 @@ def export_claims_json(
             "status": "suspect",
             "color": _DISPLAY_PALETTE["suspect"],
             "marker": "wavy-underline",
-            "label": "suspect — not confirmed: upstream unverified or never verified",
+            "label": (
+                "suspect — not confirmed: upstream unverified, never verified, "
+                "or reaches no registered source"
+            ),
         },
         {
             "status": "failed",
@@ -320,12 +323,8 @@ def export_claims_json(
             "marker": "wavy-underline",
             "label": "exception — auto-verification chain does not connect through this declared node (transparently NOT auto-verified)",
         },
-        {
-            "status": "unsourced",
-            "color": _DISPLAY_PALETTE["unsourced"],
-            "marker": "wavy-underline",
-            "label": "unsourced — link-hash-verified but its chain reaches no registered source (ungrounded)",
-        },
+        # Schema v1.4.1 (operator decision): NO separate `unsourced` legend row —
+        # it folds into the amber `suspect` bucket above (see _DISPLAY_GROUPS).
     ]
 
     payload = {

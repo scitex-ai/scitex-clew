@@ -56,9 +56,10 @@ _DISPLAY_PALETTE: Dict[str, str] = {
     "suspect": "d29922",
     "failed": "cf222e",
     "exception": "8250df",
-    # Schema v1.4: own bucket for the registered-source gate (NOT verified,
-    # NOT failed-red). Amber: ungrounded is unproven, not wrong.
-    "unsourced": "b26a00",
+    # Schema v1.4.1 (operator decision): the registered-source gate does NOT
+    # get its own reader bucket — `unsourced` FOLDS into `suspect` (amber
+    # "questionable"). See _DISPLAY_GROUPS below. The full-8 status palette
+    # (_CLAIM_PALETTE) keeps `unsourced`=b26a00 distinct for author/DAG.
 }
 
 # ---------------------------------------------------------------------------
@@ -76,9 +77,12 @@ _DISPLAY_GROUPS: Dict[str, str] = {
     "registered": "suspect",
     "exception": "exception",
     "frozen": "verified",
-    # Schema v1.4: unsourced is its own reader bucket (amber), never folded
-    # into verified/failed — an ungrounded claim reads distinctly.
-    "unsourced": "unsourced",
+    # Schema v1.4.1 (operator decision): unsourced FOLDS into `suspect` (amber
+    # "questionable") at the reader level — "no verified source" reads as the
+    # single amber questionable state. The full-8 STATUS + _CLAIM_PALETTE keep
+    # `unsourced` (b26a00) distinct for author tooling + DAG fidelity; only the
+    # 4-bucket reader display + legend fold.
+    "unsourced": "suspect",
 }
 
 
@@ -167,7 +171,10 @@ def _resolve_display_group(
     Returns
     -------
     str
-        One of: "verified", "suspect", "failed", "exception", "unsourced".
+        One of: "verified", "suspect", "failed", "exception". (``unsourced``
+        folds into ``suspect`` per the operator's reader-treatment decision;
+        the full-8 STATUS from :func:`_resolve_status` still keeps ``unsourced``
+        distinct for author tooling + DAG fidelity.)
     """
     return _DISPLAY_GROUPS[
         _resolve_status(status, has_exception, has_frozen, grounded)

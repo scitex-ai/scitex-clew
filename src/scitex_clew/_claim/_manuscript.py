@@ -183,8 +183,15 @@ def export_manuscript_claims(
     total = len(entries)
     bucket_counts = {
         bucket: sum(1 for e in entries if e["status"] == bucket)
-        for bucket in ("verified", "suspect", "failed", "exception", "unsourced")
+        for bucket in ("verified", "suspect", "failed", "exception")
     }
+    # Schema v1.4.1: `unsourced` FOLDS into the suspect display bucket, so it is
+    # no longer a bucket VALUE — but the attestation still reports HOW MANY
+    # claims are ungrounded, counted from the full-8 `resolved_status` (which
+    # keeps `unsourced` distinct for author/DAG fidelity).
+    unsourced_count = sum(
+        1 for e in entries if e.get("resolved_status") == "unsourced"
+    )
     verified_count = bucket_counts["verified"]
     # Raw ledger statuses (claims only; citations never carry these).
     mismatch_count = sum(1 for e in entries if e.get("raw_status") == "mismatch")
@@ -241,7 +248,9 @@ def export_manuscript_claims(
                 "failed": bucket_counts["failed"],
                 "exception": bucket_counts["exception"],
                 # Schema v1.6-unified: source-gate demotions (0 if inactive).
-                "unsourced": bucket_counts["unsourced"],
+                # Counted from resolved_status (unsourced folds into suspect at
+                # the display bucket but is still reported here).
+                "unsourced": unsourced_count,
                 "mismatch": mismatch_count,
                 "missing": missing_count,
             },

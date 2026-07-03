@@ -1513,16 +1513,14 @@ def test_v12_attestation_counts_sum_to_claims_count(tmp_path, env_sandbox):
     assert total == payload["claims_count"]
 
 
-def test_v12_legend_statuses_has_five_display_states(tmp_path, env_sandbox):
-    """legend.statuses has 5 display states (v1.4 adds the amber 'unsourced' bucket)."""
+def test_v12_legend_statuses_has_four_display_states(tmp_path, env_sandbox):
+    """legend.statuses has 4 display states (v1.4.1 folds unsourced into suspect)."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
     status_names = {entry["status"] for entry in payload["legend"]["statuses"]}
-    # Assert — v1.4: unsourced joins the 4 v1.3 reader buckets
-    assert status_names == {
-        "verified", "suspect", "failed", "exception", "unsourced"
-    }
+    # Assert — v1.4.1: unsourced folds into suspect, so no separate bucket
+    assert status_names == {"verified", "suspect", "failed", "exception"}
 
 
 def test_v12_legend_statuses_colors_are_bare_hex(tmp_path, env_sandbox):
@@ -1548,14 +1546,14 @@ def test_v13_legend_has_no_subbadges_key(tmp_path, env_sandbox):
     assert not has_subbadges
 
 
-def test_v13_legend_statuses_exactly_5_entries(tmp_path, env_sandbox):
-    """v1.4 legend.statuses has exactly 5 entries (4 v1.3 buckets + unsourced)."""
+def test_v13_legend_statuses_exactly_4_entries(tmp_path, env_sandbox):
+    """v1.4.1 legend.statuses has exactly 4 entries (unsourced folds into suspect)."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
     count = len(payload["legend"]["statuses"])
     # Assert
-    assert count == 5
+    assert count == 4
 
 
 def test_v12_backward_compat_palette_still_present(tmp_path, env_sandbox):
@@ -1613,9 +1611,10 @@ def test_v13_display_palette_present_in_payload(tmp_path, env_sandbox):
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
     dp = payload.get("display_palette")
-    # Assert
+    # Assert — v1.4.1: unsourced folds into suspect, so the 4-bucket display
+    # palette has no separate unsourced key.
     assert isinstance(dp, dict) and set(dp.keys()) == {
-        "verified", "suspect", "failed", "exception", "unsourced"
+        "verified", "suspect", "failed", "exception"
     }
 
 
@@ -2124,7 +2123,8 @@ def test_v13_display_groups_full7_collapse_map(tmp_path, env_sandbox):
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
     dg = payload["display_groups"]
-    # Assert — per-status collapse map (registered→suspect, frozen→verified)
+    # Assert — per-status collapse map (registered→suspect, frozen→verified,
+    # v1.4.1: unsourced→suspect)
     assert dg == {
         "verified": "verified",
         "suspect": "suspect",
@@ -2133,7 +2133,7 @@ def test_v13_display_groups_full7_collapse_map(tmp_path, env_sandbox):
         "registered": "suspect",
         "exception": "exception",
         "frozen": "verified",
-        "unsourced": "unsourced",
+        "unsourced": "suspect",
     }
 
 
@@ -2147,16 +2147,16 @@ def test_v13_per_claim_resolved_status_present(tmp_path, env_sandbox):
     assert missing_rs == []
 
 
-def test_v13_legend_has_exactly_five_display_state_entries(tmp_path, env_sandbox):
-    """legend has exactly the 5 v1.4 display states and no subbadges key."""
+def test_v13_legend_has_exactly_four_display_state_entries(tmp_path, env_sandbox):
+    """legend has exactly the 4 display states and no subbadges key."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     legend = payload["legend"]
     # Act
     statuses = {e["status"] for e in legend["statuses"]}
-    # Assert — 5 display states (v1.4 adds unsourced), still no subbadges
+    # Assert — 4 display states (v1.4.1 folds unsourced into suspect), no subbadges
     assert statuses == {
-        "verified", "suspect", "failed", "exception", "unsourced"
+        "verified", "suspect", "failed", "exception"
     } and "subbadges" not in legend
 
 

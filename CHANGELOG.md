@@ -30,6 +30,25 @@ versions follow [Semantic Versioning](https://semver.org/).
   pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
   variants) some consumers still hold.
 
+## [0.8.1] — 2026-07-03
+
+### Changed
+- **Reader display: `unsourced` folds into the amber `suspect` bucket**
+  (operator decision). A claim with no registered source reads as the single
+  amber "questionable" state rather than a distinct 5th reader bucket. This
+  affects ONLY the 4-bucket reader display + legend: `display_groups` now maps
+  `unsourced → suspect`; the separate `unsourced` legend row and the
+  `unsourced` `display_palette` entry are removed; the `suspect` legend label
+  broadens to include "reaches no registered source". The full-8 STATUS is
+  unchanged — the `unsourced` verdict, exit code `UNSOURCED=17`,
+  `_CLAIM_PALETTE["unsourced"]` (`b26a00`), per-claim `resolved_status`/`color`,
+  the 8-state CUD ΔE floor, and DAG rendering all keep `unsourced` distinct for
+  author tooling. `attestation.unsourced_count` is now computed from
+  `resolved_status` (the folded display bucket no longer carries the count).
+  Consumers rendering the fine per-claim `color` palette are unaffected
+  (registered stays grey, missing keeps its own red); fold at the reader layer
+  with a one-line `unsourced → suspect` colour alias if desired.
+
 ## [0.8.0] — 2026-07-03
 
 ### Added
