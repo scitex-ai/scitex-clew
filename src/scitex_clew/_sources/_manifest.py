@@ -45,9 +45,12 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Set, Tuple, Union
+from typing import Any, List, Optional, Set, Tuple, Union
 
+from .._core import getLogger
 from .._db._core import _find_project_root
+
+_log = getLogger(__name__)
 
 SOURCES_SCHEMA = "sources-1.0"
 
@@ -100,7 +103,14 @@ class SourcesManifest:
     root: Path
     path: Path
     entries: List[SourceEntry] = field(default_factory=list)
-    signature: Optional[str] = None
+    signature: Optional[Any] = None
+    # Signature enforcement (set by load_sources_manifest). ``signing_enforced``
+    # is True iff a ``signed/signing.pub`` is committed for this project; when
+    # enforced, ``signature_valid`` is the Ed25519 verification result. When NOT
+    # enforced (no committed pubkey) ``signature_valid`` is None and the manifest
+    # is trusted as before (opt-in — zero behavior change until a key is added).
+    signing_enforced: bool = False
+    signature_valid: Optional[bool] = None
 
     @property
     def valid_entries(self) -> List[SourceEntry]:
@@ -111,16 +121,37 @@ class SourcesManifest:
         return [e for e in self.entries if not e.valid]
 
     @property
+    def trusted(self) -> bool:
+        """False iff signing is ENFORCED but the manifest's signature is
+        missing/invalid — an untrusted manifest anchors NOTHING (so a tampered
+        or unsigned-under-an-enforcing-key manifest cannot ground any claim:
+        "without the key it can't be run/edited")."""
+        return not (self.signing_enforced and not self.signature_valid)
+
+    @property
     def active(self) -> bool:
-        """Gate is active iff >=1 VALID anchor exists (opt-in + tamper-safe)."""
+        """Gate FIRES iff signing is enforced (a committed signing.pub) OR >=1
+        VALID anchor exists.
+
+        When signing is enforced the gate fires even for an UNTRUSTED manifest —
+        so is_grounded blocks ALL its claims (an unsigned or tampered manifest
+        must not silently pass by making the gate go dormant)."""
+        if self.signing_enforced:
+            return True
         return bool(self.valid_entries)
 
     def anchor_paths(self) -> Set[str]:
-        """Resolved absolute paths of the VALID anchors (for grounding)."""
+        """Resolved absolute paths of the VALID anchors (for grounding); EMPTY
+        when the manifest is untrusted (unsigned/tampered under an enforcing key)."""
+        if not self.trusted:
+            return set()
         return {str(e.abspath) for e in self.valid_entries}
 
     def pinned_for(self, abspath: str) -> Optional[str]:
-        """Pinned sha256 for a VALID anchor at ``abspath`` (else ``None``)."""
+        """Pinned sha256 for a VALID anchor at ``abspath`` (else ``None``);
+        always ``None`` when the manifest is untrusted."""
+        if not self.trusted:
+            return None
         for e in self.valid_entries:
             if str(e.abspath) == abspath:
                 return e.sha256
@@ -177,6 +208,60 @@ def verify_signature(raw: dict, signature: Optional[str]) -> bool:
     Keeping the seam here means the follow-on is a pure additive change.
     """
     return True
+
+
+def _check_manifest_signature(
+    raw: dict, root: Path
+) -> Tuple[bool, Optional[bool]]:
+    """Determine signature-enforcement state for a manifest.
+
+    Enforcement is OPT-IN: it activates only when a public key is committed at
+    ``<root>/.scitex/clew/signed/signing.pub``. Returns
+    ``(signing_enforced, signature_valid)``:
+
+    * no committed pubkey -> ``(False, None)`` — signing NOT enforced (zero
+      behavior change; the manifest stays trusted as before).
+    * pubkey present -> ``(True, <Ed25519 verify result>)`` — the manifest must
+      carry a valid signature over its canonical form, else it is untrusted and
+      anchors nothing.
+
+    Fails CLOSED: if a pubkey is committed but verification is unavailable
+    (python-cryptography / the ``[all]`` extra not installed here), returns
+    ``(True, False)`` — an unverifiable manifest is untrusted, so signing cannot
+    be bypassed by dropping the crypto dependency.
+    """
+    pubkey_path = root / ".scitex" / "clew" / "signed" / "signing.pub"
+    if not pubkey_path.exists():
+        return False, None
+
+    try:
+        from ._signing import is_signed, verify_manifest
+
+        valid = verify_manifest(raw, pubkey_path.read_bytes())
+    except RuntimeError as exc:  # pragma: no cover - only when [all] is absent
+        _log.warning(
+            "clew: signing.pub is committed at %s but signature verification is "
+            "unavailable (%s) — the manifest is treated as UNTRUSTED. Install "
+            "scitex-clew[all] in this environment to verify signed sources.",
+            pubkey_path,
+            exc,
+        )
+        return True, False
+
+    if not valid:
+        why = (
+            "is UNSIGNED"
+            if not is_signed(raw)
+            else "has an INVALID signature (tampered or wrong key)"
+        )
+        _log.warning(
+            "clew: manifest %s under an enforcing signing.pub (%s) — its anchors "
+            "are UNTRUSTED and every claim will be unsourced until it is re-signed "
+            "with `clew sign`.",
+            why,
+            pubkey_path,
+        )
+    return True, bool(valid)
 
 
 def load_sources_manifest(
@@ -240,8 +325,6 @@ def load_sources_manifest(
         )
 
     signature = raw.get("signature")
-    # Reserved seam — accepted but not enforced in this release.
-    verify_signature(raw, signature)
 
     root_path = Path(root) if root is not None else _project_root_for(resolved)
 
@@ -273,12 +356,15 @@ def load_sources_manifest(
             )
         )
 
+    signing_enforced, signature_valid = _check_manifest_signature(raw, root_path)
     return SourcesManifest(
         schema=schema,
         root=root_path,
         path=resolved,
         entries=entries,
         signature=signature,
+        signing_enforced=signing_enforced,
+        signature_valid=signature_valid,
     )
 
 

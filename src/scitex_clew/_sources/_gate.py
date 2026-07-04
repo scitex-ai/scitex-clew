@@ -105,6 +105,13 @@ def is_grounded(claim, manifest: SourcesManifest, db) -> bool:
         anchor by absolute path AND hash-consistency; ``False`` (unsourced)
         when every root is unregistered.
     """
+    # An UNTRUSTED manifest (unsigned or tampered under an enforcing
+    # signing.pub) grounds NOTHING — its anchors can't be trusted, so every
+    # claim is unsourced. Checked BEFORE the empty-anchor shortcut so signing
+    # enforcement can't be bypassed by an empty/wiped anchor set.
+    if not manifest.trusted:
+        return False
+
     anchor_paths = manifest.anchor_paths()
     if not anchor_paths:
         return True
