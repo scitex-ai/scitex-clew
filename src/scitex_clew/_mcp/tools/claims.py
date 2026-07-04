@@ -35,6 +35,7 @@ def register_tools(mcp: FastMCP) -> None:
         claim_value: Optional[str] = None,
         source_file: Optional[str] = None,
         source_session: Optional[str] = None,
+        claim_id: Optional[str] = None,
     ) -> str:
         """Register a manuscript claim linking an assertion to its source file/session.
 
@@ -54,6 +55,10 @@ def register_tools(mcp: FastMCP) -> None:
             Path to the source file that produced the claim.
         source_session : str, optional
             Session ID that produced the source.
+        claim_id : str, optional
+            Explicit, stable claim id used verbatim (e.g. a figure save-path).
+            When omitted, the id is derived from file/line/type/value so
+            distinct values no longer collapse.
         """
         from scitex_clew import add_claim
 
@@ -65,6 +70,7 @@ def register_tools(mcp: FastMCP) -> None:
                 claim_value=claim_value,
                 source_file=source_file,
                 source_session=source_session,
+                claim_id=claim_id,
             )
         except ValueError as exc:
             return _json({"error": str(exc), "claim": None})
@@ -143,6 +149,76 @@ def register_tools(mcp: FastMCP) -> None:
         except ValueError as exc:
             return _json({"error": str(exc), "claim": None})
         return _json(c.to_dict())
+
+    @mcp.tool()
+    async def clew_remove_claim(
+        claim_id_or_location: str,
+    ) -> str:
+        """Hard-delete a claim from the database by claim_id, location string,
+        or file path. After deletion, claims.json is re-exported. Returns
+        ``{"removed": true}`` if a row was deleted, ``{"removed": false}``
+        otherwise.
+
+        Mirrors ``scitex_clew.remove_claim``.
+
+        Parameters
+        ----------
+        claim_id_or_location : str
+            A claim_id (e.g., 'claim_abc123'), a location string
+            ('paper.tex:L42'), or a bare file path (first matching row).
+        """
+        from scitex_clew import remove_claim
+
+        found = remove_claim(claim_id_or_location)
+        return _json({"removed": found, "claim_id_or_location": claim_id_or_location})
+
+    @mcp.tool()
+    async def clew_supersede_claim(
+        claim_id_or_location: str,
+    ) -> str:
+        """Soft-retire a claim by setting its status to 'superseded'. The row
+        is kept in the database (audit trail) but excluded from
+        ``verify_all_claims`` and the default claims list/export.
+
+        Use this to retire stale/dead claims so ``clew verify`` can reach
+        exit 0 without deleting the historical record.
+
+        Mirrors ``scitex_clew.supersede_claim``.
+
+        Parameters
+        ----------
+        claim_id_or_location : str
+            A claim_id, location string ('paper.tex:L42'), or bare file path.
+        """
+        from scitex_clew import supersede_claim
+
+        found = supersede_claim(claim_id_or_location)
+        return _json({"superseded": found, "claim_id_or_location": claim_id_or_location})
+
+    @mcp.tool()
+    async def clew_export_manuscript_claims(
+        path: Optional[str] = None,
+        read_only: bool = True,
+    ) -> str:
+        """Emit the UNIFIED render feed (value + citation + figure) to claims.json.
+
+        Reads both clew ledgers (claims + citations) and writes ONE ``claims``
+        list in scitex-writer's frozen render schema. This is the compile-time
+        exporter the writer "Clew Render" pre-flight calls.
+
+        Mirrors ``scitex_clew.export_manuscript_claims``.
+
+        Parameters
+        ----------
+        path : str, optional
+            Output path (default: canonical .scitex/clew/runtime/claims.json).
+        read_only : bool, optional
+            chmod 0o444 the file after writing (default True).
+        """
+        from scitex_clew import export_manuscript_claims
+
+        out = export_manuscript_claims(path=path, read_only=read_only)
+        return _json({"path": str(out)})
 
 
 # EOF

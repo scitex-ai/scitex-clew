@@ -7,7 +7,7 @@ tags: [scitex-clew-mcp-tools-for-ai-agents]
 
 # MCP Tools for AI Agents
 
-Requires `pip install scitex-clew[mcp]` (adds `fastmcp` dependency).
+Requires `uv pip install 'scitex-clew[all]'` (adds `fastmcp` and other optional deps).
 
 Start server: `fastmcp run scitex_clew._mcp.server:mcp`
 

@@ -32,8 +32,8 @@ class _FakeVerification:
 # ----- classDef line ------------------------------------------------------- #
 
 
-def test_class_definitions_emits_file_suspect_orange_band():
-    # Arrange
+def test_class_definitions_emits_file_suspect_amber_band():
+    # Arrange — schema v1.3: suspect uses amber #d29922 (not old orange #FFD580)
     lines: list = []
 
     # Act
@@ -43,13 +43,12 @@ def test_class_definitions_emits_file_suspect_orange_band():
     suspect_lines = [ln for ln in lines if "file_suspect" in ln]
     assert (
         len(suspect_lines) == 1
-        and "FFD580" in suspect_lines[0]
-        and "FF8C00" in suspect_lines[0]
+        and "d29922" in suspect_lines[0].lower()
     )
 
 
-def test_class_definitions_emits_suspect_script_class_orange_band():
-    # Arrange
+def test_class_definitions_emits_suspect_script_class_amber_band():
+    # Arrange — schema v1.3: suspect script class uses amber #d29922
     lines: list = []
 
     # Act
@@ -61,8 +60,7 @@ def test_class_definitions_emits_suspect_script_class_orange_band():
     ]
     assert (
         len(suspect_script) == 1
-        and "FFD580" in suspect_script[0]
-        and "FF8C00" in suspect_script[0]
+        and "d29922" in suspect_script[0].lower()
     )
 
 
@@ -223,3 +221,421 @@ def test_add_script_node_failed_input_outranks_suspect_input():
         and ":::failed" in lines[0]
         and ":::suspect" not in lines[0]
     )
+
+
+# ----- Exception provenance marker ------------------------------------------ #
+
+
+def test_class_definitions_emits_exception_classDef_solid_no_dashes():
+    # Arrange — schema v1.3: exception uses solid violet fill, no dashed border
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    exception_lines = [ln for ln in lines if "classDef exception" in ln]
+    assert len(exception_lines) == 1 and "stroke-dasharray" not in exception_lines[0]
+
+
+def test_class_definitions_exception_classDef_uses_violet_fill():
+    # Arrange — schema v1.3: exception fill is violet #8250df
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    exception_lines = [ln for ln in lines if "classDef exception" in ln]
+    assert len(exception_lines) == 1 and "8250df" in exception_lines[0].lower()
+
+
+def test_add_script_node_exception_verified_uses_exception_class():
+    # Arrange — a verified exception node (no failure) must use the dashed
+    # 'exception' class rather than 'verified'.
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "exception",
+        "exception_reason": "4.1TB gPAC, recipe-known, never re-run",
+    }
+    verification = _FakeVerification(verified=True, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="exception_s1",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert
+    assert len(lines) == 1 and ":::exception" in lines[0]
+
+
+def test_add_script_node_exception_verified_label_no_glyph_icon():
+    # Arrange — schema v1.3: no ⊘ EXCEPTION glyph in label; color conveys it
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "exception",
+        "exception_reason": "external job",
+    }
+    verification = _FakeVerification(verified=True, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="exception_s2",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert — ⊘ EXCEPTION removed in v1.3 (color conveys exception status)
+    assert len(lines) == 1 and "⊘ EXCEPTION" not in lines[0]
+
+
+def test_add_script_node_exception_verified_label_contains_reason():
+    # Arrange
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "exception",
+        "exception_reason": "4.1TB gPAC, recipe-known, never re-run",
+    }
+    verification = _FakeVerification(verified=True, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="exception_s3",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert
+    assert len(lines) == 1 and "4.1TB gPAC, recipe-known, never re-run" in lines[0]
+
+
+def test_add_script_node_exception_failed_uses_failed_class_not_exception():
+    # Arrange — an exception node with a local failure must use 'failed', NOT
+    # 'exception', so the DAG view does not lie about the failure.
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "exception",
+        "exception_reason": "external job",
+    }
+    verification = _FakeVerification(verified=False, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="exception_fail_s1",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert
+    assert len(lines) == 1 and ":::failed" in lines[0] and ":::exception" not in lines[0]
+
+
+def test_add_script_node_exception_failed_no_glyph_icon():
+    # Arrange — schema v1.3: even when the exception node fails, no ⊘ EXCEPTION glyph.
+    # The COLOR (violet for exception class, red for failed class) conveys the state.
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "exception",
+        "exception_reason": "external job",
+    }
+    verification = _FakeVerification(verified=False, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="exception_fail_s2",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert — ⊘ EXCEPTION glyph removed in v1.3
+    assert len(lines) == 1 and "⊘ EXCEPTION" not in lines[0]
+
+
+def test_add_script_node_tracked_verified_uses_verified_class_not_exception():
+    # Arrange — a normal tracked verified node must NOT get the exception class;
+    # behavior-preservation guarantee.
+    lines: list = []
+    run = {
+        "script_path": "/scripts/normal.py",
+        "script_hash": "ab" * 32,
+        "provenance": "tracked",
+        "exception_reason": None,
+    }
+    verification = _FakeVerification(verified=True, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="tracked_s1",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert
+    assert len(lines) == 1 and ":::verified" in lines[0] and ":::exception" not in lines[0]
+
+
+# ----- Frozen / trusted-input file nodes ------------------------------------- #
+
+
+def test_class_definitions_emits_file_frozen_classDef():
+    # Arrange
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    frozen_lines = [ln for ln in lines if "classDef file_frozen" in ln]
+    assert len(frozen_lines) == 1
+
+
+def test_class_definitions_file_frozen_no_dashed_border():
+    # Arrange — schema v1.3: frozen folds into verified green, no dashed border
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    frozen_lines = [ln for ln in lines if "classDef file_frozen" in ln]
+    assert len(frozen_lines) == 1 and "stroke-dasharray" not in frozen_lines[0]
+
+
+def test_add_file_nodes_frozen_file_uses_file_frozen_class(tmp_path):
+    # Arrange — write a real file so verify_file_hash returns True (locally ok).
+    # The frozen_files set tips it into the frozen band.
+    from scitex_clew._hash import hash_file
+
+    target = tmp_path / "huge.npz"
+    target.write_bytes(b"4.1TB placeholder")
+    stored_hash = hash_file(str(target))
+    files = {str(target): stored_hash}
+    out_lines: list = []
+    file_nodes: dict = {}
+
+    # Act
+    add_file_nodes(
+        out_lines,
+        script_id="script_0",
+        files=files,
+        file_nodes=file_nodes,
+        show_hashes=False,
+        path_mode="name",
+        role="input",
+        frozen_files={str(target)},
+    )
+
+    # Assert
+    node_decls = [ln for ln in out_lines if ":::" in ln]
+    assert len(node_decls) == 1 and "file_frozen" in node_decls[0]
+
+
+def test_add_file_nodes_frozen_file_no_frozen_glyph_icon(tmp_path):
+    # Arrange — schema v1.3: frozen folds into verified green, no 🔒 FROZEN glyph
+    from scitex_clew._hash import hash_file
+
+    target = tmp_path / "huge2.npz"
+    target.write_bytes(b"placeholder data")
+    stored_hash = hash_file(str(target))
+    files = {str(target): stored_hash}
+    out_lines: list = []
+    file_nodes: dict = {}
+
+    # Act
+    add_file_nodes(
+        out_lines,
+        script_id="script_0",
+        files=files,
+        file_nodes=file_nodes,
+        show_hashes=False,
+        path_mode="name",
+        role="input",
+        frozen_files={str(target)},
+    )
+
+    # Assert — 🔒 FROZEN glyph removed in v1.3 (color conveys frozen/verified state)
+    node_line = " ".join(out_lines)
+    assert "🔒" not in node_line and "🔒 FROZEN" not in node_line
+
+
+def test_add_file_nodes_normal_file_not_in_frozen_files_uses_file_ok(tmp_path):
+    # Arrange — default path: no frozen_files → must use file_ok (behavior-preservation).
+    from scitex_clew._hash import hash_file
+
+    target = tmp_path / "normal.csv"
+    target.write_text("x\n1\n")
+    stored_hash = hash_file(str(target))
+    files = {str(target): stored_hash}
+    out_lines: list = []
+    file_nodes: dict = {}
+
+    # Act
+    add_file_nodes(
+        out_lines,
+        script_id="script_0",
+        files=files,
+        file_nodes=file_nodes,
+        show_hashes=False,
+        path_mode="name",
+        role="output",
+    )
+
+    # Assert
+    node_decls = [ln for ln in out_lines if ":::" in ln]
+    assert len(node_decls) == 1 and "file_ok" in node_decls[0] and "file_frozen" not in node_decls[0]
+
+
+def test_add_file_nodes_explicitly_failed_outranks_frozen(tmp_path):
+    # Arrange — a file that is in BOTH failed_files (e.g. explicitly failed
+    # by the caller from a prior chain-propagation pass) AND in frozen_files.
+    # The explicit failure must win over the frozen trust (e.g. file gone).
+    target = tmp_path / "bad.npz"
+    target.write_bytes(b"content")
+    stored_hash = "0" * 64
+    files = {str(target): stored_hash}
+    out_lines: list = []
+    file_nodes: dict = {}
+
+    # Act — pass the file in BOTH failed_files AND frozen_files.
+    add_file_nodes(
+        out_lines,
+        script_id="script_0",
+        files=files,
+        file_nodes=file_nodes,
+        show_hashes=False,
+        path_mode="name",
+        role="input",
+        failed_files={str(target)},
+        frozen_files={str(target)},
+    )
+
+    # Assert — explicit failure outranks frozen trust.
+    node_decls = [ln for ln in out_lines if ":::" in ln]
+    assert len(node_decls) == 1 and "file_bad" in node_decls[0] and "file_frozen" not in node_decls[0]
+
+
+# ----- Schema v1.3 specific: 4-state color-only recolor -------------------- #
+
+
+def test_v13_verified_classDef_uses_2da44e_fill():
+    # Arrange — schema v1.3: verified nodes use #2da44e (green)
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    verified_lines = [ln for ln in lines if "classDef verified " in ln and "scratch" not in ln]
+    assert len(verified_lines) == 1 and "2da44e" in verified_lines[0].lower()
+
+
+def test_v13_failed_classDef_uses_cf222e_fill():
+    # Arrange — schema v1.3: failed nodes use #cf222e (red)
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    failed_lines = [ln for ln in lines if "classDef failed " in ln]
+    assert len(failed_lines) == 1 and "cf222e" in failed_lines[0].lower()
+
+
+def test_v13_exception_classDef_uses_8250df_fill():
+    # Arrange — schema v1.3: exception nodes use #8250df (violet)
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    exception_lines = [ln for ln in lines if "classDef exception" in ln]
+    assert len(exception_lines) == 1 and "8250df" in exception_lines[0].lower()
+
+
+def test_v13_file_frozen_classDef_uses_frozen_blue():
+    # Arrange — schema v1.3 full-7: frozen keeps its distinct blue #0072b2
+    lines: list = []
+
+    # Act
+    append_class_definitions(lines)
+
+    # Assert
+    frozen_lines = [ln for ln in lines if "classDef file_frozen" in ln]
+    assert len(frozen_lines) == 1 and "0072b2" in frozen_lines[0].lower()
+
+
+def test_v13_exception_node_reason_text_still_present():
+    # Arrange — schema v1.3: reason text still shown (no ⊘ EXCEPTION glyph)
+    lines: list = []
+    run = {
+        "script_path": "/scripts/gpac.py",
+        "script_hash": "ab" * 32,
+        "provenance": "exception",
+        "exception_reason": "4.1TB gPAC never re-run",
+    }
+    verification = _FakeVerification(verified=True, from_scratch=False)
+
+    # Act
+    add_script_node(
+        lines,
+        idx=0,
+        sid="exception_reason_s1",
+        run=run,
+        verification=verification,
+        path_mode="name",
+        show_hashes=False,
+        has_failed_input=False,
+        has_suspect_input=False,
+    )
+
+    # Assert — reason text preserved, but no ⊘ glyph
+    assert len(lines) == 1 and "4.1TB gPAC never re-run" in lines[0] and "⊘" not in lines[0]

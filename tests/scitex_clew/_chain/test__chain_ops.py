@@ -60,6 +60,17 @@ class _FakeDB:
             return list(self._producer_of[target])
         return list(self._sessions_for_file)
 
+    def find_sessions_by_files(
+        self, file_paths: list[str], role: str = "output"
+    ) -> dict[str, list[str]]:
+        """Batch variant used by the refactored _parents_via_files."""
+        result: dict[str, list[str]] = {}
+        for fp in file_paths:
+            producers = self.find_session_by_file(fp, role=role)
+            if producers:
+                result[fp] = producers
+        return result
+
     def get_file_hashes(self, session_id: str, role: str | None = None) -> dict:
         if role == "input":
             return {f: "h" for f in self._inputs_of.get(session_id, [])}

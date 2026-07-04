@@ -130,18 +130,19 @@ scitex clew stats                        # Database statistics
 ## Architecture
 
 ```
-scitex/clew/
-├── __init__.py          # Public API (19 functions)
+scitex_clew/
+├── __init__.py          # Public API (lazy PEP-562 registry in _core/_public_api)
 ├── _hash.py             # SHA256 hashing utilities
-├── _db.py               # SQLite database
+├── _db/                 # SQLite database
 ├── _tracker.py          # Session tracking integration
 ├── _chain/              # Chain/DAG verification logic
 ├── _rerun.py            # Rerun verification (sandbox)
-├── _claim.py            # Manuscript claims
-├── _stamp.py            # Temporal proof stamps
-├── _registry.py         # Remote Clew Registry client
-├── _integration.py      # Hooks for @stx.session and stx.io
-├── _visualize.py        # Mermaid/HTML DAG rendering
+├── _claim/              # Manuscript claims
+├── _attest/             # External attestation
+│   ├── _stamp.py        # Temporal proof stamps
+│   └── _registry.py     # Remote Clew Registry client
+├── _observers/          # Hooks for @stx.session and stx.io
+├── _viz/                # Mermaid/HTML DAG rendering
 └── _examples.py         # Example pipeline scaffolding
 ```
 

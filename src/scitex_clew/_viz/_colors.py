@@ -13,7 +13,7 @@ class Colors:
 
     ORANGE is paired with the new ``VerificationStatus.SUSPECT`` enum
     (added 2026-06-10): "upstream-failed-but-locally-valid". The
-    Mermaid renderer uses a hex equivalent (#FFD580 / #FF8C00) for the
+    Mermaid renderer uses the canonical suspect amber (#d29922) for the
     ``file_suspect`` / ``suspect`` class definitions in
     ``_mermaid_nodes.py``; this ANSI code is the terminal-status
     counterpart used by ``status_icon`` / ``status_text``.

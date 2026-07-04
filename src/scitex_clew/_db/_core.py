@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from ._chain import ChainMixin
+from ._file_hashes import FileHashMixin
 from ._queries import VerificationQueryMixin
 
 
@@ -72,7 +73,38 @@ def _default_db_path(project_root: Path) -> Path:
     return new
 
 
-class VerificationDB(VerificationQueryMixin, ChainMixin):
+def resolve_db_path(
+    db_path: Optional[Union[str, Path]] = None,
+) -> "tuple[Path, str]":
+    """Resolve the store path via the three-tier precedence.
+
+    Parameters
+    ----------
+    db_path : str or Path, optional
+        Explicit store path (tier 1). When ``None``, falls through to the
+        ``SCITEX_CLEW_DB_PATH`` environment variable (tier 2) and finally
+        the project-root walk from the current working directory (tier 3).
+
+    Returns
+    -------
+    tuple of (Path, str)
+        The resolved path and a human-readable label of the tier that
+        produced it. This function only resolves — it neither creates
+        nor requires the file; read-side callers (e.g. ``render_dag``)
+        use the label to fail loud when the store is missing.
+    """
+    if db_path is not None:
+        return Path(db_path), "explicit db_path argument"
+    env_path = os.environ.get("SCITEX_CLEW_DB_PATH")
+    if env_path:
+        return Path(env_path), "SCITEX_CLEW_DB_PATH environment variable"
+    return (
+        _default_db_path(_find_project_root()),
+        "project-root walk from the current working directory",
+    )
+
+
+class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
     """
     SQLite database for tracking session runs and file hashes.
 
@@ -103,12 +135,7 @@ class VerificationDB(VerificationQueryMixin, ChainMixin):
                .git / pyproject.toml is found; falls back to cwd if no
                root marker is found.
         """
-        if db_path is None:
-            env_path = os.environ.get("SCITEX_CLEW_DB_PATH")
-            if env_path:
-                db_path = Path(env_path)
-            else:
-                db_path = _default_db_path(_find_project_root())
+        db_path, _tier = resolve_db_path(db_path)
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
@@ -128,7 +155,9 @@ class VerificationDB(VerificationQueryMixin, ChainMixin):
                     exit_code INTEGER,
                     parent_session TEXT,
                     combined_hash TEXT,
-                    metadata TEXT
+                    metadata TEXT,
+                    provenance TEXT DEFAULT 'tracked',
+                    exception_reason TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS file_hashes (
@@ -137,6 +166,8 @@ class VerificationDB(VerificationQueryMixin, ChainMixin):
                     file_path TEXT NOT NULL,
                     hash TEXT NOT NULL,
                     role TEXT NOT NULL,
+                    size_bytes INTEGER,
+                    frozen INTEGER DEFAULT 0,
                     recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (session_id) REFERENCES runs(session_id),
                     UNIQUE(session_id, file_path, role)
@@ -184,6 +215,12 @@ class VerificationDB(VerificationQueryMixin, ChainMixin):
 
         # Migrate existing parent_session data to junction table
         self._migrate_session_parents()
+        # Phase 2: add size_bytes column to pre-existing DBs (idempotent)
+        self._migrate_file_hashes_size_bytes()
+        # Phase 3: add provenance + exception_reason to pre-existing runs tables (idempotent)
+        self._migrate_runs_provenance()
+        # Phase 4: add frozen column to pre-existing file_hashes tables (idempotent)
+        self._migrate_file_hashes_frozen()
 
     @contextmanager
     def _connect(self):
@@ -197,6 +234,33 @@ class VerificationDB(VerificationQueryMixin, ChainMixin):
             conn.close()
 
     # -------------------------------------------------------------------------
+    # Migration helpers
+    # -------------------------------------------------------------------------
+
+    def _migrate_runs_provenance(self) -> None:
+        """Add provenance and exception_reason columns to pre-existing runs tables (idempotent).
+
+        Safe to call even when the columns already exist: the PRAGMA check
+        guards the ALTER TABLE so no exception is raised on repeated runs.
+        Existing rows receive the default value ('tracked' / NULL) automatically.
+        """
+        with self._connect() as conn:
+            columns = {
+                row[1]
+                for row in conn.execute(
+                    "PRAGMA table_info(runs)"
+                ).fetchall()
+            }
+            if "provenance" not in columns:
+                conn.execute(
+                    "ALTER TABLE runs ADD COLUMN provenance TEXT DEFAULT 'tracked'"
+                )
+            if "exception_reason" not in columns:
+                conn.execute(
+                    "ALTER TABLE runs ADD COLUMN exception_reason TEXT"
+                )
+
+    # -------------------------------------------------------------------------
     # Run operations
     # -------------------------------------------------------------------------
 
@@ -207,6 +271,8 @@ class VerificationDB(VerificationQueryMixin, ChainMixin):
         script_hash: Optional[str] = None,
         parent_session: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        provenance: str = "tracked",
+        exception_reason: Optional[str] = None,
     ) -> None:
         """
         Add a new run to the database.
@@ -223,14 +289,21 @@ class VerificationDB(VerificationQueryMixin, ChainMixin):
             Parent session ID for chain tracking
         metadata : dict, optional
             Additional metadata to store
+        provenance : str, optional
+            Provenance marker: 'tracked' (auto-tracked via @stx.session, default)
+            or 'exception' (manually/retrospectively registered by hand).
+        exception_reason : str, optional
+            Structured justification for exception nodes (required when
+            provenance='exception' for operator accountability). E.g.
+            '4.1 TB gPAC job, recipe-known, never re-run'. NULL for tracked nodes.
         """
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO runs
                 (session_id, script_path, script_hash, started_at, status,
-                 parent_session, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                 parent_session, metadata, provenance, exception_reason)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session_id,
@@ -240,6 +313,8 @@ class VerificationDB(VerificationQueryMixin, ChainMixin):
                     "running",
                     parent_session,
                     json.dumps(metadata) if metadata else None,
+                    provenance,
+                    exception_reason,
                 ),
             )
 
@@ -334,147 +409,8 @@ class VerificationDB(VerificationQueryMixin, ChainMixin):
             return [dict(row) for row in rows]
 
     # -------------------------------------------------------------------------
-    # File hash operations
+    # File hash operations — implemented in FileHashMixin (_file_hashes.py)
     # -------------------------------------------------------------------------
-
-    def add_file_hash(
-        self,
-        session_id: str,
-        file_path: str,
-        hash_value: str,
-        role: str,
-    ) -> None:
-        """
-        Add a file hash record.
-
-        Parameters
-        ----------
-        session_id : str
-            Session identifier
-        file_path : str
-            Path to the file
-        hash_value : str
-            Hash of the file
-        role : str
-            Role of the file (input, script, output)
-        """
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO file_hashes
-                (session_id, file_path, hash, role)
-                VALUES (?, ?, ?, ?)
-                """,
-                (session_id, file_path, hash_value, role),
-            )
-
-    def add_file_hashes(
-        self,
-        session_id: str,
-        hashes: Dict[str, str],
-        role: str,
-    ) -> None:
-        """
-        Add multiple file hashes at once.
-
-        Parameters
-        ----------
-        session_id : str
-            Session identifier
-        hashes : dict
-            Mapping of file paths to hashes
-        role : str
-            Role of the files (input, script, output)
-        """
-        with self._connect() as conn:
-            conn.executemany(
-                """
-                INSERT OR REPLACE INTO file_hashes
-                (session_id, file_path, hash, role)
-                VALUES (?, ?, ?, ?)
-                """,
-                [(session_id, path, h, role) for path, h in hashes.items()],
-            )
-
-    def get_file_hashes(
-        self,
-        session_id: str,
-        role: Optional[str] = None,
-    ) -> Dict[str, str]:
-        """
-        Get file hashes for a session.
-
-        Parameters
-        ----------
-        session_id : str
-            Session identifier
-        role : str, optional
-            Filter by role
-
-        Returns
-        -------
-        dict
-            Mapping of file paths to hashes
-        """
-        with self._connect() as conn:
-            if role:
-                rows = conn.execute(
-                    """
-                    SELECT file_path, hash FROM file_hashes
-                    WHERE session_id = ? AND role = ?
-                    """,
-                    (session_id, role),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    """
-                    SELECT file_path, hash FROM file_hashes
-                    WHERE session_id = ?
-                    """,
-                    (session_id,),
-                ).fetchall()
-            return {row["file_path"]: row["hash"] for row in rows}
-
-    def find_session_by_file(
-        self,
-        file_path: str,
-        role: Optional[str] = None,
-    ) -> List[str]:
-        """
-        Find sessions that used a specific file.
-
-        Parameters
-        ----------
-        file_path : str
-            Path to the file
-        role : str, optional
-            Filter by role (input, output)
-
-        Returns
-        -------
-        list of str
-            List of session IDs
-        """
-        with self._connect() as conn:
-            if role:
-                rows = conn.execute(
-                    """
-                    SELECT DISTINCT session_id FROM file_hashes
-                    WHERE file_path = ? AND role = ?
-                    ORDER BY recorded_at DESC
-                    """,
-                    (file_path, role),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    """
-                    SELECT DISTINCT session_id FROM file_hashes
-                    WHERE file_path = ?
-                    ORDER BY recorded_at DESC
-                    """,
-                    (file_path,),
-                ).fetchall()
-            return [row["session_id"] for row in rows]
 
 
 # Global instance
@@ -505,6 +441,32 @@ def set_db(db_path: Union[str, Path]) -> VerificationDB:
     global _DB_INSTANCE
     _DB_INSTANCE = VerificationDB(db_path=db_path)
     return _DB_INSTANCE
+
+
+def get_active_db_path() -> Optional[Path]:
+    """Return the path of the already-configured global DB instance, if any.
+
+    ``None`` means no global instance has been created yet (neither
+    ``get_db()`` nor ``set_db()`` has run in this process).
+    """
+    return _DB_INSTANCE.db_path if _DB_INSTANCE is not None else None
+
+
+@contextmanager
+def use_db(db_path: Union[str, Path]):
+    """Temporarily point the global DB instance at ``db_path``.
+
+    Restores the previous global instance on exit, so scoped out-of-tree
+    reads (e.g. ``render_dag(..., db_path=...)``) do not leak into later
+    calls in the same process.
+    """
+    global _DB_INSTANCE
+    previous = _DB_INSTANCE
+    _DB_INSTANCE = VerificationDB(db_path=db_path)
+    try:
+        yield _DB_INSTANCE
+    finally:
+        _DB_INSTANCE = previous
 
 
 # EOF

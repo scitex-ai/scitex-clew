@@ -34,8 +34,11 @@ python -c "import scitex_clew; print(scitex_clew.__version__)"
 
 ## Database location
 
-By default at `$SCITEX_DIR/clew/runtime/db.sqlite` (typically `~/.scitex/clew/runtime/db.sqlite`).
-See [20_env-vars.md](20_env-vars.md) for overrides.
+By default at `<project_root>/.scitex/clew/runtime/db.sqlite`, where the
+project root is found by walking up from the cwd to the nearest directory
+containing `.git` or `pyproject.toml` (fallback: cwd itself).
+Precedence: explicit `db_path` arg > `SCITEX_CLEW_DB_PATH` env var > this
+project-root walk. See [20_env-vars.md](20_env-vars.md) for details.
 
 ## Editable install (development)
 

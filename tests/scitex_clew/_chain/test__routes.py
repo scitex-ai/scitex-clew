@@ -17,7 +17,7 @@ from scitex_clew._chain._routes import resolve_file_dag
 
 
 class FakeDB:
-    """Minimal stand-in exposing the two reads ``resolve_file_dag`` needs.
+    """Minimal stand-in exposing the reads ``resolve_file_dag`` needs.
 
     Parameters
     ----------
@@ -40,6 +40,17 @@ class FakeDB:
         # Producers of file_path, newest-first (mirrors the real DESC order).
         producers = [sid for sid, files in self._outputs.items() if file_path in files]
         return list(reversed(producers))
+
+    def find_sessions_by_files(self, file_paths, role=None):
+        """Batch variant: return {file_path: [session_id, ...]} newest-first."""
+        result = {}
+        for fp in file_paths:
+            producers = [
+                sid for sid, files in self._outputs.items() if fp in files
+            ]
+            if producers:
+                result[fp] = list(reversed(producers))
+        return result
 
 
 # ---------------------------------------------------------------------------

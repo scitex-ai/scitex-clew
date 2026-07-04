@@ -7,13 +7,14 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 
 def hash_file(
     path: Union[str, Path],
     algorithm: str = "sha256",
     chunk_size: int = 8192,
+    hash_cache: Optional[Dict[str, str]] = None,
 ) -> str:
     """
     Compute hash of a file.
@@ -26,6 +27,12 @@ def hash_file(
         Hash algorithm (default: sha256)
     chunk_size : int, optional
         Size of chunks to read (default: 8192)
+    hash_cache : dict or None, optional
+        Per-pass cache mapping resolved-path -> hash. When provided, the
+        resolved path is looked up first; on a miss the file is hashed and
+        the result is stored so subsequent calls within the same pass reuse
+        the cached value. Pass ``None`` (default) to disable caching —
+        direct calls to ``hash_file`` are unaffected.
 
     Returns
     -------
@@ -38,6 +45,15 @@ def hash_file(
     'a1b2c3d4e5f6...'
     """
     path = Path(path)
+
+    # Per-pass cache: key is the resolved absolute path so that symlinks and
+    # relative references to the same inode share one entry.
+    # Cache check comes BEFORE the existence check so a cached hash is returned
+    # even if the file has been moved/deleted since the first hash in this pass.
+    cache_key = str(path.resolve())
+    if hash_cache is not None and cache_key in hash_cache:
+        return hash_cache[cache_key]
+
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
 
@@ -46,7 +62,12 @@ def hash_file(
         while chunk := f.read(chunk_size):
             hasher.update(chunk)
 
-    return hasher.hexdigest()[:32]
+    result = hasher.hexdigest()[:32]
+
+    if hash_cache is not None:
+        hash_cache[cache_key] = result
+
+    return result
 
 
 def hash_directory(

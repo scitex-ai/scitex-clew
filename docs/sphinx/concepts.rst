@@ -109,6 +109,37 @@ How It Works
    claim is still supported by the data.
 
 
+Verification Caching Guarantee
+------------------------------
+
+Clew caches for speed but never at the cost of correctness: **every cache is
+keyed by content hash** (SHA-256 of the live file bytes). There is no
+mtime-based logic anywhere in the package (verified at v0.6.0: a grep for
+``mtime`` across ``src/*.py`` returns zero matches). A cache can therefore
+speed up verification but can never return "verified" for content that has
+changed.
+
+- **Per-pass hash cache** (``src/scitex_clew/_chain/_hash_cache.py``): each
+  top-level verification pass shares one ``{resolved path: hash}`` dict so a
+  file referenced by many sessions is hashed once per pass. The dict is
+  created fresh at every entry point and never persisted — a file changed
+  between two passes is always re-hashed.
+- **Freshness-skip** (``rerun_dag(skip_unchanged=True)``,
+  ``src/scitex_clew/_chain/_freshness.py``): opt-in. Re-hashes the script
+  and every recorded *input* against the recorded values before skipping a
+  sandbox re-execution; any mismatch falls through to a real re-run. Skipped
+  sessions are marked ``level=CACHE`` (not ``RERUN``). Outputs are not
+  re-hashed by this check — pair with an L1 ``verify_chain()`` pass to catch
+  output tampering. Assumes deterministic scripts.
+- **No persistent verdict cache** (as of v0.6.0): stored verification
+  verdicts (``verification_results``) are an append-only history; they are
+  never read back to skip or override live hashing.
+
+See the ``scitex-clew`` skill (``03_python-api.md``, "Verification caching —
+correctness guarantee") for the audited per-mechanism statement, including
+the explicit ``frozen`` hash-trust opt-out.
+
+
 Architecture
 ------------
 
@@ -125,8 +156,8 @@ Architecture
    │    clew verify ...     │    9 tools              │
    ├─────────────────────────────────────────────────┤
    │  Core Engine                                     │
-   │    _hash.py    _chain.py    _dag.py    _claim.py │
-   │    _tracker.py _stamp.py   _rerun.py             │
+   │    _hash.py    _chain/     _claim/    _attest/   │
+   │    _tracker.py _rerun.py   _estimate.py          │
    ├─────────────────────────────────────────────────┤
    │  Storage: SQLite (db.sqlite)                      │
    │    runs, file_hashes, session_parents, claims    │

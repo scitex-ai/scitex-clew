@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from .._db import get_db
+from ._hash_cache import new_hash_cache
 from ._types import (
     DAGVerification,
     FileVerification,
@@ -120,10 +121,13 @@ def verify_dag(
     # Topological sort (roots first)
     topo_order = _topological_sort(adjacency)
 
-    # Verify each session exactly once
+    # Verify each session exactly once, sharing a single hash cache across
+    # all sessions in this pass so a file referenced by multiple sessions is
+    # hashed from disk only once.
+    hash_cache = new_hash_cache()
     verifications: Dict[str, RunVerification] = {}
     for sid in topo_order:
-        verifications[sid] = verify_run(sid, propagate=False)
+        verifications[sid] = verify_run(sid, propagate=False, hash_cache=hash_cache)
 
     # Propagate failures forward through the DAG
     failed_sessions: set = set()

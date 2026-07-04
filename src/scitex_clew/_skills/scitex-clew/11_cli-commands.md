@@ -1,13 +1,13 @@
 ---
 description: |
   [TOPIC] Cli Commands
-  [DETAILS] CLI reference for the clew command (requires pip install scitex-clew[cli]).
+  [DETAILS] CLI reference for the clew command (requires uv pip install 'scitex-clew[all]').
 tags: [scitex-clew-cli-commands]
 ---
 
 # CLI Commands
 
-Requires `pip install scitex-clew[cli]` (adds `click` dependency).
+Requires `uv pip install 'scitex-clew[all]'` (adds `click` and other optional deps).
 
 Entry point: `clew` (also installed as `scitex-clew`).
 
@@ -71,6 +71,9 @@ clew print-mermaid
 
 # Generate Mermaid DAG from registered claims
 clew print-mermaid --claims
+
+# Target a store outside the current tree (host-side / post-run)
+clew print-mermaid --claims --db runs/capsule/.scitex/clew/runtime/db.sqlite
 ```
 
 ## Claim commands

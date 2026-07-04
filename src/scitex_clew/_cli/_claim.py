@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Claim CLI subcommands — `clew claim {add,list,verify}`.
+"""Claim CLI subcommands — `clew claim {add,list,verify,remove,supersede}`.
 
 Mirrors the Python API in ``scitex_clew._claim`` one-for-one. Each command
 respects the top-level ``--json`` flag (set on ``ctx.obj['json']``) and
 emits human-readable text by default.
+
+Mutation commands (``remove`` / ``supersede``) live in ``_claim_mutate.py``
+and are registered here via ``register_mutate_commands``.
 """
 
 from __future__ import annotations
@@ -47,7 +50,7 @@ def _emit(ctx: click.Context, payload, human_text: str) -> None:
 
 @click.group("claim")
 def claim() -> None:
-    """Manuscript-claim operations (add / list / verify)."""
+    """Manuscript-claim operations (add / list / verify / remove / supersede)."""
 
 
 @claim.command(
@@ -108,6 +111,16 @@ def claim() -> None:
     default=None,
     help="Session ID that produced the source.",
 )
+@click.option(
+    "--claim-id",
+    "claim_id",
+    default=None,
+    help=(
+        "Explicit, stable claim id used verbatim (e.g. a figure save-path or a "
+        "semantic key). When omitted the id is derived from "
+        "file/line/type/value so distinct values never collapse."
+    ),
+)
 @click.pass_context
 def claim_add(
     ctx: click.Context,
@@ -117,6 +130,7 @@ def claim_add(
     claim_value,
     source_file,
     source_session,
+    claim_id,
     dry_run: bool,
     yes: bool,
 ) -> None:
@@ -132,6 +146,7 @@ def claim_add(
             "claim_value": claim_value,
             "source_file": source_file,
             "source_session": source_session,
+            "claim_id": claim_id,
         }
         if _json_mode(ctx):
             click.echo(_json.dumps({"dry_run": True, "claim": preview}, indent=2))
@@ -149,6 +164,7 @@ def claim_add(
             claim_value=claim_value,
             source_file=source_file,
             source_session=source_session,
+            claim_id=claim_id,
         )
     except ValueError as exc:
         msg = {"error": str(exc), "claim": None}
@@ -174,11 +190,18 @@ def claim_add(
     epilog=(
         "Example:\n"
         "  $ scitex-clew claim list\n"
-        "  $ scitex-clew claim list --file-path paper.tex --type statistic --json"
+        "  $ scitex-clew claim list --file-path paper.tex --type statistic --json\n"
+        "  $ scitex-clew claim list --file-path-prefix /old/manuscripts/"
     ),
 )
 @click.option(
-    "--file-path", "file_path", default=None, help="Filter by manuscript path."
+    "--file-path", "file_path", default=None, help="Filter by manuscript path (exact)."
+)
+@click.option(
+    "--file-path-prefix",
+    "file_path_prefix",
+    default=None,
+    help="Filter claims whose file_path starts with this prefix (directory root).",
 )
 @click.option(
     "--type",
@@ -191,9 +214,16 @@ def claim_add(
     "--status",
     "status",
     default=None,
-    help="Filter by verification status (registered/verified/mismatch/missing/partial).",
+    help="Filter by verification status (registered/verified/mismatch/missing/suspect/superseded).",
 )
 @click.option("--limit", type=int, default=100, help="Maximum claims to list.")
+@click.option(
+    "--include-superseded",
+    "include_superseded",
+    is_flag=True,
+    default=False,
+    help="Include superseded claims (excluded by default).",
+)
 @click.option(
     "--json",
     "as_json",
@@ -204,9 +234,11 @@ def claim_add(
 def claim_list(
     ctx: click.Context,
     file_path,
+    file_path_prefix,
     claim_type,
     status,
     limit: int,
+    include_superseded: bool,
     as_json: bool,
 ) -> None:
     """List registered claims with optional filters."""
@@ -217,7 +249,12 @@ def claim_list(
     from scitex_clew._claim import format_claims
 
     claims = list_claims(
-        file_path=file_path, claim_type=claim_type, status=status, limit=limit
+        file_path=file_path,
+        claim_type=claim_type,
+        status=status,
+        limit=limit,
+        include_superseded=include_superseded,
+        file_path_prefix=file_path_prefix,
     )
 
     payload = {
@@ -378,6 +415,15 @@ def claim_register_intermediate(
         f"  session:  {session_id or '$SCITEX_SESSION_ID'}"
     )
     _emit(ctx, payload, human)
+
+
+# ---------------------------------------------------------------------------
+# Register mutation subcommands (remove / supersede) from _claim_mutate.py
+# ---------------------------------------------------------------------------
+from ._claim_mutate import register_mutate_commands as _reg  # noqa: E402
+
+_reg(claim)
+del _reg
 
 
 # EOF

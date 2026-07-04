@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union
+from typing import Dict, Optional, Union
 
 from ._archive_lookup import hash_archived_file
 from .._db import get_db
@@ -22,6 +22,8 @@ def verify_file(
     path: Union[str, Path],
     expected_hash: str,
     role: str = "unknown",
+    hash_cache: Optional[Dict[str, str]] = None,
+    frozen: bool = False,
 ) -> FileVerification:
     """Verify a single file against expected hash.
 
@@ -39,6 +41,19 @@ def verify_file(
         Expected hash value
     role : str, optional
         Role of the file (input, output, script)
+    hash_cache : dict or None, optional
+        Per-pass cache (resolved-path -> hash) threaded from the top-level
+        verify entry point. When provided, each file is hashed at most once
+        within the pass; subsequent references reuse the cached value.
+    frozen : bool, optional
+        When True, skip re-hashing and trust the recorded hash.  The file's
+        *existence* is still checked: a frozen file that is absent on disk is
+        still reported MISSING (frozen means "trust the hash without
+        re-reading", not "ignore missing files").  Returns a FileVerification
+        with ``status=VERIFIED`` and ``frozen=True`` — never silently rendered
+        as a normal verified file; callers and renderers must surface the
+        frozen state (frozen blue #0072b2 / "FROZEN" label — color-only, no
+        glyph).
 
     Returns
     -------
@@ -48,8 +63,32 @@ def verify_file(
     path = Path(path)
     path_str = str(path)
 
+    # Frozen short-circuit: trust the recorded hash without re-reading the
+    # file.  We still check existence so a genuinely missing frozen file is
+    # not silently swallowed — the user needs to know the data is gone even
+    # if they opted out of re-hashing.
+    if frozen:
+        if not path.exists() and hash_archived_file(path) is None:
+            return FileVerification(
+                path=path_str,
+                role=role,
+                expected_hash=expected_hash,
+                current_hash=None,
+                status=VerificationStatus.MISSING,
+                frozen=True,
+            )
+        # File present (or archived): trust the stored hash, no re-read.
+        return FileVerification(
+            path=path_str,
+            role=role,
+            expected_hash=expected_hash,
+            current_hash=expected_hash,
+            status=VerificationStatus.VERIFIED,
+            frozen=True,
+        )
+
     if path.exists():
-        current_hash = hash_file(path)
+        current_hash = hash_file(path, hash_cache=hash_cache)
     else:
         # Loose file absent — try to read it from an ancestor session archive
         # (transparent .tar.gz support). None means truly gone.
@@ -98,6 +137,7 @@ def verify_run(
     target: str,
     propagate: bool = True,
     collapse_suspect: bool = False,
+    hash_cache: Optional[Dict[str, str]] = None,
 ) -> RunVerification:
     """Verify a session run by checking all file hashes.
 
@@ -114,6 +154,10 @@ def verify_run(
         matching the pre-SUSPECT behaviour. Default is False so callers
         opting into the 3-state DAG colouring get SUSPECT surfaced
         without further changes.
+    hash_cache : dict or None, optional
+        Per-pass cache (resolved-path -> hash) threaded from the top-level
+        verify entry point. When provided, each file is hashed at most once
+        within the pass; subsequent references reuse the cached value.
 
     Returns
     -------
@@ -150,20 +194,39 @@ def verify_run(
     input_hashes = db.get_file_hashes(session_id, role="input")
     output_hashes = db.get_file_hashes(session_id, role="output")
 
+    # Get frozen file sets (additive helper, no change to existing get_file_hashes API)
+    frozen_inputs = db.get_frozen_files(session_id, role="input")
+    frozen_outputs = db.get_frozen_files(session_id, role="output")
+
     # Verify each file
     file_verifications = []
     upstream_failed = False
 
     for path, expected in input_hashes.items():
-        fv = verify_file(path, expected, role="input")
+        fv = verify_file(
+            path,
+            expected,
+            role="input",
+            hash_cache=hash_cache,
+            frozen=path in frozen_inputs,
+        )
         file_verifications.append(fv)
 
         # Check if upstream session that produced this input has failed
+        # A frozen file that verifies (trusted) does NOT trigger upstream_failed.
         if propagate and not fv.is_verified:
             upstream_failed = True
 
     for path, expected in output_hashes.items():
-        file_verifications.append(verify_file(path, expected, role="output"))
+        file_verifications.append(
+            verify_file(
+                path,
+                expected,
+                role="output",
+                hash_cache=hash_cache,
+                frozen=path in frozen_outputs,
+            )
+        )
 
     # Verify script if present
     if run_info.get("script_path") and run_info.get("script_hash"):
@@ -171,6 +234,7 @@ def verify_run(
             run_info["script_path"],
             run_info["script_hash"],
             role="script",
+            hash_cache=hash_cache,
         )
         file_verifications.append(script_verification)
 
@@ -224,6 +288,8 @@ def verify_run(
         files=file_verifications,
         combined_hash_expected=run_info.get("combined_hash"),
         combined_hash_current=None,
+        provenance=run_info.get("provenance", "tracked") or "tracked",
+        exception_reason=run_info.get("exception_reason"),
     )
 
 

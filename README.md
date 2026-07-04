@@ -51,6 +51,15 @@ The DAG is a structured, machine-readable representation of an entire research p
 - **Re-execute** scripts in a sandbox to confirm reproducibility
 - **Link** manuscript claims to the computational sessions that produced them
 
+### Case Study: The Broken Twin
+
+A real incident (NeuroVista seizure-forecasting analysis, 2026-06-30) shows why claim→source binding matters. Two same-named "warning-metrics Table 03/04" scripts coexisted in the repository:
+
+- **Broken twin** — `compute_warning_tables.py` fabricated timestamps (`times = arange(n) * 60 s`) from a block-ordered CSV that had no time column. On that surrogate timeline, a uniform-Poisson alarm *beat* the real model: AUC 0.46, IoC < 0.
+- **Valid script** — `_table03_warning_fullwindow.py` used the real `window_datetime` column with `forecasting.evaluate_stream`: sensitivity 0.70, specificity 0.96, 0.17 false positives/h, 10.7 min median lead time, IoC +0.56.
+
+Without a claim→source→`@stx.session` binding, both scripts were equally plausible as "the source" of the table. Hours went into diagnosing the broken twin, and near-chance numbers were almost shipped. With clew, "which code produced this value?" has exactly one answer: the claim resolves to its registered source session, and the broken twin — which has no registered claim — cannot masquerade as evidence. This incident drove **ADR-0021**: clew registration is mandatory for every manuscript value.
+
 ### Five Node Classes
 
 Every node in the DAG is classified into one of five semantic roles:
@@ -76,6 +85,10 @@ This classification turns the DAG into a navigable map of the research project. 
 | **Claims** | Manuscript assertions | `clew.verify_claim("Fig 1")` | Verifies individual claims linked to source sessions. Answers: *"Is this figure/statistic still backed by the data?"* |
 
 <p align="center"><sub><b>Table 2.</b> Three verification modes. Each mode supports both <b>cache verification</b> (millisecond hash comparison) and <b>re-run verification</b> (sandbox re-execution with <code>rerun_dag</code> / <code>rerun_claims</code>).</sub></p>
+
+### Verification Caching Guarantee
+
+All caching in Clew is **content-keyed**: every cache key is a SHA-256 hash of live file bytes — no mtime logic exists anywhere in the package. Per-pass hash caches are created fresh for each verification pass and never persisted; the opt-in `rerun_dag(skip_unchanged=True)` skip re-hashes the script and every recorded input before skipping (skipped sessions are marked `level=CACHE`, never `RERUN`); and stored verdicts are an append-only history, never read back to skip live hashing. A cache can speed up verification but can never return "verified" for content that has changed. Full audited statement: [Verification caching — correctness guarantee](src/scitex_clew/_skills/scitex-clew/03_python-api.md).
 
 ### Grouping for Readable DAGs
 
@@ -143,21 +156,22 @@ scitex-clew/
 │   │   ├── _queries.py          # VerificationQueryMixin
 │   │   └── _parents.py          # Parent-session operations
 │   ├── _hash.py                 # file + directory Merkle hashing
-│   ├── _chain.py                # VerificationLevel, ChainEntry
-│   ├── _claim.py                # Claim CRUD + verification (single file)
-│   ├── _dag.py                  # DAG verification
-│   ├── _node_class.py           # DAG node classification
-│   ├── _stamp.py                # Temporal stamping backends (single file)
+│   ├── _chain/                  # chain/DAG verification (types, ops, routes)
+│   ├── _claim/                  # Claim CRUD + verification
+│   ├── _citation/               # \cite -> scholar-verified source gate
+│   ├── _core/                   # config, logging, node classes, public-API registry
+│   ├── _attest/                 # external attestation
+│   │   ├── _stamp.py            # Temporal stamping backends (file/RFC3161/Zenodo)
+│   │   └── _registry.py         # Clew Registry client (scitex.ai)
 │   ├── _rerun.py                # Sandbox re-execution
 │   ├── _tracker.py              # Session tracking
-│   ├── _registry.py             # Clew Registry client (scitex.ai)
 │   ├── _register_intermediate.py# Agentic intermediate-value registration
-│   ├── _visualize.py            # Visualization helpers
-│   ├── _viz/                    # Graphviz-based DAG rendering
+│   ├── _viz/                    # Mermaid/HTML/Graphviz DAG rendering
+│   ├── _estimate.py             # Pre-flight runtime/success estimate
 │   ├── _examples.py             # Bundled example locator
-│   ├── _logging.py              # Optional scitex.logging integration
 │   ├── _linter_plugin.py        # scitex-linter plugin entry point
-│   ├── groupers/                # Pattern / directory / auto / compose
+│   ├── _observers/              # scitex-io / scitex-session hook subscribers
+│   ├── _groupers/               # Pattern / directory / auto / compose
 │   │   ├── __init__.py
 │   │   └── _config.py           # Per-project grouper config loader
 │   ├── groupers.py              # Public re-exports

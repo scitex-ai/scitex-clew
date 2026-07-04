@@ -5,10 +5,14 @@
 
 from __future__ import annotations
 
+import sys
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from ._db import get_db
+from ._db._file_hashes import _stat_size
 from ._hash import combine_hashes, hash_file
 
 
@@ -33,6 +37,7 @@ class SessionTracker:
         script_path: Optional[str] = None,
         parent_session: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        db=None,
     ):
         """
         Initialize a session tracker.
@@ -47,6 +52,8 @@ class SessionTracker:
             Parent session ID for chain tracking
         metadata : dict, optional
             Additional metadata (e.g. notebook_path, cell_index)
+        db : VerificationDB, optional
+            Database instance to use.  Defaults to the global DB instance.
         """
         self.session_id = session_id
         self.script_path = script_path
@@ -60,7 +67,7 @@ class SessionTracker:
         if parent_session:
             self._parent_sessions.add(parent_session)
 
-        self._db = get_db()
+        self._db = db if db is not None else get_db()
 
         # Compute script hash if provided
         if script_path and Path(script_path).exists():
@@ -111,6 +118,7 @@ class SessionTracker:
                 file_path=path_str,
                 hash_value=file_hash,
                 role="input",
+                size_bytes=_stat_size(path_str),
             )
 
             # Auto-link parents: record ALL producer sessions
@@ -159,6 +167,7 @@ class SessionTracker:
             file_path=path_str,
             hash_value=file_hash,
             role="output",
+            size_bytes=_stat_size(path_str),
         )
 
         return file_hash
@@ -335,6 +344,102 @@ def stop_tracking(
     result = tracker.finalize(status=status, exit_code=exit_code)
     set_tracker(None)
     return result
+
+
+@contextmanager
+def session(
+    script_path: Optional[str] = None,
+    session_id: Optional[str] = None,
+    parent_session: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+):
+    """Zero-dependency provenance-recording context manager.
+
+    Records a REAL run in the clew DB — the ``runs`` row plus the
+    ``input -> output`` file-hash edges — using ONLY clew's pure-stdlib core.
+    So it works in stripped environments where ``import scitex`` / the
+    ``@stx.session`` decorator cannot load (no numpy/h5py/matplotlib/system
+    libs), giving a minimal-mode script a way to produce ``runs >= 1`` and a
+    source-reachable DAG that passes the provenance gate.
+
+    Inside the block, call ``run.record_input(path)`` / ``run.record_output(path)``
+    (or the module-level :func:`record_input` / :func:`record_output`, which act
+    on the current session) to hash + link files. A claim registered against a
+    recorded OUTPUT then grounds through the recorded run to whatever registered
+    source feeds it.
+
+    This is clew's OWN recorder — it does NOT import scitex-session; it is the
+    zero-dep counterpart to ``@stx.session`` (the full-stack path), sharing the
+    same ``runs`` / ``file_hashes`` tables. Use one or the other per run, not both.
+
+    Parameters
+    ----------
+    script_path : str, optional
+        Path to the script being run. Defaults to ``sys.argv[0]`` (the invoking
+        script) when not given.
+    session_id : str, optional
+        Unique run id. A random hex id is generated when omitted.
+    parent_session : str, optional
+        Explicit parent run id (parents are also auto-linked from inputs).
+    metadata : dict, optional
+        Extra run metadata.
+
+    Yields
+    ------
+    SessionTracker
+        The active tracker; call ``.record_input`` / ``.record_output`` on it.
+
+    Examples
+    --------
+    >>> import scitex_clew as clew
+    >>> with clew.session(script_path=__file__) as run:
+    ...     run.record_input("data/raw.csv")
+    ...     # ... stdlib compute; write results/out.json with open()/json ...
+    ...     run.record_output("results/out.json")
+    ...     clew.add_claim("paper.tex", "value", 42, "0.94",
+    ...                    source_file="results/out.json")
+    """
+    sid = session_id or uuid.uuid4().hex
+    spath = script_path if script_path is not None else (sys.argv[0] or None)
+    start_tracking(
+        sid,
+        script_path=spath,
+        parent_session=parent_session,
+        metadata=metadata,
+    )
+    status, exit_code = "success", 0
+    try:
+        yield get_tracker()
+    except BaseException:
+        status, exit_code = "error", 1
+        raise
+    finally:
+        stop_tracking(status=status, exit_code=exit_code)
+
+
+def record_input(path: Union[str, Path], track: bool = True) -> Optional[str]:
+    """Record ``path`` as an input of the CURRENT clew session.
+
+    Convenience over ``get_tracker().record_input`` for the module-level
+    ``clew.record_input`` style. Raises if no session is active (start one with
+    :func:`session` or :func:`start_tracking`).
+    """
+    tracker = get_tracker()
+    if tracker is None:
+        raise RuntimeError(
+            "record_input requires an active clew.session()/start_tracking()"
+        )
+    return tracker.record_input(path, track=track)
+
+
+def record_output(path: Union[str, Path], track: bool = True) -> Optional[str]:
+    """Record ``path`` as an output of the CURRENT clew session (see :func:`record_input`)."""
+    tracker = get_tracker()
+    if tracker is None:
+        raise RuntimeError(
+            "record_output requires an active clew.session()/start_tracking()"
+        )
+    return tracker.record_output(path, track=track)
 
 
 # EOF

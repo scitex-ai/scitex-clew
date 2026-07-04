@@ -14,13 +14,21 @@ into so the umbrella package never has to wire them:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 from scitex_clew._core import getLogger
 
 from ._session import on_session_close, on_session_start
 
 logger = getLogger(__name__)
+
+# Idempotency guards for peer-hook registration. The import-time bootstrap AND
+# the entry-point activation path may both invoke register_with_*; keying on the
+# peer module's ``id()`` registers exactly ONCE per distinct peer instance — so
+# repeat calls against the same instance are no-ops (no double-firing), while a
+# genuine two-instance module split still registers each instance that fires.
+_registered_io_ids: set = set()
+_registered_session_ids: set = set()
 
 
 def on_io_save(path: Path, obj: Any, kwargs: Dict[str, Any]) -> None:
@@ -34,8 +42,10 @@ def on_io_save(path: Path, obj: Any, kwargs: Dict[str, Any]) -> None:
     path : Path
         Path that was just saved.
     obj : Any
-        The saved object (unused — the umbrella's prior implementation
-        didn't use it either).
+        The saved object. Inspected for the citation-artifact schema marker so
+        scitex-scholar can populate the citation ledger by saving a
+        ``citation_status.json`` via ``stx.io`` — no scholar→clew import (the
+        decoupled seam; see :mod:`scitex_clew._citation._ingest`).
     kwargs : dict
         Original kwargs passed to ``scitex_io.save``. We honour
         ``track`` (default True) for parity with the umbrella shim.
@@ -46,6 +56,17 @@ def on_io_save(path: Path, obj: Any, kwargs: Dict[str, Any]) -> None:
         get_db()  # Ensure DB exists
     except Exception as e:
         logger.debug("clew: failed to initialise DB: %s", e)
+
+    # Citation-artifact ingestion (the scholar↔clew decoupled seam). Runs
+    # BEFORE the track/session gate: citations are a manuscript-level ledger,
+    # not session-scoped, so a saved citation_status.json is ingested whether or
+    # not a tracker is active or ``track`` was requested.
+    try:
+        from scitex_clew._citation._ingest import ingest_citations_artifact
+
+        ingest_citations_artifact(obj)
+    except Exception as e:
+        logger.debug("clew: citation-artifact ingest failed: %s", e)
 
     track = bool(kwargs.get("track", True)) if isinstance(kwargs, dict) else True
     if not track:
@@ -60,6 +81,16 @@ def on_io_save(path: Path, obj: Any, kwargs: Dict[str, Any]) -> None:
         return
 
     if tracker is None:
+        # No active session at save time -> nothing to attach the file_hash to.
+        # Log it (not a silent bail): a save firing here with no tracker is
+        # either a legitimate out-of-session save OR the symptom of a tracker
+        # not being live across session-start->save. DEBUG, because out-of-
+        # session saves are normal and WARNING would cry wolf on every one.
+        logger.debug(
+            "clew: on_io_save fired for %s but no active session tracker — "
+            "provenance NOT recorded (out-of-session save, or tracker not live)",
+            path,
+        )
         return
 
     try:
@@ -105,6 +136,37 @@ def on_io_load(path: Path, result: Any) -> None:
         logger.debug("clew: failed to record input %s: %s", path, e)
 
 
+def bootstrap_register(register: Callable[[], bool], peer_name: str) -> bool:
+    """Invoke a peer-registration callable, surfacing failures (never raises).
+
+    Wraps a zero-arg ``register_with_scitex_*`` call so a silent registration
+    failure stops hiding: logs a WARNING if ``register`` raised or returned
+    ``False`` (peer registry unavailable or hook-API skew) — meaning clew's
+    auto-provenance hooks will NOT fire for ``peer_name``. Returns the result
+    (True registered / False skipped-or-failed). Used by the import-time
+    bootstrap AND the entry-point activation path.
+    """
+    try:
+        ok = register()
+    except Exception as exc:  # a broken registrar must never break import
+        logger.warning(
+            "clew observer registration with %s failed (%s: %s) — "
+            "auto-provenance hooks will NOT fire for it",
+            peer_name,
+            type(exc).__name__,
+            exc,
+        )
+        return False
+    if not ok:
+        logger.warning(
+            "clew observer registration with %s returned False "
+            "(peer registry unavailable or hook-API skew) — "
+            "auto-provenance hooks will NOT fire for it",
+            peer_name,
+        )
+    return bool(ok)
+
+
 def register_with_scitex_io() -> bool:
     """Register clew's hooks with scitex-io if it is importable.
 
@@ -122,12 +184,83 @@ def register_with_scitex_io() -> bool:
         )
         return False
 
+    if id(scitex_io) in _registered_io_ids:
+        return True  # idempotent: already registered against THIS instance
+
     try:
         scitex_io.register_post_save_hook(on_io_save)
         scitex_io.register_post_load_hook(on_io_load)
+        _registered_io_ids.add(id(scitex_io))
+        # Diagnostic (module-identity): logs WHICH scitex_io instance clew
+        # registered against, so a "registered True but hooks never fire"
+        # symptom (a distinct scitex_io module firing a different hook list)
+        # is visible by comparing this id with the firing instance's.
+        logger.debug(
+            "clew registered io hooks against scitex_io id=%s file=%s",
+            id(scitex_io),
+            getattr(scitex_io, "__file__", "?"),
+        )
         return True
     except Exception as e:
         logger.debug("clew: failed to register hooks with scitex_io: %s", e)
+        return False
+
+
+def register_with_scitex_session() -> bool:
+    """Register clew's session hooks with scitex-session's registry if available.
+
+    Mirrors :func:`register_with_scitex_io`: scitex-session OWNS the lifecycle
+    hook registry (``register_session_start_hook`` / ``register_session_close_hook``)
+    and clew SUBSCRIBES — scitex-session never imports clew, so the seam is
+    acyclic. Guarded so an OLD scitex-session without the registry API is a
+    silent no-op (same contract as the fallback-import path on the session
+    side). Never raises.
+
+    scitex-session fires hooks POSITIONALLY — ``start(session_id, script_path,
+    metadata)`` / ``close(status, exit_code)`` — whereas clew's public
+    :func:`~scitex_clew.on_session_start` positional order is
+    ``(session_id, script_path, parent_session, verbose, metadata)``. So we
+    register keyword-mapping ADAPTERS (not the raw callables); a positional
+    ``metadata`` never lands in ``parent_session``, and the public hooks stay
+    unchanged.
+
+    Returns
+    -------
+    bool
+        True if both hooks were registered. False if scitex-session is not
+        installed or its registry API is unavailable.
+    """
+    try:
+        import scitex_session
+    except Exception as e:
+        logger.debug(
+            "clew: scitex_session not importable, skipping session hooks: %s", e
+        )
+        return False
+
+    reg_start = getattr(scitex_session, "register_session_start_hook", None)
+    reg_close = getattr(scitex_session, "register_session_close_hook", None)
+    if reg_start is None or reg_close is None:
+        logger.debug(
+            "clew: scitex_session has no lifecycle-hook registry; skipping"
+        )
+        return False
+
+    if id(scitex_session) in _registered_session_ids:
+        return True  # idempotent: already registered against THIS instance
+
+    def _start_adapter(session_id, script_path=None, metadata=None):
+        on_session_start(session_id, script_path=script_path, metadata=metadata)
+
+    def _close_adapter(status="success", exit_code=0):
+        on_session_close(status=status, exit_code=exit_code)
+
+    try:
+        reg_start(_start_adapter)
+        reg_close(_close_adapter)
+        return True
+    except Exception as e:
+        logger.debug("clew: failed to register hooks with scitex_session: %s", e)
         return False
 
 

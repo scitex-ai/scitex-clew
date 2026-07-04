@@ -661,4 +661,249 @@ class TestDatabaseStats:
         assert stats["total_runs"] == 0
 
 
+class TestProvenanceMigration:
+    """Tests for the Phase-3 provenance migration (idempotent ALTER TABLE)."""
+
+    @pytest.fixture
+    def db(self, tmp_path):
+        """Create a temporary database for testing."""
+        db_path = tmp_path / "test_provenance.db"
+        return VerificationDB(db_path)
+
+    def test_migration_adds_provenance_column_to_fresh_db(self, db):
+        # Arrange
+        # Act
+        with db._connect() as conn:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()}
+        # Assert
+        assert "provenance" in cols
+
+    def test_migration_adds_exception_reason_column_to_fresh_db(self, db):
+        # Arrange
+        # Act
+        with db._connect() as conn:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()}
+        # Assert
+        assert "exception_reason" in cols
+
+    def test_migration_is_idempotent_for_provenance(self, tmp_path):
+        # Arrange
+        db_path = tmp_path / "test_idem.db"
+        db = VerificationDB(db_path)
+        # Act — call migration a second time directly; must not raise
+        db._migrate_runs_provenance()
+        with db._connect() as conn:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()}
+        # Assert
+        assert "provenance" in cols
+
+    def test_migration_preserves_existing_rows_as_tracked(self, tmp_path):
+        # Arrange — insert a row WITHOUT provenance (simulate pre-existing DB
+        # by creating the DB, inserting a row via raw SQL without the new cols,
+        # then running the migration manually).
+        import sqlite3
+
+        db_path = tmp_path / "legacy.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "CREATE TABLE runs (session_id TEXT PRIMARY KEY, script_path TEXT, "
+            "script_hash TEXT, started_at TIMESTAMP, finished_at TIMESTAMP, "
+            "status TEXT, exit_code INTEGER, parent_session TEXT, "
+            "combined_hash TEXT, metadata TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO runs (session_id, script_path, status) "
+            "VALUES ('legacy_001', '/old/script.py', 'success')"
+        )
+        conn.commit()
+        conn.close()
+        db = VerificationDB(db_path)
+        # Act
+        run = db.get_run("legacy_001")
+        # Assert
+        assert run["provenance"] == "tracked"
+
+    def test_migration_preserves_existing_rows_data(self, tmp_path):
+        # Arrange — same legacy DB as above; verify original data is intact.
+        import sqlite3
+
+        db_path = tmp_path / "legacy2.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "CREATE TABLE runs (session_id TEXT PRIMARY KEY, script_path TEXT, "
+            "script_hash TEXT, started_at TIMESTAMP, finished_at TIMESTAMP, "
+            "status TEXT, exit_code INTEGER, parent_session TEXT, "
+            "combined_hash TEXT, metadata TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO runs (session_id, script_path, status) "
+            "VALUES ('legacy_002', '/old/script.py', 'success')"
+        )
+        conn.commit()
+        conn.close()
+        db = VerificationDB(db_path)
+        # Act
+        run = db.get_run("legacy_002")
+        # Assert
+        assert run["session_id"] == "legacy_002"
+
+
+class TestAddRunProvenance:
+    """Tests for provenance + exception_reason in add_run."""
+
+    @pytest.fixture
+    def db(self, tmp_path):
+        """Create a temporary database for testing."""
+        db_path = tmp_path / "test_addrun_prov.db"
+        return VerificationDB(db_path)
+
+    def test_add_run_defaults_provenance_to_tracked(self, db):
+        # Arrange
+        db.add_run("default_session", "/path/script.py")
+        # Act
+        run = db.get_run("default_session")
+        # Assert
+        assert run["provenance"] == "tracked"
+
+    def test_add_run_defaults_exception_reason_to_null(self, db):
+        # Arrange
+        db.add_run("default_session", "/path/script.py")
+        # Act
+        run = db.get_run("default_session")
+        # Assert
+        assert run["exception_reason"] is None
+
+    def test_add_run_stores_exception_provenance(self, db):
+        # Arrange
+        db.add_run(
+            "exception_session",
+            "/path/gpac.py",
+            provenance="exception",
+            exception_reason="4.1TB gPAC, recipe-known, never re-run",
+        )
+        # Act
+        run = db.get_run("exception_session")
+        # Assert
+        assert run["provenance"] == "exception"
+
+    def test_add_run_stores_exception_reason(self, db):
+        # Arrange
+        db.add_run(
+            "exception_session",
+            "/path/gpac.py",
+            provenance="exception",
+            exception_reason="4.1TB gPAC, recipe-known, never re-run",
+        )
+        # Act
+        run = db.get_run("exception_session")
+        # Assert
+        assert run["exception_reason"] == "4.1TB gPAC, recipe-known, never re-run"
+
+    def test_add_run_exception_is_distinct_from_tracked(self, db):
+        # Arrange
+        db.add_run("tracked_s", "/script.py")
+        db.add_run(
+            "exception_s",
+            "/script.py",
+            provenance="exception",
+            exception_reason="reason",
+        )
+        # Act
+        tracked = db.get_run("tracked_s")
+        exception = db.get_run("exception_s")
+        # Assert
+        assert tracked["provenance"] != exception["provenance"]
+
+
+class TestFrozenMigration:
+    """Tests for the Phase-4 frozen migration (idempotent ALTER TABLE on file_hashes)."""
+
+    def test_migration_adds_frozen_column_to_fresh_db(self, tmp_path):
+        # Arrange
+        db = VerificationDB(tmp_path / "frozen_fresh.db")
+        # Act
+        with db._connect() as conn:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()}
+        # Assert
+        assert "frozen" in cols
+
+    def _make_legacy_db(self, db_path, include_file_row: bool = False):
+        """Helper: create a legacy DB mirroring the schema from the provenance tests.
+
+        Mirrors the column set used in TestProvenanceMigration so that the
+        _init_schema CREATE INDEX statements on runs(status) and
+        runs(parent_session) don't fail against a too-minimal legacy table.
+        """
+        import sqlite3
+
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "CREATE TABLE runs ("
+            "session_id TEXT PRIMARY KEY, "
+            "script_path TEXT, "
+            "script_hash TEXT, "
+            "started_at TIMESTAMP, "
+            "finished_at TIMESTAMP, "
+            "status TEXT, "
+            "exit_code INTEGER, "
+            "parent_session TEXT, "
+            "combined_hash TEXT, "
+            "metadata TEXT"
+            ")"
+        )
+        conn.execute(
+            "CREATE TABLE file_hashes ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "session_id TEXT NOT NULL, "
+            "file_path TEXT NOT NULL, "
+            "hash TEXT NOT NULL, "
+            "role TEXT NOT NULL, "
+            "size_bytes INTEGER, "
+            "recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            ")"
+        )
+        if include_file_row:
+            conn.execute(
+                "INSERT INTO file_hashes (session_id, file_path, hash, role) "
+                "VALUES ('s1', '/data/file.csv', 'abc123', 'input')"
+            )
+        conn.commit()
+        conn.close()
+
+    def test_migration_adds_frozen_column_to_pre_existing_db(self, tmp_path):
+        # Arrange — simulate a legacy DB without the frozen column (but with
+        # all columns that _init_schema expects in the runs table for indexing).
+        db_path = tmp_path / "frozen_legacy.db"
+        self._make_legacy_db(db_path)
+        # Act — open through VerificationDB which runs all migrations.
+        db = VerificationDB(db_path)
+        with db._connect() as conn:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()}
+        # Assert
+        assert "frozen" in cols
+
+    def test_migration_existing_rows_default_frozen_zero(self, tmp_path):
+        # Arrange — legacy DB with a pre-existing file_hashes row (no frozen col).
+        db_path = tmp_path / "frozen_legacy2.db"
+        self._make_legacy_db(db_path, include_file_row=True)
+        # Act
+        db = VerificationDB(db_path)
+        with db._connect() as conn:
+            row = conn.execute(
+                "SELECT frozen FROM file_hashes WHERE file_path = '/data/file.csv'"
+            ).fetchone()
+        # Assert
+        assert row["frozen"] == 0
+
+    def test_migration_is_idempotent(self, tmp_path):
+        # Arrange
+        db = VerificationDB(tmp_path / "frozen_idem.db")
+        # Act — call migration again; must not raise.
+        db._migrate_file_hashes_frozen()
+        with db._connect() as conn:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()}
+        # Assert
+        assert "frozen" in cols
+
+
 # EOF

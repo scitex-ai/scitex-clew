@@ -49,7 +49,7 @@ claims = clew.list_claims(file_path="paper.tex")
 claims = clew.list_claims(claim_type="statistic")
 
 # Filter by verification status
-claims = clew.list_claims(status="verified")  # verified | mismatch | missing | partial | registered
+claims = clew.list_claims(status="verified")  # verified | mismatch | missing | suspect | registered
 ```
 
 ## Verify a claim

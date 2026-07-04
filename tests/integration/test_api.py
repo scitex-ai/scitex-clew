@@ -9,14 +9,23 @@ import scitex_clew as clew
 class TestPublicAPI:
     """Verify __all__ contains the expected public names."""
 
-    def test_all_count_len_clew_all_is_26(self):
-        # 25 public names + canonical __version__ string (per PA201).
-        # +1 over the previous 25 for ``verify_all_claims`` (the fail-loud
-        # claim-set verification behind ``clew verify``, 2026-06-19).
+    def test_all_count_len_clew_all_is_34(self):
+        # 26 public names + canonical __version__ string (per PA201).
+        # +1 over the previous 26 for ``estimate`` (the Phase 1 pre-flight
+        # compute estimate, 2026-06-27). ``EstimateResult`` is intentionally
+        # lazy-only (not in __all__), matching the other result dataclasses.
+        # +2 for ``remove_claim`` and ``supersede_claim`` (2026-06-30).
+        # +4 for the citation gate: ``add_citation`` / ``list_citations`` /
+        # ``verify_citations`` / ``verify_all_citations`` (2026-07-01).
+        # +1 for ``export_manuscript_claims`` (unified render bridge, 2026-07-02).
+        # +7 for the registered-source gate: ``register_source`` /
+        # ``unregister_source`` / ``list_sources`` / ``is_grounded`` /
+        # ``load_sources_manifest`` / ``resolve_sources_path`` /
+        # ``SourcesManifest`` (2026-07-03).
         # Arrange
         # Act
         # Assert
-        assert len(clew.__all__) == 26
+        assert len(clew.__all__) == 41
 
     def test_all_names_set_clew_all_expected(self):
         # Arrange
@@ -32,12 +41,27 @@ class TestPublicAPI:
             "rerun_claims",
             "list_runs",
             "stats",
+            "estimate",
             "add_claim",
             "list_claims",
             "verify_claim",
             "verify_all_claims",
             "export_claims_json",
+            "export_manuscript_claims",
             "register_intermediate",
+            "remove_claim",
+            "supersede_claim",
+            "add_citation",
+            "list_citations",
+            "verify_citations",
+            "verify_all_citations",
+            "register_source",
+            "unregister_source",
+            "list_sources",
+            "is_grounded",
+            "load_sources_manifest",
+            "resolve_sources_path",
+            "SourcesManifest",
             "stamp",
             "list_stamps",
             "check_stamp",

@@ -9,10 +9,16 @@ tags: [scitex-clew-env-vars]
 
 | Variable | Purpose | Default | Type |
 |---|---|---|---|
-| `SCITEX_CLEW_DB_PATH` | Override for the claim-verification SQLite database location. | `~/.scitex/clew/runtime/db.sqlite` | path |
+| `SCITEX_CLEW_DB_PATH` | Override for the claim-verification SQLite database location. | `<project_root>/.scitex/clew/runtime/db.sqlite` | path |
 | `SCITEX_CLEW_DEBUG_MODE` | Enable verbose tracing for claim execution and DAG re-run. | `false` | bool |
 | `SCITEX_API_TOKEN` | Ecosystem-wide API token (shared with scitex-cloud); used when clew tools call remote endpoints. | `—` | string (required when remote) |
 | `SCITEX_REGISTRY_URL` | URL of the optional SciTeX registry for cross-machine claim lookup. | unset | string (URL) |
+
+DB path precedence (`resolve_db_path()` in `src/scitex_clew/_db/_core.py`):
+explicit `db_path` argument > `SCITEX_CLEW_DB_PATH` >
+`<project_root>/.scitex/clew/runtime/db.sqlite`, where the project root is
+the nearest ancestor of the cwd containing `.git` or `pyproject.toml`
+(fallback: cwd itself). The DB is project-scoped, **not** under `~/.scitex`.
 
 ## Feature flags
 

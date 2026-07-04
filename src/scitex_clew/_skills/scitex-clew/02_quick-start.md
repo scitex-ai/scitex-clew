@@ -10,10 +10,9 @@ tags: [scitex-clew-quick-start]
 ## Installation
 
 ```bash
-pip install scitex-clew          # core (no dependencies)
-pip install scitex-clew[cli]     # + click for CLI
-pip install scitex-clew[mcp]     # + fastmcp for MCP server
-pip install scitex-clew[all]     # everything
+uv pip install scitex-clew              # bare (minimal — no optional deps)
+uv pip install 'scitex-clew[all]'       # batteries-included (click, fastmcp, matplotlib)
+uv pip install 'scitex-clew[dev]'       # + testing tooling
 ```
 
 ## Public API (19 functions)

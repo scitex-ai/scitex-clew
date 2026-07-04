@@ -104,7 +104,7 @@ def _should_auto_register(register: Optional[bool]) -> bool:
 def _auto_register_session(session_id: str) -> None:
     """Register session hashes with remote Clew Registry (fire-and-forget)."""
     try:
-        from .._registry import get_registry
+        from .._attest._registry import get_registry
 
         get_registry().register_session(session_id)
     except Exception as e:
