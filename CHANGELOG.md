@@ -30,6 +30,31 @@ versions follow [Semantic Versioning](https://semver.org/).
   pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
   variants) some consumers still hold.
 
+## [0.13.0] — 2026-07-04
+
+### Added
+- **Signature-aware ENFORCEMENT in the source-manifest gate.** Completing the
+  `clew sign` trust layer: once a public key is committed at
+  `<root>/.scitex/clew/signed/signing.pub`, the registered-source manifest MUST
+  carry a valid Ed25519 signature (over the canonical form) or it is treated as
+  UNTRUSTED — it anchors NOTHING, so every claim goes unsourced and the gate
+  blocks. This is "without the key it can't be run/edited": editing the manifest
+  (e.g. injecting a fabricated source to launder a claim) breaks the signature,
+  and re-signing needs the private key the solver/agent doesn't have.
+  - `SourcesManifest` gains `signing_enforced` + `signature_valid` and a
+    `trusted` property; `active` / `anchor_paths()` / `pinned_for()` return
+    empty/None for an untrusted manifest.
+  - `load_sources_manifest` verifies the signature when a `signing.pub` is
+    present (replacing the old no-op seam), logging a WARNING that names WHY a
+    manifest is untrusted (unsigned vs tampered) so the failure is visible.
+  - **Opt-in, zero behavior change without a committed pubkey**: absent a
+    `signing.pub`, `signing_enforced` is False and the manifest is trusted
+    exactly as before.
+  - **Fails CLOSED**: if a `signing.pub` is committed but verification is
+    unavailable (python-cryptography / `[all]` not installed in the verifying
+    env), the manifest is untrusted — signing cannot be bypassed by dropping the
+    crypto dependency.
+
 ## [0.12.0] — 2026-07-04
 
 ### Added
