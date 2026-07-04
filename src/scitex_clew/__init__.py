@@ -193,6 +193,7 @@ if TYPE_CHECKING:
         verify_all_citations,
         verify_citations,
     )
+    from ._grounded import grounded_claim_ids  # noqa: F401
     from ._sources import (  # noqa: F401
         SourcesManifest,
         is_grounded,
