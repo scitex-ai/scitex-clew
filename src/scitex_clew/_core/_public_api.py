@@ -72,6 +72,7 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     "load_sources_manifest": ("._sources", "load_sources_manifest"),
     "resolve_sources_path": ("._sources", "resolve_sources_path"),
     "SourcesManifest": ("._sources", "SourcesManifest"),
+    "grounded_claim_ids": ("._grounded", "grounded_claim_ids"),
     # _cli._exit_codes (configurable verify severity)
     "Severity": ("._cli._exit_codes", "Severity"),
     # _estimate (Phase 1: pre-flight compute estimate)

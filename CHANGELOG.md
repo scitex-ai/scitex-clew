@@ -30,6 +30,19 @@ versions follow [Semantic Versioning](https://semver.org/).
   pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
   variants) some consumers still hold.
 
+## [0.14.0] — 2026-07-04
+
+### Added
+- **`grounded_claim_ids` primitive.** A generic query —
+  `scitex_clew.grounded_claim_ids(workdir=<capsule>) -> list[str]` — returning
+  the sorted claim_ids whose claims are BOTH verified AND grounded (chain reaches
+  a registered, and if signing is enforced a valid, source), reusing the gate's
+  exact grounding rule. Lets a consumer (e.g. a cohort submission-completeness
+  check) diff its own ids against the grounded set — `missing = ids − grounded`,
+  `orphan = grounded − ids` — while clew stays generic (it knows nothing about
+  the consumer's id semantics). Exposed lazily (accessible as
+  `from scitex_clew import grounded_claim_ids`, not in `__all__`).
+
 ## [0.13.0] — 2026-07-04
 
 ### Added
