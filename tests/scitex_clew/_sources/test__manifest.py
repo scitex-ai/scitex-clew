@@ -15,6 +15,7 @@ import pytest
 
 from scitex_clew._sources._manifest import (
     SOURCES_SCHEMA,
+    _resolve_sources_tier3,
     full_sha256,
     load_sources_manifest,
     resolve_sources_path,
@@ -189,6 +190,61 @@ class TestLoadManifest:
         )
         # Assert — loads fine; the signature is carried through, not enforced.
         assert manifest.signature == "not-a-real-signature" and manifest.active
+
+
+# --- tier-3 manifest precedence: signed/ > user_definitions/ > legacy --------
+
+
+def test_tier3_prefers_signed_when_present(tmp_path):
+    # Arrange
+    signed = tmp_path / "signed" / "sources.json"
+    signed.parent.mkdir(parents=True)
+    signed.write_text("{}")
+    # Act
+    path, _label = _resolve_sources_tier3(tmp_path)
+    # Assert
+    assert path == signed
+
+
+def test_tier3_falls_back_to_user_definitions(tmp_path):
+    # Arrange — no signed/, but a pre-rename user_definitions/ manifest.
+    ud = tmp_path / "user_definitions" / "sources.json"
+    ud.parent.mkdir(parents=True)
+    ud.write_text("{}")
+    # Act
+    path, _label = _resolve_sources_tier3(tmp_path)
+    # Assert
+    assert path == ud
+
+
+def test_tier3_legacy_flat_still_resolved(tmp_path):
+    # Arrange — only the flat legacy path exists.
+    legacy = tmp_path / "sources.json"
+    legacy.write_text("{}")
+    # Act
+    path, _label = _resolve_sources_tier3(tmp_path)
+    # Assert
+    assert path == legacy
+
+
+def test_tier3_defaults_new_manifest_to_signed(tmp_path):
+    # Arrange — nothing exists yet.
+    # Act
+    path, _label = _resolve_sources_tier3(tmp_path)
+    # Assert — new writes default to signed/ (register-source + sign share it).
+    assert path == tmp_path / "signed" / "sources.json"
+
+
+def test_tier3_signed_wins_over_legacy_when_both_exist(tmp_path):
+    # Arrange — both signed/ and legacy present; signed/ must win.
+    signed = tmp_path / "signed" / "sources.json"
+    signed.parent.mkdir(parents=True)
+    signed.write_text("{}")
+    (tmp_path / "sources.json").write_text("{}")
+    # Act
+    path, _label = _resolve_sources_tier3(tmp_path)
+    # Assert
+    assert path == signed
 
 
 # EOF
