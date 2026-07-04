@@ -136,34 +136,54 @@ def on_io_load(path: Path, result: Any) -> None:
         logger.debug("clew: failed to record input %s: %s", path, e)
 
 
+_warned_peers: set = set()
+
+
+def _peer_version(peer_name: str) -> str:
+    """Best-effort installed version of a peer package (for the skew hint)."""
+    try:
+        from importlib.metadata import version
+
+        return version(peer_name.replace("_", "-"))
+    except Exception:  # pragma: no cover - version lookup is best-effort
+        return "unknown"
+
+
 def bootstrap_register(register: Callable[[], bool], peer_name: str) -> bool:
     """Invoke a peer-registration callable, surfacing failures (never raises).
 
     Wraps a zero-arg ``register_with_scitex_*`` call so a silent registration
-    failure stops hiding: logs a WARNING if ``register`` raised or returned
-    ``False`` (peer registry unavailable or hook-API skew) — meaning clew's
-    auto-provenance hooks will NOT fire for ``peer_name``. Returns the result
-    (True registered / False skipped-or-failed). Used by the import-time
+    failure stops hiding: logs a WARNING — ONCE per peer per process — if
+    ``register`` raised or returned ``False``, naming the peer's version as a
+    skew hint. It means clew's auto-provenance hooks will not fire for
+    ``peer_name`` (which does NOT affect keygen/sign/verify — those are pure
+    crypto on the manifest). Returns the result. Used by the import-time
     bootstrap AND the entry-point activation path.
     """
     try:
         ok = register()
     except Exception as exc:  # a broken registrar must never break import
-        logger.warning(
-            "clew observer registration with %s failed (%s: %s) — "
-            "auto-provenance hooks will NOT fire for it",
-            peer_name,
-            type(exc).__name__,
-            exc,
-        )
+        if peer_name not in _warned_peers:
+            _warned_peers.add(peer_name)
+            logger.warning(
+                "clew observer registration with %s failed (%s: %s) — "
+                "auto-provenance hooks will not fire (does not affect "
+                "keygen/sign/verify)",
+                peer_name,
+                type(exc).__name__,
+                exc,
+            )
         return False
     if not ok:
-        logger.warning(
-            "clew observer registration with %s returned False "
-            "(peer registry unavailable or hook-API skew) — "
-            "auto-provenance hooks will NOT fire for it",
-            peer_name,
-        )
+        if peer_name not in _warned_peers:
+            _warned_peers.add(peer_name)
+            logger.warning(
+                "clew observer registration with %s (v%s) returned False "
+                "(peer hook-API unavailable or version skew) — auto-provenance "
+                "hooks will not fire (does not affect keygen/sign/verify)",
+                peer_name,
+                _peer_version(peer_name),
+            )
     return bool(ok)
 
 

@@ -84,9 +84,9 @@ def keygen_cmd(key, pub, force):
     pub_path.parent.mkdir(parents=True, exist_ok=True)
     pub_path.write_bytes(public_pem)
 
-    click.echo(f"[OK] private key -> {key_path} (mode 0600 — keep OFF-TREE + BACK UP)")
-    click.echo(f"[OK] public key  -> {pub_path} (COMMIT this; the gate verifies against it)")
-    click.echo("Next: `clew sign` your sources.json, then commit signing.pub.")
+    click.secho(f"[OK] private key -> {key_path} (mode 0600 — keep OFF-TREE + BACK UP)", fg="green")
+    click.secho(f"[OK] public key  -> {pub_path} (COMMIT this; the gate verifies against it)", fg="green")
+    click.secho("Next: `clew sign` your sources.json, then commit signing.pub.", fg="cyan")
 
 
 @click.command(
@@ -117,7 +117,12 @@ def sign_cmd(manifest, key, as_json):
         )
     mpath = _resolve_manifest(manifest)
     if not mpath.exists():
-        raise click.ClickException(f"manifest not found: {mpath}")
+        raise click.ClickException(
+            f"no manifest to sign at {mpath}. Create it first — `clew "
+            "register-source <data files>` (or `--from-list <CLEW_SOURCE_LIST.txt>`) "
+            "writes the JSON sources.json. (keygen only makes the keypair; it does "
+            "NOT create the manifest.)"
+        )
 
     raw = json.loads(mpath.read_text())
     raw["signature"] = sign_manifest(raw, key_path.read_bytes())
@@ -130,7 +135,7 @@ def sign_cmd(manifest, key, as_json):
     if as_json:
         click.echo(json.dumps({"signed": str(mpath), "algo": "ed25519"}, indent=2))
         return
-    click.echo(f"[OK] signed {mpath} (ed25519). Commit it alongside signing.pub.")
+    click.secho(f"[OK] signed {mpath} (ed25519). Commit it alongside signing.pub.", fg="green")
 
 
 @click.command(
@@ -173,11 +178,11 @@ def verify_signatures_cmd(ctx, manifest, pub, as_json):
             )
         )
     elif valid:
-        click.echo(f"[OK] signature valid: {mpath}")
+        click.secho(f"[OK] signature valid: {mpath}", fg="green")
     elif not signed:
-        click.echo(f"[FAIL] unsigned manifest: {mpath}")
+        click.secho(f"[FAIL] unsigned manifest: {mpath}", fg="red")
     else:
-        click.echo(f"[FAIL] signature INVALID (tampered or wrong key): {mpath}")
+        click.secho(f"[FAIL] signature INVALID (tampered or wrong key): {mpath}", fg="red")
 
     if not valid:
         ctx.exit(1)
