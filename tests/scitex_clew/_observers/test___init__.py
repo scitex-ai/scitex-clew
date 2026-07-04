@@ -36,11 +36,13 @@ def isolated_state(tmp_path):
 
     _obs._registered_io_ids.clear()
     _obs._registered_session_ids.clear()
+    _obs._warned_peers.clear()
     yield
     _db_module._DB_INSTANCE = None
     set_tracker(None)
     _obs._registered_io_ids.clear()
     _obs._registered_session_ids.clear()
+    _obs._warned_peers.clear()
 
 
 # --- io seam ----------------------------------------------------------------

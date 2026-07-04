@@ -30,6 +30,31 @@ versions follow [Semantic Versioning](https://semver.org/).
   pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
   variants) some consumers still hold.
 
+## [0.15.0] — 2026-07-04
+
+### Added
+- **`register-source --from-list <file>`** — compile a human-editable path list
+  (one path per line; `#` comments + blank lines skipped) straight into the
+  signable JSON `sources.json`, and **`--sources-path`** to target an explicit
+  manifest location. So `clew register-source --from-list CLEW_SOURCE_LIST.txt
+  --sources-path signed/sources.json` → `clew sign signed/sources.json` is the
+  turnkey list→manifest→sign flow.
+
+### Changed
+- **Resolver prefers `signed/`.** `resolve_sources_path` tier-3 now resolves
+  `signed/sources.json` > `user_definitions/sources.json` (pre-rename) > legacy
+  `.scitex/clew/sources.json`, and defaults NEW manifests to `signed/` — so
+  register-source, sign, and the gate share one canonical location (no more
+  `SCITEX_CLEW_SOURCES` env-var workaround to read a signed manifest).
+- **Colored CLI output.** keygen/sign/verify-signatures + register-source now
+  use `click.secho` — green `[OK]`, red `[FAIL]`, cyan hints — for readable
+  terminal output (no new dependency; the bare install stays zero-dep).
+- **Observer-registration warning deduped.** The peer-registration WARNING fires
+  **once per peer per process** (not repeated), names the detected peer version
+  as a skew hint, and appends "(does not affect keygen/sign/verify)".
+- **Actionable "manifest not found".** `clew sign` on a missing manifest now
+  points at `register-source` / `--from-list` (keygen only mints the keypair).
+
 ## [0.14.0] — 2026-07-04
 
 ### Added

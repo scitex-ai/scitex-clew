@@ -193,10 +193,33 @@ def resolve_sources_path(
     env_path = os.environ.get("SCITEX_CLEW_SOURCES")
     if env_path:
         return Path(env_path), "SCITEX_CLEW_SOURCES environment variable"
-    return (
-        _find_project_root() / ".scitex" / "clew" / "sources.json",
-        "project-root walk from the current working directory",
-    )
+    # tier3: prefer the canonical signable location signed/sources.json, then
+    # user_definitions/ (pre-rename), then the flat legacy path (see
+    # _resolve_sources_tier3).
+    return _resolve_sources_tier3(_find_project_root() / ".scitex" / "clew")
+
+
+def _resolve_sources_tier3(clew_dir: Path) -> Tuple[Path, str]:
+    """Tier-3 manifest precedence within a ``.scitex/clew`` dir.
+
+    signed/sources.json > user_definitions/sources.json (pre-rename) > flat
+    legacy sources.json. If none exists yet, default NEW manifests to signed/ so
+    register-source + sign + the gate all share one canonical location. Split
+    out (taking ``clew_dir`` explicitly) so it is exercisable against a real temp
+    dir without patching the project-root walk.
+    """
+    signed = clew_dir / "signed" / "sources.json"
+    for candidate, label in (
+        (signed, "signed/ manifest (project-root walk)"),
+        (
+            clew_dir / "user_definitions" / "sources.json",
+            "user_definitions/ manifest (pre-rename, project-root walk)",
+        ),
+        (clew_dir / "sources.json", "legacy .scitex/clew/sources.json"),
+    ):
+        if candidate.exists():
+            return candidate, label
+    return signed, "signed/ default (project-root walk; not yet created)"
 
 
 def verify_signature(raw: dict, signature: Optional[str]) -> bool:
