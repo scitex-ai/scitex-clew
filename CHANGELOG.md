@@ -30,6 +30,39 @@ versions follow [Semantic Versioning](https://semver.org/).
   pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
   variants) some consumers still hold.
 
+## [0.12.0] — 2026-07-04
+
+### Added
+- **Manifest signing — the `clew sign` trust layer.** New `clew keygen`,
+  `clew sign`, and `clew verify-signatures` verbs plus a
+  `scitex_clew._sources._signing` core give source/exception manifests an
+  Ed25519 signature, so "without the key it can't be run/edited":
+  - `clew keygen` mints an Ed25519 keypair — the private key (mode 0600) stays
+    OFF-tree (default `~/.scitex/clew/signing.key`; override via
+    `--key` / `$SCITEX_CLEW_SIGNING_KEY`), the public key goes to
+    `signed/signing.pub` to be committed. Refuses to overwrite an existing key
+    without `--force` (overwriting would invalidate every prior signature).
+  - `clew sign [MANIFEST]` signs the CANONICAL form — pretty-JSON of the
+    manifest minus its `signature` field, `sort_keys=True`, `ensure_ascii=False`,
+    no trailing newline — and writes the manifest back in that same canonical
+    serialization, so the on-disk pretty-JSON (minus its signature) IS the
+    signed byte string. Any byte change breaks the signature; re-signing needs
+    the private key.
+  - `clew verify-signatures [MANIFEST]` fail-loud checks a manifest against the
+    committed public key (exit 0 iff signed AND valid; nonzero for unsigned or
+    tampered).
+  - `register-source` / `unregister-source` now write the canonical (sort_keys)
+    serialization and DROP any prior signature when they edit the sources — a
+    content change invalidates the signature, so the human re-runs `clew sign`.
+  - python-cryptography is behind the `[all]` extra; the bare zero-dependency
+    install can neither sign nor verify (nor enforce signing).
+
+### Note
+- This is the AUTHORING + standalone-verify half. Signature-aware ENFORCEMENT in
+  the grounding gate (an unsigned/tampered manifest rejected once a
+  `signing.pub` is committed) and the `signed/`-default resolver land in a
+  follow-up; the existing gate behavior is UNCHANGED here.
+
 ## [0.11.0] — 2026-07-04
 
 ### Added

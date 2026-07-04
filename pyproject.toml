@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-clew"
-version = "0.11.0"
+version = "0.12.0"
 description = "Verifiable knowledge graph for scientific experiments"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -41,6 +41,7 @@ all = [
     "click>=8.0.0",
     "fastmcp>=2.0.0",
     "matplotlib",
+    "cryptography>=41.0",
 ]
 dev = [
     "fastmcp",
@@ -50,6 +51,7 @@ dev = [
     # pytest-timeout — CI runs pytest with --timeout=120 (test.yml).
     "pytest-timeout>=2.0",
     "scitex-dev>=0.11.7",
+    "cryptography>=41.0",
 ]
 docs = [
     "sphinx>=7.0",

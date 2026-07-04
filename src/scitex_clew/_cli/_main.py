@@ -27,6 +27,7 @@ from ._export import export_claims as export_claims_cmd
 from ._hash import hash_directory, hash_file
 from ._introspect import list_python_apis
 from ._mcp import mcp
+from ._signing import keygen_cmd, sign_cmd, verify_signatures_cmd
 from ._sources import (
     list_sources_cmd,
     register_source_cmd,
@@ -64,6 +65,7 @@ COMMAND_CATEGORIES = [
     ),
     ("Claims", ["claim", "export-claims"]),
     ("Sources", ["register-source", "list-sources", "unregister-source"]),
+    ("Signing", ["keygen", "sign", "verify-signatures"]),
     ("Citations", ["verify-citations", "citation"]),
     ("Hashing", ["hash-file", "hash-directory"]),
     ("Stamping", ["stamp", "list-stamps", "check-stamp"]),
@@ -238,6 +240,9 @@ main.add_command(export_claims_cmd)
 main.add_command(register_source_cmd)
 main.add_command(list_sources_cmd)
 main.add_command(unregister_source_cmd)
+main.add_command(keygen_cmd)
+main.add_command(sign_cmd)
+main.add_command(verify_signatures_cmd)
 
 # Citation gate: verify-citations (compiler pre-flight) + citation group.
 main.add_command(verify_citations_cmd)
