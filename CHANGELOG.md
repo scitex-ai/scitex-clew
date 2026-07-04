@@ -30,6 +30,21 @@ versions follow [Semantic Versioning](https://semver.org/).
   pre-v1.3 table (`partial d29922` / `missing cf222e` / light-dark
   variants) some consumers still hold.
 
+## [0.16.0] — 2026-07-04
+
+### Added
+- **Session-close provenance-completeness WARN (#45).** On a successful session
+  close, if the run wrote output files but recorded ZERO provenance, clew logs a
+  WARNING — the #44-class gap (`@stx.session` + `stx.io.save` but empty
+  file_hashes). The saves signal is the session OUTPUT DIR (via
+  `metadata["output_dir"]`, populated by the save itself), which is independent
+  of `on_io_save` — so it catches exactly the case an on_io_save-derived counter
+  is blind to. Predicate: `output_dir has ≥1 file AND recorded == 0 → WARN`;
+  false-positive-free (read-only/zero-output sessions stay silent). Robust to the
+  RUNNING→FINISHED dir move (globs sibling status subdirs for the session-id
+  leaf) and DEFENSIVE — silently inert until `metadata["output_dir"]` is present,
+  so it is safe today and auto-activates when scitex-session begins sending it.
+
 ## [0.15.0] — 2026-07-04
 
 ### Added

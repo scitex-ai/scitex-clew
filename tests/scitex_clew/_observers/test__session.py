@@ -3,12 +3,18 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 import scitex_clew
 import scitex_clew._db as _db_module
 from scitex_clew._db import set_db
-from scitex_clew._observers._session import on_session_close, on_session_start
+from scitex_clew._observers._session import (
+    _warn_if_unrecorded_outputs,
+    on_session_close,
+    on_session_start,
+)
 from scitex_clew._tracker import get_tracker, set_tracker
 
 
@@ -207,6 +213,94 @@ class TestStartCloseRoundTrip:
         h_without = db.get_run("sess_hook_023")["combined_hash"]
         # Assert
         assert h_with != h_without
+
+
+# ---------------------------------------------------------------------------
+# Session-close provenance-completeness WARN (#45)
+# ---------------------------------------------------------------------------
+
+
+class TestUnrecordedOutputsWarn:
+    """`_warn_if_unrecorded_outputs`: WARN iff outputs written AND none recorded."""
+
+    def test_warns_when_outputs_written_but_none_recorded(self, tmp_path, caplog):
+        # Arrange — output_dir has a file; nothing recorded (the #44 gap).
+        outdir = tmp_path / "script_out" / "RUNNING" / "sess-warn-1"
+        outdir.mkdir(parents=True)
+        (outdir / "result.csv").write_text("x\n1\n")
+        on_session_start(
+            "sess-warn-1", "/tmp/s.py", metadata={"output_dir": str(outdir)}
+        )
+        tracker = get_tracker()
+        # Act
+        with caplog.at_level(logging.WARNING, logger="scitex_clew._observers._session"):
+            _warn_if_unrecorded_outputs(tracker)
+        # Assert
+        assert any("recorded ZERO provenance" in r.getMessage() for r in caplog.records)
+
+    def test_silent_when_output_dir_empty(self, tmp_path, caplog):
+        # Arrange — output_dir exists but holds no files.
+        outdir = tmp_path / "script_out" / "RUNNING" / "sess-warn-2"
+        outdir.mkdir(parents=True)
+        on_session_start(
+            "sess-warn-2", "/tmp/s.py", metadata={"output_dir": str(outdir)}
+        )
+        tracker = get_tracker()
+        # Act
+        with caplog.at_level(logging.WARNING, logger="scitex_clew._observers._session"):
+            _warn_if_unrecorded_outputs(tracker)
+        # Assert
+        assert not any(
+            "recorded ZERO provenance" in r.getMessage() for r in caplog.records
+        )
+
+    def test_silent_when_no_output_dir_signal(self, tmp_path, caplog):
+        # Arrange — no output_dir in metadata (pre-enabler scitex-session).
+        on_session_start("sess-warn-3", "/tmp/s.py", metadata={"other": "x"})
+        tracker = get_tracker()
+        # Act
+        with caplog.at_level(logging.WARNING, logger="scitex_clew._observers._session"):
+            _warn_if_unrecorded_outputs(tracker)
+        # Assert
+        assert not any(
+            "recorded ZERO provenance" in r.getMessage() for r in caplog.records
+        )
+
+    def test_silent_when_outputs_were_recorded(self, tmp_path, caplog):
+        # Arrange — the output IS recorded (tracker._outputs non-empty).
+        outdir = tmp_path / "script_out" / "RUNNING" / "sess-warn-4"
+        outdir.mkdir(parents=True)
+        f = outdir / "result.csv"
+        f.write_text("x\n1\n")
+        on_session_start(
+            "sess-warn-4", "/tmp/s.py", metadata={"output_dir": str(outdir)}
+        )
+        tracker = get_tracker()
+        tracker.record_output(f)
+        # Act
+        with caplog.at_level(logging.WARNING, logger="scitex_clew._observers._session"):
+            _warn_if_unrecorded_outputs(tracker)
+        # Assert
+        assert not any(
+            "recorded ZERO provenance" in r.getMessage() for r in caplog.records
+        )
+
+    def test_warns_when_dir_moved_to_status_subdir(self, tmp_path, caplog):
+        # Arrange — start metadata points at RUNNING/, but the dir "moved" to
+        # FINISHED/ by close; the glob-fallback must still find the files.
+        running = tmp_path / "script_out" / "RUNNING" / "sess-warn-5"
+        moved = tmp_path / "script_out" / "FINISHED" / "sess-warn-5"
+        moved.mkdir(parents=True)
+        (moved / "result.csv").write_text("x\n1\n")
+        on_session_start(
+            "sess-warn-5", "/tmp/s.py", metadata={"output_dir": str(running)}
+        )
+        tracker = get_tracker()
+        # Act
+        with caplog.at_level(logging.WARNING, logger="scitex_clew._observers._session"):
+            _warn_if_unrecorded_outputs(tracker)
+        # Assert
+        assert any("recorded ZERO provenance" in r.getMessage() for r in caplog.records)
 
 
 # EOF
