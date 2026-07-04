@@ -81,3 +81,17 @@ intransitive_verbs:
   # precautionary entry so the §1 audit recognises it as a verb even if
   # Moby's POS data has an unusual classification for it.
   - supersede
+
+  # `clew keygen` — mint an Ed25519 signing keypair. A coined compound
+  # (key+gen) absent from Moby's POS, so §1d cannot classify the bare token;
+  # it is a complete intransitive action ("generate the signing keypair",
+  # written to the default / --key / --pub paths). Pairs with the `sign` /
+  # `verify-signatures` signing-verb family.
+  - keygen
+
+  # `clew sign` — sign a source/exception manifest with the private key.
+  # Moby classifies "sign" as both noun AND verb, tripping §1 on the bare
+  # token; the verb meaning is intended ("sign the manifest", the manifest a
+  # positional defaulting to the resolved sources). This is the escape hatch
+  # the §1 message points to. Pairs with `keygen` / `verify-signatures`.
+  - sign

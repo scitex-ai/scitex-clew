@@ -31,7 +31,11 @@ def _write_manifest_dict(path: Path, sources: List[dict], signature) -> None:
         "sources": sources,
         "signature": signature,
     }
-    path.write_text(json.dumps(payload, indent=2))
+    # Canonical serialization (sort_keys) so the on-disk pretty-JSON — minus its
+    # signature — IS the signable byte string (matches _signing.canonical_bytes).
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False)
+    )
 
 
 def _load_raw(path: Path) -> dict:
@@ -97,7 +101,9 @@ def register_source(
         by_path[rel] = {"path": rel, "sha256": full_sha256(fp)}
 
     ordered = [by_path[k] for k in sorted(by_path)]
-    _write_manifest_dict(resolved, ordered, raw.get("signature"))
+    # Editing sources invalidates any prior signature — the content changed, so
+    # the old signature no longer matches. Drop it; the human re-runs `clew sign`.
+    _write_manifest_dict(resolved, ordered, None)
     return resolved
 
 
@@ -122,7 +128,8 @@ def unregister_source(
         for e in sources
         if isinstance(e, dict) and str(e.get("path")) not in drop
     ]
-    _write_manifest_dict(resolved, kept, raw.get("signature"))
+    # Editing sources invalidates any prior signature (see register_source).
+    _write_manifest_dict(resolved, kept, None)
     return resolved
 
 
