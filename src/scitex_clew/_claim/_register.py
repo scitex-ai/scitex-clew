@@ -94,6 +94,27 @@ def add_claim(
         if sessions:
             source_session = sessions[0]
 
+    # Warn LOUD, at the point the mistake was made, when a source_file was
+    # given but no owning @stx.session run produced it. Without this the claim
+    # registers silently as NO_LINEAGE and the mistake only surfaces much later
+    # at `clew verify --strict`. Default ON; opt out with
+    # SCITEX_CLEW_WARN_NO_LINEAGE=0 (matches the auto-export opt-out style).
+    if (
+        source_file
+        and not source_session
+        and os.environ.get("SCITEX_CLEW_WARN_NO_LINEAGE", "1") != "0"
+    ):
+        import warnings as _w
+
+        _w.warn(
+            f"clew.add_claim: source_file '{source_file}' has no owning "
+            f"@stx.session run — was it written with stx.io.save() INSIDE an "
+            f"@stx.session (not raw open()/json.dump())? This claim will be "
+            f"registered as NO_LINEAGE and rejected by `clew verify --strict`.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
     claim = Claim(
         claim_id=resolved_id,
         file_path=file_path,
