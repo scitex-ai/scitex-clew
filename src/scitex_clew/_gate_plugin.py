@@ -59,13 +59,18 @@ def provide():
 
 
 def _find_clew_db(workdir: Path) -> Optional[Path]:
-    """Return the capsule's clew DB (prefer the canonical ``db.sqlite``).
+    """Return the capsule's clew DB (prefer the canonical ``clew.db``).
 
-    clew's runtime DB is ``.scitex/clew/runtime/db.sqlite`` (``.sqlite``
-    extension), so glob for both ``.sqlite`` and ``.db`` to be robust.
+    clew's runtime DB is ``.scitex/clew/runtime/clew.db``. Older capsules
+    used ``db.sqlite`` (auto-migrated on first open, but a not-yet-opened
+    capsule may still carry it), so glob for both ``.db`` and ``.sqlite``
+    and prefer ``clew.db``, falling back to the legacy ``db.sqlite`` name.
     """
-    dbs = sorted(workdir.glob(".scitex/clew/**/*.sqlite"))
-    dbs += sorted(workdir.glob(".scitex/clew/**/*.db"))
+    dbs = sorted(workdir.glob(".scitex/clew/**/*.db"))
+    dbs += sorted(workdir.glob(".scitex/clew/**/*.sqlite"))
+    for db in dbs:
+        if db.name == "clew.db":
+            return db
     for db in dbs:
         if db.name == "db.sqlite":
             return db

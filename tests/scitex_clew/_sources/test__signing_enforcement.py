@@ -30,7 +30,7 @@ from scitex_clew._sources._writer import register_source  # noqa: E402
 def _paths(tmp_path):
     clew_dir = tmp_path / ".scitex" / "clew"
     clew_dir.mkdir(parents=True)
-    return clew_dir / "db.sqlite", clew_dir / "sources.json"
+    return clew_dir / "clew.db", clew_dir / "sources.json"
 
 
 def _register_run_claim(tmp_path, db_path, manifest_path):

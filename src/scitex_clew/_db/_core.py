@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Union
 from ._chain import ChainMixin
 from ._connect import connect as _clew_sqlite_connect
 from ._file_hashes import FileHashMixin
+from ._migrate_rename import wal_safe_rename
 from ._queries import VerificationQueryMixin
 
 
@@ -36,7 +37,7 @@ def _default_claims_json_path(project_root: Path) -> Path:
     ecosystem local-state-directories convention. The runtime/ subdir
     is the canonical home for regenerable per-host outputs — claims.json
     is regenerable from the DB at any time, so it lives there alongside
-    ``db.sqlite``.
+    ``clew.db``.
 
     The resolved path is **just the path** — this function does not
     write or read the file. ``scitex_clew.export_claims_json()`` writes
@@ -48,29 +49,42 @@ def _default_claims_json_path(project_root: Path) -> Path:
 def _default_db_path(project_root: Path) -> Path:
     """Resolve the default database path under ``runtime/``.
 
-    Returns ``<project_root>/.scitex/clew/runtime/db.sqlite`` per the
-    ecosystem local-state-directories convention.
+    Returns ``<project_root>/.scitex/clew/runtime/clew.db`` per the
+    fleet-wide ``.scitex/<pkg>/runtime/<pkg>.db`` convention (clew is a
+    reference implementation). The ``.db`` extension is also required for
+    scitex-io interop — its load dispatch registers ``.db`` → SQLite3 but
+    has no handler for ``.sqlite``.
 
-    Back-compat (skill §8): if the legacy path
-    ``<project_root>/.scitex/clew/db.sqlite`` exists and the new path
-    does not, migrate silently on first access and emit a one-time
-    deprecation warning.
+    Transparent auto-rename migration: if the canonical ``clew.db`` does
+    not yet exist but a predecessor does, rename the predecessor to
+    ``clew.db`` on first access (WAL-safe — see
+    ``_migrate_rename.wal_safe_rename``) and emit a one-time deprecation
+    warning. Predecessors are checked in order:
+
+    1. ``<root>/.scitex/clew/runtime/db.sqlite`` (the previous default)
+    2. ``<root>/.scitex/clew/db.sqlite`` (legacy flat location)
     """
-    new = project_root / ".scitex" / "clew" / "runtime" / "db.sqlite"
+    new = project_root / ".scitex" / "clew" / "runtime" / "clew.db"
     if new.exists():
         return new
 
-    old = project_root / ".scitex" / "clew" / "db.sqlite"
-    if old.exists():
-        new.parent.mkdir(parents=True, exist_ok=True)
-        old.rename(new)
-        warnings.warn(
-            f"Moved database from {old} to {new}. "
-            "The legacy location is deprecated and will be removed "
-            "in a future version. Set SCITEX_CLEW_DB_PATH to suppress.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+    predecessors = [
+        project_root / ".scitex" / "clew" / "runtime" / "db.sqlite",
+        project_root / ".scitex" / "clew" / "db.sqlite",
+    ]
+    for old in predecessors:
+        if old.exists():
+            new.parent.mkdir(parents=True, exist_ok=True)
+            wal_safe_rename(old, new)
+            warnings.warn(
+                f"Renamed database from {old} to {new}. "
+                "The legacy 'db.sqlite' name is deprecated and will be "
+                "removed in a future version. Set SCITEX_CLEW_DB_PATH to "
+                "suppress.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            break
     return new
 
 
@@ -131,7 +145,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
             Path to database file. Resolution order:
             1. Explicit db_path argument
             2. SCITEX_CLEW_DB_PATH environment variable
-            3. {project_root}/.scitex/clew/runtime/db.sqlite where
+            3. {project_root}/.scitex/clew/runtime/clew.db where
                project_root is found by walking up from cwd until a
                .git / pyproject.toml is found; falls back to cwd if no
                root marker is found.
@@ -432,7 +446,7 @@ def set_db(db_path: Union[str, Path]) -> VerificationDB:
     Parameters
     ----------
     db_path : str or Path
-        Path to database file (e.g. "./.scitex/clew/runtime/db.sqlite" for project-relative).
+        Path to database file (e.g. "./.scitex/clew/runtime/clew.db" for project-relative).
 
     Returns
     -------

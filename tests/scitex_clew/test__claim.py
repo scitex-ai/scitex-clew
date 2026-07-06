@@ -84,7 +84,7 @@ def env_sandbox():
 
 def _fresh_db(tmp_path: Path, sandbox) -> Path:
     """Wire scitex_clew at a fresh per-test DB under tmp_path."""
-    db_path = tmp_path / ".scitex" / "clew" / "runtime" / "db.sqlite"
+    db_path = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
     db_path.parent.mkdir(parents=True, exist_ok=True)
     sandbox.set_env("SCITEX_CLEW_DB_PATH", str(db_path))
     clew.set_db(None)

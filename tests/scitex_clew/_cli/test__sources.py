@@ -14,7 +14,7 @@ from scitex_clew._db import use_db
 
 def test_from_list_registers_listed_paths(tmp_path):
     # Arrange
-    db = tmp_path / ".scitex" / "clew" / "runtime" / "db.sqlite"
+    db = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
     db.parent.mkdir(parents=True)
     a = tmp_path / "a.csv"
     a.write_text("x\n1\n")
@@ -36,7 +36,7 @@ def test_from_list_registers_listed_paths(tmp_path):
 
 def test_from_list_missing_path_fails_loud(tmp_path):
     # Arrange — a list naming a nonexistent file.
-    db = tmp_path / ".scitex" / "clew" / "runtime" / "db.sqlite"
+    db = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
     db.parent.mkdir(parents=True)
     listfile = tmp_path / "CLEW_SOURCE_LIST.txt"
     listfile.write_text(f"{tmp_path / 'nope.csv'}\n")
@@ -51,7 +51,7 @@ def test_from_list_missing_path_fails_loud(tmp_path):
 
 def test_no_files_and_no_list_fails_loud(tmp_path):
     # Arrange
-    db = tmp_path / ".scitex" / "clew" / "runtime" / "db.sqlite"
+    db = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
     db.parent.mkdir(parents=True)
     # Act
     with use_db(db):

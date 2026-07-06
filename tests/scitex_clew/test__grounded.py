@@ -15,7 +15,7 @@ from scitex_clew._sources._writer import register_source
 
 
 def _db_path(tmp_path):
-    p = tmp_path / ".scitex" / "clew" / "runtime" / "db.sqlite"
+    p = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
     p.parent.mkdir(parents=True)
     return p
 
