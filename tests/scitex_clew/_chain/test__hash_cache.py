@@ -52,7 +52,7 @@ def isolated_db(tmp_path):
     Sets SCITEX_CLEW_DB_PATH and resets the module-level singleton so
     subsequent get_db() calls use the test DB.
     """
-    db_path = tmp_path / ".scitex" / "clew" / "runtime" / "db.sqlite"
+    db_path = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     prev_env = os.environ.get("SCITEX_CLEW_DB_PATH")

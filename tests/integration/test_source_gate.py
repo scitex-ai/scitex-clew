@@ -38,7 +38,7 @@ def sandbox(tmp_path):
     os.environ["SCITEX_CLEW_SOURCES"] = str(
         tmp_path / ".scitex" / "clew" / "sources.json"
     )
-    set_db(tmp_path / ".scitex" / "clew" / "runtime" / "db.sqlite")
+    set_db(tmp_path / ".scitex" / "clew" / "runtime" / "clew.db")
     yield _db_module.get_db()
     _db_module._DB_INSTANCE = None
     for key, prev in (

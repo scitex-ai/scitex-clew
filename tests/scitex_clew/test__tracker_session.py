@@ -18,7 +18,7 @@ from scitex_clew._sources import is_grounded, load_sources_manifest
 
 
 def _db_path(tmp_path):
-    p = tmp_path / ".scitex" / "clew" / "runtime" / "db.sqlite"
+    p = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
     p.parent.mkdir(parents=True, exist_ok=True)
     return p
 

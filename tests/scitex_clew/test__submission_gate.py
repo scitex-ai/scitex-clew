@@ -26,7 +26,7 @@ from scitex_clew._submission_gate import (
 
 
 def _db_path(tmp_path):
-    p = tmp_path / ".scitex" / "clew" / "runtime" / "db.sqlite"
+    p = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
     p.parent.mkdir(parents=True)
     return p
 

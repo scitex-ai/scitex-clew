@@ -149,16 +149,18 @@ Bare 6-hex, no `#`, no light/dark variants:
    resolved tier when the store file is missing).
 2. **`SCITEX_CLEW_DB_PATH`** environment variable.
 3. **Project-root walk from cwd** — nearest ancestor with `.git` or
-   `pyproject.toml` (else cwd) → `<root>/.scitex/clew/runtime/db.sqlite`
-   (legacy `<root>/.scitex/clew/db.sqlite` auto-migrates with a
-   deprecation warning).
+   `pyproject.toml` (else cwd) → `<root>/.scitex/clew/runtime/clew.db`
+   (legacy `db.sqlite` — either `runtime/db.sqlite` or the flat
+   `<root>/.scitex/clew/db.sqlite` — auto-migrates to `clew.db` with a
+   deprecation warning; WAL-safe checkpoint-then-rename preserves any
+   uncheckpointed `-wal` data).
 
 Host-side re-verify recipe (the pattern live-paper needed):
 
 ```python
 # HOST owns git: check out the pinned commit, point clew at the bundle DB.
 subprocess.run(["git", "-C", bundle_root, "checkout", pinned_commit], check=True)
-os.environ["SCITEX_CLEW_DB_PATH"] = f"{bundle_root}/.scitex/clew/runtime/db.sqlite"
+os.environ["SCITEX_CLEW_DB_PATH"] = f"{bundle_root}/.scitex/clew/runtime/clew.db"
 result = clew.verify_claim(claim_id)          # re-hashes files as now on disk
 status = result.get("status")                  # only "not_found" appears here
 claim_status = result.get("claim", {}).get("status")  # the real per-claim status

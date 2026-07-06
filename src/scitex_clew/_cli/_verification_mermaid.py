@@ -36,7 +36,7 @@ _GROUPER_REGISTRY_NAMES = [
         "  $ scitex-clew print-mermaid --max-depth 3\n"
         "  $ scitex-clew print-mermaid --format png --output dag.png\n"
         "  $ scitex-clew print-mermaid --format svg\n"
-        "  $ scitex-clew print-mermaid --claims --db runs/capsule/.scitex/clew/runtime/db.sqlite"
+        "  $ scitex-clew print-mermaid --claims --db runs/capsule/.scitex/clew/runtime/clew.db"
     ),
 )
 @click.option("--claims", is_flag=True, help="Build DAG from registered claims.")
@@ -107,7 +107,7 @@ _GROUPER_REGISTRY_NAMES = [
     default=None,
     metavar="PATH",
     help=(
-        "Explicit path to the clew store (db.sqlite). Overrides "
+        "Explicit path to the clew store (clew.db). Overrides "
         "SCITEX_CLEW_DB_PATH and the project-root walk — use it to render "
         "a store outside the current tree."
     ),
