@@ -25,6 +25,8 @@ import sqlite3
 from pathlib import Path
 from typing import List, Optional
 
+from ._db._connect import connect as _clew_sqlite_connect
+
 _CHECK_ID = "clew-source-reachability"
 _FIX_HINT = (
     "wrap analysis in @stx.session + register claims to the run's computed "
@@ -72,7 +74,7 @@ def _find_clew_db(workdir: Path) -> Optional[Path]:
 
 def _count_runs(db_path: Path) -> int:
     """Number of recorded runs (0 if the runs table is absent)."""
-    conn = sqlite3.connect(str(db_path))
+    conn = _clew_sqlite_connect(str(db_path), read_only=True)
     try:
         return conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
     except sqlite3.OperationalError:

@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .._db import get_db
+from .._db._connect import connect as _clew_sqlite_connect
 from ._model import _ensure_claims_table, _resolve_claim
 
 
@@ -61,7 +62,7 @@ def remove_claim(claim_id_or_location: str) -> bool:
     if claim is None:
         return False
 
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path))
     try:
         conn.execute("DELETE FROM claims WHERE claim_id = ?", (claim.claim_id,))
         conn.commit()
@@ -92,7 +93,7 @@ def remove_claims_by_prefix(file_path_prefix: str) -> int:
     if not resolved_prefix.endswith("/"):
         resolved_prefix = resolved_prefix + "/"
 
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path))
     try:
         conn.execute(
             "DELETE FROM claims WHERE file_path LIKE ? OR file_path = ?",
@@ -136,7 +137,7 @@ def supersede_claim(claim_id_or_location: str) -> bool:
     if claim is None:
         return False
 
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path))
     try:
         conn.execute(
             "UPDATE claims SET status = 'superseded', verified_at = ? WHERE claim_id = ?",
@@ -170,7 +171,7 @@ def supersede_claims_by_prefix(file_path_prefix: str) -> int:
     if not resolved_prefix.endswith("/"):
         resolved_prefix = resolved_prefix + "/"
 
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path))
     try:
         conn.execute(
             "UPDATE claims SET status = 'superseded', verified_at = ? "
