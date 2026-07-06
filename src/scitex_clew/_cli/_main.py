@@ -34,6 +34,7 @@ from ._sources import (
     unregister_source_cmd,
 )
 from ._stamp import check_stamp, list_stamps, stamp
+from ._submission_gate import gate_completeness_cmd
 from ._verification import (
     chain,
     dag,
@@ -64,7 +65,15 @@ COMMAND_CATEGORIES = [
         ],
     ),
     ("Claims", ["claim", "export-claims"]),
-    ("Sources", ["register-source", "list-sources", "unregister-source"]),
+    (
+        "Sources",
+        [
+            "register-source",
+            "list-sources",
+            "unregister-source",
+            "gate-completeness",
+        ],
+    ),
     ("Signing", ["keygen", "sign", "verify-signatures"]),
     ("Citations", ["verify-citations", "citation"]),
     ("Hashing", ["hash-file", "hash-directory"]),
@@ -240,6 +249,7 @@ main.add_command(export_claims_cmd)
 main.add_command(register_source_cmd)
 main.add_command(list_sources_cmd)
 main.add_command(unregister_source_cmd)
+main.add_command(gate_completeness_cmd)
 main.add_command(keygen_cmd)
 main.add_command(sign_cmd)
 main.add_command(verify_signatures_cmd)

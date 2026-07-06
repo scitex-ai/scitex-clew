@@ -1935,7 +1935,7 @@ class TestRenderDag:
         so the swapped-generator render paths stay exercised."""
         from scitex_clew._db import VerificationDB
 
-        store = tmp_path / "clew-store" / "db.sqlite"
+        store = tmp_path / "clew-store" / "clew.db"
         VerificationDB(db_path=store)
         clew_env_sandbox.set_env(store)
         clew_env_sandbox.clear_db_instance()
@@ -2379,7 +2379,7 @@ class TestRenderDagExplicitStore:
     def _seed_store(self, dir_path, script_name="script_oot.py"):
         from scitex_clew._db import VerificationDB
 
-        store = dir_path / "db.sqlite"
+        store = dir_path / "clew.db"
         db = VerificationDB(db_path=store)
         db.add_run("sess-oot-001", f"/abs/scripts/{script_name}")
         db.finish_run("sess-oot-001", status="success")
@@ -2421,7 +2421,7 @@ class TestRenderDagExplicitStore:
         # Arrange
         from scitex_clew._viz._mermaid import render_dag
 
-        missing = tmp_path / "nowhere" / "db.sqlite"
+        missing = tmp_path / "nowhere" / "clew.db"
         out = tmp_path / "dag.mmd"
         # Act
         # Assert
@@ -2432,7 +2432,7 @@ class TestRenderDagExplicitStore:
         # Arrange
         from scitex_clew._viz._mermaid import render_dag
 
-        missing = tmp_path / "nowhere" / "db.sqlite"
+        missing = tmp_path / "nowhere" / "clew.db"
         out = tmp_path / "dag.mmd"
         # Act
         # Assert
@@ -2459,7 +2459,7 @@ class TestRenderDagExplicitStore:
         from scitex_clew._db import VerificationDB
         from scitex_clew._viz._mermaid import render_dag
 
-        store = tmp_path / "db.sqlite"
+        store = tmp_path / "clew.db"
         VerificationDB(db_path=store)
         out = tmp_path / "dag.mmd"
         # Act
@@ -2472,7 +2472,7 @@ class TestRenderDagExplicitStore:
         from scitex_clew._db import VerificationDB
         from scitex_clew._viz._mermaid import render_dag
 
-        store = tmp_path / "db.sqlite"
+        store = tmp_path / "clew.db"
         VerificationDB(db_path=store)
         out = tmp_path / "dag.mmd"
         # Act
@@ -2499,7 +2499,7 @@ class TestRenderDagExplicitStore:
         from scitex_clew._db import VerificationDB
         from scitex_clew._viz._mermaid import render_dag
 
-        store = tmp_path / "db.sqlite"
+        store = tmp_path / "clew.db"
         VerificationDB(db_path=store)
         out = tmp_path / "dag.json"
         # Act
@@ -2527,12 +2527,12 @@ class TestRenderDagExplicitStore:
 
         env_dir = tmp_path / "env-store"
         env_dir.mkdir()
-        VerificationDB(db_path=env_dir / "db.sqlite")  # empty store
+        VerificationDB(db_path=env_dir / "clew.db")  # empty store
         kwarg_dir = tmp_path / "kwarg-store"
         kwarg_dir.mkdir()
         kwarg_store = self._seed_store(kwarg_dir, script_name="script_kwarg_wins.py")
         clew_env_sandbox.clear_db_instance()
-        clew_env_sandbox.set_env(env_dir / "db.sqlite")
+        clew_env_sandbox.set_env(env_dir / "clew.db")
         out = tmp_path / "dag.mmd"
         # Act
         render_dag(out, db_path=kwarg_store)

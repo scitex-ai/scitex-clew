@@ -25,6 +25,8 @@ import sqlite3
 from pathlib import Path
 from typing import List, Optional
 
+from ._db._connect import connect as _clew_sqlite_connect
+
 _CHECK_ID = "clew-source-reachability"
 _FIX_HINT = (
     "wrap analysis in @stx.session + register claims to the run's computed "
@@ -57,13 +59,18 @@ def provide():
 
 
 def _find_clew_db(workdir: Path) -> Optional[Path]:
-    """Return the capsule's clew DB (prefer the canonical ``db.sqlite``).
+    """Return the capsule's clew DB (prefer the canonical ``clew.db``).
 
-    clew's runtime DB is ``.scitex/clew/runtime/db.sqlite`` (``.sqlite``
-    extension), so glob for both ``.sqlite`` and ``.db`` to be robust.
+    clew's runtime DB is ``.scitex/clew/runtime/clew.db``. Older capsules
+    used ``db.sqlite`` (auto-migrated on first open, but a not-yet-opened
+    capsule may still carry it), so glob for both ``.db`` and ``.sqlite``
+    and prefer ``clew.db``, falling back to the legacy ``db.sqlite`` name.
     """
-    dbs = sorted(workdir.glob(".scitex/clew/**/*.sqlite"))
-    dbs += sorted(workdir.glob(".scitex/clew/**/*.db"))
+    dbs = sorted(workdir.glob(".scitex/clew/**/*.db"))
+    dbs += sorted(workdir.glob(".scitex/clew/**/*.sqlite"))
+    for db in dbs:
+        if db.name == "clew.db":
+            return db
     for db in dbs:
         if db.name == "db.sqlite":
             return db
@@ -72,7 +79,7 @@ def _find_clew_db(workdir: Path) -> Optional[Path]:
 
 def _count_runs(db_path: Path) -> int:
     """Number of recorded runs (0 if the runs table is absent)."""
-    conn = sqlite3.connect(str(db_path))
+    conn = _clew_sqlite_connect(str(db_path), read_only=True)
     try:
         return conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
     except sqlite3.OperationalError:

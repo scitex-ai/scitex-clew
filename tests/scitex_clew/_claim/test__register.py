@@ -15,6 +15,8 @@ assertion per test.
 from __future__ import annotations
 
 import os
+import warnings
+from pathlib import Path
 
 import pytest
 
@@ -39,6 +41,12 @@ def isolated_db(tmp_path):
 def _tex(tmp_path):
     p = tmp_path / "paper.tex"
     p.write_text("acc 0.70 and spec 0.96 on one line\n")
+    return str(p)
+
+
+def _unowned_source(tmp_path):
+    p = tmp_path / "metrics.json"
+    p.write_text('{"acc": 0.70}\n')
     return str(p)
 
 
@@ -112,6 +120,60 @@ class TestAddClaimExplicitId:
         rows = clew.list_claims(file_path=tex)
         # Assert
         assert len(rows) == 1
+
+
+class TestAddClaimNoLineageWarning:
+    def test_unowned_source_file_warns_no_lineage(self, isolated_db, tmp_path):
+        # Arrange
+        tex = _tex(tmp_path)
+        src = _unowned_source(tmp_path)
+        # Act
+        # Assert
+        with pytest.warns(RuntimeWarning, match="NO_LINEAGE"):
+            clew.add_claim(
+                file_path=tex, claim_type="value", claim_value="0.70",
+                source_file=src,
+            )
+
+    def test_owned_source_file_does_not_warn_no_lineage(self, isolated_db, tmp_path):
+        # Arrange
+        tex = _tex(tmp_path)
+        src = _unowned_source(tmp_path)
+        isolated_db.add_run("sess-owned", str(tmp_path / "script.py"))
+        isolated_db.add_file_hash(
+            "sess-owned", str(Path(src).resolve()), "deadbeef", role="output",
+        )
+        # Act
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            clew.add_claim(
+                file_path=tex, claim_type="value", claim_value="0.70",
+                source_file=src,
+            )
+        # Assert
+        assert not any("NO_LINEAGE" in str(w.message) for w in caught)
+
+    def test_env_opt_out_suppresses_no_lineage_warning(self, isolated_db, tmp_path):
+        # Arrange
+        tex = _tex(tmp_path)
+        src = _unowned_source(tmp_path)
+        prev = os.environ.get("SCITEX_CLEW_WARN_NO_LINEAGE")
+        os.environ["SCITEX_CLEW_WARN_NO_LINEAGE"] = "0"
+        # Act
+        try:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                clew.add_claim(
+                    file_path=tex, claim_type="value", claim_value="0.71",
+                    source_file=src,
+                )
+        finally:
+            if prev is None:
+                os.environ.pop("SCITEX_CLEW_WARN_NO_LINEAGE", None)
+            else:
+                os.environ["SCITEX_CLEW_WARN_NO_LINEAGE"] = prev
+        # Assert
+        assert not any("NO_LINEAGE" in str(w.message) for w in caught)
 
 
 # EOF

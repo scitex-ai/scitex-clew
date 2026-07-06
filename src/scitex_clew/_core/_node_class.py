@@ -17,6 +17,8 @@ import sqlite3
 from pathlib import Path
 from typing import Optional
 
+from .._db._connect import connect as _clew_sqlite_connect
+
 # Canonical node classes
 NODE_CLASSES = ("source", "input", "processing", "output", "claim")
 
@@ -92,7 +94,7 @@ def migrate_add_node_class(db_path: Path) -> None:
     db_path : Path
         Path to the SQLite database file.
     """
-    conn = sqlite3.connect(str(db_path))
+    conn = _clew_sqlite_connect(str(db_path))
     try:
         cursor = conn.execute("PRAGMA table_info(file_hashes)")
         columns = {row[1] for row in cursor.fetchall()}
@@ -126,7 +128,7 @@ def set_node_class(
         raise ValueError(
             f"Invalid node_class '{node_class}'. Must be one of: {NODE_CLASSES}"
         )
-    conn = sqlite3.connect(str(db_path))
+    conn = _clew_sqlite_connect(str(db_path))
     try:
         conn.execute(
             "UPDATE file_hashes SET node_class = ? "
@@ -146,7 +148,7 @@ def auto_classify(db_path: Path) -> int:
     int
         Number of records updated.
     """
-    conn = sqlite3.connect(str(db_path))
+    conn = _clew_sqlite_connect(str(db_path))
     try:
         rows = conn.execute(
             "SELECT id, file_path, role FROM file_hashes WHERE node_class IS NULL"

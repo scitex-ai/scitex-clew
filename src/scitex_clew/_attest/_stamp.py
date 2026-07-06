@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .._db import get_db
+from .._db._connect import connect as _clew_sqlite_connect
 
 STAMP_BACKENDS = ("file", "rfc3161", "zenodo", "scitex_cloud")
 
@@ -55,7 +56,7 @@ class Stamp:
 
 def migrate_add_stamps_table(db_path: Path) -> None:
     """Create stamps table if not present. Safe to call multiple times."""
-    conn = sqlite3.connect(str(db_path))
+    conn = _clew_sqlite_connect(str(db_path))
     try:
         conn.execute(
             """
@@ -95,7 +96,7 @@ def compute_root_hash(session_ids: Optional[List[str]] = None) -> Dict:
         {root_hash, run_count, session_ids}
     """
     db = get_db()
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path), read_only=True)
     conn.row_factory = sqlite3.Row
     try:
         if session_ids:
@@ -195,7 +196,7 @@ def stamp(
     # Store in database
     db = get_db()
     _ensure_stamps_table(db)
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path))
     try:
         conn.execute(
             """
@@ -238,7 +239,7 @@ def check_stamp(stamp_id: Optional[str] = None) -> Dict:
     db = get_db()
     _ensure_stamps_table(db)
 
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path), read_only=True)
     conn.row_factory = sqlite3.Row
     try:
         if stamp_id:
@@ -300,7 +301,7 @@ def list_stamps(limit: int = 20) -> List[Stamp]:
     db = get_db()
     _ensure_stamps_table(db)
 
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path), read_only=True)
     conn.row_factory = sqlite3.Row
     try:
         rows = conn.execute(

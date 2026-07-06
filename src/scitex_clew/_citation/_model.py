@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, NamedTuple, Optional
 
+from .._db._connect import connect as _clew_sqlite_connect
+
 # Public per-key status vocabulary (matches the writer/compiler contract).
 CITATION_STATUSES = ("verified", "stub", "unverified", "unknown")
 
@@ -104,7 +106,7 @@ class Verdict(NamedTuple):
 
 def migrate_add_citations_table(db_path: Path) -> None:
     """Create the citations table if not present. Safe to call repeatedly."""
-    conn = sqlite3.connect(str(db_path))
+    conn = _clew_sqlite_connect(str(db_path))
     try:
         conn.execute(
             """
@@ -165,7 +167,7 @@ def row_to_citation(row) -> Citation:
 
 
 def lookup_citation(db, cite_key: str) -> Optional[Citation]:
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path), read_only=True)
     conn.row_factory = sqlite3.Row
     try:
         row = conn.execute(

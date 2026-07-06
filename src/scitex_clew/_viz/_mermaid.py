@@ -162,7 +162,7 @@ def _resolve_store_or_raise(db_path: str | Path | None):
             f"scitex-clew store not found: {resolved} (resolved via {tier}). "
             "Store resolution precedence: (1) explicit db_path argument, "
             "(2) SCITEX_CLEW_DB_PATH environment variable, (3) "
-            "<project_root>/.scitex/clew/runtime/db.sqlite via project-root "
+            "<project_root>/.scitex/clew/runtime/clew.db via project-root "
             "walk from the current working directory. Pass db_path=... to "
             "render a store that lives outside the current tree."
         )
@@ -215,11 +215,11 @@ def render_dag(
     path_mode : str, optional
         Path display mode
     db_path : str or Path, optional
-        Explicit path to the clew store (db.sqlite). Resolution precedence:
+        Explicit path to the clew store (clew.db). Resolution precedence:
         (1) this argument, (2) the SCITEX_CLEW_DB_PATH environment variable,
         (3) project-root walk from the current working directory. Pass this
         to render a store that lives outside the current tree (e.g. a
-        capsule's ``.scitex/clew/runtime/db.sqlite``) without chdir. Same
+        capsule's ``.scitex/clew/runtime/clew.db``) without chdir. Same
         semantics as ``VerificationDB(db_path=...)`` / ``set_db(db_path)``,
         but scoped to this call only.
 

@@ -22,7 +22,7 @@ from scitex_clew._sources import register_source  # noqa: E402
 def _make_capsule(tmp_path, *, runs=1):
     """Create a capsule workdir with a clew DB (schema + optional run rows)."""
     workdir = tmp_path / "capsule"
-    db_path = workdir / ".scitex" / "clew" / "runtime" / "db.sqlite"
+    db_path = workdir / ".scitex" / "clew" / "runtime" / "clew.db"
     db_path.parent.mkdir(parents=True, exist_ok=True)
     db = VerificationDB(db_path=db_path)  # creates runs/file_hashes/... schema
     migrate_add_claims_table(db_path)  # creates the claims table

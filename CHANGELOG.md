@@ -7,6 +7,50 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-07-06
+
+### Added
+- **Hard question_id↔claim_id submission-completeness gate (#121).**
+  `assert_submission_complete(submission)` (+ non-raising
+  `check_submission_completeness`) enforces a strict 1:1 correspondence
+  between a consumer submission (`question_id → claim_id`) and clew's
+  GROUNDED claims: raises `SubmissionCompletenessError` on any missing
+  (answer with no grounded provenance), orphan (grounded claim uncited),
+  or non-1:1 cardinality. Builds on `grounded_claim_ids`; adds the
+  `clew gate-completeness` CLI verb.
+- **`NO_LINEAGE` warning at `add_claim` (#125).** When `source_file` is
+  given but no owning `@stx.session` run produced it, `add_claim` now
+  emits a `RuntimeWarning` at registration time (naming the file + the
+  fix) instead of silently registering a claim that only fails later at
+  `clew verify --strict`. Env-silenceable via
+  `SCITEX_CLEW_WARN_NO_LINEAGE=0`. (Diagnosis: paper-scitex-clew.)
+
+### Fixed
+- **Optional `scitex_logging` import made failure-tolerant (#122).** The
+  optional enhancement import was guarded only against `ImportError`, but
+  `scitex_logging` does filesystem work at import time (file handlers
+  under `~/.scitex/logs`); on a quota/inode-exhausted filesystem it raises
+  `OSError`, which propagated and crashed `import scitex_clew` entirely.
+  The fallback now tolerates any failure of the optional path, preserving
+  the stdlib-logging fallback and clew's zero-dependency import.
+- **WAL + `busy_timeout` on clew's sqlite connections (#123).** All
+  connections now open with `journal_mode=WAL` + `synchronous=NORMAL`
+  (writable opens, best-effort) + `busy_timeout=300000` (always) via a
+  single stdlib-only connect helper, mirroring scitex-db's proven PRAGMA
+  set WITHOUT taking the dependency (clew stays zero-dep). Fixes the
+  immediate "database is locked" failure under concurrent writers.
+
+### Changed
+- **Default DB renamed `db.sqlite` → `clew.db` (#124).** The default store
+  is now `<project_root>/.scitex/clew/runtime/clew.db` (reference
+  implementation of the fleet `.scitex/<pkg>/runtime/<pkg>.db` convention;
+  `.db` is also `stx.io.load`-recognized). A transparent, WAL-safe
+  auto-migration renames an existing `runtime/db.sqlite` (or legacy flat
+  `db.sqlite`) on first open: it `wal_checkpoint(TRUNCATE)`s to fold the
+  `-wal` back into the main file, then atomically `os.replace`s it — no
+  data loss, even for multi-GB WAL DBs. The gate name-match accepts
+  `clew.db` (falling back to `db.sqlite`).
+
 ### Docs
 - **`verify_claim` consumer contract** documented (new skill leaf
   `05_verify-claim-contract.md` + sphinx `verify-claim-contract.rst`),
