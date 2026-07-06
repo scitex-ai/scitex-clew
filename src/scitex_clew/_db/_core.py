@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from ._chain import ChainMixin
+from ._connect import connect as _clew_sqlite_connect
 from ._file_hashes import FileHashMixin
 from ._queries import VerificationQueryMixin
 
@@ -225,7 +226,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
     @contextmanager
     def _connect(self):
         """Context manager for database connection."""
-        conn = sqlite3.connect(self.db_path)
+        conn = _clew_sqlite_connect(self.db_path)
         conn.row_factory = sqlite3.Row
         try:
             yield conn

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from .._db import get_db
+from .._db._connect import connect as _clew_sqlite_connect
 from ._model import (
     CLAIM_TYPES,
     Claim,
@@ -107,7 +108,7 @@ def add_claim(
     # Store in database
     db = get_db()
     _ensure_claims_table(db)
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path))
     try:
         conn.execute(
             """
@@ -229,7 +230,7 @@ def list_claims(
     query += " ORDER BY file_path, line_number LIMIT ?"
     params.append(limit)
 
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path), read_only=True)
     conn.row_factory = sqlite3.Row
     try:
         rows = conn.execute(query, params).fetchall()

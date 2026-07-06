@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .._db import get_db
+from .._db._connect import connect as _clew_sqlite_connect
 
 # Canonical claim types
 CLAIM_TYPES = ("statistic", "figure", "table", "text", "value")
@@ -310,7 +311,7 @@ class VerificationResult:
 
 def migrate_add_claims_table(db_path: Path) -> None:
     """Create claims table if not present. Safe to call multiple times."""
-    conn = sqlite3.connect(str(db_path))
+    conn = _clew_sqlite_connect(str(db_path))
     try:
         conn.execute(
             """
@@ -374,7 +375,7 @@ def _ensure_claims_table(db) -> None:
 
 def _resolve_claim(identifier: str, db) -> Optional[Claim]:
     """Resolve a claim by ID or location string."""
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path), read_only=True)
     conn.row_factory = sqlite3.Row
     try:
         # Try claim_id first
@@ -423,7 +424,7 @@ def _resolve_claim(identifier: str, db) -> Optional[Claim]:
 
 def _update_claim_status(claim_id: str, status: str, db) -> None:
     """Update claim verification status."""
-    conn = sqlite3.connect(str(db.db_path))
+    conn = _clew_sqlite_connect(str(db.db_path))
     try:
         conn.execute(
             "UPDATE claims SET status = ?, verified_at = ? WHERE claim_id = ?",
