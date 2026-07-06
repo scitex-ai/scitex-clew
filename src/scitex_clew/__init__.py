@@ -194,6 +194,12 @@ if TYPE_CHECKING:
         verify_citations,
     )
     from ._grounded import grounded_claim_ids  # noqa: F401
+    from ._submission_gate import (  # noqa: F401
+        SubmissionCompletenessError,
+        SubmissionCompletenessResult,
+        assert_submission_complete,
+        check_submission_completeness,
+    )
     from ._sources import (  # noqa: F401
         SourcesManifest,
         is_grounded,

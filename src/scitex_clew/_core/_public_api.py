@@ -73,6 +73,23 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     "resolve_sources_path": ("._sources", "resolve_sources_path"),
     "SourcesManifest": ("._sources", "SourcesManifest"),
     "grounded_claim_ids": ("._grounded", "grounded_claim_ids"),
+    # _submission_gate (HARD 1:1 question_id↔claim_id completeness gate)
+    "check_submission_completeness": (
+        "._submission_gate",
+        "check_submission_completeness",
+    ),
+    "assert_submission_complete": (
+        "._submission_gate",
+        "assert_submission_complete",
+    ),
+    "SubmissionCompletenessResult": (
+        "._submission_gate",
+        "SubmissionCompletenessResult",
+    ),
+    "SubmissionCompletenessError": (
+        "._submission_gate",
+        "SubmissionCompletenessError",
+    ),
     # _cli._exit_codes (configurable verify severity)
     "Severity": ("._cli._exit_codes", "Severity"),
     # _estimate (Phase 1: pre-flight compute estimate)
