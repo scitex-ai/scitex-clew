@@ -4,6 +4,14 @@
 from __future__ import annotations
 
 import logging
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+# Repo ``src/`` dir for THIS worktree, so subprocess tests exercise the source
+# under test rather than an editable install that may point at another worktree.
+_SRC_DIR = str(Path(__file__).resolve().parents[3] / "src")
 
 
 class TestGetLogger:
@@ -120,6 +128,89 @@ class TestGetLogger:
         # Assert
         # Assert
         assert has_any or getLogger is logging.getLogger
+
+
+class TestOptionalImportFailureTolerance:
+    """The optional scitex_logging path must never crash clew's import.
+
+    scitex_logging does filesystem work at import time (file handlers under
+    ~/.scitex/logs). On a quota-full / inode-exhausted filesystem that import
+    raises OSError (not ImportError), so a narrow ``except ImportError`` would
+    let it propagate and crash clew's entire package import. The fallback must
+    tolerate ANY exception from the optional path.
+    """
+
+    def _run_with_broken_scitex_logging(self, snippet: str) -> str:
+        # Install a meta-path finder that makes ``import scitex_logging`` raise
+        # OSError (simulating quota/inode exhaustion at import time), then run
+        # the snippet in a fresh subprocess interpreter. Deterministic — no
+        # real filesystem quota tricks.
+        prelude = (
+            "import sys\n"
+            "from importlib.abc import Loader, MetaPathFinder\n"
+            "from importlib.machinery import ModuleSpec\n"
+            "class _BoomLoader(Loader):\n"
+            "    def create_module(self, spec):\n"
+            "        raise OSError('No space left on device')\n"
+            "    def exec_module(self, module):\n"
+            "        raise OSError('No space left on device')\n"
+            "class _BoomFinder(MetaPathFinder):\n"
+            "    def find_spec(self, name, path, target=None):\n"
+            "        if name == 'scitex_logging':\n"
+            "            return ModuleSpec(name, _BoomLoader())\n"
+            "        return None\n"
+            "sys.modules.pop('scitex_logging', None)\n"
+            "sys.meta_path.insert(0, _BoomFinder())\n"
+        )
+        env = dict(os.environ)
+        env["PYTHONPATH"] = os.pathsep.join(
+            [_SRC_DIR, env.get("PYTHONPATH", "")]
+        ).rstrip(os.pathsep)
+        result = subprocess.run(
+            [sys.executable, "-c", prelude + snippet],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert result.returncode == 0, (
+            f"subprocess failed:\nstdout={result.stdout}\nstderr={result.stderr}"
+        )
+        return result.stdout
+
+    def test_import_hook_actually_breaks_scitex_logging(self):
+        # Sanity-check the harness itself: with the finder installed,
+        # ``import scitex_logging`` must raise OSError (not ImportError).
+        out = self._run_with_broken_scitex_logging(
+            "try:\n"
+            "    import scitex_logging\n"
+            "    print('NO_ERROR')\n"
+            "except OSError:\n"
+            "    print('OSERROR')\n"
+            "except ImportError:\n"
+            "    print('IMPORTERROR')\n"
+        )
+        assert out.strip() == "OSERROR"
+
+    def test_logging_module_imports_despite_oserror(self):
+        # The core defect: clew's _logging must still import cleanly and yield
+        # a working stdlib getLogger when the optional path raises OSError.
+        out = self._run_with_broken_scitex_logging(
+            "import logging\n"
+            "from scitex_clew._core import _logging as m\n"
+            "logger = m.getLogger('quota_full_check')\n"
+            "logger.info('works')\n"
+            "print(m.getLogger is logging.getLogger)\n"
+        )
+        assert out.strip() == "True"
+
+    def test_scitex_clew_package_imports_despite_oserror(self):
+        # The whole point: `import scitex_clew` must not crash because an
+        # OPTIONAL enhancement failed at import time.
+        out = self._run_with_broken_scitex_logging(
+            "import scitex_clew\n"
+            "print('IMPORTED')\n"
+        )
+        assert out.strip() == "IMPORTED"
 
 
 # EOF
