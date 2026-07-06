@@ -180,7 +180,8 @@ class TestOptionalImportFailureTolerance:
     def test_import_hook_actually_breaks_scitex_logging(self):
         # Sanity-check the harness itself: with the finder installed,
         # ``import scitex_logging`` must raise OSError (not ImportError).
-        out = self._run_with_broken_scitex_logging(
+        # Arrange
+        snippet = (
             "try:\n"
             "    import scitex_logging\n"
             "    print('NO_ERROR')\n"
@@ -189,27 +190,35 @@ class TestOptionalImportFailureTolerance:
             "except ImportError:\n"
             "    print('IMPORTERROR')\n"
         )
+        # Act
+        out = self._run_with_broken_scitex_logging(snippet)
+        # Assert
         assert out.strip() == "OSERROR"
 
     def test_logging_module_imports_despite_oserror(self):
         # The core defect: clew's _logging must still import cleanly and yield
         # a working stdlib getLogger when the optional path raises OSError.
-        out = self._run_with_broken_scitex_logging(
+        # Arrange
+        snippet = (
             "import logging\n"
             "from scitex_clew._core import _logging as m\n"
             "logger = m.getLogger('quota_full_check')\n"
             "logger.info('works')\n"
             "print(m.getLogger is logging.getLogger)\n"
         )
+        # Act
+        out = self._run_with_broken_scitex_logging(snippet)
+        # Assert
         assert out.strip() == "True"
 
     def test_scitex_clew_package_imports_despite_oserror(self):
         # The whole point: `import scitex_clew` must not crash because an
         # OPTIONAL enhancement failed at import time.
-        out = self._run_with_broken_scitex_logging(
-            "import scitex_clew\n"
-            "print('IMPORTED')\n"
-        )
+        # Arrange
+        snippet = "import scitex_clew\nprint('IMPORTED')\n"
+        # Act
+        out = self._run_with_broken_scitex_logging(snippet)
+        # Assert
         assert out.strip() == "IMPORTED"
 
 
