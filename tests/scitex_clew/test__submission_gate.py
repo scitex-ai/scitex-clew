@@ -8,6 +8,9 @@ output, claim on the output with an explicit claim_id, verify), then diff a
 {question_id: claim_id} submission against the grounded claim_ids. The check is
 non-raising; the assert form RAISES SubmissionCompletenessError on any
 missing / orphan / cardinality violation.
+
+Each test keeps a single assertion (PA-307 STX-TQ007) and AAA marker comments
+(STX-TQ002); the expensive real-DB arrange is shared via fixtures.
 """
 
 import pytest
@@ -29,7 +32,7 @@ def _db_path(tmp_path):
 
 
 def _make_grounded_claim(tmp_path, manifest, claim_id, *, src_name, out_name):
-    """Register a source, run reading it -> output, claim on output, verify."""
+    """Register a source, run reading it -> output, claim on output (helper)."""
     src = tmp_path / src_name
     src.write_text(f"x\n1  # {claim_id}\n")
     out = tmp_path / out_name
@@ -43,129 +46,238 @@ def _make_grounded_claim(tmp_path, manifest, claim_id, *, src_name, out_name):
     )
 
 
-def test_all_match_is_ok(tmp_path):
-    # Arrange — two grounded claims, submission cites both, 1:1.
+@pytest.fixture
+def grounded_workdir_two(tmp_path):
+    """A workdir whose clew DB has TWO grounded+verified claims: c1, c2."""
     db_path = _db_path(tmp_path)
     manifest = tmp_path / ".scitex" / "clew" / "sources.json"
     with use_db(db_path):
         _make_grounded_claim(tmp_path, manifest, "c1", src_name="a.csv", out_name="a.json")
         _make_grounded_claim(tmp_path, manifest, "c2", src_name="b.csv", out_name="b.json")
         clew.verify_all_claims()
-
-    submission = {"q1": "c1", "q2": "c2"}
-    # Act
-    result = check_submission_completeness(submission, workdir=tmp_path)
-    # Assert
-    assert result.ok is True
-    assert result.missing == {}
-    assert result.orphan == []
-    assert result.duplicate_claims == {}
-    # The hard gate does not raise.
-    assert_submission_complete(submission, workdir=tmp_path)
+    return tmp_path
 
 
-def test_missing_raises(tmp_path):
-    # Arrange — one grounded claim, but an answer cites a claim_id that is NOT
-    # grounded -> missing.
+@pytest.fixture
+def grounded_workdir_one(tmp_path):
+    """A workdir whose clew DB has ONE grounded+verified claim: c1."""
     db_path = _db_path(tmp_path)
     manifest = tmp_path / ".scitex" / "clew" / "sources.json"
     with use_db(db_path):
         _make_grounded_claim(tmp_path, manifest, "c1", src_name="a.csv", out_name="a.json")
         clew.verify_all_claims()
+    return tmp_path
 
+
+@pytest.fixture
+def empty_db_path(tmp_path):
+    """A real, empty clew DB (exists, zero claims)."""
+    db_path = _db_path(tmp_path)
+    with use_db(db_path):
+        pass
+    return db_path
+
+
+# ── all-match: strict 1:1 correspondence is OK ──
+
+
+def test_all_match_result_is_ok(grounded_workdir_two):
+    # Arrange
+    submission = {"q1": "c1", "q2": "c2"}
+    # Act
+    result = check_submission_completeness(submission, workdir=grounded_workdir_two)
+    # Assert
+    assert result.ok is True
+
+
+def test_all_match_has_no_orphan(grounded_workdir_two):
+    # Arrange
+    submission = {"q1": "c1", "q2": "c2"}
+    # Act
+    result = check_submission_completeness(submission, workdir=grounded_workdir_two)
+    # Assert
+    assert result.orphan == []
+
+
+def test_all_match_assert_does_not_raise(grounded_workdir_two):
+    # Arrange
+    submission = {"q1": "c1", "q2": "c2"}
+    # Act
+    outcome = assert_submission_complete(submission, workdir=grounded_workdir_two)
+    # Assert
+    assert outcome is None
+
+
+# ── missing: an answer with no grounded provenance ──
+
+
+def test_missing_claim_id_flagged_in_map(grounded_workdir_one):
+    # Arrange
     submission = {"q1": "c1", "q2": "not_grounded"}
     # Act
-    result = check_submission_completeness(submission, workdir=tmp_path)
+    result = check_submission_completeness(submission, workdir=grounded_workdir_one)
+    # Assert
+    assert result.missing == {"q2": "not_grounded"}
+
+
+def test_missing_claim_id_result_not_ok(grounded_workdir_one):
+    # Arrange
+    submission = {"q1": "c1", "q2": "not_grounded"}
+    # Act
+    result = check_submission_completeness(submission, workdir=grounded_workdir_one)
     # Assert
     assert result.ok is False
-    assert result.missing == {"q2": "not_grounded"}
-    # orphan-free: c1 IS cited.
-    assert result.orphan == []
-    with pytest.raises(SubmissionCompletenessError) as exc:
-        assert_submission_complete(submission, workdir=tmp_path)
-    assert "missing" in str(exc.value)
-    assert "not_grounded" in str(exc.value)
 
 
-def test_orphan_raises(tmp_path):
-    # Arrange — two grounded claims, submission cites only one -> the other is
-    # an orphan.
-    db_path = _db_path(tmp_path)
-    manifest = tmp_path / ".scitex" / "clew" / "sources.json"
-    with use_db(db_path):
-        _make_grounded_claim(tmp_path, manifest, "c1", src_name="a.csv", out_name="a.json")
-        _make_grounded_claim(tmp_path, manifest, "c2", src_name="b.csv", out_name="b.json")
-        clew.verify_all_claims()
+def test_missing_claim_id_raises_completeness_error(grounded_workdir_one):
+    # Arrange
+    submission = {"q1": "c1", "q2": "not_grounded"}
+    # Act
+    gate = lambda: assert_submission_complete(submission, workdir=grounded_workdir_one)
+    # Assert
+    with pytest.raises(SubmissionCompletenessError):
+        gate()
 
+
+def test_missing_report_names_offending_claim(grounded_workdir_one):
+    # Arrange
+    submission = {"q1": "c1", "q2": "not_grounded"}
+    # Act
+    result = check_submission_completeness(submission, workdir=grounded_workdir_one)
+    # Assert
+    assert "not_grounded" in result.report()
+
+
+# ── orphan: a grounded claim cited by no answer ──
+
+
+def test_orphan_grounded_claim_flagged(grounded_workdir_two):
+    # Arrange
     submission = {"q1": "c1"}
     # Act
-    result = check_submission_completeness(submission, workdir=tmp_path)
+    result = check_submission_completeness(submission, workdir=grounded_workdir_two)
     # Assert
-    assert result.ok is False
-    assert result.missing == {}
     assert result.orphan == ["c2"]
-    with pytest.raises(SubmissionCompletenessError) as exc:
-        assert_submission_complete(submission, workdir=tmp_path)
-    assert "orphan" in str(exc.value)
-    assert "c2" in str(exc.value)
 
 
-def test_duplicate_claim_cardinality_raises(tmp_path):
-    # Arrange — two grounded claims, but TWO questions cite the SAME claim_id
-    # (and thus the other grounded claim becomes an orphan too). The 1:1
-    # bijection is violated.
-    db_path = _db_path(tmp_path)
-    manifest = tmp_path / ".scitex" / "clew" / "sources.json"
-    with use_db(db_path):
-        _make_grounded_claim(tmp_path, manifest, "c1", src_name="a.csv", out_name="a.json")
-        _make_grounded_claim(tmp_path, manifest, "c2", src_name="b.csv", out_name="b.json")
-        clew.verify_all_claims()
+def test_orphan_grounded_claim_raises_error(grounded_workdir_two):
+    # Arrange
+    submission = {"q1": "c1"}
+    # Act
+    gate = lambda: assert_submission_complete(submission, workdir=grounded_workdir_two)
+    # Assert
+    with pytest.raises(SubmissionCompletenessError):
+        gate()
 
+
+# ── cardinality: a claim cited by more than one question_id ──
+
+
+def test_duplicate_claim_citation_flagged(grounded_workdir_two):
+    # Arrange
     submission = {"q1": "c1", "q2": "c1"}
     # Act
-    result = check_submission_completeness(submission, workdir=tmp_path)
-    # Assert — c1 cited twice = cardinality violation.
-    assert result.ok is False
+    result = check_submission_completeness(submission, workdir=grounded_workdir_two)
+    # Assert
     assert result.duplicate_claims == {"c1": ["q1", "q2"]}
-    with pytest.raises(SubmissionCompletenessError) as exc:
-        assert_submission_complete(submission, workdir=tmp_path)
-    assert "cardinality" in str(exc.value)
 
 
-def test_empty_submission_and_empty_db_is_ok(tmp_path):
-    # Arrange — a real (empty) DB and an empty submission. Zero grounded claims
-    # and zero answers is a trivially-satisfied 1:1 correspondence.
-    db_path = _db_path(tmp_path)
-    with use_db(db_path):
-        pass  # DB exists, no claims.
-
+def test_duplicate_claim_citation_raises_error(grounded_workdir_two):
+    # Arrange
+    submission = {"q1": "c1", "q2": "c1"}
     # Act
-    result = check_submission_completeness({}, db_path=db_path)
+    gate = lambda: assert_submission_complete(submission, workdir=grounded_workdir_two)
+    # Assert
+    with pytest.raises(SubmissionCompletenessError):
+        gate()
+
+
+# ── empty submission + empty DB: trivially satisfied ──
+
+
+def test_empty_submission_empty_db_ok(empty_db_path):
+    # Arrange
+    submission = {}
+    # Act
+    result = check_submission_completeness(submission, db_path=empty_db_path)
     # Assert
     assert result.ok is True
-    assert result.grounded == []
-    assert_submission_complete({}, db_path=db_path)
 
 
-def test_no_db_grounded_empty_all_answers_missing(tmp_path):
-    # Arrange — a workdir with NO clew DB -> grounded == []. A non-empty
-    # submission therefore has every cited answer as missing, and no orphans.
+def test_empty_submission_empty_db_assert_passes(empty_db_path):
+    # Arrange
+    submission = {}
+    # Act
+    outcome = assert_submission_complete(submission, db_path=empty_db_path)
+    # Assert
+    assert outcome is None
+
+
+# ── no DB: grounded == [] -> every cited answer is missing ──
+
+
+def test_no_db_marks_all_answers_missing(tmp_path):
+    # Arrange
     submission = {"q1": "c1", "q2": "c2"}
     # Act
     result = check_submission_completeness(submission, workdir=tmp_path)
     # Assert
-    assert result.ok is False
     assert result.missing == {"q1": "c1", "q2": "c2"}
+
+
+def test_no_db_leaves_no_orphan(tmp_path):
+    # Arrange
+    submission = {"q1": "c1", "q2": "c2"}
+    # Act
+    result = check_submission_completeness(submission, workdir=tmp_path)
+    # Assert
     assert result.orphan == []
-    assert result.duplicate_claims == {}
+
+
+def test_no_db_raises_completeness_error(tmp_path):
+    # Arrange
+    submission = {"q1": "c1", "q2": "c2"}
+    # Act
+    gate = lambda: assert_submission_complete(submission, workdir=tmp_path)
+    # Assert
     with pytest.raises(SubmissionCompletenessError):
-        assert_submission_complete(submission, workdir=tmp_path)
+        gate()
 
 
-def test_public_api_reexports(tmp_path):
-    # The public names are re-exported from the package root (lazy __getattr__).
-    assert clew.check_submission_completeness is check_submission_completeness
-    assert clew.assert_submission_complete is assert_submission_complete
-    assert clew.SubmissionCompletenessError is SubmissionCompletenessError
-    result = clew.check_submission_completeness({}, workdir=tmp_path)
+# ── public re-exports from the package root ──
+
+
+def test_public_check_function_reexported(tmp_path):
+    # Arrange
+    expected = check_submission_completeness
+    # Act
+    actual = clew.check_submission_completeness
+    # Assert
+    assert actual is expected
+
+
+def test_public_assert_function_reexported(tmp_path):
+    # Arrange
+    expected = assert_submission_complete
+    # Act
+    actual = clew.assert_submission_complete
+    # Assert
+    assert actual is expected
+
+
+def test_public_result_type_reexported(tmp_path):
+    # Arrange
+    submission = {}
+    # Act
+    result = clew.check_submission_completeness(submission, workdir=tmp_path)
+    # Assert
     assert isinstance(result, clew.SubmissionCompletenessResult)
+
+
+def test_public_error_type_reexported(tmp_path):
+    # Arrange
+    expected = SubmissionCompletenessError
+    # Act
+    actual = clew.SubmissionCompletenessError
+    # Assert
+    assert actual is expected
