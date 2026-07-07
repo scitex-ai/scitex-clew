@@ -183,6 +183,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                     role TEXT NOT NULL,
                     size_bytes INTEGER,
                     frozen INTEGER DEFAULT 0,
+                    host TEXT,
                     recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (session_id) REFERENCES runs(session_id),
                     UNIQUE(session_id, file_path, role)
@@ -194,6 +195,8 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                     ON file_hashes(session_id);
                 CREATE INDEX IF NOT EXISTS idx_role
                     ON file_hashes(role);
+                CREATE INDEX IF NOT EXISTS idx_hash
+                    ON file_hashes(hash);
                 CREATE INDEX IF NOT EXISTS idx_runs_status
                     ON runs(status);
                 CREATE INDEX IF NOT EXISTS idx_runs_parent
@@ -236,6 +239,8 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         self._migrate_runs_provenance()
         # Phase 4: add frozen column to pre-existing file_hashes tables (idempotent)
         self._migrate_file_hashes_frozen()
+        # Phase 5: add host column to pre-existing file_hashes tables (idempotent)
+        self._migrate_file_hashes_host()
 
     @contextmanager
     def _connect(self):
