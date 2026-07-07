@@ -6,7 +6,28 @@
 from __future__ import annotations
 
 import os
+import socket
 from typing import Dict, List, Optional
+
+
+def _resolve_host() -> Optional[str]:
+    """Resolve the recording host for a file-hash row.
+
+    Precedence: ``$SCITEX_CLEW_HOST`` > ``$SAC_HOST`` > ``socket.gethostname()``.
+    The env overrides let a multi-node SIF/HPC run stamp a stable logical host
+    (e.g. the login-node name) instead of a transient compute-node hostname.
+    Returns ``None`` only if every source fails — the column stays nullable so
+    existing behavior is never affected.
+    """
+    for env_key in ("SCITEX_CLEW_HOST", "SAC_HOST"):
+        val = os.environ.get(env_key)
+        if val:
+            return val
+    try:
+        name = socket.gethostname()
+        return name or None
+    except OSError:
+        return None
 
 
 class FileHashMixin:
@@ -61,6 +82,28 @@ class FileHashMixin:
                     "ALTER TABLE file_hashes ADD COLUMN frozen INTEGER DEFAULT 0"
                 )
 
+    def _migrate_file_hashes_host(self) -> None:
+        """Add host column to pre-existing file_hashes tables (idempotent).
+
+        Phase 5: host TEXT (nullable) — records which host produced each
+        artifact so provenance can be reasoned about across machines/nodes.
+        Safe to call even when the column already exists: the PRAGMA check
+        guards the ALTER TABLE so no exception is raised on repeated runs.
+        Existing rows receive NULL (unknown host) automatically, keeping every
+        existing verify path behavior-identical.
+        """
+        with self._connect() as conn:
+            columns = {
+                row[1]
+                for row in conn.execute(
+                    "PRAGMA table_info(file_hashes)"
+                ).fetchall()
+            }
+            if "host" not in columns:
+                conn.execute(
+                    "ALTER TABLE file_hashes ADD COLUMN host TEXT"
+                )
+
     # -------------------------------------------------------------------------
     # Insert
     # -------------------------------------------------------------------------
@@ -106,10 +149,18 @@ class FileHashMixin:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO file_hashes
-                (session_id, file_path, hash, role, size_bytes, frozen)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (session_id, file_path, hash, role, size_bytes, frozen, host)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (session_id, file_path, hash_value, role, size_bytes, int(frozen)),
+                (
+                    session_id,
+                    file_path,
+                    hash_value,
+                    role,
+                    size_bytes,
+                    int(frozen),
+                    _resolve_host(),
+                ),
             )
 
     def add_file_hashes(
@@ -129,14 +180,15 @@ class FileHashMixin:
         role : str
             Role of the files (input, script, output).
         """
+        host = _resolve_host()
         with self._connect() as conn:
             conn.executemany(
                 """
                 INSERT OR REPLACE INTO file_hashes
-                (session_id, file_path, hash, role)
-                VALUES (?, ?, ?, ?)
+                (session_id, file_path, hash, role, host)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                [(session_id, path, h, role) for path, h in hashes.items()],
+                [(session_id, path, h, role, host) for path, h in hashes.items()],
             )
 
     # -------------------------------------------------------------------------
@@ -317,6 +369,86 @@ class FileHashMixin:
                 result[fp] = []
             result[fp].append(row["session_id"])
         return result
+
+    def find_sessions_by_hash(
+        self,
+        content_hash: str,
+        role: Optional[str] = None,
+    ) -> List[str]:
+        """Find sessions that recorded a file with a given CONTENT hash.
+
+        Content-addressed counterpart to :meth:`find_session_by_file` (which
+        keys on ``file_path``). A match here proves the exact bytes exist
+        somewhere in the ledger regardless of path or host — the primitive a
+        multi-host / path-tolerant verify builds on. Uses ``idx_hash``.
+
+        NOTE: existence of matching content is NOT the same as path/host
+        provenance; callers that verify MUST still gate the result by trust
+        level (path/host agreement) before treating it as fully verified. This
+        method only answers "who recorded these bytes?", never "is this the
+        right file?".
+
+        Parameters
+        ----------
+        content_hash : str
+            The file content hash to look up.
+        role : str, optional
+            Filter by role (input, output, script, …).
+
+        Returns
+        -------
+        list of str
+            Session IDs that recorded the content, newest-first
+            (``recorded_at DESC``). Empty when the content is unknown.
+        """
+        with self._connect() as conn:
+            if role:
+                rows = conn.execute(
+                    """
+                    SELECT DISTINCT session_id FROM file_hashes
+                    WHERE hash = ? AND role = ?
+                    ORDER BY recorded_at DESC
+                    """,
+                    (content_hash, role),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT DISTINCT session_id FROM file_hashes
+                    WHERE hash = ?
+                    ORDER BY recorded_at DESC
+                    """,
+                    (content_hash,),
+                ).fetchall()
+            return [row["session_id"] for row in rows]
+
+    def hosts_for_hash(self, content_hash: str) -> List[str]:
+        """Return the distinct known hosts that recorded a given content hash.
+
+        A NULL host (recorded before Phase 5, or when host resolution failed)
+        is omitted. Useful for surfacing "this exact artifact was produced on
+        hosts X and Y" in multi-host provenance views. Uses ``idx_hash``.
+
+        Parameters
+        ----------
+        content_hash : str
+            The file content hash to look up.
+
+        Returns
+        -------
+        list of str
+            Distinct non-null host names, ordered alphabetically.
+        """
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT DISTINCT host FROM file_hashes
+                WHERE hash = ? AND host IS NOT NULL
+                ORDER BY host
+                """,
+                (content_hash,),
+            ).fetchall()
+            return [row["host"] for row in rows]
 
 
 def _stat_size(path: str) -> Optional[int]:
