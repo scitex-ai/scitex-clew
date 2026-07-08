@@ -23,11 +23,16 @@ Manifest format (JSON)::
 * ``sha256`` is the full 64-char hex digest of the file at registration
   time (the flat per-file v0.2 contract locked with scitex-dataset — NOT
   the nested ``digest{algo,value,of}`` capsule digest).
-* ``signature`` is RESERVED (default ``null``): accepted-but-not-enforced
-  in this release. The signing follow-on gpg-signs the manifest against a
-  committed public key and rejects an unsigned/badly-signed manifest. A
-  pluggable no-op verify seam (:func:`verify_signature`) is provided now so
-  that follow-on is a pure additive enforcement change.
+* ``signature`` holds the manifest's Ed25519 signature (default ``null``
+  for an unsigned manifest). Signature enforcement is LIVE and OPT-IN:
+  committing ``<root>/.scitex/clew/signed/signing.pub`` activates it (see
+  ``_check_manifest_signature``), after which an unsigned or badly-signed
+  manifest is UNTRUSTED and anchors nothing (``SourcesManifest.trusted``).
+  It fails CLOSED — if the pubkey is committed but verification is unavailable
+  (python-cryptography / the ``[all]`` extra absent) the manifest is treated as
+  untrusted, so signing cannot be bypassed by dropping the crypto dependency.
+  (:func:`verify_signature` is a legacy no-op seam, superseded by
+  ``_check_manifest_signature``.)
 
 Resolution tiers (mirrors :func:`scitex_clew._db._core.resolve_db_path`):
 tier1 explicit arg > tier2 ``$SCITEX_CLEW_SOURCES`` > tier3
@@ -223,12 +228,14 @@ def _resolve_sources_tier3(clew_dir: Path) -> Tuple[Path, str]:
 
 
 def verify_signature(raw: dict, signature: Optional[str]) -> bool:
-    """Pluggable signature-verify seam — a NO-OP in this release.
+    """Legacy no-op signature seam — SUPERSEDED by ``_check_manifest_signature``.
 
-    Reserved for the signing follow-on: it will gpg-verify the manifest
-    against a committed public key and reject an unsigned/bad manifest. In
-    this release signing is not enforced, so this always returns ``True``.
-    Keeping the seam here means the follow-on is a pure additive change.
+    Signature enforcement is now LIVE via ``_check_manifest_signature``
+    (opt-in through a committed ``signing.pub``, Ed25519, fail-closed), wired
+    into :func:`load_sources_manifest`. This seam predates that path, is not
+    the enforcement point, and always returns ``True``; trust is determined by
+    ``SourcesManifest.trusted`` / ``SourcesManifest.active``. Retained
+    for back-compat (still exported) — do not use it to gate trust.
     """
     return True
 
