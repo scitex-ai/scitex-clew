@@ -82,6 +82,7 @@ COMMAND_CATEGORIES = [
     ("Integration", ["mcp", "list-python-apis", "completion"]),
 ]
 
+
 class CategorizedGroup(click.Group):
     """Custom Click group that displays commands organized by category."""
 
@@ -120,6 +121,7 @@ class CategorizedGroup(click.Group):
             with formatter.section("Other"):
                 formatter.write_dl(uncategorized)
 
+
 def _show_recursive_help(ctx: click.Context) -> None:
     """Recursively show help for all commands."""
     click.echo(ctx.get_help())
@@ -146,6 +148,7 @@ def _show_recursive_help(ctx: click.Context) -> None:
                     click.echo(sub_sub_ctx.get_help())
                     click.echo()
 
+
 def _get_version() -> str:
     """Read version from importlib.metadata."""
     try:
@@ -154,6 +157,7 @@ def _get_version() -> str:
         return version("scitex-clew")
     except Exception:
         return "0.0.0-unknown"
+
 
 @click.group(
     cls=CategorizedGroup,
@@ -176,11 +180,12 @@ def main(
 
     \b
     Configuration precedence (highest -> lowest):
-      1. Explicit CLI flags
-      2. ./config.yaml (project-local)
-      3. $SCITEX_CLEW_CONFIG (path to a YAML file)
-      4. ~/.scitex/clew/config.yaml (user-wide)
+      1. Explicit command-line flags (e.g. --strict, --json)
+      2. --config PATH (an explicit config file, or a .scitex/clew scope dir)
+      3. Project scope: <git-root>/.scitex/clew/config.yaml
+      4. User scope:    ~/.scitex/clew/config.yaml  ($SCITEX_DIR relocates the root)
       5. Built-in defaults
+    Within one scope, config.yaml is the base; config/*.yaml deep-merge on top.
     """
     ctx.ensure_object(dict)
     ctx.obj["json"] = bool(as_json)
@@ -201,6 +206,7 @@ def main(
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
 
+
 # §1a: install-shell-completion + print-shell-completion are registered
 # via scitex_dev._cli._completion.attach_shell_completion(...) at the
 # bottom of this module. The legacy `completion <SHELL>` positional
@@ -220,6 +226,7 @@ def completion_legacy(ctx):
         err=True,
     )
     ctx.exit(2)
+
 
 # -----------------------------------------------------------------------
 # Register command families

@@ -101,21 +101,62 @@ def _finding(message: str):
     )
 
 
+def _value_failure_reason(code: int) -> str:
+    """Human reason for a value-integrity RE-HASH failure (distinct from unsourced).
+
+    ``code`` is a :func:`scitex_clew._claim._verify._classify_claim` outcome for
+    ONE re-verified claim (``strict=False``). The message names the concrete
+    gate-time re-hash failure — the source changed (hash mismatch), the source
+    is gone (missing), or the claim has no re-hashable/verified source — so a
+    value failure never reads like the ungrounded ("unsourced") finding.
+    """
+    from ._cli._exit_codes import HASH_MISMATCH, SOURCE_MISSING
+
+    if code == HASH_MISMATCH:
+        return (
+            "failed source re-hash at gate time (hash mismatch — the source "
+            "file changed since the claim was registered)"
+        )
+    if code == SOURCE_MISSING:
+        return "failed source re-hash at gate time (source file missing)"
+    return (
+        "is not verified at gate time (no source hashes to its recorded "
+        "value — re-hash found nothing to stand behind the claim)"
+    )
+
+
 def _run(workdir, config):
     """Fail a submission whose clew provenance is incomplete.
 
     Returns a ``GateResult(passed, findings)``: ``passed`` iff the capsule has
-    >=1 tracked run AND every clew claim is verified and (when the source gate
-    is active) grounded to a registered source.
+    >=1 tracked run AND every clew claim is (a) source RE-HASH-verified at gate
+    time AND (b) grounded to a registered source when the source gate is active.
 
-    A verified-but-ungrounded claim has raw DB status ``verified``; only
-    ``is_grounded`` reveals it is unsourced — so this runs clew's real gate
-    (manifest + chain-walk), pointed at the capsule's own DB, rather than a
-    raw-status read.
+    Value integrity is RE-COMPUTED here, never trusted. Each claim is
+    re-verified via :func:`~scitex_clew._claim._verify.verify_claim`, which
+    re-hashes the source file at submission time (and, as a side effect,
+    corrects the claim's stored status in the capsule DB). A claim whose stored
+    status is ``verified`` but whose source has since been edited (hash
+    mismatch) or deleted (missing) is REJECTED — the gate does NOT rely on the
+    flag the solver's own ``clew verify`` wrote. The value bar is
+    ``_classify_claim(result, strict=False) == OK`` — i.e. the source still
+    hashes to the recorded value; upstream ``@stx.session`` lineage is
+    intentionally NOT required here (it is covered separately by the grounding
+    half), so a legitimate raw registered source with a zero-length chain is
+    not spuriously rejected.
+
+    A verified-but-ungrounded claim re-hashes fine yet reaches no registered
+    source; only ``is_grounded`` reveals it is unsourced, so the explicit
+    manifest + chain-walk (pointed at the capsule's own DB) is kept alongside
+    the per-claim re-hash rather than replaced by ``verify_all_claims`` (whose
+    ``load_sources_manifest()`` would resolve a manifest from cwd, not the
+    capsule).
     """
     from scitex_dev.gate import GateResult
 
     from ._claim._register import list_claims
+    from ._claim._verify import _classify_claim, verify_claim
+    from ._cli._exit_codes import OK
     from ._db import use_db
     from ._sources import is_grounded, load_sources_manifest
 
@@ -154,15 +195,36 @@ def _run(workdir, config):
         # capsule only.
         manifest = load_sources_manifest(sources_path, root=workdir)
         gate_active = manifest is not None and manifest.active
+        # Per-pass caches so a source shared by several claims is hashed /
+        # chain-walked at most once. Created fresh each gate run, so a file
+        # edited between two runs is always re-hashed (no stale entry leaks).
+        hash_cache: dict = {}
+        chain_cache: dict = {}
         for claim in list_claims(limit=100_000):
+            # RE-HASH the source at gate time — never trust the stored status
+            # flag the solver's own `clew verify` wrote. verify_claim re-computes
+            # hash_file on the source; _classify_claim(strict=False) is OK iff
+            # the source still hashes to the recorded value (a since-edited or
+            # deleted source classifies as HASH_MISMATCH / SOURCE_MISSING).
+            result = verify_claim(
+                claim.claim_id, hash_cache=hash_cache, chain_cache=chain_cache
+            )
+            code = _classify_claim(result, strict=False)
             ungrounded = gate_active and not is_grounded(claim, manifest, db)
-            if claim.status != "verified" or ungrounded:
-                reason = (
-                    "reaches no registered source (unsourced)"
-                    if ungrounded
-                    else f"has status '{claim.status}', not verified"
+            # Value failure takes precedence over the grounding failure: a
+            # tampered/missing source is reported as such even if it also
+            # happens to be ungrounded. Exactly one finding per failing claim.
+            if code != OK:
+                findings.append(
+                    _finding(f"claim {claim.location} {_value_failure_reason(code)}")
                 )
-                findings.append(_finding(f"claim {claim.location} {reason}"))
+            elif ungrounded:
+                findings.append(
+                    _finding(
+                        f"claim {claim.location} reaches no registered source "
+                        "(unsourced)"
+                    )
+                )
 
     return GateResult(passed=not findings, findings=tuple(findings))
 
