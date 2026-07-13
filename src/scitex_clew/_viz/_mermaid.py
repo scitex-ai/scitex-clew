@@ -238,6 +238,12 @@ def render_dag(
         the requested view is empty (e.g. ``claims=True`` with zero claims,
         or filters matching nothing) — render_dag never returns without
         writing the requested file.
+    RuntimeError
+        For ``.png``/``.svg`` when BOTH renderers fail: mmdc
+        (mermaid-cli) is unavailable/errored AND the in-package
+        matplotlib fallback raised. There is no silent ``.mmd``
+        path-swap (GH #133); the requested file either exists on
+        return or an exception is raised.
     """
     output_path = Path(output_path)
     ext = output_path.suffix.lower()
@@ -325,18 +331,55 @@ def render_dag(
                 f.write(mermaid)
                 mmd_path = f.name
 
+            mmdc_error: Exception | None = None
             try:
                 subprocess.run(
                     ["mmdc", "-i", mmd_path, "-o", str(output_path)],
                     check=True,
                     capture_output=True,
                 )
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                fallback_path = output_path.with_suffix(".mmd")
-                fallback_path.write_text(mermaid)
-                return fallback_path
+            except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+                mmdc_error = exc
             finally:
                 Path(mmd_path).unlink(missing_ok=True)
+
+            wrote_ok = (
+                mmdc_error is None
+                and output_path.exists()
+                and output_path.stat().st_size > 0
+            )
+            if not wrote_ok:
+                # GH #133: this branch used to write dag.mmd and return
+                # THAT path — the caller asked for .png/.svg and got
+                # neither, silently. Fall back to the in-package
+                # matplotlib renderer, which writes the REQUESTED file
+                # (both formats) with no external dependency. The
+                # fallback does not support show_hashes / path_mode /
+                # session_id filtering; targets and claims are mapped.
+                from ._image import render_dag_image
+
+                fallback_targets = (
+                    target_files
+                    if target_files
+                    else ([target_file] if target_file else None)
+                )
+                try:
+                    render_dag_image(
+                        output_path,
+                        targets=fallback_targets,
+                        claims=claims,
+                        grouper=grouper,
+                        fmt="png" if ext == ".png" else "svg",
+                    )
+                except Exception as img_exc:
+                    raise RuntimeError(
+                        f"render_dag could not produce {output_path}: "
+                        f"mmdc failed or is not installed "
+                        f"({mmdc_error!r}) and the matplotlib fallback "
+                        f"also failed ({img_exc!r}). Install "
+                        "@mermaid-js/mermaid-cli (mmdc) or matplotlib, "
+                        "or request a .mmd/.html/.json output instead."
+                    ) from img_exc
 
     return output_path
 
