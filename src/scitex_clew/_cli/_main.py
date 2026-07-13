@@ -30,6 +30,7 @@ from ._introspect import list_python_apis
 from ._mcp import mcp
 from ._signing import keygen_cmd, sign_cmd, verify_signatures_cmd
 from ._sources import (
+    grounding_cmd,
     list_sources_cmd,
     register_source_cmd,
     unregister_source_cmd,
@@ -73,6 +74,7 @@ COMMAND_CATEGORIES = [
             "list-sources",
             "unregister-source",
             "gate-completeness",
+            "grounding",
         ],
     ),
     ("Signing", ["keygen", "sign", "verify-signatures"]),
@@ -259,6 +261,7 @@ main.add_command(register_source_cmd)
 main.add_command(list_sources_cmd)
 main.add_command(unregister_source_cmd)
 main.add_command(gate_completeness_cmd)
+main.add_command(grounding_cmd)
 main.add_command(keygen_cmd)
 main.add_command(sign_cmd)
 main.add_command(verify_signatures_cmd)

@@ -126,6 +126,7 @@ __all__ = [
     "unregister_source",
     "list_sources",
     "is_grounded",
+    "is_claim_grounded",
     "load_sources_manifest",
     "resolve_sources_path",
     "SourcesManifest",
@@ -203,7 +204,9 @@ if TYPE_CHECKING:
         check_submission_completeness,
     )
     from ._sources import (  # noqa: F401
+        GROUNDING_REASONS,
         SourcesManifest,
+        is_claim_grounded,
         is_grounded,
         list_sources,
         load_sources_manifest,

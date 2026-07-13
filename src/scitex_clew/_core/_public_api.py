@@ -70,6 +70,8 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     "unregister_source": ("._sources", "unregister_source"),
     "list_sources": ("._sources", "list_sources"),
     "is_grounded": ("._sources", "is_grounded"),
+    "is_claim_grounded": ("._sources", "is_claim_grounded"),
+    "GROUNDING_REASONS": ("._sources", "GROUNDING_REASONS"),
     "load_sources_manifest": ("._sources", "load_sources_manifest"),
     "resolve_sources_path": ("._sources", "resolve_sources_path"),
     "SourcesManifest": ("._sources", "SourcesManifest"),

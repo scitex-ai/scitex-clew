@@ -196,6 +196,32 @@ def register_tools(mcp: FastMCP) -> None:
         return _json({"superseded": found, "claim_id_or_location": claim_id_or_location})
 
     @mcp.tool()
+    async def clew_is_claim_grounded(
+        claim_location: str,
+        workdir: str = ".",
+    ) -> str:
+        """Per-claim grounding verdict — richer than a bare pass/fail bit.
+
+        Mirrors ``scitex_clew.is_claim_grounded`` exactly. Reports WHY a
+        claim is (or isn't) grounded — distinguishing "no manifest yet"
+        (amber, fine) from "a manifest exists and this claim fails it" (red,
+        a real problem) — plus the matched registered source (if any) and an
+        actionable ``fix_hint``. The primitive a live inline editor (e.g.
+        scitex-writer's SSOT paper editor) polls per claim.
+
+        Parameters
+        ----------
+        claim_location : str
+            A claim_id or a ``file.tex:L42``-style location.
+        workdir : str, optional
+            Directory the clew DB + sources manifest are resolved under
+            (default ``"."``).
+        """
+        from scitex_clew import is_claim_grounded
+
+        return _json(is_claim_grounded(claim_location, workdir=workdir))
+
+    @mcp.tool()
     async def clew_export_manuscript_claims(
         path: Optional[str] = None,
         read_only: bool = True,
