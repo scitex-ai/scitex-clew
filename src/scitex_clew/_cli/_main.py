@@ -24,6 +24,7 @@ from ._citation import citation, verify_citations_cmd
 from ._claim import claim
 from ._estimate import estimate
 from ._export import export_claims as export_claims_cmd
+from ._export_hints import export_hints as export_hints_cmd
 from ._hash import hash_directory, hash_file
 from ._introspect import list_python_apis
 from ._mcp import mcp
@@ -65,7 +66,7 @@ COMMAND_CATEGORIES = [
             "estimate",
         ],
     ),
-    ("Claims", ["claim", "export-claims"]),
+    ("Claims", ["claim", "export-claims", "export-hints"]),
     (
         "Sources",
         [
@@ -253,6 +254,7 @@ main.add_command(mcp)
 # F1: claim group, hash-file/-directory, stamp / list-stamps / check-stamp.
 main.add_command(claim)
 main.add_command(export_claims_cmd)
+main.add_command(export_hints_cmd)
 
 # Registered-source gate: register-source (human WRITE path) + list/unregister.
 main.add_command(register_source_cmd)

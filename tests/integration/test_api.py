@@ -22,6 +22,8 @@ class TestPublicAPI:
         # ``unregister_source`` / ``list_sources`` / ``is_grounded`` /
         # ``load_sources_manifest`` / ``resolve_sources_path`` /
         # ``SourcesManifest`` (2026-07-03).
+        # +1 for ``export_manuscript_hints`` (manuscript-hints producer,
+        # 2026-07-14).
         # +1 for ``is_claim_grounded`` (per-claim grounding verdict for a
         # live inline editor, 2026-07-14). ``GROUNDING_REASONS`` is
         # intentionally lazy-only (not in __all__), matching
@@ -29,7 +31,7 @@ class TestPublicAPI:
         # Arrange
         # Act
         # Assert
-        assert len(clew.__all__) == 42
+        assert len(clew.__all__) == 43
 
     def test_all_names_set_clew_all_expected(self):
         # Arrange
@@ -52,6 +54,7 @@ class TestPublicAPI:
             "verify_all_claims",
             "export_claims_json",
             "export_manuscript_claims",
+            "export_manuscript_hints",
             "register_intermediate",
             "remove_claim",
             "supersede_claim",
