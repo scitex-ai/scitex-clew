@@ -220,5 +220,33 @@ def register_tools(mcp: FastMCP) -> None:
         out = export_manuscript_claims(path=path, read_only=read_only)
         return _json({"path": str(out)})
 
+    @mcp.tool()
+    async def clew_export_manuscript_hints(
+        path: Optional[str] = None,
+        read_only: bool = True,
+    ) -> str:
+        """Emit clew's prose-level manuscript hints to hints.json.
+
+        Reads clew's claim ledger + ingested citation ledger and writes ONE
+        ``hints`` list in scitex-writer's ``manuscript-hints/1`` schema — the
+        author-facing "what needs fixing" feed (citation problems, ungrounded
+        claims, source-gate failures). This is a DIFFERENT, separate concern
+        from ``clew_export_manuscript_claims`` (the per-claim render/
+        verification feed) — do not confuse the two.
+
+        Mirrors ``scitex_clew.export_manuscript_hints``.
+
+        Parameters
+        ----------
+        path : str, optional
+            Output path (default: canonical .scitex/writer/hints.json).
+        read_only : bool, optional
+            chmod 0o444 the file after writing (default True).
+        """
+        from scitex_clew import export_manuscript_hints
+
+        out = export_manuscript_hints(path=path, read_only=read_only)
+        return _json({"path": str(out)})
+
 
 # EOF

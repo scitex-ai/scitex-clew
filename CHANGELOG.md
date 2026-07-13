@@ -7,6 +7,31 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-07-14
+
+### Added
+- **Manuscript-hints producer: `export_manuscript_hints()` (scitex-todo
+  card `clew-feat-manuscript-findings-producer`).** A NEW, SEPARATE export
+  from `export_manuscript_claims()` — clew is the single producer of
+  citation + claim + source-gate HINTS (prose-level "things wrong with
+  this manuscript") into scitex-writer's `manuscript-hints/1` feed at
+  `.scitex/writer/hints.json` (confirmed by contract with scitex-writer,
+  2026-07-14). Each hint: `{id, kind, severity, message,
+  location: {file, line, page}, claim_id, source: "scitex-clew"}`, `id`
+  deterministic (`hint_<sha256(claim_id:kind)[:12]>` — same precedent as
+  `_generate_claim_id`). Reads clew's claim ledger (full-8 resolved status)
+  and clew's INGESTED citation ledger (populated from scholar's
+  `citation_status`-schema artifact via the existing io-observer seam) —
+  never scholar's raw artifact directly. Severity: claim
+  mismatch/missing→error, suspect/registered→warning,
+  unsourced/exception→advice, verified/frozen→silent (omitted); citation
+  stub/unverified→warning, unknown→advice, verified→silent, any
+  unrecognized future status→advice (forward-compatible with scholar's
+  not-yet-shipped `semantic_mismatch`). MERGE-BY-SOURCE: rewrites only
+  `source == "scitex-clew"` entries in `hints.json`, never touches entries
+  from other producers (e.g. figrecipe, writer's own hints). New CLI verb
+  `clew export-hints` and MCP tool `clew_export_manuscript_hints`.
+
 ## [0.17.0] — 2026-07-06
 
 ### Added

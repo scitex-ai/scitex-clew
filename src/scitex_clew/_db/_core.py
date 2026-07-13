@@ -46,6 +46,21 @@ def _default_claims_json_path(project_root: Path) -> Path:
     return project_root / ".scitex" / "clew" / "runtime" / "claims.json"
 
 
+def _default_hints_json_path(project_root: Path) -> Path:
+    """Resolve the default canonical manuscript-hints artifact path.
+
+    Returns ``<project_root>/.scitex/writer/hints.json`` — this is
+    scitex-writer's namespace (NOT ``.scitex/clew/``), because the artifact
+    is writer's manuscript-hints FEED (schema ``manuscript-hints/1``); clew
+    is one of several producers that MERGE-BY-SOURCE into it. See
+    :func:`scitex_clew._claim._hints.export_manuscript_hints`.
+
+    The resolved path is **just the path** — this function does not write or
+    read the file.
+    """
+    return project_root / ".scitex" / "writer" / "hints.json"
+
+
 def _default_db_path(project_root: Path) -> Path:
     """Resolve the default database path under ``runtime/``.
 
