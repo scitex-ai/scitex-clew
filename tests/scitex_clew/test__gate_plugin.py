@@ -40,8 +40,16 @@ def _insert_claim(db_path, *, claim_id, status, source_file="", source_hash=""):
             "claim_value, source_session, source_file, source_hash, "
             "verified_at, status) VALUES (?,?,?,?,?,?,?,?,?,?)",
             (
-                claim_id, "paper.tex", 1, "value", "0.94", None,
-                source_file, source_hash, "2026-01-01T00:00:00", status,
+                claim_id,
+                "paper.tex",
+                1,
+                "value",
+                "0.94",
+                None,
+                source_file,
+                source_hash,
+                "2026-01-01T00:00:00",
+                status,
             ),
         )
         conn.commit()
@@ -98,8 +106,11 @@ class TestRun:
         )
         digest = hashlib.sha256(src.read_bytes()).hexdigest()
         _insert_claim(
-            db_path, claim_id="c1", status="verified",
-            source_file=str(src.resolve()), source_hash=digest,
+            db_path,
+            claim_id="c1",
+            status="verified",
+            source_file=str(src.resolve()),
+            source_hash=digest,
         )
         # Act
         result = _run(workdir, {})
@@ -123,8 +134,11 @@ class TestRun:
         other.write_text("b\n2\n")
         digest = hashlib.sha256(other.read_bytes()).hexdigest()
         _insert_claim(
-            db_path, claim_id="c2", status="verified",
-            source_file=str(other.resolve()), source_hash=digest,
+            db_path,
+            claim_id="c2",
+            status="verified",
+            source_file=str(other.resolve()),
+            source_hash=digest,
         )
         # Act
         result = _run(workdir, {})
@@ -142,4 +156,97 @@ class TestRun:
         # Assert
         assert result.passed is False and any(
             "not verified" in f.message for f in result.findings
+        )
+
+
+class TestRunRehashesAtGateTime:
+    """The gate RE-HASHES each claim's source at submission time.
+
+    Regression guard for the integrity fix: the gate must recompute the source
+    hash at gate time and require all-green, NEVER trust the ``status`` flag the
+    solver's own ``clew verify`` wrote into the DB. Before the fix the per-claim
+    check was a raw ``claim.status != "verified"`` read, so a tampered source
+    whose stored status stayed ``verified`` sailed through (the TAMPERED case
+    below wrongly PASSED).
+    """
+
+    def test_clean_source_matching_hash_passes(self, tmp_path):
+        # Arrange — a claim whose source STILL hashes to its recorded value; no
+        # manifest (gate inactive) so ONLY the value re-hash half runs.
+        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        src = workdir / "data" / "clean.csv"
+        src.parent.mkdir(parents=True, exist_ok=True)
+        src.write_text("m\n0.94\n")
+        digest = hashlib.sha256(src.read_bytes()).hexdigest()
+        _insert_claim(
+            db_path,
+            claim_id="clean1",
+            status="verified",
+            source_file=str(src.resolve()),
+            source_hash=digest,
+        )
+        # Act
+        result = _run(workdir, {})
+        # Assert — re-hash matches -> value gate passes -> gate passes.
+        assert result.passed is True
+
+    def test_tampered_source_is_rejected_even_when_grounded(self, tmp_path):
+        # Arrange — register the source (manifest active, pinned at its ORIGINAL
+        # hash), insert a 'verified' claim, THEN tamper the file WITHOUT
+        # re-running clew verify. The stored status stays 'verified' AND
+        # is_grounded still passes (the claim's stored hash still matches the
+        # manifest's pinned hash), so ONLY a real gate-time re-hash can catch it.
+        # This is the crux: before the fix this case wrongly PASSED.
+        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        src = workdir / "data" / "raw.csv"
+        src.parent.mkdir(parents=True, exist_ok=True)
+        src.write_text("x,y\n1,2\n")
+        register_source(
+            [src],
+            sources_path=workdir / ".scitex" / "clew" / "sources.json",
+            root=workdir,
+        )
+        digest = hashlib.sha256(src.read_bytes()).hexdigest()
+        _insert_claim(
+            db_path,
+            claim_id="tampered",
+            status="verified",
+            source_file=str(src.resolve()),
+            source_hash=digest,
+        )
+        # Tamper: change the bytes so the source no longer hashes to `digest`.
+        # No `clew verify` re-run — the stored status stays 'verified'.
+        src.write_text("x,y\n9,9\n")
+        # Act
+        result = _run(workdir, {})
+        # Assert — REJECTED, and the finding names the hash mismatch (a value
+        # failure), NOT 'unsourced' (grounding still passes — the tamper is
+        # invisible to is_grounded and only the re-hash catches it).
+        assert (
+            result.passed is False
+            and any("hash mismatch" in f.message for f in result.findings)
+            and not any("unsourced" in f.message for f in result.findings)
+        )
+
+    def test_missing_source_is_rejected(self, tmp_path):
+        # Arrange — a 'verified' claim whose source file is then DELETED (no
+        # manifest, so the value re-hash half is what must catch it).
+        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        src = workdir / "data" / "gone.csv"
+        src.parent.mkdir(parents=True, exist_ok=True)
+        src.write_text("m\n0.94\n")
+        digest = hashlib.sha256(src.read_bytes()).hexdigest()
+        _insert_claim(
+            db_path,
+            claim_id="missing",
+            status="verified",
+            source_file=str(src.resolve()),
+            source_hash=digest,
+        )
+        src.unlink()  # delete the source AFTER the claim is registered
+        # Act
+        result = _run(workdir, {})
+        # Assert — the re-hash finds the source gone -> REJECT.
+        assert result.passed is False and any(
+            "missing" in f.message for f in result.findings
         )

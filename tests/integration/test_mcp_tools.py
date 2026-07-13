@@ -262,6 +262,7 @@ class TestRegisterAllTools:
             "clew_remove_claim",
             "clew_supersede_claim",
             "clew_export_manuscript_claims",
+            "clew_export_manuscript_hints",
             # citation gate wrappers
             "clew_add_citation",
             "clew_list_citations",

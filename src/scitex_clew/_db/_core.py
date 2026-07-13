@@ -46,6 +46,21 @@ def _default_claims_json_path(project_root: Path) -> Path:
     return project_root / ".scitex" / "clew" / "runtime" / "claims.json"
 
 
+def _default_hints_json_path(project_root: Path) -> Path:
+    """Resolve the default canonical manuscript-hints artifact path.
+
+    Returns ``<project_root>/.scitex/writer/hints.json`` — this is
+    scitex-writer's namespace (NOT ``.scitex/clew/``), because the artifact
+    is writer's manuscript-hints FEED (schema ``manuscript-hints/1``); clew
+    is one of several producers that MERGE-BY-SOURCE into it. See
+    :func:`scitex_clew._claim._hints.export_manuscript_hints`.
+
+    The resolved path is **just the path** — this function does not write or
+    read the file.
+    """
+    return project_root / ".scitex" / "writer" / "hints.json"
+
+
 def _default_db_path(project_root: Path) -> Path:
     """Resolve the default database path under ``runtime/``.
 
@@ -183,6 +198,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                     role TEXT NOT NULL,
                     size_bytes INTEGER,
                     frozen INTEGER DEFAULT 0,
+                    host TEXT,
                     recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (session_id) REFERENCES runs(session_id),
                     UNIQUE(session_id, file_path, role)
@@ -194,6 +210,8 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
                     ON file_hashes(session_id);
                 CREATE INDEX IF NOT EXISTS idx_role
                     ON file_hashes(role);
+                CREATE INDEX IF NOT EXISTS idx_hash
+                    ON file_hashes(hash);
                 CREATE INDEX IF NOT EXISTS idx_runs_status
                     ON runs(status);
                 CREATE INDEX IF NOT EXISTS idx_runs_parent
@@ -236,6 +254,8 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         self._migrate_runs_provenance()
         # Phase 4: add frozen column to pre-existing file_hashes tables (idempotent)
         self._migrate_file_hashes_frozen()
+        # Phase 5: add host column to pre-existing file_hashes tables (idempotent)
+        self._migrate_file_hashes_host()
 
     @contextmanager
     def _connect(self):

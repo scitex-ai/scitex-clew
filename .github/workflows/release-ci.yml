@@ -9,6 +9,26 @@ name: release-ci
 # L5a uv-managed Python (`uv python install` + `uv venv --python`) so each
 #     matrix leg pins its interpreter independently of the runner.
 # L5b .venv/bin on PATH so console scripts resolve without `uv run`.
+#
+# PILOT: org-level reusable-workflow migration (scitex-ai/.github,
+# 2026-07-10). `tests` and `import-smoke` below are now thin callers into
+# scitex-ai/.github reusable workflows (same job bodies, centrally
+# maintained). `audit` is LEFT AS-IS: this repo's audit job passes
+# `--no-version-check` and installs the `scitex-dev[cli-audit]` extra,
+# which the reusable quality-audit.yml does not support — a real
+# behavioral deviation, not a clean mechanical match, so it stays local
+# per the migration brief ("do not force a mismatch").
+#
+# NOTE: this file fires on `push`/`schedule`, NOT `pull_request` — the
+# required-status-check contexts that gate PR merges into develop/main
+# ("pytest-matrix-on-ubuntu-py3.11/12/13") are produced by pr-ci.yml's
+# own `tests` job (left untouched, see pr-ci.yml), so converting the
+# jobs below does not change what branch protection needs to require.
+#
+# New required-status-check context for the converted jobs (post-merge
+# only, not currently in branch-protection's required list):
+#   pytest-matrix / pytest-matrix-on-ubuntu-py3.11 (and .12, .13)
+#   import-smoke / import-smoke-on-ubuntu-py3-12
 
 on:
   push:
@@ -22,59 +42,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  tests:
-    name: pytest-matrix-on-ubuntu-py${{ matrix.python-version }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12", "3.13"]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
-          cache-dependency-glob: pyproject.toml
-      - name: Set up Python ${{ matrix.python-version }} (uv-managed)
-        run: uv python install ${{ matrix.python-version }}
-      - name: Create uv venv on this matrix Python
-        run: uv venv --python ${{ matrix.python-version }} .venv
-      - name: Install dependencies
-        run: |
-          uv pip install --python .venv/bin/python -e ".[all,dev]" \
-            || uv pip install --python .venv/bin/python -e ".[dev]" \
-            || uv pip install --python .venv/bin/python -e .
-      - name: Run tests
-        run: |
-          export PATH="$PWD/.venv/bin:$PATH"
-          .venv/bin/pytest tests/ --cov=src/scitex_clew --cov-report=xml --cov-report=term
-      - name: Upload coverage to Codecov
-        if: always() && matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
-          fail_ci_if_error: false
+  pytest-matrix:
+    # New required-status-check context: "pytest-matrix / pytest-matrix-on-ubuntu-py<X.YY>"
+    uses: scitex-ai/.github/.github/workflows/pytest-matrix.yml@main
+    secrets: inherit
 
   import-smoke:
-    name: import-smoke-on-ubuntu-py3-12
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
-          cache-dependency-glob: pyproject.toml
-      - name: Set up Python 3.12 (uv-managed)
-        run: uv python install 3.12
-      - name: Install (no extras) in uv venv
-        run: |
-          uv venv --python 3.12 .venv
-          uv pip install --python .venv/bin/python -e .
-      - name: Import smoke
-        run: .venv/bin/python -c "import scitex_clew; print(getattr(scitex_clew, '__version__', 'unversioned'))"
+    # New required-status-check context: "import-smoke / import-smoke-on-ubuntu-py3-12"
+    uses: scitex-ai/.github/.github/workflows/import-smoke.yml@main
+    secrets: inherit
 
   audit:
     name: audit

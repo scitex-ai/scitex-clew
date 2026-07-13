@@ -11,10 +11,14 @@ markers each on its own line in that order.
 
 from __future__ import annotations
 
+import os
+import sqlite3
+
 import pytest
 
 from scitex_clew import VerificationDB
 from scitex_clew._chain._routes import resolve_file_dag
+from scitex_clew._db._file_hashes import _resolve_host
 
 
 # ---------------------------------------------------------------------------
@@ -289,6 +293,209 @@ class TestFrozenFlag:
         hashes = db.get_file_hashes("s_compat", role="input")
         # Assert
         assert hashes["/data/huge.npz"] == "deadcafe"
+
+
+# ---------------------------------------------------------------------------
+# _resolve_host: env-override precedence (real env, save/restore — no mocks)
+# ---------------------------------------------------------------------------
+
+
+class _EnvGuard:
+    """Set env keys for the duration of a with-block, then restore verbatim."""
+
+    def __init__(self, **overrides):
+        self._overrides = overrides
+        self._saved = {}
+
+    def __enter__(self):
+        for key, val in self._overrides.items():
+            self._saved[key] = os.environ.get(key)
+            if val is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = val
+        return self
+
+    def __exit__(self, *exc):
+        for key, prev in self._saved.items():
+            if prev is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = prev
+        return False
+
+
+class TestResolveHost:
+    def test_scitex_clew_host_env_takes_precedence(self):
+        # Arrange
+        with _EnvGuard(SCITEX_CLEW_HOST="login01", SAC_HOST="compute99"):
+            # Act
+            host = _resolve_host()
+            # Assert
+            assert host == "login01"
+
+    def test_sac_host_used_when_clew_host_absent(self):
+        # Arrange
+        with _EnvGuard(SCITEX_CLEW_HOST=None, SAC_HOST="compute99"):
+            # Act
+            host = _resolve_host()
+            # Assert
+            assert host == "compute99"
+
+    def test_falls_back_to_gethostname_when_no_env(self):
+        # Arrange
+        with _EnvGuard(SCITEX_CLEW_HOST=None, SAC_HOST=None):
+            import socket
+
+            expected = socket.gethostname() or None
+            # Act
+            host = _resolve_host()
+            # Assert
+            assert host == expected
+
+
+# ---------------------------------------------------------------------------
+# host column: stamped on write, queryable, back-compatible
+# ---------------------------------------------------------------------------
+
+
+class TestHostColumn:
+    def test_add_file_hash_stamps_env_host(self, tmp_path):
+        # Arrange
+        db = _make_db(tmp_path)
+        db.add_run("s_h", script_path="/script.py")
+        with _EnvGuard(SCITEX_CLEW_HOST="node-A"):
+            db.add_file_hash("s_h", "/data/out.csv", "hh01", "output")
+        # Act
+        hosts = db.hosts_for_hash("hh01")
+        # Assert
+        assert hosts == ["node-A"]
+
+    def test_add_file_hashes_batch_stamps_env_host(self, tmp_path):
+        # Arrange
+        db = _make_db(tmp_path)
+        db.add_run("s_batch", script_path="/script.py")
+        with _EnvGuard(SCITEX_CLEW_HOST="node-B"):
+            db.add_file_hashes("s_batch", {"/a.csv": "bh01"}, role="output")
+        # Act
+        hosts = db.hosts_for_hash("bh01")
+        # Assert
+        assert hosts == ["node-B"]
+
+    def test_get_file_hashes_still_returns_path_hash_mapping(self, tmp_path):
+        # Arrange — host column must not change the get_file_hashes contract.
+        db = _make_db(tmp_path)
+        db.add_run("s_c", script_path="/script.py")
+        db.add_file_hash("s_c", "/data/out.csv", "ch01", "output")
+        # Act
+        hashes = db.get_file_hashes("s_c", role="output")
+        # Assert
+        assert hashes == {"/data/out.csv": "ch01"}
+
+
+class TestHostColumnMigration:
+    def _old_schema_db(self, path):
+        """Create a pre-Phase-5 file_hashes table (no host column).
+
+        Only the legacy file_hashes table is pre-created; VerificationDB builds
+        the rest of the schema (runs, indexes, …) fresh on open. This isolates
+        the Phase-5 host-column ALTER as the exact path under test.
+        """
+        conn = sqlite3.connect(str(path))
+        conn.executescript(
+            """
+            CREATE TABLE file_hashes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                hash TEXT NOT NULL,
+                role TEXT NOT NULL,
+                UNIQUE(session_id, file_path, role)
+            );
+            INSERT INTO file_hashes (session_id, file_path, hash, role)
+            VALUES ('old_sess', '/legacy.csv', 'oldhash', 'output');
+            """
+        )
+        conn.commit()
+        conn.close()
+
+    def test_opening_old_db_adds_host_column(self, tmp_path):
+        # Arrange
+        dbfile = tmp_path / "legacy.db"
+        self._old_schema_db(dbfile)
+        # Act
+        VerificationDB(dbfile)
+        conn = sqlite3.connect(str(dbfile))
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)")}
+        conn.close()
+        # Assert
+        assert "host" in cols
+
+    def test_legacy_row_reads_back_with_null_host(self, tmp_path):
+        # Arrange
+        dbfile = tmp_path / "legacy2.db"
+        self._old_schema_db(dbfile)
+        VerificationDB(dbfile)
+        # Act — legacy row's content has no known host (NULL omitted).
+        hosts = VerificationDB(dbfile).hosts_for_hash("oldhash")
+        # Assert
+        assert hosts == []
+
+
+# ---------------------------------------------------------------------------
+# find_sessions_by_hash / hosts_for_hash: content-addressed lookup (idx_hash)
+# ---------------------------------------------------------------------------
+
+
+class TestContentAddressedLookup:
+    def test_finds_session_by_content_regardless_of_path(self, tmp_path):
+        # Arrange — same content hash recorded under two DIFFERENT paths.
+        db = _make_db(tmp_path)
+        db.add_run("s1", script_path="/s1.py")
+        db.add_run("s2", script_path="/s2.py")
+        db.add_file_hash("s1", "/host_a/out.csv", "SAME", "output")
+        db.add_file_hash("s2", "/host_b/out.csv", "SAME", "output")
+        # Act
+        sessions = db.find_sessions_by_hash("SAME", role="output")
+        # Assert
+        assert set(sessions) == {"s1", "s2"}
+
+    def test_role_filter_excludes_other_roles(self, tmp_path):
+        # Arrange
+        db = _make_db(tmp_path)
+        db.add_run("s1", script_path="/s1.py")
+        db.add_file_hash("s1", "/in.csv", "RH", "input")
+        db.add_file_hash("s1", "/out.csv", "RH", "output")
+        # Act
+        sessions = db.find_sessions_by_hash("RH", role="input")
+        # Assert
+        assert sessions == ["s1"]
+
+    def test_unknown_hash_returns_empty_list(self, tmp_path):
+        # Arrange
+        db = _make_db(tmp_path)
+        db.add_run("s1", script_path="/s1.py")
+        db.add_file_hash("s1", "/out.csv", "KNOWN", "output")
+        # Act
+        sessions = db.find_sessions_by_hash("MISSING")
+        # Assert
+        assert sessions == []
+
+    def test_hosts_for_hash_returns_distinct_sorted_hosts(self, tmp_path):
+        # Arrange — same content produced on two hosts (+ a duplicate).
+        db = _make_db(tmp_path)
+        db.add_run("s1", script_path="/s1.py")
+        db.add_run("s2", script_path="/s2.py")
+        db.add_run("s3", script_path="/s3.py")
+        with _EnvGuard(SCITEX_CLEW_HOST="zeta"):
+            db.add_file_hash("s1", "/a.csv", "MH", "output")
+        with _EnvGuard(SCITEX_CLEW_HOST="alpha"):
+            db.add_file_hash("s2", "/b.csv", "MH", "output")
+            db.add_file_hash("s3", "/c.csv", "MH", "output")
+        # Act
+        hosts = db.hosts_for_hash("MH")
+        # Assert
+        assert hosts == ["alpha", "zeta"]
 
 
 # EOF
