@@ -95,3 +95,13 @@ intransitive_verbs:
   # positional defaulting to the resolved sources). This is the escape hatch
   # the §1 message points to. Pairs with `keygen` / `verify-signatures`.
   - sign
+
+  # `clew grounding <claim-location>` — report the per-claim grounding
+  # verdict (scitex_clew.is_claim_grounded). Same rationale as `status` /
+  # `stamp` / `dag` / `chain`: Moby classifies "grounding" as a noun, but in
+  # THIS CLI it is the intransitive verb "report-the-grounding[-verdict]"
+  # with the claim location supplied positionally. Established naming
+  # matches the public API function name (is_claim_grounded); renaming would
+  # break the writer-editor <-> CLI <-> Python-API parity the feature is
+  # built on.
+  - grounding

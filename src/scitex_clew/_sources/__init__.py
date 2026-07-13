@@ -13,6 +13,7 @@ Public surface (re-exported at ``scitex_clew`` top level):
 from __future__ import annotations
 
 from ._gate import collect_chain_files, is_grounded
+from ._grounding_api import GROUNDING_REASONS, is_claim_grounded
 from ._manifest import (
     SOURCES_SCHEMA,
     SourceEntry,
@@ -37,6 +38,8 @@ __all__ = [
     "register_source",
     "unregister_source",
     "list_sources",
+    "is_claim_grounded",
+    "GROUNDING_REASONS",
 ]
 
 # EOF

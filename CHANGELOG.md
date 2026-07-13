@@ -7,6 +7,28 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-07-14
+
+### Added
+- **`is_claim_grounded(claim_location, *, workdir=".")` — per-claim grounding
+  verdict for a live inline editor.** Thin public wrapper around the pure
+  `is_grounded` chain-walk gate, returning a richer `GroundingVerdict`
+  instead of a bare bool: `{"grounded", "claim_id", "matched_source",
+  "reason", "fix_hint"}`. `reason` distinguishes "nothing registered yet"
+  (`no_manifest`, amber, fine) from "a manifest exists and this claim fails
+  it" (`no_chain_match` / `manifest_untrusted`, red) — collapsing those into
+  the same `False` would misreport a claim's actual provenance status.
+  `grounded` is guaranteed to never disagree with `is_grounded` /
+  `verify_all_claims` on the same claim (including the defensive-True
+  no-valid-anchors edge case). Adds `claim_not_found` as a new reason for an
+  unresolvable `claim_location`. Owns opening the sources manifest + DB
+  internally via `workdir` — callers never construct a `SourcesManifest` or
+  DB handle. New CLI `clew grounding <claim-location> [--workdir] [--json]`
+  and MCP tool `clew_is_claim_grounded`. The reason set is exported as the
+  stable constant `scitex_clew.GROUNDING_REASONS`. Implements
+  scitex-writer's ADR 0001 §4 "Inline engine" (scitex-todo card
+  `clew-per-claim-grounding-api`).
+
 ## [0.17.0] — 2026-07-06
 
 ### Added
