@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Dict
 
-#: Maps ``str(Path(p).resolve())`` -> truncated SHA-256 hash for one pass.
+#: Maps ``str(Path(p).resolve())`` -> full SHA-256 hex digest for one pass.
 HashCache = Dict[str, str]
 
 

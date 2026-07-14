@@ -36,7 +36,7 @@ from ._claim import _emit, _json_mode
 )
 @click.pass_context
 def hash_file(ctx: click.Context, path: str, algorithm: str, chunk_size: int) -> None:
-    """Print the SHA-256 (first 32 chars) of a file."""
+    """Print the full SHA-256 hex digest of a file."""
     from scitex_clew import hash_file as _hash_file
 
     try:

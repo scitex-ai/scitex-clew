@@ -26,10 +26,12 @@ from ._manifest import SourcesManifest
 def _hash_consistent(recorded: str, pinned: str) -> bool:
     """Prefix-tolerant hash equality.
 
-    The DB / claim records store a truncated (32-char) sha256 while the
-    manifest pins the full 64-char digest. Compare over the shorter length —
-    the truncated digest is a strict prefix of the full one for an untampered
-    file. Empty hashes never match.
+    DB / claim records recorded before clew-fix-truncated-hash-comparison
+    store a truncated (32-char) sha256; records recorded after that fix
+    store the full 64-char digest, matching what the manifest pins. Compare
+    over the shorter length — a truncated digest is a strict prefix of the
+    full one for an untampered file, so this stays correct across the
+    truncated/full mix in older DBs. Empty hashes never match.
     """
     if not recorded or not pinned:
         return False

@@ -7,6 +7,39 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.19.1] — 2026-07-14
+
+### Fixed
+- **Truncated sha256 hash silently broke every hash comparison
+  (clew-fix-truncated-hash-comparison).** `hash_file()` / `combine_hashes()`
+  (and the archive-hashing equivalents in `_chain/_archive_lookup.py`)
+  truncated the sha256 hex digest to the first 32 of 64 characters at WRITE
+  time, so the natural external check `get_file_hashes(session)[path] ==
+  hashlib.sha256(open(path, "rb").read()).hexdigest()` was ALWAYS False —
+  a confident-wrong-answer bug reporting "this session did not produce
+  this file" when it did. Found by paper-scitex-clew dogfooding: their own
+  registrar concluded 49 claims had zero session lineage when the lineage
+  was there the whole time. Fix: return the full 64-char digest everywhere
+  hashes are computed; every existing DB-record comparison site already
+  compared prefix-tolerantly (or was made to, see below) for backward
+  compatibility with pre-existing truncated rows.
+- **`_chain/_freshness.py`'s skip-rerun check used exact hash equality**,
+  which would have silently regressed to "always stale" for any
+  pre-existing DB once truncation was removed (new full hashes never
+  equal old truncated ones under `==`). Added a prefix-tolerant
+  `_hashes_match` helper, matching the convention already used in
+  `_sources/_gate.py`.
+- **Inconsistent path normalization silently broke relative-path lookups
+  (clew-fix-path-normalization-find-session).** `find_session_by_file()` /
+  `find_sessions_by_files()` did not normalize the query path the way
+  `verify_chain()` normalizes its own `target` argument
+  (`str(Path(x).resolve())`), so a RELATIVE query path silently matched
+  NOTHING even though the equivalent absolute path matched fine — same
+  file, same DB, two different answers, no error. Fix: both functions now
+  resolve the query path the same way `verify_chain` does before querying;
+  `find_sessions_by_files` returns results keyed by the caller's original
+  (un-resolved) spelling so existing callers see no shape change.
+
 ## [0.19.0] — 2026-07-14
 
 ### Added
