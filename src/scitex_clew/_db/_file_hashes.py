@@ -7,7 +7,25 @@ from __future__ import annotations
 
 import os
 import socket
+from pathlib import Path
 from typing import Dict, List, Optional
+
+
+def _resolve_abspath(file_path: str) -> str:
+    """Normalize a query path to the SAME absolute form used at record time.
+
+    Every file path is stored resolved-absolute (``str(Path(p).resolve())``,
+    see ``Tracker.record_input``/``record_output``), and ``verify_chain``
+    resolves its own ``target`` argument the identical way before querying.
+    Query-side lookups here must use the same resolution or a relative-path
+    query silently (no error, no log) matches nothing even though the
+    absolute equivalent matches fine — the
+    clew-fix-path-normalization-find-session bug. ``Path.resolve()`` does
+    not require the path to exist, so this is safe for a query about a
+    session/file combination the caller doesn't have on the local
+    filesystem right now.
+    """
+    return str(Path(file_path).resolve())
 
 
 def _resolve_host() -> Optional[str]:
@@ -284,7 +302,11 @@ class FileHashMixin:
         Parameters
         ----------
         file_path : str
-            Path to the file.
+            Path to the file. May be relative or absolute — normalized to
+            the same resolved-absolute form ``verify_chain`` uses and every
+            file path is recorded under, so a relative path and its
+            absolute equivalent return the SAME result
+            (clew-fix-path-normalization-find-session).
         role : str, optional
             Filter by role (input, output).
 
@@ -293,6 +315,7 @@ class FileHashMixin:
         list of str
             List of session IDs.
         """
+        file_path = _resolve_abspath(file_path)
         with self._connect() as conn:
             if role:
                 rows = conn.execute(
@@ -333,7 +356,10 @@ class FileHashMixin:
         Parameters
         ----------
         file_paths : list of str
-            File paths to look up producers for.
+            File paths to look up producers for. Each may be relative or
+            absolute — normalized the same way as :meth:`find_session_by_file`
+            (clew-fix-path-normalization-find-session) so lookups are
+            consistent regardless of how the path was spelled.
         role : str
             Role to filter by (``"output"`` for producer lookup).
 
@@ -343,13 +369,27 @@ class FileHashMixin:
             ``{file_path: [session_id, ...]}`` — producers per file, ordered
             newest-first (``recorded_at DESC``), matching the order that
             ``find_session_by_file`` returns.  Files with no producers are
-            absent from the dict (not present with an empty list).
+            absent from the dict (not present with an empty list). Keyed by
+            the ORIGINAL (caller-supplied) path spelling, not the resolved
+            form, so ``result[p]`` works for whatever ``p`` the caller passed
+            in ``file_paths`` — internal callers (e.g. ``_parents_via_files``)
+            already pass already-resolved paths, so this is a no-op for them.
         """
         if not file_paths:
             return {}
 
-        placeholders = ", ".join("?" * len(file_paths))
-        params = list(file_paths) + [role]
+        # Map resolved-form -> original spelling(s) so the returned dict can
+        # be keyed by what the caller passed in, even though the query must
+        # use the resolved form to match what's actually stored.
+        resolved_to_original: Dict[str, str] = {}
+        resolved_paths = []
+        for original in file_paths:
+            resolved = _resolve_abspath(original)
+            resolved_to_original.setdefault(resolved, original)
+            resolved_paths.append(resolved)
+
+        placeholders = ", ".join("?" * len(resolved_paths))
+        params = resolved_paths + [role]
         with self._connect() as conn:
             rows = conn.execute(
                 f"""
@@ -364,7 +404,7 @@ class FileHashMixin:
 
         result: Dict[str, List[str]] = {}
         for row in rows:
-            fp = row["file_path"]
+            fp = resolved_to_original.get(row["file_path"], row["file_path"])
             if fp not in result:
                 result[fp] = []
             result[fp].append(row["session_id"])

@@ -69,7 +69,7 @@ def test_class_definitions_emits_suspect_script_class_amber_band():
 
 def test_add_file_nodes_uses_file_suspect_class_when_path_in_suspect_files(tmp_path):
     # Arrange — write a file whose canonical hash (via the renderer's own
-    # ``hash_file`` helper, which is sha256[:32]) matches what we declare
+    # ``hash_file`` helper, full sha256 hex digest) matches what we declare
     # as the stored hash; the file is locally OK. The renderer's ``verify_file_hash``
     # therefore returns True on its own check, so only ``suspect_files``
     # tips the cascade into the orange band.
