@@ -101,6 +101,26 @@ def _finding(message: str):
     )
 
 
+def _claim_ref(claim) -> str:
+    """Reference a claim by its STABLE ``claim_id``, with location as a locator.
+
+    A gate finding must name the claim by ``claim_id``, not by ``file:L42``
+    alone: the location shifts on every manuscript re-write (insert one
+    paragraph and every downstream line number moves), so a consumer
+    correlating findings across runs — or joining them back to a submission
+    keyed by ``claim_id``/``question_id`` — cannot use it as an identity.
+    ``claim_id`` is clew's actual primary key and is stable by construction.
+
+    The location is kept as a parenthesised locator because it is what a
+    human needs to actually go fix the thing; dropping it would trade one
+    usability problem for another. Identity first, navigation second.
+    """
+    location = claim.location
+    if location and location != claim.claim_id:
+        return f"{claim.claim_id} ({location})"
+    return claim.claim_id
+
+
 def _value_failure_reason(code: int) -> str:
     """Human reason for a value-integrity RE-HASH failure (distinct from unsourced).
 
@@ -216,12 +236,14 @@ def _run(workdir, config):
             # happens to be ungrounded. Exactly one finding per failing claim.
             if code != OK:
                 findings.append(
-                    _finding(f"claim {claim.location} {_value_failure_reason(code)}")
+                    _finding(
+                        f"claim {_claim_ref(claim)} {_value_failure_reason(code)}"
+                    )
                 )
             elif ungrounded:
                 findings.append(
                     _finding(
-                        f"claim {claim.location} reaches no registered source "
+                        f"claim {_claim_ref(claim)} reaches no registered source "
                         "(unsourced)"
                     )
                 )
