@@ -250,3 +250,75 @@ class TestRunRehashesAtGateTime:
         assert result.passed is False and any(
             "missing" in f.message for f in result.findings
         )
+
+
+class TestFindingReferencesClaimId:
+    """A finding must name the claim by its STABLE ``claim_id``, not by
+    ``file:L42`` alone — line numbers shift on every manuscript re-write, so
+    a consumer correlating findings across runs (or joining them back to a
+    submission keyed by claim_id) cannot use the location as an identity.
+    Card: clew-feat-gate-question-id-completeness, part (a)."""
+
+    def test_unsourced_finding_names_the_claim_id(self, tmp_path):
+        # Arrange — an ungrounded claim, so exactly one unsourced finding fires.
+        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        registered = workdir / "data" / "registered.csv"
+        registered.parent.mkdir(parents=True, exist_ok=True)
+        registered.write_text("a\n1\n")
+        register_source(
+            [registered],
+            sources_path=workdir / ".scitex" / "clew" / "sources.json",
+            root=workdir,
+        )
+        other = workdir / "results" / "hand_made.csv"
+        other.parent.mkdir(parents=True, exist_ok=True)
+        other.write_text("b\n2\n")
+        _insert_claim(
+            db_path,
+            claim_id="q_042",
+            status="verified",
+            source_file=str(other.resolve()),
+            source_hash=hashlib.sha256(other.read_bytes()).hexdigest(),
+        )
+        # Act
+        result = _run(workdir, {})
+        # Assert
+        assert any("q_042" in f.message for f in result.findings)
+
+    def test_value_failure_finding_names_the_claim_id(self, tmp_path):
+        # Arrange — a 'verified' claim whose source is deleted -> value failure.
+        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        src = workdir / "data" / "vanished.csv"
+        src.parent.mkdir(parents=True, exist_ok=True)
+        src.write_text("m\n0.94\n")
+        _insert_claim(
+            db_path,
+            claim_id="q_099",
+            status="verified",
+            source_file=str(src.resolve()),
+            source_hash=hashlib.sha256(src.read_bytes()).hexdigest(),
+        )
+        src.unlink()
+        # Act
+        result = _run(workdir, {})
+        # Assert
+        assert any("q_099" in f.message for f in result.findings)
+
+    def test_finding_still_carries_the_location_as_a_locator(self, tmp_path):
+        # Arrange — identity first, but a human still needs somewhere to go.
+        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        src = workdir / "data" / "vanished2.csv"
+        src.parent.mkdir(parents=True, exist_ok=True)
+        src.write_text("m\n0.94\n")
+        _insert_claim(
+            db_path,
+            claim_id="q_100",
+            status="verified",
+            source_file=str(src.resolve()),
+            source_hash=hashlib.sha256(src.read_bytes()).hexdigest(),
+        )
+        src.unlink()
+        # Act
+        result = _run(workdir, {})
+        # Assert — the .tex location the claim was registered at is still shown.
+        assert any("paper.tex" in f.message for f in result.findings)

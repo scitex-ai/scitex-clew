@@ -7,6 +7,22 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.19.2] — 2026-07-18
+
+### Changed
+- **Pre-submission gate findings now reference a claim by its stable
+  `claim_id`, not by `file:L42` alone** (scitex-todo card
+  `clew-feat-gate-question-id-completeness`, part (a)). A finding read
+  `claim paper.tex:L42 reaches no registered source (unsourced)`; the
+  location shifts on every manuscript re-write (insert one paragraph and
+  every downstream line number moves), so nothing could correlate findings
+  across gate runs, or join them back to a submission keyed by
+  `claim_id`/`question_id`. Findings now read
+  `claim <claim_id> (<location>)` — clew's actual primary key first, with
+  the location retained as a parenthesised locator so a human still has
+  somewhere to go. Message text only; no change to which claims fail or to
+  the gate's pass/fail verdict.
+
 ## [0.19.1] — 2026-07-14
 
 ### Fixed
