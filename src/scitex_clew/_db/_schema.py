@@ -89,6 +89,13 @@ FILE_HASHES_SCHEMA = Schema.build(
         "frozen": _data_field(FieldKind.BOOL),
         "host": _data_field(FieldKind.TEXT),
         "recorded_at": _data_field(FieldKind.TEXT, required=True, indexed=True),
+        # Added by sqlite-migration-scitex-clew-20260828 PR 4
+        # (feat/clew-node-class-store-migration) — was a raw
+        # `ALTER TABLE file_hashes ADD COLUMN node_class TEXT` in the
+        # pre-migration `_core/_node_class.py::migrate_add_node_class`.
+        # Nullable/optional: unset until `auto_classify()`/`set_node_class()`
+        # populates it, matching the old ALTER-TABLE column's default NULL.
+        "node_class": _data_field(FieldKind.TEXT),
     },
 )
 
