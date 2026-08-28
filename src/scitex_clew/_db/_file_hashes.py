@@ -6,9 +6,9 @@
 Every read is ``self._file_hashes.rows()`` (a ``scitex_dev.store.Store``
 built in ``_core.py``) filtered/sorted in Python — Store has no
 WHERE/JOIN/ORDER-BY. This is an accepted O(n)-scan trade-off for what is
-normally a small per-project DB (see the PR body). No sqlite3 import here;
-the legacy `file_hashes` mirror write goes through `VerificationDB._connect()`
-(defined in `_core.py`) via the small `_mirror_file_hash` helper below.
+normally a small per-project DB (see the PR body). No sqlite3 import here
+(sqlite-migration-scitex-clew-20260828 cleanup: the legacy raw-sqlite
+`file_hashes` mirror and its `_mirror_file_hash` helper are gone).
 """
 
 from __future__ import annotations
@@ -43,82 +43,8 @@ def _resolve_host() -> Optional[str]:
 class FileHashMixin:
     """Mixin providing file-hash CRUD operations.
 
-    Requires ``self._file_hashes`` (a Store instance) and
-    ``self._connect()``/``self.db_path`` from VerificationDB.
+    Requires ``self._file_hashes`` (a Store instance) from VerificationDB.
     """
-
-    # -------------------------------------------------------------------------
-    # Legacy mirror migrations — called from _core.py._init_legacy_mirror()
-    # -------------------------------------------------------------------------
-
-    def _migrate_file_hashes_size_bytes(self) -> None:
-        """Add size_bytes column to pre-existing legacy file_hashes tables (idempotent).
-
-        Safe to call even when the column already exists: the PRAGMA check
-        guards the ALTER TABLE so no exception is raised on repeated runs.
-        """
-        with self._connect() as conn:
-            columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()
-            }
-            if "size_bytes" not in columns:
-                conn.execute("ALTER TABLE file_hashes ADD COLUMN size_bytes INTEGER")
-
-    def _migrate_file_hashes_frozen(self) -> None:
-        """Add frozen column to pre-existing legacy file_hashes tables (idempotent).
-
-        frozen INTEGER DEFAULT 0 — trusts the recorded hash without
-        re-reading the file during verification. Safe to call even when the
-        column already exists: the PRAGMA check guards the ALTER TABLE so no
-        exception is raised on repeated runs. Existing rows receive 0
-        (not frozen) automatically.
-        """
-        with self._connect() as conn:
-            columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()
-            }
-            if "frozen" not in columns:
-                conn.execute("ALTER TABLE file_hashes ADD COLUMN frozen INTEGER DEFAULT 0")
-
-    def _migrate_file_hashes_host(self) -> None:
-        """Add host column to pre-existing legacy file_hashes tables (idempotent).
-
-        host TEXT (nullable) — records which host produced each artifact so
-        provenance can be reasoned about across machines/nodes. Safe to call
-        even when the column already exists: the PRAGMA check guards the
-        ALTER TABLE so no exception is raised on repeated runs. Existing rows
-        receive NULL (unknown host) automatically.
-        """
-        with self._connect() as conn:
-            columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()
-            }
-            if "host" not in columns:
-                conn.execute("ALTER TABLE file_hashes ADD COLUMN host TEXT")
-
-    # -------------------------------------------------------------------------
-    # Mirror write helper (legacy `file_hashes` table — see _core.py docstring)
-    # -------------------------------------------------------------------------
-
-    def _mirror_file_hash(
-        self,
-        session_id: str,
-        file_path: str,
-        hash_value: str,
-        role: str,
-        size_bytes: Optional[int],
-        frozen: bool,
-        host: Optional[str],
-    ) -> None:
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO file_hashes
-                (session_id, file_path, hash, role, size_bytes, frozen, host)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (session_id, file_path, hash_value, role, size_bytes, int(frozen), host),
-            )
 
     # -------------------------------------------------------------------------
     # Insert
@@ -175,7 +101,6 @@ class FileHashMixin:
             },
             expected_revision=ANY_REVISION,
         )
-        self._mirror_file_hash(session_id, file_path, hash_value, role, size_bytes, frozen, host)
 
     def add_file_hashes(
         self,
@@ -209,7 +134,6 @@ class FileHashMixin:
                 },
                 expected_revision=ANY_REVISION,
             )
-            self._mirror_file_hash(session_id, path, hash_value, role, None, False, host)
 
     # -------------------------------------------------------------------------
     # Query
