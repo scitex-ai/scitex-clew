@@ -68,31 +68,21 @@ def _resolve_chain_flags(claim) -> tuple:
     if not all_ids:
         return False, False
 
-    # Build the IN-clause placeholders for the set of session IDs.
-    placeholders = ", ".join("?" * len(all_ids))
-    id_list = list(all_ids)
-
-    chain_has_exception = False
-    chain_has_frozen = False
-
-    with db._connect() as conn:
-        # chain_has_exception: any run has provenance == 'exception'
-        row = conn.execute(
-            f"SELECT 1 FROM runs WHERE session_id IN ({placeholders})"
-            " AND provenance = 'exception' LIMIT 1",
-            id_list,
-        ).fetchone()
-        if row:
-            chain_has_exception = True
-
-        # chain_has_frozen: any file_hashes row has frozen == 1
-        row2 = conn.execute(
-            f"SELECT 1 FROM file_hashes WHERE session_id IN ({placeholders})"
-            " AND frozen = 1 LIMIT 1",
-            id_list,
-        ).fetchone()
-        if row2:
-            chain_has_frozen = True
+    # chain_has_exception: any `runs` row in the resolved session set has
+    # provenance == 'exception'. chain_has_frozen: any `file_hashes` row in
+    # the resolved session set has frozen == True. Store has no WHERE/JOIN —
+    # a plain Python scan + membership check over all_ids replaces the two
+    # SQL queries (see _db/_core.py module docstring for why this reads the
+    # Store directly instead of the legacy sqlite mirror).
+    chain_has_exception = any(
+        r.values.get("session_id") in all_ids
+        and r.values.get("provenance") == "exception"
+        for r in db._runs.rows()
+    )
+    chain_has_frozen = any(
+        r.values.get("session_id") in all_ids and r.values.get("frozen")
+        for r in db._file_hashes.rows()
+    )
 
     return chain_has_exception, chain_has_frozen
 
@@ -135,22 +125,21 @@ def _resolve_exception_reasons(claim) -> List[tuple]:
     if not all_ids:
         return []
 
-    placeholders = ", ".join("?" * len(all_ids))
-    id_list = list(all_ids)
-
-    with db._connect() as conn:
-        rows = conn.execute(
-            f"SELECT session_id, exception_reason FROM runs"
-            f" WHERE session_id IN ({placeholders})"
-            f" AND provenance = 'exception'"
-            f" ORDER BY session_id",
-            id_list,
-        ).fetchall()
+    # `runs` rows in the resolved session set with provenance == 'exception',
+    # sorted by session_id — Store has no WHERE/ORDER-BY, so this is a plain
+    # Python filter + sort over db._runs.rows() (see _resolve_chain_flags).
+    matches = [
+        r.values
+        for r in db._runs.rows()
+        if r.values.get("session_id") in all_ids
+        and r.values.get("provenance") == "exception"
+    ]
+    matches.sort(key=lambda values: values.get("session_id") or "")
 
     result = []
-    for row in rows:
-        sid = row[0]
-        reason = row[1]
+    for values in matches:
+        sid = values.get("session_id")
+        reason = values.get("exception_reason")
         if not reason:
             reason = "no reason given"
         result.append((sid, reason))
