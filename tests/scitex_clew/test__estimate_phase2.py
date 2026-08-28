@@ -119,6 +119,20 @@ class TestMigrationAddsSizeBytes:
 
     def test_migration_preserves_existing_rows(self, tmp_path):
         # Arrange — create DB manually, insert a row, then open via VerificationDB
+        #
+        # NOTE (sqlite-migration-scitex-clew-20260828 — accepted behavior
+        # change): `get_file_hashes()` is now backed by
+        # `scitex_dev.store.Store` and reads exclusively from it, never from
+        # the legacy raw-sqlite mirror `_estimate.py` itself queries (via
+        # `db._connect()`). A row inserted directly into the legacy
+        # `file_hashes` table via raw SQL (as here) is therefore invisible
+        # to `get_file_hashes()` — the Store has no row for it, since it was
+        # never written through `add_file_hash()`. `_estimate.py`'s OWN
+        # queries (`_query_runs_by_hash`, `_output_bytes_for_sessions`, ...)
+        # still see this row correctly: they read the mirror directly, and
+        # the mirror is unaffected by this migration. This assertion moved
+        # from `get_file_hashes()` to the mirror table itself to test what
+        # is still true.
         db_path = tmp_path / "legacy2.db"
         conn = sqlite3.connect(db_path)
         conn.execute(
@@ -159,11 +173,14 @@ class TestMigrationAddsSizeBytes:
         )
         conn.commit()
         conn.close()
-        # Act — open via VerificationDB migrates and preserves data
+        # Act — open via VerificationDB migrates and preserves data in the mirror
         db = VerificationDB(db_path)
-        hashes = db.get_file_hashes("sess-old", role="output")
+        with db._connect() as conn2:
+            row = conn2.execute(
+                "SELECT file_path FROM file_hashes WHERE session_id = 'sess-old'"
+            ).fetchone()
         # Assert
-        assert "/old/out.csv" in hashes
+        assert row["file_path"] == "/old/out.csv"
 
     def test_migration_idempotent_on_second_open(self, tmp_path):
         # Arrange — open twice; second open should not raise
