@@ -212,6 +212,14 @@ class TestStampDataclass:
 
 
 class TestMigrateAddStampsTable:
+    # RETARGETED (sqlite-migration-scitex-clew-20260828, PR 5): `stamps` is no
+    # longer a literal raw-sqlite table — `migrate_add_stamps_table` now
+    # constructs a `scitex_dev.store.Store`, whose materialised current-state
+    # table for schema "stamps" is physically named "stamps_rows"
+    # (Dialect.rows_table: f"{schema.name}_rows"). The premise "there is a
+    # table literally named 'stamps'" no longer holds; these tests now check
+    # for the Store's rows table instead, keeping the same "table got
+    # created, idempotently" intent.
     def test_creates_stamps_table(self, tmp_path):
         # Arrange
         # Arrange
@@ -221,7 +229,7 @@ class TestMigrateAddStampsTable:
         migrate_add_stamps_table(db_path)
         conn = sqlite3.connect(str(db_path))
         result = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='stamps'"
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='stamps_rows'"
         ).fetchone()
         # Act
         # Act
@@ -240,7 +248,7 @@ class TestMigrateAddStampsTable:
         migrate_add_stamps_table(db_path)  # Should not raise
         conn = sqlite3.connect(str(db_path))
         result = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='stamps'"
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='stamps_rows'"
         ).fetchone()
         # Act
         # Act
