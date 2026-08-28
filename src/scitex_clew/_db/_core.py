@@ -22,25 +22,29 @@ DELIBERATE EXCEPTION — a legacy raw-sqlite *mirror* of ``runs`` and
 ``file_hashes`` (exact original schema) is still written on every
 ``add_run``/``finish_run``/``add_file_hash``/``add_file_hashes`` call, and
 ``VerificationDB._connect()`` still opens a raw ``sqlite3`` connection to
-it. This is why ``import sqlite3`` remains in this file (only). Five call
-sites outside this migration's scope open a raw connection to
-``db.db_path`` and read the ``runs``/``file_hashes`` tables directly, with
-no public-API equivalent this PR is permitted to introduce for them:
+it. This is why ``import sqlite3`` remains in this file (only). As of this
+PR's stacked follow-ups, the remaining call sites outside this migration's
+scope that open a raw connection to ``db.db_path`` and read the
+``runs``/``file_hashes`` tables directly (no public-API equivalent this PR
+is permitted to introduce for them) are:
 
 - ``src/scitex_clew/_gate_plugin.py`` (``SELECT COUNT(*) FROM runs``)
 - ``src/scitex_clew/_attest/_stamp.py`` (``SELECT session_id, combined_hash FROM runs``)
 - ``src/scitex_clew/_core/_node_class.py`` (reads/writes ``file_hashes.id``/``node_class``)
 - ``src/scitex_clew/_estimate.py`` (five ``db._connect()`` call sites)
-- ``src/scitex_clew/_claim/_export.py`` (two ``db._connect()`` call sites)
 
-All five are explicitly out of scope for this PR (``_gate_plugin.py``,
-``_attest/*`` and ``_core/_node_class.py`` are named exclusions; the other
-two fall outside the four files this migration is scoped to). Breaking
-them silently was not an option, so the legacy tables are kept as a
-write-only-by-us mirror: this module's own reads (``get_run``,
-``list_runs``, ``get_chain``, ...) go through the Store exclusively; the
-mirror exists only so those five external call sites keep working
-unmodified. See the PR description for the full rationale.
+(``src/scitex_clew/_claim/_export.py`` — the two ``db._connect()`` call
+sites inside ``_resolve_chain_flags``/``_resolve_exception_reasons`` — has
+been migrated onto ``db._runs``/``db._file_hashes`` Store reads; see the
+``sqlite-migration-scitex-clew-20260828`` card.)
+
+``_gate_plugin.py``, ``_attest/*`` and ``_core/_node_class.py`` are named
+exclusions from this PR's scope; ``_estimate.py`` is a sibling in-flight
+migration. Breaking them silently was not an option, so the legacy tables
+are kept as a write-only-by-us mirror: this module's own reads
+(``get_run``, ``list_runs``, ``get_chain``, ...) go through the Store
+exclusively; the mirror exists only so those remaining external call sites
+keep working unmodified. See the PR description for the full rationale.
 
 Legacy ``verification_results`` and ``session_parents`` raw tables are
 RETIRED (no longer created or written) — a repo-wide grep found no code
@@ -216,10 +220,11 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
     def _connect(self):
         """Context manager for the legacy raw-sqlite mirror connection.
 
-        Kept ONLY because ``_estimate.py`` and two functions in
-        ``_claim/_export.py`` — both out of scope for this migration —
-        call this method directly. Internal `_db` logic no longer uses it
-        for reads; `get_run`/`list_runs`/etc. read the Store exclusively.
+        Kept ONLY because ``_estimate.py`` — out of scope for this
+        migration — still calls this method directly (``_claim/_export.py``
+        migrated off it; see the ``sqlite-migration-scitex-clew-20260828``
+        card). Internal `_db` logic no longer uses it for reads;
+        `get_run`/`list_runs`/etc. read the Store exclusively.
         """
         conn = _clew_sqlite_connect(self.db_path)
         conn.row_factory = sqlite3.Row
