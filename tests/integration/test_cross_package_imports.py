@@ -57,11 +57,12 @@ CROSS_PACKAGE_IMPORTS = [
 def test_cross_package_import(module_name):
     """Importing scitex-clew's declared cross-package dependency must succeed.
 
-    Skip on the ROOT package, hard-import the FULL path (PS-140 §2): skipping
-    on the full dotted path would let a renamed submodule (e.g.
-    `scitex_io._load_cache` -> `scitex_io._loading._load_cache`) raise
-    ModuleNotFoundError, get swallowed by `importorskip`, and report green --
-    the exact failure this gate exists to catch.
+    Skips on the ROOT package only (``pytest.importorskip(name.split('.')[0])``),
+    then hard-imports the full dotted path. Skipping on the FULL path instead
+    (``importorskip(module_name)``) would hide a renamed/moved submodule as a
+    false-green skip — exactly the failure this gate exists to catch (PS-140
+    §2). A missing ROOT package still skips cleanly for a lean install where
+    the peer is a legitimate optional extra.
     """
     # Arrange
     root = module_name.split(".")[0]

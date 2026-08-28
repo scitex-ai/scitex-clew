@@ -697,10 +697,25 @@ class TestProvenanceMigration:
         # Assert
         assert "provenance" in cols
 
-    def test_migration_preserves_existing_rows_as_tracked(self, tmp_path):
-        # Arrange — insert a row WITHOUT provenance (simulate pre-existing DB
-        # by creating the DB, inserting a row via raw SQL without the new cols,
-        # then running the migration manually).
+    def test_migration_adds_provenance_column_to_legacy_mirror(self, tmp_path):
+        # Arrange — insert a row WITHOUT provenance directly into the raw
+        # legacy `runs` table (simulating a pre-migration DB), then open a
+        # VerificationDB and confirm the additive ALTER TABLE still runs.
+        #
+        # NOTE (sqlite-migration-scitex-clew-20260828 — accepted behavior
+        # change): `get_run()` is now Store-backed and reads exclusively
+        # from the Store, never from the legacy raw-sqlite mirror. A row
+        # inserted directly into the legacy `runs` table via raw SQL (as
+        # here) is therefore invisible to `get_run()` — the Store has no
+        # row for it, since it was never written through `add_run()`. The
+        # legacy mirror exists only so `_estimate.py`, `_claim/_export.py`,
+        # `_attest/_stamp.py`, `_gate_plugin.py` and
+        # `_core/_node_class.py` (all out of scope for this migration)
+        # keep reading real data through their own raw SQL. This test was
+        # split from the old `test_migration_preserves_existing_rows_*`
+        # pair, which asserted `db.get_run(...)["provenance"] == "tracked"`
+        # — no longer true — to instead assert the thing that is still
+        # true: the mirror table itself gets migrated.
         import sqlite3
 
         db_path = tmp_path / "legacy.db"
@@ -719,12 +734,16 @@ class TestProvenanceMigration:
         conn.close()
         db = VerificationDB(db_path)
         # Act
-        run = db.get_run("legacy_001")
+        with db._connect() as conn:
+            row = conn.execute(
+                "SELECT provenance FROM runs WHERE session_id = 'legacy_001'"
+            ).fetchone()
         # Assert
-        assert run["provenance"] == "tracked"
+        assert row["provenance"] == "tracked"
 
-    def test_migration_preserves_existing_rows_data(self, tmp_path):
-        # Arrange — same legacy DB as above; verify original data is intact.
+    def test_migration_preserves_legacy_mirror_row_data(self, tmp_path):
+        # Arrange — same legacy DB as above; verify original data is intact
+        # in the legacy mirror table (see note above: NOT via get_run()).
         import sqlite3
 
         db_path = tmp_path / "legacy2.db"
@@ -743,9 +762,12 @@ class TestProvenanceMigration:
         conn.close()
         db = VerificationDB(db_path)
         # Act
-        run = db.get_run("legacy_002")
+        with db._connect() as conn:
+            row = conn.execute(
+                "SELECT session_id FROM runs WHERE session_id = 'legacy_002'"
+            ).fetchone()
         # Assert
-        assert run["session_id"] == "legacy_002"
+        assert row["session_id"] == "legacy_002"
 
 
 class TestAddRunProvenance:

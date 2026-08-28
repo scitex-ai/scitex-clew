@@ -1,33 +1,36 @@
 #!/usr/bin/env python3
-# Timestamp: "2026-03-04 (ywatanabe)"
-# File: /home/ywatanabe/proj/scitex-python/src/scitex/clew/_db_chain.py
-"""Chain and DAG relationship operations for VerificationDB."""
+# Timestamp: "2026-08-28 (sqlite-migration-scitex-clew-20260828)"
+# File: src/scitex_clew/_db/_chain.py
+"""Chain and DAG relationship operations for VerificationDB (Store-backed).
+
+Every method reads via ``self._runs`` / ``self._session_parents``
+(``scitex_dev.store.Store`` instances built in ``_core.py``) with a
+Python-side filter/sort — Store has no WHERE/JOIN/ORDER-BY. No sqlite3
+import here: `set_parent`/`add_parent` write through `VerificationDB.put`
+methods only; the legacy `runs` mirror is updated via `_core.py`'s own
+`_mirror_run_field` helper, not directly from this module.
+
+The legacy raw `session_parents` table (and its startup backfill,
+`_migrate_session_parents`) is RETIRED — a repo-wide grep found nothing
+outside `_db/` ever read it, so there is nothing to mirror or migrate.
+`get_dag`'s runs.parent_session FALLBACK (below) already gives the same
+observable result live, at query time, without needing a backfill pass.
+"""
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Dict, List
+
+from scitex_dev.store import ANY_REVISION, NEW_RECORD
 
 
 class ChainMixin:
     """Mixin providing chain and multi-parent DAG operations.
 
-    Requires _connect() context manager from VerificationDB.
+    Requires ``self._runs`` and ``self._session_parents`` (Store instances)
+    from VerificationDB.
     """
-
-    # -------------------------------------------------------------------------
-    # Migration
-    # -------------------------------------------------------------------------
-
-    def _migrate_session_parents(self) -> None:
-        """Populate session_parents from existing runs.parent_session (idempotent)."""
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT OR IGNORE INTO session_parents (session_id, parent_session)
-                SELECT session_id, parent_session FROM runs
-                WHERE parent_session IS NOT NULL
-                """
-            )
 
     # -------------------------------------------------------------------------
     # Chain operations
@@ -48,32 +51,22 @@ class ChainMixin:
         """
         chain = [session_id]
         current = session_id
-
-        with self._connect() as conn:
-            while True:
-                row = conn.execute(
-                    "SELECT parent_session FROM runs WHERE session_id = ?",
-                    (current,),
-                ).fetchone()
-                if not row or not row["parent_session"]:
-                    break
-                current = row["parent_session"]
-                chain.append(current)
-
+        while True:
+            row = self._runs.get((current,))
+            parent = row.values.get("parent_session") if row else None
+            if not parent:
+                break
+            current = parent
+            chain.append(current)
         return chain
 
     def get_children(self, session_id: str) -> List[str]:
         """Get child sessions that depend on this session."""
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT session_id FROM runs
-                WHERE parent_session = ?
-                ORDER BY started_at
-                """,
-                (session_id,),
-            ).fetchall()
-            return [row["session_id"] for row in rows]
+        children = [
+            r for r in self._runs.rows() if r.values.get("parent_session") == session_id
+        ]
+        children.sort(key=lambda r: r.values.get("started_at") or "")
+        return [r.values.get("session_id") for r in children]
 
     def set_parent(self, session_id: str, parent_session: str) -> None:
         """Set the parent session for a run.
@@ -85,19 +78,12 @@ class ChainMixin:
         parent_session : str
             Parent session identifier
         """
-        with self._connect() as conn:
-            conn.execute(
-                "UPDATE runs SET parent_session = ? WHERE session_id = ?",
-                (parent_session, session_id),
-            )
-            conn.execute(
-                """
-                INSERT OR IGNORE INTO session_parents
-                (session_id, parent_session)
-                VALUES (?, ?)
-                """,
-                (session_id, parent_session),
-            )
+        self._runs.put(
+            {"session_id": session_id, "parent_session": parent_session},
+            expected_revision=ANY_REVISION,
+        )
+        self._mirror_run_field(session_id, parent_session=parent_session)
+        self._record_parent_edge(session_id, parent_session)
 
     def add_parent(self, session_id: str, parent_session: str) -> None:
         """Add a parent relationship for a session.
@@ -112,23 +98,30 @@ class ChainMixin:
         parent_session : str
             Parent session identifier
         """
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT OR IGNORE INTO session_parents
-                (session_id, parent_session)
-                VALUES (?, ?)
-                """,
-                (session_id, parent_session),
+        self._record_parent_edge(session_id, parent_session)
+
+        # Set primary parent if not yet set (backward compat).
+        current = self._runs.get((session_id,))
+        if current is not None and current.values.get("parent_session") is None:
+            self._runs.put(
+                {"session_id": session_id, "parent_session": parent_session},
+                expected_revision=ANY_REVISION,
             )
-            # Set primary parent if not yet set (backward compat)
-            conn.execute(
-                """
-                UPDATE runs SET parent_session = ?
-                WHERE session_id = ? AND parent_session IS NULL
-                """,
-                (parent_session, session_id),
-            )
+            self._mirror_run_field(session_id, parent_session=parent_session)
+
+    def _record_parent_edge(self, session_id: str, parent_session: str) -> None:
+        """INSERT OR IGNORE into session_parents (idempotent junction write)."""
+        key = (session_id, parent_session)
+        if self._session_parents.get(key) is not None:
+            return
+        self._session_parents.put(
+            {
+                "session_id": session_id,
+                "parent_session": parent_session,
+                "recorded_at": datetime.now().isoformat(),
+            },
+            expected_revision=NEW_RECORD,
+        )
 
     def get_parents(self, session_id: str) -> List[str]:
         """Get all parent sessions for a given session.
@@ -143,16 +136,13 @@ class ChainMixin:
         list of str
             List of parent session IDs
         """
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT parent_session FROM session_parents
-                WHERE session_id = ?
-                ORDER BY recorded_at
-                """,
-                (session_id,),
-            ).fetchall()
-            return [row["parent_session"] for row in rows]
+        edges = [
+            r
+            for r in self._session_parents.rows()
+            if r.values.get("session_id") == session_id
+        ]
+        edges.sort(key=lambda r: r.values.get("recorded_at") or "")
+        return [r.values.get("parent_session") for r in edges]
 
     def get_dag(self, session_ids: List[str]) -> tuple:
         """BFS backward from leaf sessions to collect the full DAG.
@@ -175,41 +165,29 @@ class ChainMixin:
         queue = deque(session_ids)
         visited: set = set()
 
-        with self._connect() as conn:
-            while queue:
-                sid = queue.popleft()
-                if sid in visited:
-                    continue
-                visited.add(sid)
-                all_ids.add(sid)
+        while queue:
+            sid = queue.popleft()
+            if sid in visited:
+                continue
+            visited.add(sid)
+            all_ids.add(sid)
 
-                rows = conn.execute(
-                    """
-                    SELECT parent_session FROM session_parents
-                    WHERE session_id = ?
-                    ORDER BY recorded_at
-                    """,
-                    (sid,),
-                ).fetchall()
+            parents = self.get_parents(sid)
 
-                parents = [row["parent_session"] for row in rows]
+            # Fallback: if no junction table entries, check runs.parent_session.
+            if not parents:
+                row = self._runs.get((sid,))
+                parent = row.values.get("parent_session") if row else None
+                if parent:
+                    parents = [parent]
 
-                # Fallback: if no junction table entries, check runs.parent_session
-                if not parents:
-                    row = conn.execute(
-                        "SELECT parent_session FROM runs WHERE session_id = ?",
-                        (sid,),
-                    ).fetchone()
-                    if row and row["parent_session"]:
-                        parents = [row["parent_session"]]
+            adjacency[sid] = parents
+            for p in parents:
+                all_ids.add(p)
+                if p not in visited:
+                    queue.append(p)
 
-                adjacency[sid] = parents
-                for p in parents:
-                    all_ids.add(p)
-                    if p not in visited:
-                        queue.append(p)
-
-        # Ensure root nodes have empty parent lists
+        # Ensure root nodes have empty parent lists.
         for sid in all_ids:
             if sid not in adjacency:
                 adjacency[sid] = []
