@@ -7,8 +7,8 @@ Every method reads via ``self._runs`` / ``self._session_parents``
 (``scitex_dev.store.Store`` instances built in ``_core.py``) with a
 Python-side filter/sort — Store has no WHERE/JOIN/ORDER-BY. No sqlite3
 import here: `set_parent`/`add_parent` write through `VerificationDB.put`
-methods only; the legacy `runs` mirror is updated via `_core.py`'s own
-`_mirror_run_field` helper, not directly from this module.
+methods only (sqlite-migration-scitex-clew-20260828 cleanup: the legacy
+raw-sqlite `runs` mirror and its `_mirror_run_field` helper are gone).
 
 The legacy raw `session_parents` table (and its startup backfill,
 `_migrate_session_parents`) is RETIRED — a repo-wide grep found nothing
@@ -82,7 +82,6 @@ class ChainMixin:
             {"session_id": session_id, "parent_session": parent_session},
             expected_revision=ANY_REVISION,
         )
-        self._mirror_run_field(session_id, parent_session=parent_session)
         self._record_parent_edge(session_id, parent_session)
 
     def add_parent(self, session_id: str, parent_session: str) -> None:
@@ -107,7 +106,6 @@ class ChainMixin:
                 {"session_id": session_id, "parent_session": parent_session},
                 expected_revision=ANY_REVISION,
             )
-            self._mirror_run_field(session_id, parent_session=parent_session)
 
     def _record_parent_edge(self, session_id: str, parent_session: str) -> None:
         """INSERT OR IGNORE into session_parents (idempotent junction write)."""

@@ -62,14 +62,11 @@ def _add_completed_run(
 ) -> None:
     """Add a completed run with the given wall-clock duration.
 
-    NOTE (sqlite-migration-scitex-clew-20260828 — retargeted, not deleted,
-    per PR #142/#143's established pattern): `_estimate.py`'s queries now
-    read `db._runs` (a `scitex_dev.store.Store`) exclusively, never the
-    legacy raw-sqlite mirror `db._connect()` exposes. Overwriting
-    started_at/finished_at via a raw `UPDATE` on the mirror (the old
-    approach) would no longer be visible to `_estimate.py` at all — the
-    Store and the mirror are two independent copies once written.
-    Overwrite through the Store's own partial-update path instead
+    NOTE (sqlite-migration-scitex-clew-20260828 — final cleanup):
+    `_estimate.py`'s queries read `db._runs` (a `scitex_dev.store.Store`)
+    exclusively; the legacy raw-sqlite mirror `db._connect()` used to
+    expose (now removed entirely) never enters the picture. Overwrite
+    started_at/finished_at through the Store's own partial-update path
     (`Store.put()` with only session_id + the two timestamp fields,
     mirroring `finish_run()`'s own partial-put pattern) so the exact,
     deterministic durations these tests rely on (e.g. p50/p90 assertions)

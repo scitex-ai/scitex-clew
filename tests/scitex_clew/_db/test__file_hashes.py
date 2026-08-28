@@ -394,12 +394,24 @@ class TestHostColumn:
 
 
 class TestHostColumnMigration:
-    def _old_schema_db(self, path):
-        """Create a pre-Phase-5 file_hashes table (no host column).
+    """RETARGETED (sqlite-migration-scitex-clew-20260828 final cleanup):
+    originally exercised the legacy raw-sqlite mirror's idempotent
+    `ALTER TABLE file_hashes ADD COLUMN host` migration on a hand-rolled
+    pre-existing sqlite file, reading the mirror table back via a raw
+    `sqlite3.connect()`. That legacy mirror (and its
+    `_migrate_file_hashes_host` helper) is deleted — the Store schema
+    carries `host` as a first-class field from creation, so there is no
+    additive-ALTER-TABLE step left to test. These tests now assert the
+    equivalent real behavior: opening VerificationDB against a db_path
+    that already contains an unrelated pre-existing sqlite file with
+    old-shape raw tables must not crash, and normal Store-backed `host`
+    behavior keeps working.
+    """
 
-        Only the legacy file_hashes table is pre-created; VerificationDB builds
-        the rest of the schema (runs, indexes, …) fresh on open. This isolates
-        the Phase-5 host-column ALTER as the exact path under test.
+    def _old_schema_db(self, path):
+        """Create a pre-Phase-5 file_hashes table (no host column), unrelated
+        to anything the Store touches — regression fixture for "don't crash
+        / don't collide with an old-shaped file already at this path."
         """
         conn = sqlite3.connect(str(path))
         conn.executescript(
@@ -419,24 +431,27 @@ class TestHostColumnMigration:
         conn.commit()
         conn.close()
 
-    def test_opening_old_db_adds_host_column(self, tmp_path):
+    def test_opening_old_db_does_not_crash_and_host_works(self, tmp_path):
         # Arrange
         dbfile = tmp_path / "legacy.db"
         self._old_schema_db(dbfile)
-        # Act
-        VerificationDB(dbfile)
-        conn = sqlite3.connect(str(dbfile))
-        cols = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)")}
-        conn.close()
+        # Act — open against the pre-existing legacy-shaped file, then use
+        # the public API (host is a first-class Store field from creation).
+        db = VerificationDB(dbfile)
+        db.add_run("s1", script_path="/script.py")
+        with _EnvGuard(SCITEX_CLEW_HOST="node-Z"):
+            db.add_file_hash("s1", "/data/out.csv", "newhash", "output")
+        hosts = db.hosts_for_hash("newhash")
         # Assert
-        assert "host" in cols
+        assert hosts == ["node-Z"]
 
-    def test_legacy_row_reads_back_with_null_host(self, tmp_path):
-        # Arrange
+    def test_legacy_row_not_visible_via_store_backed_hosts_for_hash(self, tmp_path):
+        # Arrange — a row inserted directly into the OLD raw table (never
+        # through add_file_hash) is invisible to the Store-backed
+        # hosts_for_hash — the Store has no row for it.
         dbfile = tmp_path / "legacy2.db"
         self._old_schema_db(dbfile)
-        VerificationDB(dbfile)
-        # Act — legacy row's content has no known host (NULL omitted).
+        # Act
         hosts = VerificationDB(dbfile).hosts_for_hash("oldhash")
         # Assert
         assert hosts == []

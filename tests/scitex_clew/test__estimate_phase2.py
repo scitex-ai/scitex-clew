@@ -60,16 +60,13 @@ def _add_completed_run(
 ) -> None:
     """Add a completed run with the given wall-clock duration.
 
-    NOTE (sqlite-migration-scitex-clew-20260828 — retargeted, not deleted,
-    per PR #142/#143's established pattern): `_estimate.py`'s queries now
-    read `db._runs` (a `scitex_dev.store.Store`) exclusively, never the
-    legacy raw-sqlite mirror `db._connect()` exposes. Overwriting
-    started_at/finished_at via a raw `UPDATE` on the mirror (the old
-    approach) would no longer be visible to `_estimate.py` at all — the
-    Store and the mirror are two independent copies once written.
-    Overwrite through the Store's own partial-update path instead
-    (`Store.put()` with only session_id + the two timestamp fields,
-    mirroring `finish_run()`'s own partial-put pattern).
+    NOTE (sqlite-migration-scitex-clew-20260828 — final cleanup):
+    `_estimate.py`'s queries read `db._runs` (a `scitex_dev.store.Store`)
+    exclusively; the legacy raw-sqlite mirror `db._connect()` used to
+    expose (now removed entirely) never enters the picture. Overwrite
+    started_at/finished_at through the Store's own partial-update path
+    instead (`Store.put()` with only session_id + the two timestamp
+    fields, mirroring `finish_run()`'s own partial-put pattern).
     """
     from scitex_dev.store import ANY_REVISION
 
@@ -93,64 +90,40 @@ def _add_completed_run(
 
 
 class TestMigrationAddsSizeBytes:
-    def test_migration_column_exists_after_open(self, tmp_path):
-        # Arrange — create DB manually without size_bytes column
-        db_path = tmp_path / "legacy.db"
-        conn = sqlite3.connect(db_path)
-        conn.execute(
-            """
-            CREATE TABLE file_hashes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                file_path TEXT NOT NULL,
-                hash TEXT NOT NULL,
-                role TEXT NOT NULL,
-                recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE runs (
-                session_id TEXT PRIMARY KEY,
-                script_path TEXT,
-                script_hash TEXT,
-                started_at TIMESTAMP,
-                finished_at TIMESTAMP,
-                status TEXT,
-                exit_code INTEGER,
-                parent_session TEXT,
-                combined_hash TEXT,
-                metadata TEXT
-            )
-            """
-        )
-        conn.commit()
-        conn.close()
-        # Act — open via VerificationDB triggers migration
-        db = VerificationDB(db_path)
-        with db._connect() as conn2:
-            columns = {row[1] for row in conn2.execute("PRAGMA table_info(file_hashes)").fetchall()}
-        # Assert
-        assert "size_bytes" in columns
+    """Store-backed `size_bytes` support.
 
-    def test_migration_preserves_existing_rows(self, tmp_path):
-        # Arrange — create DB manually, insert a row, then open via VerificationDB
-        #
-        # NOTE (sqlite-migration-scitex-clew-20260828 — accepted behavior
-        # change): `get_file_hashes()` is now backed by
-        # `scitex_dev.store.Store` and reads exclusively from it, never from
-        # the legacy raw-sqlite mirror `_estimate.py` itself queries (via
-        # `db._connect()`). A row inserted directly into the legacy
-        # `file_hashes` table via raw SQL (as here) is therefore invisible
-        # to `get_file_hashes()` — the Store has no row for it, since it was
-        # never written through `add_file_hash()`. `_estimate.py`'s OWN
-        # queries (`_query_runs_by_hash`, `_output_bytes_for_sessions`, ...)
-        # still see this row correctly: they read the mirror directly, and
-        # the mirror is unaffected by this migration. This assertion moved
-        # from `get_file_hashes()` to the mirror table itself to test what
-        # is still true.
-        db_path = tmp_path / "legacy2.db"
+    RETARGETED (sqlite-migration-scitex-clew-20260828 final cleanup): this
+    class originally exercised the legacy raw-sqlite mirror's idempotent
+    `ALTER TABLE file_hashes ADD COLUMN size_bytes` migration (including
+    opening a `VerificationDB` against a hand-rolled pre-existing sqlite
+    file with old-shape tables, and reading the result back via
+    `db._connect()`). That legacy mirror and its
+    `_migrate_file_hashes_size_bytes` helper are deleted — Store schemas
+    carry `size_bytes` as a first-class field from creation, so there is
+    no additive-ALTER-TABLE step left to test. These tests now assert the
+    equivalent real behavior: `size_bytes` round-trips through the Store,
+    including the regression case of opening `VerificationDB` against a
+    db_path that already contains an unrelated pre-existing sqlite file
+    with old-shape raw tables (must not crash or collide with Store's own
+    physical tables, which are named distinctly — `<schema>_rows` etc.).
+    """
+
+    def test_size_bytes_round_trips_through_store(self, tmp_path):
+        # Arrange
+        db = VerificationDB(tmp_path / "fresh.db")
+        db.add_run("s1", "/path/script.py")
+        db.add_file_hash("s1", "/data/file.csv", "abc123", "input", size_bytes=42)
+        # Act
+        rows = [r for r in db._file_hashes.rows() if r.values.get("session_id") == "s1"]
+        # Assert
+        assert rows[0].values.get("size_bytes") == 42
+
+    def test_opening_db_against_preexisting_legacy_shaped_file_does_not_crash(self, tmp_path):
+        # Arrange — a pre-existing sqlite file with old-shape (no
+        # size_bytes) raw `runs`/`file_hashes` tables, unrelated to
+        # anything Store touches (Store's physical tables use distinct
+        # `<schema>_rows`/`_oplog`/... names, never the bare table names).
+        db_path = tmp_path / "legacy.db"
         conn = sqlite3.connect(db_path)
         conn.execute(
             """
@@ -190,24 +163,27 @@ class TestMigrationAddsSizeBytes:
         )
         conn.commit()
         conn.close()
-        # Act — open via VerificationDB migrates and preserves data in the mirror
+        # Act — open via VerificationDB; must not raise, and normal
+        # Store-backed operations (with size_bytes) must keep working.
         db = VerificationDB(db_path)
-        with db._connect() as conn2:
-            row = conn2.execute(
-                "SELECT file_path FROM file_hashes WHERE session_id = 'sess-old'"
-            ).fetchone()
+        db.add_run("s1", "/path/script.py")
+        db.add_file_hash("s1", "/data/new.csv", "def456", "output", size_bytes=99)
+        rows = [r for r in db._file_hashes.rows() if r.values.get("session_id") == "s1"]
         # Assert
-        assert row["file_path"] == "/old/out.csv"
+        assert rows[0].values.get("size_bytes") == 99
 
-    def test_migration_idempotent_on_second_open(self, tmp_path):
-        # Arrange — open twice; second open should not raise
+    def test_size_bytes_visible_across_reopened_db_instances(self, tmp_path):
+        # Arrange — open once, write, then re-open the same path a second
+        # time (Store-backed replacement for "migration is idempotent on
+        # second open").
         db = _make_db(tmp_path)
+        db.add_run("s1", "/path/script.py")
+        db.add_file_hash("s1", "/data/file.csv", "abc123", "input", size_bytes=17)
         # Act — second open of the same path
         db2 = VerificationDB(tmp_path / "test_p2.db")
-        with db2._connect() as conn:
-            columns = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()}
+        rows = [r for r in db2._file_hashes.rows() if r.values.get("session_id") == "s1"]
         # Assert
-        assert "size_bytes" in columns
+        assert rows[0].values.get("size_bytes") == 17
 
 
 # ---------------------------------------------------------------------------
@@ -216,6 +192,12 @@ class TestMigrationAddsSizeBytes:
 
 
 class TestSizeBytesPopulatedOnRecordOutput:
+    """RETARGETED (sqlite-migration-scitex-clew-20260828 final cleanup):
+    originally read `size_bytes` back via `db._connect()` against the now-
+    deleted legacy raw-sqlite mirror. `db._file_hashes` (the Store) is the
+    real source of truth and now the only place these tests read from.
+    """
+
     def test_size_bytes_stored_after_record_output(self, tmp_path):
         # Arrange — create a real file and a tracker
         from scitex_clew._tracker import SessionTracker
@@ -226,13 +208,13 @@ class TestSizeBytesPopulatedOnRecordOutput:
         tracker = SessionTracker("sz-sess-1", db=db)
         # Act
         tracker.record_output(out_file)
-        with db._connect() as conn:
-            row = conn.execute(
-                "SELECT size_bytes FROM file_hashes WHERE session_id=? AND role='output'",
-                ("sz-sess-1",),
-            ).fetchone()
+        rows = [
+            r
+            for r in db._file_hashes.rows()
+            if r.values.get("session_id") == "sz-sess-1" and r.values.get("role") == "output"
+        ]
         # Assert
-        assert row is not None and row[0] == out_file.stat().st_size
+        assert rows and rows[0].values.get("size_bytes") == out_file.stat().st_size
 
     def test_size_bytes_stored_after_record_input(self, tmp_path):
         # Arrange
@@ -244,13 +226,13 @@ class TestSizeBytesPopulatedOnRecordOutput:
         tracker = SessionTracker("sz-sess-2", db=db)
         # Act
         tracker.record_input(in_file)
-        with db._connect() as conn:
-            row = conn.execute(
-                "SELECT size_bytes FROM file_hashes WHERE session_id=? AND role='input'",
-                ("sz-sess-2",),
-            ).fetchone()
+        rows = [
+            r
+            for r in db._file_hashes.rows()
+            if r.values.get("session_id") == "sz-sess-2" and r.values.get("role") == "input"
+        ]
         # Assert
-        assert row is not None and row[0] == in_file.stat().st_size
+        assert rows and rows[0].values.get("size_bytes") == in_file.stat().st_size
 
 
 # ---------------------------------------------------------------------------

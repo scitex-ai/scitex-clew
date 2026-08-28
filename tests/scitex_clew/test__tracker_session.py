@@ -5,13 +5,19 @@
 The recorder writes a REAL run (+ input->output edges) using only clew's
 pure-stdlib core, so a minimal-mode script produces runs>=1 + a source-reachable
 DAG. No mocks — real temp DB + real files, scoped via use_db.
-"""
 
-import sqlite3
+RETARGETED (sqlite-migration-scitex-clew-20260828 final cleanup): `_runs`/
+`_roles` used to open a raw `sqlite3.connect()` against `db_path` and query
+the legacy `runs`/`file_hashes` mirror tables directly. That mirror is
+deleted, so these helpers now re-open a `VerificationDB` at the same
+`db_path` (Store-backed) and read through its real public/Store surface —
+the same "reopen and read back" pattern used elsewhere in this migration.
+"""
 
 import pytest
 
 import scitex_clew as clew
+from scitex_clew import VerificationDB
 from scitex_clew._claim._register import list_claims
 from scitex_clew._db import use_db
 from scitex_clew._sources import is_grounded, load_sources_manifest
@@ -24,19 +30,13 @@ def _db_path(tmp_path):
 
 
 def _runs(db_path):
-    conn = sqlite3.connect(str(db_path))
-    try:
-        return conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
-    finally:
-        conn.close()
+    return len(VerificationDB(db_path).list_runs(limit=10_000))
 
 
 def _roles(db_path):
-    conn = sqlite3.connect(str(db_path))
-    try:
-        return {r[0] for r in conn.execute("SELECT role FROM file_hashes")}
-    finally:
-        conn.close()
+    return {
+        r.values.get("role") for r in VerificationDB(db_path)._file_hashes.rows()
+    }
 
 
 class TestSessionRecording:
