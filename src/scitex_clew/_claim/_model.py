@@ -3,22 +3,23 @@
 """Claim model — dataclasses, status palette, table + low-level DB helpers.
 
 Split out of the former single-file ``_claim.py`` (over the 512-line limit).
-This is the leaf module: it imports nothing else inside the ``_claim`` package,
-so the register/export/verify/mutate modules can all depend on it without an
-import cycle.
+This module imports only ``._store`` (the Store/Schema plumbing, itself a
+leaf with no ``_claim``-package imports of its own) inside the ``_claim``
+package, so the register/export/verify/mutate modules can all depend on
+this module without an import cycle.
 """
 
 from __future__ import annotations
 
 import re
-import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from .._db import get_db
-from .._db._connect import connect as _clew_sqlite_connect
+from scitex_dev.store import ANY_REVISION
+
+from ._store import _open_store
 
 # Canonical claim types
 CLAIM_TYPES = ("statistic", "figure", "table", "text", "value")
@@ -310,37 +311,14 @@ class VerificationResult:
 
 
 def migrate_add_claims_table(db_path: Path) -> None:
-    """Create claims table if not present. Safe to call multiple times."""
-    conn = _clew_sqlite_connect(str(db_path))
-    try:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS claims (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                claim_id TEXT UNIQUE NOT NULL,
-                file_path TEXT NOT NULL,
-                line_number INTEGER,
-                claim_type TEXT NOT NULL,
-                claim_value TEXT,
-                source_session TEXT,
-                source_file TEXT,
-                source_hash TEXT,
-                registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                verified_at TIMESTAMP,
-                status TEXT DEFAULT 'registered'
-            )
-            """
-        )
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_claims_file ON claims(file_path)")
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_claims_source ON claims(source_file)"
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_claims_session ON claims(source_session)"
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    """Ensure the claims store exists at ``db_path``. Safe to call multiple times.
+
+    The ``Store`` constructor itself performs the schema-creation equivalent
+    of the old ``CREATE TABLE IF NOT EXISTS`` DDL (under a schema lock), so
+    "ensure" is now "open a Store once and close it" — enough to
+    materialise the physical tables without holding a connection open.
+    """
+    _open_store(db_path).close()
 
 
 def _generate_claim_id(
@@ -373,66 +351,91 @@ def _ensure_claims_table(db) -> None:
     migrate_add_claims_table(db.db_path)
 
 
+def _file_path_matches_prefix(file_path: Optional[str], resolved_prefix: str) -> bool:
+    """Whether ``file_path`` matches the old
+    ``file_path LIKE '<prefix>%' OR file_path = '<prefix without trailing />'``.
+
+    SQLite's ``LIKE`` is case-insensitive on ASCII by default (the raw
+    sqlite3 connect helper this package used to call never set
+    ``case_sensitive_like``), so the comparison lower-cases both sides.
+    ``resolved_prefix`` must already end with the path separator — every
+    caller resolves it that way before calling this.
+    """
+    fp = (file_path or "").lower()
+    prefix = resolved_prefix.lower()
+    return fp.startswith(prefix) or fp == prefix.rstrip("/")
+
+
+def _row_to_claim(row) -> Claim:
+    """Adapt a :class:`scitex_dev.store.Row` from the claims store to a ``Claim``."""
+    v = row.values
+    return Claim(
+        claim_id=v["claim_id"],
+        file_path=v["file_path"],
+        line_number=v["line_number"],
+        claim_type=v["claim_type"],
+        claim_value=v["claim_value"],
+        source_session=v["source_session"],
+        source_file=v["source_file"],
+        source_hash=v["source_hash"],
+        registered_at=v["registered_at"],
+        verified_at=v["verified_at"],
+        # Back-compat: normalize legacy "partial" -> "suspect"
+        status=_LEGACY_STATUS_MAP.get(v["status"], v["status"]),
+    )
+
+
 def _resolve_claim(identifier: str, db) -> Optional[Claim]:
     """Resolve a claim by ID or location string."""
-    conn = _clew_sqlite_connect(str(db.db_path), read_only=True)
-    conn.row_factory = sqlite3.Row
+    store = _open_store(db.db_path)
     try:
         # Try claim_id first
-        row = conn.execute(
-            "SELECT * FROM claims WHERE claim_id = ?", (identifier,)
-        ).fetchone()
+        row = store.get({"claim_id": identifier})
+        if row is not None:
+            return _row_to_claim(row)
 
-        if not row:
-            # Try location format: file.tex:L42
-            match = re.match(r"^(.+):L(\d+)$", identifier)
-            if match:
-                fpath = str(Path(match.group(1)).resolve())
-                line = int(match.group(2))
-                row = conn.execute(
-                    "SELECT * FROM claims WHERE file_path = ? AND line_number = ?",
-                    (fpath, line),
-                ).fetchone()
+        # Try location format: file.tex:L42
+        match = re.match(r"^(.+):L(\d+)$", identifier)
+        if match:
+            fpath = str(Path(match.group(1)).resolve())
+            line = int(match.group(2))
+            for row in store.rows():
+                if row.values["file_path"] == fpath and row.values["line_number"] == line:
+                    return _row_to_claim(row)
+            return None
 
-        if not row:
-            # Try file path only (returns first match)
-            fpath = str(Path(identifier).resolve())
-            row = conn.execute(
-                "SELECT * FROM claims WHERE file_path = ? ORDER BY line_number LIMIT 1",
-                (fpath,),
-            ).fetchone()
-
-        if row:
-            return Claim(
-                claim_id=row["claim_id"],
-                file_path=row["file_path"],
-                line_number=row["line_number"],
-                claim_type=row["claim_type"],
-                claim_value=row["claim_value"],
-                source_session=row["source_session"],
-                source_file=row["source_file"],
-                source_hash=row["source_hash"],
-                registered_at=row["registered_at"],
-                verified_at=row["verified_at"],
-                # Back-compat: normalize legacy "partial" -> "suspect"
-                status=_LEGACY_STATUS_MAP.get(row["status"], row["status"]),
+        # Try file path only (returns first match, NULL line_number first —
+        # mirrors SQLite's ``ORDER BY line_number`` NULL-first ascending order).
+        fpath = str(Path(identifier).resolve())
+        candidates = [r for r in store.rows() if r.values["file_path"] == fpath]
+        if not candidates:
+            return None
+        candidates.sort(
+            key=lambda r: (
+                (0, 0) if r.values["line_number"] is None else (1, r.values["line_number"])
             )
-        return None
+        )
+        return _row_to_claim(candidates[0])
     finally:
-        conn.close()
+        store.close()
 
 
 def _update_claim_status(claim_id: str, status: str, db) -> None:
-    """Update claim verification status."""
-    conn = _clew_sqlite_connect(str(db.db_path))
+    """Update claim verification status. No-op if the claim does not exist."""
+    store = _open_store(db.db_path)
     try:
-        conn.execute(
-            "UPDATE claims SET status = ?, verified_at = ? WHERE claim_id = ?",
-            (status, datetime.now().isoformat(), claim_id),
+        if store.get({"claim_id": claim_id}) is None:
+            return
+        store.put(
+            {
+                "claim_id": claim_id,
+                "status": status,
+                "verified_at": datetime.now().isoformat(),
+            },
+            expected_revision=ANY_REVISION,
         )
-        conn.commit()
     finally:
-        conn.close()
+        store.close()
 
 
 # EOF

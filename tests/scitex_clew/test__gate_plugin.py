@@ -7,16 +7,17 @@ is 0.24.1; CI installs the latest scitex-dev and runs these for real.
 """
 
 import hashlib
-import sqlite3
 
 import pytest
 
 pytest.importorskip("scitex_dev.gate")
 
 from scitex_clew._claim._model import migrate_add_claims_table  # noqa: E402
+from scitex_clew._claim._store import _open_store  # noqa: E402
 from scitex_clew._db import VerificationDB  # noqa: E402
 from scitex_clew._gate_plugin import _run, provide  # noqa: E402
 from scitex_clew._sources import register_source  # noqa: E402
+from scitex_dev.store import NEW_RECORD  # noqa: E402
 
 
 def _make_capsule(tmp_path, *, runs=1):
@@ -32,29 +33,26 @@ def _make_capsule(tmp_path, *, runs=1):
 
 
 def _insert_claim(db_path, *, claim_id, status, source_file="", source_hash=""):
-    """Insert one claim row directly (real DB row, chosen status)."""
-    conn = sqlite3.connect(str(db_path))
+    """Insert one claim row directly (real store row, chosen status)."""
+    store = _open_store(db_path)
     try:
-        conn.execute(
-            "INSERT INTO claims (claim_id, file_path, line_number, claim_type, "
-            "claim_value, source_session, source_file, source_hash, "
-            "verified_at, status) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (
-                claim_id,
-                "paper.tex",
-                1,
-                "value",
-                "0.94",
-                None,
-                source_file,
-                source_hash,
-                "2026-01-01T00:00:00",
-                status,
-            ),
+        store.put(
+            {
+                "claim_id": claim_id,
+                "file_path": "paper.tex",
+                "line_number": 1,
+                "claim_type": "value",
+                "claim_value": "0.94",
+                "source_session": None,
+                "source_file": source_file,
+                "source_hash": source_hash,
+                "verified_at": "2026-01-01T00:00:00",
+                "status": status,
+            },
+            expected_revision=NEW_RECORD,
         )
-        conn.commit()
     finally:
-        conn.close()
+        store.close()
 
 
 class TestProvide:

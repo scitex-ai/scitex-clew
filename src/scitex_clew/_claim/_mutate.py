@@ -5,13 +5,14 @@
 from __future__ import annotations
 
 import os
-import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from scitex_dev.store import ANY_REVISION
+
 from .._db import get_db
-from .._db._connect import connect as _clew_sqlite_connect
-from ._model import _ensure_claims_table, _resolve_claim
+from ._model import _file_path_matches_prefix, _resolve_claim
+from ._store import _open_store
 
 
 def _auto_export(context: str) -> None:
@@ -56,18 +57,21 @@ def remove_claim(claim_id_or_location: str) -> bool:
         ``True`` if a row was deleted; ``False`` if nothing matched.
     """
     db = get_db()
-    _ensure_claims_table(db)
 
     claim = _resolve_claim(claim_id_or_location, db)
     if claim is None:
         return False
 
-    conn = _clew_sqlite_connect(str(db.db_path))
+    # A Store never deletes a row — hide() sets the ``hidden`` flag instead
+    # (the ONLY removal it offers). Every read in this package defaults to
+    # ``include_hidden=False``, so a hidden claim reads exactly like the old
+    # hard-deleted one everywhere except a caller that deliberately asks for
+    # the hidden view.
+    store = _open_store(db.db_path)
     try:
-        conn.execute("DELETE FROM claims WHERE claim_id = ?", (claim.claim_id,))
-        conn.commit()
+        store.hide({"claim_id": claim.claim_id}, expected_revision=ANY_REVISION)
     finally:
-        conn.close()
+        store.close()
 
     _auto_export("remove_claim")
     return True
@@ -87,22 +91,22 @@ def remove_claims_by_prefix(file_path_prefix: str) -> int:
         Number of rows deleted.
     """
     db = get_db()
-    _ensure_claims_table(db)
 
     resolved_prefix = str(Path(file_path_prefix).resolve())
     if not resolved_prefix.endswith("/"):
         resolved_prefix = resolved_prefix + "/"
 
-    conn = _clew_sqlite_connect(str(db.db_path))
+    store = _open_store(db.db_path)
     try:
-        conn.execute(
-            "DELETE FROM claims WHERE file_path LIKE ? OR file_path = ?",
-            (resolved_prefix + "%", resolved_prefix.rstrip("/")),
-        )
-        conn.commit()
-        deleted = conn.execute("SELECT changes()").fetchone()[0]
+        deleted = 0
+        for row in store.rows():
+            if _file_path_matches_prefix(row.values["file_path"], resolved_prefix):
+                store.hide(
+                    {"claim_id": row.values["claim_id"]}, expected_revision=ANY_REVISION
+                )
+                deleted += 1
     finally:
-        conn.close()
+        store.close()
 
     _auto_export("remove_claims_by_prefix")
     return deleted
@@ -131,21 +135,23 @@ def supersede_claim(claim_id_or_location: str) -> bool:
         matched.
     """
     db = get_db()
-    _ensure_claims_table(db)
 
     claim = _resolve_claim(claim_id_or_location, db)
     if claim is None:
         return False
 
-    conn = _clew_sqlite_connect(str(db.db_path))
+    store = _open_store(db.db_path)
     try:
-        conn.execute(
-            "UPDATE claims SET status = 'superseded', verified_at = ? WHERE claim_id = ?",
-            (datetime.now().isoformat(), claim.claim_id),
+        store.put(
+            {
+                "claim_id": claim.claim_id,
+                "status": "superseded",
+                "verified_at": datetime.now().isoformat(),
+            },
+            expected_revision=ANY_REVISION,
         )
-        conn.commit()
     finally:
-        conn.close()
+        store.close()
 
     _auto_export("supersede_claim")
     return True
@@ -165,27 +171,28 @@ def supersede_claims_by_prefix(file_path_prefix: str) -> int:
         Number of rows updated to status ``"superseded"``.
     """
     db = get_db()
-    _ensure_claims_table(db)
 
     resolved_prefix = str(Path(file_path_prefix).resolve())
     if not resolved_prefix.endswith("/"):
         resolved_prefix = resolved_prefix + "/"
 
-    conn = _clew_sqlite_connect(str(db.db_path))
+    store = _open_store(db.db_path)
     try:
-        conn.execute(
-            "UPDATE claims SET status = 'superseded', verified_at = ? "
-            "WHERE file_path LIKE ? OR file_path = ?",
-            (
-                datetime.now().isoformat(),
-                resolved_prefix + "%",
-                resolved_prefix.rstrip("/"),
-            ),
-        )
-        conn.commit()
-        updated = conn.execute("SELECT changes()").fetchone()[0]
+        now = datetime.now().isoformat()
+        updated = 0
+        for row in store.rows():
+            if _file_path_matches_prefix(row.values["file_path"], resolved_prefix):
+                store.put(
+                    {
+                        "claim_id": row.values["claim_id"],
+                        "status": "superseded",
+                        "verified_at": now,
+                    },
+                    expected_revision=ANY_REVISION,
+                )
+                updated += 1
     finally:
-        conn.close()
+        store.close()
 
     _auto_export("supersede_claims_by_prefix")
     return updated
