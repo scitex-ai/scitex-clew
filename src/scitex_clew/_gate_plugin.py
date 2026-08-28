@@ -21,11 +21,8 @@ scope for the pre-submission-on-the-capsule use case.
 
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 from typing import List, Optional
-
-from ._db._connect import connect as _clew_sqlite_connect
 
 _CHECK_ID = "clew-source-reachability"
 _FIX_HINT = (
@@ -77,15 +74,16 @@ def _find_clew_db(workdir: Path) -> Optional[Path]:
     return dbs[0] if dbs else None
 
 
-def _count_runs(db_path: Path) -> int:
-    """Number of recorded runs (0 if the runs table is absent)."""
-    conn = _clew_sqlite_connect(str(db_path), read_only=True)
-    try:
-        return conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
-    except sqlite3.OperationalError:
-        return 0
-    finally:
-        conn.close()
+def _count_runs(db) -> int:
+    """Number of recorded runs in an already-open capsule ``VerificationDB``.
+
+    ``db`` is the instance ``use_db`` hands back — ``_run`` only ever reaches
+    this once a ``.db`` file has been found under the capsule, and
+    ``VerificationDB``/``Store`` construction creates the ``runs`` table on
+    the spot (``CREATE TABLE IF NOT EXISTS``) if it isn't there yet, so an
+    empty/never-populated capsule DB degrades to 0 rather than raising.
+    """
+    return len(db.list_runs(limit=100_000))
 
 
 def _finding(message: str):
@@ -176,19 +174,19 @@ def _run(workdir, config):
 
     findings: List = []
 
-    if _count_runs(db_path) == 0:
-        findings.append(
-            _finding(
-                "clew DB has 0 tracked runs — outputs were saved outside "
-                "@stx.session, so their provenance chain reaches no source"
-            )
-        )
-
     # Per-claim source-reachability. ``use_db`` scopes clew's global DB to the
     # capsule and restores it on exit; the manifest is loaded explicitly from
     # the capsule so the gate matches THIS capsule's registered sources.
     sources_path = workdir / ".scitex" / "clew" / "sources.json"
     with use_db(db_path) as db:
+        if _count_runs(db) == 0:
+            findings.append(
+                _finding(
+                    "clew DB has 0 tracked runs — outputs were saved outside "
+                    "@stx.session, so their provenance chain reaches no source"
+                )
+            )
+
         # Always pass the capsule's manifest path EXPLICITLY (even if absent) so
         # the gate never falls back to an unrelated cwd-resolved manifest; a
         # missing file loads as None => gate inactive (opt-in), scoped to THIS
