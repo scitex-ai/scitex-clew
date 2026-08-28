@@ -661,93 +661,25 @@ class TestGetDag:
 
 
 # ---------------------------------------------------------------------------
-# migrate_session_parents (internal, called by __init__)
+# Legacy session_parents backfill: RETIRED (sqlite-migration-scitex-clew-20260828)
 # ---------------------------------------------------------------------------
-
-
-class TestMigrateSessionParents:
-    def test_existing_parent_migrated_to_junction(self, tmp_path):
-        # Populate the runs table directly via SQLite, then open a fresh
-        # VerificationDB — _migrate_session_parents runs at __init__ and
-        # should copy the parent_session column into session_parents.
-        # Arrange
-        # Arrange
-        import sqlite3
-
-        db_path = tmp_path / "migrate_mig.db"
-
-        # Seed with a raw DB that has data in runs but NOT in session_parents
-        conn = sqlite3.connect(str(db_path))
-        conn.execute(
-            """
-            CREATE TABLE runs (
-                session_id TEXT PRIMARY KEY,
-                script_path TEXT,
-                script_hash TEXT,
-                started_at TIMESTAMP,
-                finished_at TIMESTAMP,
-                status TEXT,
-                exit_code INTEGER,
-                parent_session TEXT,
-                combined_hash TEXT,
-                metadata TEXT
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE file_hashes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT,
-                file_path TEXT,
-                hash TEXT,
-                role TEXT,
-                recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(session_id, file_path, role)
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE verification_results (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT,
-                verified_at TIMESTAMP,
-                level TEXT,
-                status TEXT
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE session_parents (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                parent_session TEXT NOT NULL,
-                recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(session_id, parent_session)
-            )
-            """
-        )
-        conn.execute(
-            "INSERT INTO runs (session_id, script_path, parent_session) "
-            "VALUES ('p_mig', '/path/p.py', NULL)"
-        )
-        conn.execute(
-            "INSERT INTO runs (session_id, script_path, parent_session) "
-            "VALUES ('c_mig', '/path/c.py', 'p_mig')"
-        )
-        conn.commit()
-        conn.close()
-
-        # Now open VerificationDB — _migrate_session_parents should fire
-        db = VerificationDB(db_path)
-        # Act
-        # Act
-        parents = db.get_parents("c_mig")
-        # Assert
-        # Assert
-        assert "p_mig" in parents
+#
+# `_migrate_session_parents()` (and the raw `session_parents` table it
+# backfilled from) is retired: a repo-wide grep found no code outside
+# `_db/` ever read the legacy `session_parents` table directly, so there is
+# nothing to mirror. `get_dag()`'s fallback to `runs.parent_session` (still
+# implemented, see TestGetDag.test_fallback_to_runs_parent_session above)
+# already gives the same observable result live, at query time, without a
+# backfill pass — that fallback IS the replacement for what this class used
+# to test.
+#
+# A hand-seeded legacy raw DB (as the old
+# `test_existing_parent_migrated_to_junction` built) can no longer be
+# "migrated": `get_parents()` is Store-backed and reads exclusively from
+# `self._session_parents` (a scitex_dev.store.Store), which has no
+# knowledge of rows inserted directly into a raw sqlite `runs` table
+# outside `add_run()`/`add_parent()`. This is an accepted, documented
+# behavior change — see the PR body.
 
 
 # EOF

@@ -57,16 +57,17 @@ CROSS_PACKAGE_IMPORTS = [
 def test_cross_package_import(module_name):
     """Importing scitex-clew's declared cross-package dependency must succeed.
 
-    Skips on the ROOT package (``module_name.split(".")[0]``) when the peer
-    standalone is legitimately absent, but hard-imports the FULL dotted path
-    via ``importlib.import_module`` — never ``pytest.importorskip(module_name)``
-    on the full path, which would turn a renamed submodule into a silently
-    SKIPPED (green) test instead of the loud failure this gate exists to
-    surface (PS-140 §2).
+    Skips on the ROOT package only (``pytest.importorskip(name.split('.')[0])``),
+    then hard-imports the full dotted path. Skipping on the FULL path instead
+    (``importorskip(module_name)``) would hide a renamed/moved submodule as a
+    false-green skip — exactly the failure this gate exists to catch (PS-140
+    §2). A missing ROOT package still skips cleanly for a lean install where
+    the peer is a legitimate optional extra.
     """
     # Arrange
-    pytest.importorskip(module_name.split(".")[0])
+    root = module_name.split(".")[0]
     # Act
+    pytest.importorskip(root)
     module = importlib.import_module(module_name)
     # Assert
     assert getattr(module, "__name__", None) == module_name
