@@ -8,7 +8,8 @@ required for scitex-io interop). Older capsules used ``db.sqlite``. This
 module transparently renames a predecessor to ``clew.db`` on first open.
 
 The correctness-critical part is WAL safety: clew opens DBs in WAL mode
-(see ``_connect.connect``), so a predecessor ``db.sqlite`` may carry an
+(the ``scitex_dev.store`` sqlite dialect enables WAL, mirroring the retired
+``_connect.py`` helper's tuning), so a predecessor ``db.sqlite`` may carry an
 uncheckpointed ``db.sqlite-wal`` (+ ``-shm``) sidecar holding
 committed-but-not-yet-checkpointed rows. A naive ``os.rename`` of only
 the main file would orphan (and lose) that data. So this checkpoints the

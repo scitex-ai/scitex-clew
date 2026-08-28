@@ -17,16 +17,18 @@ Store has NO WHERE/JOIN/ORDER-BY/LIMIT support: every query below is
 filter/sort/aggregate, an accepted O(n)-scan trade-off for what is normally
 a small per-project DB.
 
-This is the final cleanup PR of the ``sqlite-migration-scitex-clew-20260828``
-migration: the temporary write-only legacy raw-sqlite mirror of ``runs``/
-``file_hashes`` (kept only so 5 not-yet-migrated call sites —
-``_gate_plugin.py``, ``_attest/_stamp.py``, ``_core/_node_class.py``,
-``_estimate.py``, ``_claim/_export.py`` — could keep reading the raw tables
-unmodified) is gone now that all five read the Store instead. No raw
-``sqlite3`` remains anywhere in ``_db/`` except ``_connect.py`` (now
-uncalled internally; kept as a separate, later deletion) and
-``_migrate_rename.py`` (a deliberate, documented pre-Store WAL-checkpoint/
-rename exception).
+This closes out the ``sqlite-migration-scitex-clew-20260828`` migration: the
+temporary write-only legacy raw-sqlite mirror of ``runs``/``file_hashes``
+(kept only so 5 not-yet-migrated call sites — ``_gate_plugin.py``,
+``_attest/_stamp.py``, ``_core/_node_class.py``, ``_estimate.py``,
+``_claim/_export.py`` — could keep reading the raw tables unmodified) is
+gone now that all five read the Store instead, and the now-dead
+``_connect.py`` stdlib-only connect helper it used has been deleted
+entirely (it had zero remaining callers). The only raw ``sqlite3`` left
+anywhere in ``_db/`` is ``_migrate_rename.py`` — a deliberate, documented
+exception: a WAL-checkpoint/rename that must run on the raw file BEFORE
+any Store can exist at that path, so it cannot go through the Store
+abstraction.
 """
 
 from __future__ import annotations
