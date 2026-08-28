@@ -60,17 +60,36 @@ def _add_completed_run(
     status: str = "success",
     exit_code: int = 0,
 ) -> None:
-    """Add a completed run with the given wall-clock duration."""
+    """Add a completed run with the given wall-clock duration.
+
+    NOTE (sqlite-migration-scitex-clew-20260828 — retargeted, not deleted,
+    per PR #142/#143's established pattern): `_estimate.py`'s queries now
+    read `db._runs` (a `scitex_dev.store.Store`) exclusively, never the
+    legacy raw-sqlite mirror `db._connect()` exposes. Overwriting
+    started_at/finished_at via a raw `UPDATE` on the mirror (the old
+    approach) would no longer be visible to `_estimate.py` at all — the
+    Store and the mirror are two independent copies once written.
+    Overwrite through the Store's own partial-update path instead
+    (`Store.put()` with only session_id + the two timestamp fields,
+    mirroring `finish_run()`'s own partial-put pattern) so the exact,
+    deterministic durations these tests rely on (e.g. p50/p90 assertions)
+    are what `_estimate.py` actually sees.
+    """
+    from scitex_dev.store import ANY_REVISION
+
     start = datetime(2026, 1, 1, 12, 0, 0)
     end = start + timedelta(seconds=duration_seconds)
     db.add_run(session_id, script_path, script_hash=script_hash)
     db.finish_run(session_id, status=status, exit_code=exit_code)
     # Overwrite timestamps with exact values for deterministic durations.
-    with db._connect() as conn:
-        conn.execute(
-            "UPDATE runs SET started_at=?, finished_at=? WHERE session_id=?",
-            (_iso(start), _iso(end), session_id),
-        )
+    db._runs.put(
+        {
+            "session_id": session_id,
+            "started_at": _iso(start),
+            "finished_at": _iso(end),
+        },
+        expected_revision=ANY_REVISION,
+    )
 
 
 # ---------------------------------------------------------------------------

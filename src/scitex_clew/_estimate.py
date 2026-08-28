@@ -16,6 +16,17 @@ CLI
 ---
     $ clew estimate scripts/train.py
     $ clew estimate results/fig1.png --json
+
+DB-query layer (sqlite-migration-scitex-clew-20260828)
+--------------------------------------------------------
+The 5 DB-touching helpers formerly here (``_query_runs_by_hash``,
+``_query_runs_by_path``, ``_output_bytes_for_sessions``,
+``_typical_output_bytes``, ``_cached_intermediate_hints``,
+``_count_outputs_for_sessions``) now live in ``_estimate_queries.py`` —
+split out purely to respect this file's 512-line limit — and are
+re-exported below so existing imports keep working. They no longer call
+``VerificationDB._connect()`` / import ``sqlite3``; they read
+``db._runs`` / ``db._file_hashes`` (``scitex_dev.store.Store``) instead.
 """
 
 from __future__ import annotations
@@ -25,6 +36,15 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
+
+from ._estimate_queries import (
+    _cached_intermediate_hints,
+    _count_outputs_for_sessions,
+    _output_bytes_for_sessions,
+    _query_runs_by_hash,
+    _query_runs_by_path,
+    _typical_output_bytes,
+)
 
 # ---------------------------------------------------------------------------
 # Thresholds
@@ -206,162 +226,6 @@ def _build_hint(
 # ---------------------------------------------------------------------------
 # Core estimation logic
 # ---------------------------------------------------------------------------
-
-
-def _query_runs_by_hash(db, script_hash: str) -> List[dict]:
-    """Return completed runs whose script_hash matches exactly."""
-    with db._connect() as conn:
-        rows = conn.execute(
-            """
-            SELECT session_id, started_at, finished_at, status, exit_code
-            FROM runs
-            WHERE script_hash = ? AND finished_at IS NOT NULL
-            ORDER BY started_at DESC
-            """,
-            (script_hash,),
-        ).fetchall()
-    return [dict(r) for r in rows]
-
-
-def _query_runs_by_path(db, script_path: str) -> List[dict]:
-    """Return completed runs whose script_path matches (fallback tier)."""
-    with db._connect() as conn:
-        rows = conn.execute(
-            """
-            SELECT session_id, started_at, finished_at, status, exit_code
-            FROM runs
-            WHERE script_path = ? AND finished_at IS NOT NULL
-            ORDER BY started_at DESC
-            """,
-            (script_path,),
-        ).fetchall()
-    return [dict(r) for r in rows]
-
-
-def _output_bytes_for_sessions(db, session_ids: List[str]) -> List[Optional[int]]:
-    """Return per-session total output bytes (None when all size_bytes are NULL)."""
-    results: List[Optional[int]] = []
-    for sid in session_ids:
-        with db._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT size_bytes FROM file_hashes
-                WHERE session_id = ? AND role = 'output'
-                """,
-                (sid,),
-            ).fetchall()
-        sizes = [r[0] for r in rows if r[0] is not None]
-        results.append(sum(sizes) if sizes else None)
-    return results
-
-
-def _typical_output_bytes(db, session_ids: List[str]) -> Optional[int]:
-    """Median total output bytes across sessions; None if no size data exists."""
-    per_session = _output_bytes_for_sessions(db, session_ids)
-    known = [v for v in per_session if v is not None]
-    if not known:
-        return None
-    return int(statistics.median(known))
-
-
-def _cached_intermediate_hints(
-    db,
-    session_ids: List[str],
-    hash_cache: "Optional[dict]" = None,
-) -> List[str]:
-    """Return hints when recorded inputs exist as FRESH outputs of prior sessions.
-
-    A "fresh" artifact is one whose on-disk content hashes to the same value
-    the producer session originally recorded.  PATH equality alone is not
-    sufficient: a later run may have overwritten the file (stale artifact).
-    Only artifacts that pass the freshness check get a reuse hint.
-
-    Parameters
-    ----------
-    db : VerificationDB
-        Database to query.
-    session_ids : list of str
-        Session IDs to check for cached-intermediate candidates.
-    hash_cache : dict or None, optional
-        Per-pass hash cache (see :func:`scitex_clew._hash.hash_file`).
-        When provided, each unique file path is hashed at most once per
-        call.  Pass ``None`` to disable caching.
-    """
-    from ._hash import hash_file
-
-    hints: List[str] = []
-    seen: set = set()
-    for sid in session_ids:
-        with db._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT fh.file_path, r.session_id AS producer_session
-                FROM file_hashes fh
-                JOIN file_hashes fh2
-                    ON fh2.file_path = fh.file_path AND fh2.role = 'output'
-                JOIN runs r ON r.session_id = fh2.session_id
-                WHERE fh.session_id = ? AND fh.role = 'input'
-                  AND fh2.session_id != ?
-                ORDER BY r.started_at DESC
-                LIMIT 5
-                """,
-                (sid, sid),
-            ).fetchall()
-        for row in rows:
-            key = (row["file_path"], row["producer_session"])
-            if key in seen:
-                continue
-            seen.add(key)
-
-            # --- Freshness check -------------------------------------------
-            # Retrieve the hash the producer session recorded for this output.
-            producer_hashes = db.get_file_hashes(
-                row["producer_session"], role="output"
-            )
-            recorded_hash = producer_hashes.get(row["file_path"])
-
-            # If the artifact is missing or the stored hash is unavailable,
-            # we cannot vouch for freshness — skip the hint silently.
-            from pathlib import Path as _Path
-            artifact = _Path(row["file_path"])
-            if recorded_hash is None or not artifact.exists():
-                continue
-
-            try:
-                current_hash = hash_file(artifact, hash_cache=hash_cache)
-            except Exception:
-                continue
-
-            # Compare truncated hashes (hash_file returns first 32 chars of
-            # sha256 hex; the DB may store the same or a full hex — align by
-            # comparing the shorter prefix of each).
-            min_len = min(len(recorded_hash), len(current_hash))
-            if recorded_hash[:min_len] != current_hash[:min_len]:
-                # Artifact has changed on disk since the producer session —
-                # do NOT suggest reuse of a stale intermediate.
-                continue
-
-            hints.append(
-                f"Input '{row['file_path']}' already produced by session "
-                f"{row['producer_session']} — consider reusing the cached intermediate."
-            )
-    return hints
-
-
-def _count_outputs_for_sessions(db, session_ids: List[str]) -> List[int]:
-    """Return a list of output-file counts, one entry per session."""
-    counts = []
-    for sid in session_ids:
-        with db._connect() as conn:
-            n = conn.execute(
-                """
-                SELECT COUNT(*) FROM file_hashes
-                WHERE session_id = ? AND role = 'output'
-                """,
-                (sid,),
-            ).fetchone()[0]
-        counts.append(n)
-    return counts
 
 
 def _is_successful(run: dict) -> bool:
