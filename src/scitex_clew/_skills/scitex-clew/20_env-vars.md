@@ -21,11 +21,20 @@ whose Postgres is down must fail loudly rather than start writing to a
 private store nobody else can see.
 
 clew has **no database file** and no clew-specific path variable.
-`SCITEX_CLEW_DB_PATH` is retired and has no effect. Provenance is
-per-HOST, not per-project: every project on one machine shares the one
-store, and clew's four stores are separated inside it by their store
-`name` (`runs`, `file_hashes`, `claims`, `citations`, …), not by
-directory.
+`SCITEX_CLEW_DB_PATH` is retired and has no effect.
+
+Storage is per-HOST; RECORDS are still per-project. Every project on one
+machine shares the one database, where clew's stores are separated by
+store `name` (`runs`, `file_hashes`, `claims`, `citations`, …) and each
+project's records are separated by a `project` identity column. That
+column matters because `claim_id` and `cite_key` are chosen by the author:
+without it, two manuscripts citing `smith2020` would be one row.
+
+`SCITEX_CLEW_PROJECT` overrides the project scope. Unset, it is the
+absolute project-root path — the same thing the old per-project file
+keyed on. Set it to pin a project across a MOVE: a path-derived scope
+changes when the directory does, where the old file simply travelled with
+it.
 
 ## Feature flags
 

@@ -58,6 +58,8 @@ from scitex_dev.store import (
     host_store,
 )
 
+from .._db._scope import ProjectScopedStore
+
 from .._db import get_db
 from .._db._schema import resolve_node_id
 
@@ -93,6 +95,7 @@ def _data_field(
 STAMPS_SCHEMA = Schema.build(
     "stamps",
     {
+        "project": _identity_field(),
         "stamp_id": _identity_field(),
         "root_hash": _data_field(FieldKind.TEXT, required=True, indexed=True),
         "timestamp": _data_field(FieldKind.TEXT, required=True),
@@ -141,11 +144,13 @@ def _stamps_store() -> Store:
     is reclaimed when the Store is garbage-collected.
     """
     target = host_store(pkg="scitex_clew", name="stamps")
-    return Store(
-        target,
-        STAMPS_SCHEMA,
-        node=resolve_node_id(),
-        writer_policy=WriterPolicy.MULTI_WRITER,
+    return ProjectScopedStore(
+        Store(
+            target,
+            STAMPS_SCHEMA,
+            node=resolve_node_id(),
+            writer_policy=WriterPolicy.MULTI_WRITER,
+        )
     )
 
 

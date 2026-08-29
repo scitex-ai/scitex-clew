@@ -26,13 +26,17 @@ The claims store's physical tables (``claims_rows`` / ``claims_oplog`` /
 clew's other stores. The names do not collide — the dialect always
 suffixes the store name.
 
-WHAT THIS GIVES UP. ``claim_id`` is author-chosen and was previously
-namespaced by the per-project file. In one host database it is not: two
-projects on the same host that use the same ``claim_id`` now address the
-SAME row, and ``MergeRule.LAST_WRITER_WINS`` resolves the clash silently.
-Scoping claims by project is deliberately NOT attempted here — it is a
-schema-key change across every read path — but it is a real consequence,
-recorded rather than papered over.
+WHAT THE PER-PROJECT FILE USED TO DO, AND WHAT DOES IT NOW. ``claim_id`` is
+author-chosen, and the old per-project file was what kept two manuscripts'
+``acute_n_sig_pathways`` apart. One host database would have made them the
+SAME row, with ``MergeRule.LAST_WRITER_WINS`` picking a winner silently.
+
+So the identity is ``(project, claim_id)``, not ``claim_id``. The scope is
+resolved in one place — :mod:`scitex_clew._db._scope` — and applied by
+:class:`~scitex_clew._db._scope.ProjectScopedStore` to reads and writes
+alike, so a lookup cannot miss a row it just wrote. Call sites never
+mention the project; a scope threaded by hand through every call site is
+one that gets forgotten at exactly one of them, silently.
 """
 
 from __future__ import annotations
@@ -49,6 +53,8 @@ from scitex_dev.store import (
     WriterPolicy,
     host_store,
 )
+
+from .._db._scope import ProjectScopedStore
 
 __all__ = ["_CLAIMS_SCHEMA", "_node_id", "_open_store"]
 
@@ -75,6 +81,13 @@ def _node_id() -> str:
 _CLAIMS_SCHEMA = Schema.build(
     "claims",
     {
+        "project": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.IDENTITY,
+            required=True,
+            merge=MergeRule.IMMUTABLE,
+            indexed=False,
+        ),
         "claim_id": FieldPolicy(
             kind=FieldKind.TEXT,
             role=FieldRole.IDENTITY,
@@ -172,14 +185,16 @@ def _open_store() -> Store:
     exactly as before).
     """
     target = host_store(pkg="scitex_clew", name="claims")
-    return Store(
-        target,
-        _CLAIMS_SCHEMA,
-        node=_node_id(),
-        # clew's provenance DBs are written by many concurrent processes on
-        # one project — there is no single durable "owner" per claim, so
-        # MULTI_WRITER (no per-record ownership check) is correct.
-        writer_policy=WriterPolicy.MULTI_WRITER,
+    return ProjectScopedStore(
+        Store(
+            target,
+            _CLAIMS_SCHEMA,
+            node=_node_id(),
+            # clew stores are written by many concurrent processes on one
+            # project — there is no single durable "owner" per claim, so
+            # MULTI_WRITER (no per-record ownership check) is correct.
+            writer_policy=WriterPolicy.MULTI_WRITER,
+        )
     )
 
 # EOF

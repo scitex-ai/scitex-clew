@@ -11,10 +11,16 @@ An earlier revision used a local file-backed target, on the argument that
 clew's citation ledger is portable per-project product state rather than
 fleet coordination state. That is overruled.
 
-WHAT THIS GIVES UP. ``cite_key`` is a BibTeX key, previously namespaced by
-the per-project file. In one host database it is not: two manuscripts on
-the same host that cite ``smith2020`` now address the SAME row, and
-``MergeRule.LAST_WRITER_WINS`` resolves the clash silently.
+WHAT THE PER-PROJECT FILE USED TO DO, AND WHAT DOES IT NOW. ``cite_key`` is
+a BibTeX key chosen by the author, and the old per-project file was what
+kept two manuscripts' ``smith2020`` apart. One host database would have
+made them the SAME row, with ``MergeRule.LAST_WRITER_WINS`` picking a
+winner silently — one manuscript's bibliography overwriting another's.
+
+So the identity is ``(project, cite_key)``, not ``cite_key``. The scope is
+resolved in one place — :mod:`scitex_clew._db._scope` — and applied by
+:class:`~scitex_clew._db._scope.ProjectScopedStore` to reads and writes
+alike.
 """
 
 from __future__ import annotations
@@ -33,6 +39,8 @@ from scitex_dev.store import (
     WriterPolicy,
     host_store,
 )
+
+from .._db._scope import ProjectScopedStore
 
 # Public per-key status vocabulary (matches the writer/compiler contract).
 CITATION_STATUSES = ("verified", "stub", "unverified", "unknown")
@@ -136,6 +144,13 @@ class Verdict(NamedTuple):
 CITATIONS_SCHEMA = Schema.build(
     "citations",
     {
+        "project": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.IDENTITY,
+            required=True,
+            merge=MergeRule.IMMUTABLE,
+            indexed=False,
+        ),
         "cite_key": FieldPolicy(
             kind=FieldKind.TEXT,
             role=FieldRole.IDENTITY,
@@ -244,11 +259,13 @@ def citations_store() -> Store:
     context manager (``with citations_store() as store: ...``).
     """
     target = host_store(pkg="scitex_clew", name="citations")
-    return Store(
-        target,
-        CITATIONS_SCHEMA,
-        node=socket.gethostname(),
-        writer_policy=WriterPolicy.MULTI_WRITER,
+    return ProjectScopedStore(
+        Store(
+            target,
+            CITATIONS_SCHEMA,
+            node=socket.gethostname(),
+            writer_policy=WriterPolicy.MULTI_WRITER,
+        )
     )
 
 

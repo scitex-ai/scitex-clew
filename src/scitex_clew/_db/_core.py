@@ -18,7 +18,11 @@ collaborator one is sharing, not collaborating. What is genuinely lost by
 the change is recorded in the PR body, not papered over here.
 
 The four stores differ only by ``name=``, which is what separates their
-tables inside the one database.
+tables inside the one database. What separates one PROJECT's records from
+another's inside those tables is the ``project`` identity field — see
+``_scope.py``, which resolves the scope once for reads and writes alike.
+The per-project database file used to do that job; nothing else would have
+picked it up.
 
 Store has NO WHERE/JOIN/ORDER-BY/LIMIT support: every query below is
 ``store.rows()`` (or ``store.get(key)`` for exact lookups) plus a Python
@@ -42,6 +46,7 @@ from ._chain import ChainMixin
 from ._file_hashes import FileHashMixin
 #: Re-exported: several modules import these from ``._db._core``.
 from ._paths import _default_claims_json_path, _find_project_root  # noqa: F401
+from ._scope import ProjectScopedStore
 from ._queries import VerificationQueryMixin
 from ._schema import (
     FILE_HASHES_SCHEMA,
@@ -86,27 +91,26 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         def _target(name: str) -> StoreTarget:
             return host_store(pkg="scitex_clew", name=name)
 
-        self._runs = Store(
-            _target("runs"), RUNS_SCHEMA, node=node, writer_policy=WriterPolicy.MULTI_WRITER
+        # Every store is project-scoped: one host database holds every
+        # project on this machine, and clew keys like ``claim_id`` and
+        # ``cite_key`` are author-chosen. See ``_scope.py`` — the scope is
+        # resolved there, once, for reads and writes alike.
+        def _open(name: str, schema) -> ProjectScopedStore:
+            return ProjectScopedStore(
+                Store(
+                    _target(name),
+                    schema,
+                    node=node,
+                    writer_policy=WriterPolicy.MULTI_WRITER,
+                )
+            )
+
+        self._runs = _open("runs", RUNS_SCHEMA)
+        self._file_hashes = _open("file_hashes", FILE_HASHES_SCHEMA)
+        self._verifications = _open(
+            "verification_results", VERIFICATION_RESULTS_SCHEMA
         )
-        self._file_hashes = Store(
-            _target("file_hashes"),
-            FILE_HASHES_SCHEMA,
-            node=node,
-            writer_policy=WriterPolicy.MULTI_WRITER,
-        )
-        self._verifications = Store(
-            _target("verification_results"),
-            VERIFICATION_RESULTS_SCHEMA,
-            node=node,
-            writer_policy=WriterPolicy.MULTI_WRITER,
-        )
-        self._session_parents = Store(
-            _target("session_parents"),
-            SESSION_PARENTS_SCHEMA,
-            node=node,
-            writer_policy=WriterPolicy.MULTI_WRITER,
-        )
+        self._session_parents = _open("session_parents", SESSION_PARENTS_SCHEMA)
 
     # -------------------------------------------------------------------------
     # Run operations

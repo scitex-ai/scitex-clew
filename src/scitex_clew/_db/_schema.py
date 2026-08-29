@@ -58,6 +58,7 @@ def _data_field(
 RUNS_SCHEMA = Schema.build(
     "runs",
     {
+        "project": _identity_field(),
         "session_id": _identity_field(),
         "script_path": _data_field(FieldKind.TEXT),
         "script_hash": _data_field(FieldKind.TEXT),
@@ -81,6 +82,7 @@ RUNS_SCHEMA = Schema.build(
 FILE_HASHES_SCHEMA = Schema.build(
     "file_hashes",
     {
+        "project": _identity_field(),
         "session_id": _identity_field(),
         "file_path": _identity_field(),
         "role": _identity_field(),
@@ -105,6 +107,7 @@ FILE_HASHES_SCHEMA = Schema.build(
 VERIFICATION_RESULTS_SCHEMA = Schema.build(
     "verification_results",
     {
+        "project": _identity_field(),
         "verification_id": _identity_field(),
         "session_id": _data_field(
             FieldKind.TEXT, required=True, merge=MergeRule.IMMUTABLE, indexed=True
@@ -123,6 +126,7 @@ VERIFICATION_RESULTS_SCHEMA = Schema.build(
 SESSION_PARENTS_SCHEMA = Schema.build(
     "session_parents",
     {
+        "project": _identity_field(),
         "session_id": _identity_field(),
         "parent_session": _identity_field(),
         "recorded_at": _data_field(

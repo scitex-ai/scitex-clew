@@ -41,8 +41,10 @@ clew has **no database file**. Its four stores (`runs`, `file_hashes`,
 per-host PostgreSQL over its UNIX socket. See
 [20_env-vars.md](20_env-vars.md) for details.
 
-Provenance is per-HOST, not per-project — every project on one machine
-shares the one store. `SCITEX_CLEW_DB_PATH` is retired and has no effect.
+Storage is per-HOST; records stay per-project. Every project on one machine
+shares the one database, and a `project` identity column keeps their
+records apart — `SCITEX_CLEW_PROJECT` overrides it, defaulting to the
+project-root path. `SCITEX_CLEW_DB_PATH` is retired and has no effect.
 
 ## Editable install (development)
 

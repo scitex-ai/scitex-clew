@@ -38,13 +38,28 @@ versions follow [Semantic Versioning](https://semver.org/).
   is still read per-capsule from `<workdir>/.scitex/clew/sources.json`.
 - **The chain being readable as a plain file by scitex-io.** Gone with the
   file. `claims.json` remains the file-shaped export.
-- **Per-project key namespacing.** `claim_id` and `cite_key` are
-  author-chosen and were namespaced by the per-project file. In one host
-  database they are not: two manuscripts on a machine that share a
-  `claim_id`, or that both cite `smith2020`, now address the SAME row, and
-  `MergeRule.LAST_WRITER_WINS` resolves the clash silently. Scoping the
-  schema by project is a change across every read path and is NOT
-  attempted here.
+Per-project key namespacing is NOT among them — see below.
+
+### Preserved: per-project record scoping
+- **Every store's identity gains a leading `project` field.** The
+  per-project database file used to keep two manuscripts' author-chosen
+  keys apart; one host database would have collapsed them, with
+  `MergeRule.LAST_WRITER_WINS` silently picking a winner — data loss in
+  the one system where it is least acceptable. Identities are now
+  `(project, claim_id)`, `(project, cite_key)`, `(project, session_id)`,
+  `(project, session_id, file_path, role)`, `(project, session_id,
+  parent_session)`, `(project, verification_id)` and `(project,
+  stamp_id)`.
+
+  The scope is resolved in ONE place — `_db/_scope.py`'s
+  `resolve_project_scope()` — and applied to reads and writes alike by
+  `ProjectScopedStore`, so a lookup cannot miss a row it just wrote and no
+  call site has to remember the scope. `SCITEX_CLEW_PROJECT` overrides it;
+  unset, it is the absolute project-root path, which is what the old file
+  location keyed on.
+
+  Caveat: a project MOVED to a new path gets a new scope, where the old
+  file travelled with the directory. Pin it with `SCITEX_CLEW_PROJECT`.
 
 ## [0.17.0] — 2026-07-06
 
