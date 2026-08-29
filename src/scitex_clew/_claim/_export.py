@@ -160,7 +160,7 @@ def export_claims_json(
     view of the claims store. The store remains the
     source of truth; this JSON is a regenerable artifact.
 
-    Path resolution (mirrors :func:`scitex_clew._db._core._default_db_path`)::
+    Path resolution for the artifact (the STORE has no path)::
 
         1. Explicit ``path`` argument.
         2. ``$SCITEX_CLEW_CLAIMS_JSON`` env var (escape hatch).
