@@ -8,3 +8,46 @@ audit:
     files:
       # Codecov config canonically lives at repo root.
       - codecov.yml
+
+  exemptions:
+    # THIS IS AN EXEMPTION, NOT A FIX. PS-231 is correct that this
+    # workflow re-implements the org-provided `rtd-sphinx-build`, and a
+    # local copy does not track fixes made upstream. It is exempted
+    # because PS-231's OWN two stated blockers both apply to this file,
+    # verified rather than assumed:
+    #
+    #   1. It vendors its build output back into the package tree. The
+    #      "Refresh src/scitex_clew/_sphinx_html/" step does
+    #      `rm -rf` + `cp -rf` from the Sphinx build, and the next step
+    #      `git add`/`git commit`/`git push`es it on develop. pyproject
+    #      sets `[tool.hatch.build.targets.wheel] packages =
+    #      ["src/scitex_clew"]`, so those 88 tracked files SHIP INSIDE
+    #      THE WHEEL. The org reusable is build-only: converting would
+    #      keep building and stop publishing, leaving frozen docs
+    #      reaching users with green CI and nothing saying so.
+    #   2. It runs `sphinx-build -W` on pull_request, so warnings fail a
+    #      PR. The org build does not, so conversion also silently drops
+    #      that gate.
+    #
+    # TO REMOVE THIS EXEMPTION, the org reusable
+    # (scitex-ai/.github/.github/workflows/rtd-sphinx-build.yml) must
+    # gain BOTH: a way to vendor+commit the built HTML back into
+    # `src/<pkg>/_sphinx_html`, and warnings-as-errors on pull_request.
+    # Once it has them, delete this entry and replace the workflow body
+    # with a caller — passing `runs_on` explicitly, per PS-231's note
+    # that the runner decision must stay locally visible.
+    #
+    # Scoped to this one path on purpose. PS-224 is deliberately NOT
+    # exempted here: it is a real vulnerability (`secrets: inherit` into
+    # an `issue_comment` / `pull_request_target` job) and PR #140 fixes
+    # it properly. Masking it would be the wrong outcome.
+    PS-231:
+      - path: .github/workflows/rtd-sphinx-build-on-ubuntu-latest.yml
+        line: 0
+        reason: >-
+          Vendors its own build output into src/scitex_clew/_sphinx_html
+          and commits it; hatch packages src/scitex_clew wholesale so that
+          bundle ships in the wheel, and the org reusable is build-only.
+          Also runs `sphinx-build -W` on PRs, a gate the org build lacks.
+          Remove once the org workflow can vendor+commit the HTML and
+          fail PRs on warnings.
