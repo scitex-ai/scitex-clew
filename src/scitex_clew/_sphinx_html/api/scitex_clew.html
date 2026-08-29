@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew &mdash; SciTeX Clew v0.2.16</title>
+  <title>scitex_clew &mdash; SciTeX Clew v0.0.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=e2418eca"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -71,7 +71,16 @@
 <li class="toctree-l2"><a class="reference internal" href="../concepts.html#three-verification-modes">Three Verification Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../grouping.html">Grouping</a><ul>
@@ -111,11 +120,43 @@
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
@@ -165,7 +206,8 @@
   <section id="module-scitex_clew">
 <span id="scitex-clew"></span><h1>scitex_clew<a class="headerlink" href="#module-scitex_clew" title="Link to this heading"></a></h1>
 <p>scitex-clew — Hash-based verification for reproducible science.</p>
-<p>Standalone package. Zero dependencies (pure stdlib + sqlite3).
+<p>Provenance is recorded in THE store this host uses — the per-host
+PostgreSQL, resolved by <code class="docutils literal notranslate"><span class="pre">scitex_dev.store.host_store()</span></code>.
 When used with scitex, integration is automatic via &#64;stx.session + stx.io.</p>
 <p>Public API:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">clew</span>
@@ -180,11 +222,19 @@ When used with scitex, integration is automatic via &#64;stx.session + stx.io.</
 <span class="n">clew</span><span class="o">.</span><span class="n">rerun_claims</span><span class="p">()</span>                <span class="c1"># rerun all claim-backing sessions</span>
 <span class="n">clew</span><span class="o">.</span><span class="n">list_runs</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>          <span class="c1"># list tracked runs</span>
 <span class="n">clew</span><span class="o">.</span><span class="n">stats</span><span class="p">()</span>                       <span class="c1"># database statistics</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">script_or_target</span><span class="p">)</span>    <span class="c1"># pre-flight runtime/success estimate</span>
 
 <span class="c1"># Claims</span>
 <span class="n">clew</span><span class="o">.</span><span class="n">add_claim</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>                <span class="c1"># register manuscript assertion</span>
 <span class="n">clew</span><span class="o">.</span><span class="n">list_claims</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>              <span class="c1"># list registered claims</span>
 <span class="n">clew</span><span class="o">.</span><span class="n">verify_claim</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>             <span class="c1"># verify a specific claim</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">verify_all_claims</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>        <span class="c1"># verify every claim -&gt; fail-loud code</span>
+
+<span class="c1"># Citations (\cite -&gt; scholar-verified source gate)</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">add_citation</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>             <span class="c1"># register (push) a scholar-resolved cite</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">list_citations</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>           <span class="c1"># list registered citation nodes</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">verify_citations</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span>     <span class="c1"># per-key {status,doi,source_id,link,reason}</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">verify_all_citations</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span> <span class="c1"># fail-loud VerificationResult (same-run)</span>
 
 <span class="c1"># Stamping</span>
 <span class="n">clew</span><span class="o">.</span><span class="n">stamp</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>                    <span class="c1"># create temporal proof</span>
@@ -216,19 +266,19 @@ cold-start threshold. The public attribute names listed above (and in
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.status">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew.html#status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.status" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_core/_convenience.html#status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.status" title="Link to this definition"></a></dt>
 <dd><p>Get verification status summary (like git status).</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.run">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_scratch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew.html#run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.run" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_scratch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_core/_convenience.html#run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.run" title="Link to this definition"></a></dt>
 <dd><p>Verify a specific run.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>session_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Session identifier</p></li>
-<li><p><strong>from_scratch</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, re-execute the script and verify outputs (slow but thorough).
+<li><p><strong>session_id</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Session identifier</p></li>
+<li><p><strong>from_scratch</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – If True, re-execute the script and verify outputs (slow but thorough).
 If False, only compare hashes (fast).</p></li>
 </ul>
 </dd>
@@ -237,13 +287,13 @@ If False, only compare hashes (fast).</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.chain">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew.html#chain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.chain" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_core/_convenience.html#chain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.chain" title="Link to this definition"></a></dt>
 <dd><p>Verify the dependency chain for a target file.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.dag">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">dag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew.html#dag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.dag" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">dag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_core/_convenience.html#dag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.dag" title="Link to this definition"></a></dt>
 <dd><p>Verify the DAG for multiple targets or all claims.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -260,14 +310,14 @@ If False, only compare hashes (fast).</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.rerun">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">rerun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cleanup</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew.html#rerun"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.rerun" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">rerun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cleanup</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_core/_convenience.html#rerun"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.rerun" title="Link to this definition"></a></dt>
 <dd><p>Re-execute a session in a sandbox and compare outputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>target</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>) – Session ID, script path, or artifact path.</p></li>
-<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum execution time in seconds (default: 300).</p></li>
-<li><p><strong>cleanup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Remove sandbox outputs after verification (default: True).</p></li>
+<li><p><strong>timeout</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Maximum execution time in seconds (default: 300).</p></li>
+<li><p><strong>cleanup</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Remove sandbox outputs after verification (default: True).</p></li>
 </ul>
 </dd>
 </dl>
@@ -275,26 +325,33 @@ If False, only compare hashes (fast).</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.rerun_dag">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">rerun_dag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cleanup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_rerun.html#rerun_dag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.rerun_dag" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">rerun_dag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cleanup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_unchanged</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_rerun.html#rerun_dag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.rerun_dag" title="Link to this definition"></a></dt>
 <dd><p>Rerun-verify an entire DAG in topological order.</p>
-<p>Each session is re-executed in a sandbox against its ORIGINAL stored
-inputs (not freshly rerun outputs from upstream), then compared to
-the original outputs.</p>
+<p>Each session is re-executed against its ORIGINAL stored inputs then
+compared to its original outputs.  When <code class="docutils literal notranslate"><span class="pre">skip_unchanged=True</span></code> a
+freshness check short-circuits the subprocess for unchanged sessions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>targets</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Target output files whose upstream DAG should be rerun.
-If None, all runs in the database are used and their output
-files become the targets.</p></li>
-<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum execution time per session in seconds (default: 300).</p></li>
-<li><p><strong>cleanup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to remove sandbox output directories after each rerun.</p></li>
+<li><p><strong>targets</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>] | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Target output files.  If None all recorded outputs are used.</p></li>
+<li><p><strong>timeout</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Max execution time per session in seconds (default: 300).</p></li>
+<li><p><strong>cleanup</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Remove sandbox output directories after each rerun.</p></li>
+<li><p><strong>skip_unchanged</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – OPT-IN incremental skip (default: False).  When True, each session
+is tested for freshness BEFORE the expensive subprocess launch.
+A session is fresh when: (1) script_hash is recorded; (2) script
+file exists and matches script_hash; (3) every recorded INPUT file
+exists and its hash matches the recorded value.  Fresh sessions are
+marked status=VERIFIED / level=CACHE so <code class="docutils literal notranslate"><span class="pre">is_verified_from_scratch</span></code>
+is False — clearly distinct from an actual re-execution.  Non-fresh
+sessions fall through to the normal <code class="docutils literal notranslate"><span class="pre">_execute_script</span></code> path.
+Default is False: behavior is byte-identical to the original.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Unified verification result for the entire DAG.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>DAGVerification</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DAGVerification</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -303,105 +360,189 @@ files become the targets.</p></li>
 <dt class="sig sig-object py" id="scitex_clew.rerun_claims">
 <span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">rerun_claims</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cleanup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_rerun.html#rerun_claims"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.rerun_claims" title="Link to this definition"></a></dt>
 <dd><p>Rerun-verify all sessions that produced files referenced by claims.</p>
-<p>Collects unique source files from matching claims, then delegates
-to <code class="docutils literal notranslate"><span class="pre">rerun_dag</span></code> with those files as targets.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Filter claims by manuscript file path.</p></li>
-<li><p><strong>claim_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Filter claims by type (statistic, figure, table, text, value).</p></li>
-<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum execution time per session in seconds (default: 300).</p></li>
-<li><p><strong>cleanup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to remove sandbox output directories after each rerun.</p></li>
+<li><p><strong>file_path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Filter claims by manuscript file path.</p></li>
+<li><p><strong>claim_type</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Filter claims by type (statistic, figure, table, text, value).</p></li>
+<li><p><strong>timeout</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Maximum execution time per session in seconds (default: 300).</p></li>
+<li><p><strong>cleanup</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Whether to remove sandbox output directories after each rerun.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Unified verification result for the upstream DAG of all
-source files referenced by the matching claims.</p>
+<dd class="field-even"><p>Unified verification result for the upstream DAG.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>DAGVerification</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DAGVerification</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.list_runs">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">list_runs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew.html#list_runs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.list_runs" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">list_runs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_core/_convenience.html#list_runs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.list_runs" title="Link to this definition"></a></dt>
 <dd><p>List tracked runs.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.stats">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew.html#stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.stats" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_core/_convenience.html#stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.stats" title="Link to this definition"></a></dt>
 <dd><p>Get database statistics.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.estimate">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">estimate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">script_or_target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">heavy_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_core/_convenience.html#estimate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.estimate" title="Link to this definition"></a></dt>
+<dd><p>Pre-flight runtime/success estimate for a script or target file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>script_or_target</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Path to a Python script or a target output file.  Target files are
+resolved to their producing script via the run DB.</p></li>
+<li><p><strong>heavy_threshold</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Override the p90 threshold (seconds) above which the <code class="docutils literal notranslate"><span class="pre">heavy</span></code> flag
+is set.  Defaults to <code class="xref py py-data docutils literal notranslate"><span class="pre">scitex_clew.HEAVY_THRESHOLD_SECONDS</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Estimation result with match_tier, p50/p90 runtime, success rate,
+typical #outputs, heavy flag, and hint text.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>EstimateResult</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.add_claim">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">add_claim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line_number</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_session</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim.html#add_claim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.add_claim" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">add_claim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line_number</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_session</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim/_register.html#add_claim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.add_claim" title="Link to this definition"></a></dt>
 <dd><p>Register a claim linking a manuscript assertion to the verification chain.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Path to the manuscript file (e.g., paper.tex).</p></li>
-<li><p><strong>claim_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – One of: statistic, figure, table, text, value.</p></li>
-<li><p><strong>line_number</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Line number in the manuscript.</p></li>
-<li><p><strong>claim_value</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – The asserted value (e.g., “p = 0.003”).</p></li>
-<li><p><strong>source_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Path to the source file that produced this claim.</p></li>
-<li><p><strong>source_session</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Session ID that produced the source.</p></li>
+<li><p><strong>file_path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Path to the manuscript file (e.g., paper.tex).</p></li>
+<li><p><strong>claim_type</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – One of: statistic, figure, table, text, value.</p></li>
+<li><p><strong>line_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span>) – Line number in the manuscript.</p></li>
+<li><p><strong>claim_value</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – The asserted value (e.g., “p = 0.003”).</p></li>
+<li><p><strong>source_file</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Path to the source file that produced this claim.</p></li>
+<li><p><strong>source_session</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Session ID that produced the source.</p></li>
+<li><p><strong>claim_id</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Explicit, stable claim id used VERBATIM as the primary key (keyword-
+only). Supply this when the caller owns a meaningful identity — e.g. a
+figure’s image save-path, or a semantic key per manuscript number — so
+the id never collapses and downstream <code class="docutils literal notranslate"><span class="pre">\clew*{id}</span></code> render macros can
+join on it deterministically. When omitted, the id is DERIVED from
+<code class="docutils literal notranslate"><span class="pre">(file_path,</span> <span class="pre">line_number,</span> <span class="pre">claim_type,</span> <span class="pre">claim_value)</span></code> — folding the
+value in so two distinct numbers on one line no longer collapse. Re-
+registering the same explicit id (or the same derived tuple) overwrites
+idempotently.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The registered claim object.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Claim</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Claim</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.list_claims">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">list_claims</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim.html#list_claims"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.list_claims" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">list_claims</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_superseded</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim/_register.html#list_claims"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.list_claims" title="Link to this definition"></a></dt>
 <dd><p>List registered claims with optional filters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Filter by manuscript file path.</p></li>
-<li><p><strong>claim_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Filter by claim type.</p></li>
-<li><p><strong>status</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Filter by verification status.</p></li>
-<li><p><strong>limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Maximum number of claims to return.</p></li>
+<li><p><strong>file_path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by manuscript file path (exact match).</p></li>
+<li><p><strong>claim_type</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by claim type.</p></li>
+<li><p><strong>status</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by verification status.</p></li>
+<li><p><strong>limit</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Maximum number of claims to return.</p></li>
+<li><p><strong>include_superseded</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – When False (default), excludes claims with status <code class="docutils literal notranslate"><span class="pre">&quot;superseded&quot;</span></code>
+so they do not pollute the active-claim view or fail-loud gate.
+Pass True to see the full audit trail including superseded rows.</p></li>
+<li><p><strong>file_path_prefix</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Prefix-match on file_path (resolved).  Only claims whose
+<code class="docutils literal notranslate"><span class="pre">file_path</span></code> starts with this prefix are returned.  If both
+<code class="docutils literal notranslate"><span class="pre">file_path</span></code> and <code class="docutils literal notranslate"><span class="pre">file_path_prefix</span></code> are given, both filters
+apply (intersection).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a> of Claim</p>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Claim</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.verify_claim">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">verify_claim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">claim_id_or_location</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim.html#verify_claim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.verify_claim" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">verify_claim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">claim_id_or_location</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hash_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim/_verify.html#verify_claim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.verify_claim" title="Link to this definition"></a></dt>
 <dd><p>Verify a specific claim by checking its source against the verification chain.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>claim_id_or_location</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Either a claim_id or a location string like “paper.tex:L42”.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>claim_id_or_location</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Either a claim_id or a location string like “paper.tex:L42”.</p></li>
+<li><p><strong>hash_cache</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Per-pass cache mapping resolved-path -&gt; hash (see
+<code class="xref py py-func docutils literal notranslate"><span class="pre">scitex_clew._hash.hash_file()</span></code>). When provided, a source file
+shared by multiple claims is hashed at most once per pass. Pass
+<code class="docutils literal notranslate"><span class="pre">None</span></code> (default) to disable caching — direct callers are unaffected.</p></li>
+<li><p><strong>chain_cache</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a>]]</span>) – Per-pass memo mapping <code class="docutils literal notranslate"><span class="pre">str(resolved</span> <span class="pre">source_file)</span></code> -&gt;
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ChainVerification</span></code>. When provided, the
+full chain walk (<code class="docutils literal notranslate"><span class="pre">verify_chain</span></code>) for a source_file that appears on
+multiple claims is executed at most once per <a class="reference internal" href="#scitex_clew.verify_all_claims" title="scitex_clew.verify_all_claims"><code class="xref py py-func docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a>
+pass. Pass <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) to disable memoization — direct callers
+are unaffected.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Verification result with claim details and chain status.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.verify_all_claims">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">verify_all_claims</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim/_verify.html#verify_all_claims"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.verify_all_claims" title="Link to this definition"></a></dt>
+<dd><p>Verify every registered claim and reduce to a fail-loud result.</p>
+<p>This is the reusable core behind <code class="docutils literal notranslate"><span class="pre">clew</span> <span class="pre">verify</span></code> (claim-set mode). It
+re-verifies each claim (re-hashing its source and, in <code class="docutils literal notranslate"><span class="pre">strict</span></code> mode,
+checking upstream <code class="docutils literal notranslate"><span class="pre">&#64;stx.session</span></code> lineage), updates each claim’s stored
+status as a side effect (via <a class="reference internal" href="#scitex_clew.verify_claim" title="scitex_clew.verify_claim"><code class="xref py py-func docutils literal notranslate"><span class="pre">verify_claim()</span></code></a>), and reduces the
+per-claim outcomes to a single <code class="xref py py-class docutils literal notranslate"><span class="pre">VerificationResult</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Restrict to claims registered against this manuscript path.</p></li>
+<li><p><strong>claim_type</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Restrict to claims of this type.</p></li>
+<li><p><strong>strict</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – When True, a claim only passes if its source additionally has
+upstream computation lineage (its provenance chain verifies).
+A hand-written leaf (no <code class="docutils literal notranslate"><span class="pre">&#64;stx.session</span></code> behind it) fails with
+<code class="docutils literal notranslate"><span class="pre">NO_LINEAGE</span></code> even though its hash matches. <code class="docutils literal notranslate"><span class="pre">strict</span></code> also promotes
+<code class="docutils literal notranslate"><span class="pre">NO_LINEAGE</span></code> to ERROR severity regardless of config. Default False.</p></li>
+<li><p><strong>config</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>) – Explicit <code class="docutils literal notranslate"><span class="pre">.scitex/clew</span></code> config file/dir overriding the resolved
+user/project severity map (see <code class="xref py py-mod docutils literal notranslate"><span class="pre">scitex_clew._core._config</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Structured outcome. <code class="docutils literal notranslate"><span class="pre">result.exit_code</span> <span class="pre">==</span> <span class="pre">0</span></code> (<code class="docutils literal notranslate"><span class="pre">result.ok</span></code>) is the
+DONE-gate; any nonzero code means the agent MUST abstain honestly
+instead of claiming success. Per-pattern severity (configurable via
+<code class="docutils literal notranslate"><span class="pre">.scitex/clew</span></code>) decides which fired patterns are <code class="docutils literal notranslate"><span class="pre">errors</span></code> (fail)
+vs <code class="docutils literal notranslate"><span class="pre">warnings</span></code> (tolerated). See <code class="xref py py-mod docutils literal notranslate"><span class="pre">scitex_clew._cli._exit_codes</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">VerificationResult</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.export_claims_json">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">export_claims_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim.html#export_claims_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.export_claims_json" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">export_claims_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_superseded</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim/_export.html#export_claims_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.export_claims_json" title="Link to this definition"></a></dt>
 <dd><p>Export every registered claim to a canonical JSON artifact.</p>
 <p>The exported file is the single human-readable + machine-consumable
-view of the claims table in <code class="docutils literal notranslate"><span class="pre">db.sqlite</span></code>. The DB remains the
+view of the claims store. The store remains the
 source of truth; this JSON is a regenerable artifact.</p>
 <p>Path resolution (mirrors <code class="xref py py-func docutils literal notranslate"><span class="pre">scitex_clew._db._core._default_db_path()</span></code>):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>1. Explicit ``path`` argument.
@@ -414,31 +555,61 @@ source of truth; this JSON is a regenerable artifact.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>Path</em><em>, </em><em>optional</em>) – Override the resolved path. Useful for tests / one-off dumps.</p></li>
-<li><p><strong>file_path_filter</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – When set, only claims registered against this manuscript file
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>) – Override the resolved path. Useful for tests / one-off dumps.</p></li>
+<li><p><strong>file_path_filter</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – When set, only claims registered against this manuscript file
 path are exported. Default: every claim in the DB.</p></li>
-<li><p><strong>read_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – After writing, <code class="docutils literal notranslate"><span class="pre">chmod</span> <span class="pre">0o444</span></code> the file so accidental edits
+<li><p><strong>read_only</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – After writing, <code class="docutils literal notranslate"><span class="pre">chmod</span> <span class="pre">0o444</span></code> the file so accidental edits
 fail loudly at the OS layer. Default True (the file IS
 derived). Set False for tests that need to mutate the file.</p></li>
+<li><p><strong>include_superseded</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – When False (default), superseded claims are excluded from the
+exported JSON — consumers should only see active claims.
+Pass True to include them (audit/debug use).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The path the artifact was written to (absolute).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Path</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></span></p>
 </dd>
 </dl>
 <div class="admonition-examples admonition">
 <p class="admonition-title">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">clew</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">clew</span><span class="o">.</span><span class="n">add_claim</span><span class="p">(</span><span class="s2">&quot;paper.tex&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="s2">&quot;0.94&quot;</span><span class="p">,</span> <span class="n">source_file</span><span class="o">=</span><span class="s2">&quot;r.csv&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">clew</span><span class="o">.</span><span class="n">add_claim</span><span class="p">(</span><span class="s2">"paper.tex"</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="s2">"0.94"</span><span class="p">,</span> <span class="n">source_file</span><span class="o">=</span><span class="s2">"r.csv"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># claims.json now auto-exported under ./.scitex/clew/runtime/</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">clew</span><span class="o">.</span><span class="n">export_claims_json</span><span class="p">()</span>  <span class="c1"># idempotent — re-emit on demand</span>
-<span class="go">PosixPath(&#39;.../.scitex/clew/runtime/claims.json&#39;)</span>
+<span class="go">PosixPath('.../.scitex/clew/runtime/claims.json')</span>
 </pre></div>
 </div>
 </div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.export_manuscript_claims">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">export_manuscript_claims</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim/_manuscript.html#export_manuscript_claims"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.export_manuscript_claims" title="Link to this definition"></a></dt>
+<dd><p>Emit the unified render feed (value + citation + figure) to claims.json.</p>
+<p>Reads both clew ledgers and writes ONE <code class="docutils literal notranslate"><span class="pre">claims</span></code> list in scitex-writer’s
+frozen render schema. This is the compile-time exporter behind
+<code class="docutils literal notranslate"><span class="pre">clew</span> <span class="pre">export-claims</span> <span class="pre">--unified</span></code>; the compiler calls it last so render_clew
+reads the complete unified shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>) – Output path. Resolution mirrors <a class="reference internal" href="#scitex_clew.export_claims_json" title="scitex_clew.export_claims_json"><code class="xref py py-func docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a>:
+explicit <code class="docutils literal notranslate"><span class="pre">path</span></code> &gt; <code class="docutils literal notranslate"><span class="pre">$SCITEX_CLEW_CLAIMS_JSON</span></code> &gt;
+<code class="docutils literal notranslate"><span class="pre">&lt;project_root&gt;/.scitex/clew/runtime/claims.json</span></code> (the canonical file
+render_clew reads). Pass an explicit path for a dedicated file.</p></li>
+<li><p><strong>read_only</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – <code class="docutils literal notranslate"><span class="pre">chmod</span> <span class="pre">0o444</span></code> the file after writing (default True — it is derived).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The path written (absolute).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -470,7 +641,7 @@ no explicit upstream (use sparingly).</p></li>
 <dd class="field-even"><p>The registered claim object.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Claim</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Claim</span></code></span></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If no session_id can be determined (env var unset and not passed).</p>
@@ -482,9 +653,9 @@ no explicit upstream (use sparingly).</p></li>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_intermediate</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">n_sig</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pathways</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">padj</span> <span class="o">&lt;</span> <span class="mf">0.05</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">register_intermediate</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;chronic_r2_n_sig_pathways&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">name</span><span class="o">=</span><span class="s2">"chronic_r2_n_sig_pathways"</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">value</span><span class="o">=</span><span class="n">n_sig</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">supports</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;chronic_r2_min_pvals&quot;</span><span class="p">,</span> <span class="s2">&quot;reactome_pathways_v2024&quot;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">supports</span><span class="o">=</span><span class="p">[</span><span class="s2">"chronic_r2_min_pvals"</span><span class="p">,</span> <span class="s2">"reactome_pathways_v2024"</span><span class="p">],</span>
 <span class="gp">... </span><span class="p">)</span>
 </pre></div>
 </div>
@@ -492,30 +663,403 @@ no explicit upstream (use sparingly).</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.remove_claim">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">remove_claim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">claim_id_or_location</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim/_mutate.html#remove_claim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.remove_claim" title="Link to this definition"></a></dt>
+<dd><p>Hard-delete a claim from the database.</p>
+<p>Permanently removes the claim row identified by <code class="docutils literal notranslate"><span class="pre">claim_id_or_location</span></code>
+(a claim_id string, a location like <code class="docutils literal notranslate"><span class="pre">&quot;paper.tex:L42&quot;</span></code>, or a bare file
+path — resolved via the same logic as <a class="reference internal" href="#scitex_clew.verify_claim" title="scitex_clew.verify_claim"><code class="xref py py-func docutils literal notranslate"><span class="pre">verify_claim()</span></code></a>).</p>
+<p>After deletion <a class="reference internal" href="#scitex_clew.export_claims_json" title="scitex_clew.export_claims_json"><code class="xref py py-func docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a> is called so the JSON
+artifact stays in sync with the DB.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>claim_id_or_location</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Claim identifier.  Resolution order:
+1. Exact <code class="docutils literal notranslate"><span class="pre">claim_id</span></code> match.
+2. Location string <code class="docutils literal notranslate"><span class="pre">&quot;file.tex:L42&quot;</span></code>.
+3. File path only (first row).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if a row was deleted; <code class="docutils literal notranslate"><span class="pre">False</span></code> if nothing matched.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.supersede_claim">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">supersede_claim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">claim_id_or_location</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_claim/_mutate.html#supersede_claim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.supersede_claim" title="Link to this definition"></a></dt>
+<dd><p>Soft-retire a claim by setting its status to <code class="docutils literal notranslate"><span class="pre">&quot;superseded&quot;</span></code>.</p>
+<p>The row is kept in the database (audit trail) but excluded from the
+default <a class="reference internal" href="#scitex_clew.list_claims" title="scitex_clew.list_claims"><code class="xref py py-func docutils literal notranslate"><span class="pre">list_claims()</span></code></a> view (<code class="docutils literal notranslate"><span class="pre">include_superseded=False</span></code> is the
+default), from <a class="reference internal" href="#scitex_clew.verify_all_claims" title="scitex_clew.verify_all_claims"><code class="xref py py-func docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a>, and from the default
+<a class="reference internal" href="#scitex_clew.export_claims_json" title="scitex_clew.export_claims_json"><code class="xref py py-func docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a> output.</p>
+<p>This allows a user to retire stale/dead claims so that <code class="docutils literal notranslate"><span class="pre">clew</span> <span class="pre">verify</span></code>
+can reach exit 0 without deleting the historical record.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>claim_id_or_location</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Claim identifier resolved the same way as <a class="reference internal" href="#scitex_clew.remove_claim" title="scitex_clew.remove_claim"><code class="xref py py-func docutils literal notranslate"><span class="pre">remove_claim()</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the claim existed and was updated; <code class="docutils literal notranslate"><span class="pre">False</span></code> if nothing
+matched.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.add_citation">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">add_citation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cite_key</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">manuscript_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line_number</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_stub</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolved</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_citation/_api.html#add_citation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.add_citation" title="Link to this definition"></a></dt>
+<dd><p>Register (push) a citation node resolved by scitex-scholar.</p>
+<p>This is the ledger-write half of the push model: scholar resolves a
+<code class="docutils literal notranslate"><span class="pre">\cite</span></code> key to a real source and records the outcome here. clew stores
+the node plus a content hash over the normalized metadata so a later
+out-of-band edit to the bib entry is caught (drift -&gt; hash mismatch).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cite_key</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The BibTeX citation key (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;Berens2009CircStat&quot;</span></code>).</p></li>
+<li><p><strong>manuscript_file</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Manuscript the key is cited from (e.g. <code class="docutils literal notranslate"><span class="pre">paper.tex</span></code>).</p></li>
+<li><p><strong>line_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span>) – Line number of the <code class="docutils literal notranslate"><span class="pre">\cite</span></code> in the manuscript.</p></li>
+<li><p><strong>doi</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Resolved DOI of the real source (None for a stub / unresolved).</p></li>
+<li><p><strong>source_id</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Scholar’s internal source identifier for the resolved record.</p></li>
+<li><p><strong>metadata</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>]</span>) – Bib fields (author/year/title/journal/doi) used for the content hash.</p></li>
+<li><p><strong>url</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Explicit source URL. Takes precedence over the derived
+<code class="docutils literal notranslate"><span class="pre">https://doi.org/&lt;doi&gt;</span></code> link — supply it for no-DOI records
+(e.g. SemanticScholar CorpusId-only) so the renderer has an href.</p></li>
+<li><p><strong>is_stub</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – True if scholar flagged this as a stub / placeholder. Default False.</p></li>
+<li><p><strong>resolved</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – True if scholar resolved the key to a real source. Default True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The stored citation node.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Citation</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.list_citations">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">list_citations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">manuscript_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_citation/_api.html#list_citations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.list_citations" title="Link to this definition"></a></dt>
+<dd><p>List registered citation nodes with optional filters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Citation</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.verify_citations">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">verify_citations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entries</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_citation/_api.html#verify_citations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.verify_citations" title="Link to this definition"></a></dt>
+<dd><p>Verify a set of cited keys against the clew citation ledger.</p>
+<p>This is the primitive the compiler’s pre-flight calls. For each entry it
+returns the per-key verdict the writer gate branches on.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>entries</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>) – Cited keys. Each dict carries at least <code class="docutils literal notranslate"><span class="pre">&quot;key&quot;</span></code> plus any bib fields
+the compiler extracted (<code class="docutils literal notranslate"><span class="pre">doi</span></code>/<code class="docutils literal notranslate"><span class="pre">journal</span></code>/<code class="docutils literal notranslate"><span class="pre">note</span></code>/<code class="docutils literal notranslate"><span class="pre">title</span></code>/
+<code class="docutils literal notranslate"><span class="pre">author</span></code>/<code class="docutils literal notranslate"><span class="pre">year</span></code>). A bare string is treated as <code class="docutils literal notranslate"><span class="pre">{&quot;key&quot;:</span> <span class="pre">...}</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">{cite_key:</span> <span class="pre">{&quot;status&quot;,</span> <span class="pre">&quot;doi&quot;,</span> <span class="pre">&quot;source_id&quot;,</span> <span class="pre">&quot;link&quot;,</span> <span class="pre">&quot;reason&quot;}}</span></code> where
+<code class="docutils literal notranslate"><span class="pre">status</span></code> is one of <code class="docutils literal notranslate"><span class="pre">{verified,</span> <span class="pre">stub,</span> <span class="pre">unverified,</span> <span class="pre">unknown}</span></code> and
+<code class="docutils literal notranslate"><span class="pre">link</span></code> is the resolved source URL for an href (scholar-supplied url,
+else <code class="docutils literal notranslate"><span class="pre">https://doi.org/&lt;doi&gt;</span></code>, else None). The compiler treats
+anything other than <code class="docutils literal notranslate"><span class="pre">&quot;verified&quot;</span></code> as a gate hit and renders the
+marker from <code class="docutils literal notranslate"><span class="pre">status</span></code> (style) + <code class="docutils literal notranslate"><span class="pre">link</span></code> (href) + <code class="docutils literal notranslate"><span class="pre">reason</span></code> (tooltip).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.verify_all_citations">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">verify_all_citations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entries</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_citation/_api.html#verify_all_citations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.verify_all_citations" title="Link to this definition"></a></dt>
+<dd><p>Reduce a set of cited keys to a fail-loud <code class="docutils literal notranslate"><span class="pre">VerificationResult</span></code>.</p>
+<p>Same aggregate contract as <a class="reference internal" href="#scitex_clew.verify_all_claims" title="scitex_clew.verify_all_claims"><code class="xref py py-func docutils literal notranslate"><span class="pre">scitex_clew.verify_all_claims()</span></code></a>, so the
+compiler gets a single <code class="docutils literal notranslate"><span class="pre">result.ok</span></code> DONE-gate covering citations. Per-key
+verdicts reduce onto the citation exit codes (CITATION_STUB / _UNRESOLVED /
+_UNLINKED, plus HASH_MISMATCH on drift), each config-tunable via
+<code class="docutils literal notranslate"><span class="pre">.scitex/clew</span></code> <code class="docutils literal notranslate"><span class="pre">verify.severity</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>entries</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>) – Cited keys (see <a class="reference internal" href="#scitex_clew.verify_citations" title="scitex_clew.verify_citations"><code class="xref py py-func docutils literal notranslate"><span class="pre">verify_citations()</span></code></a>).</p></li>
+<li><p><strong>strict</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Reserved for parity with the claim gate; currently a no-op for
+citations (every citation pattern already defaults to ERROR).</p></li>
+<li><p><strong>config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>pathlib.Path</em></a><em>, </em><em>optional</em>) – Explicit <code class="docutils literal notranslate"><span class="pre">.scitex/clew</span></code> config overriding the resolved severity map.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">result.ok</span></code> (exit 0) iff every cited key is <code class="docutils literal notranslate"><span class="pre">verified</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>VerificationResult</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.register_source">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">register_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_sources/_writer.html#register_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.register_source" title="Link to this definition"></a></dt>
+<dd><p>Register one or more files as trusted sources (idempotent).</p>
+<p>Computes each file’s full sha256 and appends/updates a <code class="docutils literal notranslate"><span class="pre">{path,</span> <span class="pre">sha256}</span></code>
+entry in the manifest, creating it at the tier-3 path if absent. Re-
+registering a path updates its hash (idempotent).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>files</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]]]</span>) – File(s) to register. Each must exist (its content is hashed now).</p></li>
+<li><p><strong>sources_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>) – Explicit manifest path (else tier-2 env / tier-3 default).</p></li>
+<li><p><strong>root</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>) – Project root that relpaths are stored against (default: cwd walk).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The manifest path written to (absolute).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.unregister_source">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">unregister_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_sources/_writer.html#unregister_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.unregister_source" title="Link to this definition"></a></dt>
+<dd><p>Remove one or more registered sources (idempotent; no-op if absent).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.list_sources">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">list_sources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_sources/_writer.html#list_sources"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.list_sources" title="Link to this definition"></a></dt>
+<dd><p>Return the manifest entries with a per-entry validity check.</p>
+<p>Each dict carries <code class="docutils literal notranslate"><span class="pre">path</span></code>, <code class="docutils literal notranslate"><span class="pre">sha256</span></code>, <code class="docutils literal notranslate"><span class="pre">abspath</span></code>, <code class="docutils literal notranslate"><span class="pre">valid</span></code> (bool), and
+<code class="docutils literal notranslate"><span class="pre">reason</span></code> (<code class="docutils literal notranslate"><span class="pre">OK</span></code> / <code class="docutils literal notranslate"><span class="pre">TAMPERED</span></code> / <code class="docutils literal notranslate"><span class="pre">MISSING</span></code>). Returns <code class="docutils literal notranslate"><span class="pre">[]</span></code> when no
+manifest exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.is_grounded">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">is_grounded</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">claim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manifest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_sources/_gate.html#is_grounded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.is_grounded" title="Link to this definition"></a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> iff the claim’s chain reaches a VALID registered source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>claim</strong> (<em>Claim</em>) – The claim (needs <code class="docutils literal notranslate"><span class="pre">source_file</span></code>, <code class="docutils literal notranslate"><span class="pre">source_hash</span></code>, <code class="docutils literal notranslate"><span class="pre">source_session</span></code>).</p></li>
+<li><p><strong>manifest</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#scitex_clew.SourcesManifest" title="scitex_clew._sources._manifest.SourcesManifest"><code class="xref py py-class docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a></span>) – A loaded, tamper-checked manifest. When it has no VALID anchors the
+function returns <code class="docutils literal notranslate"><span class="pre">True</span></code> (defensive: nothing to demote against — the
+caller normally gates on <code class="docutils literal notranslate"><span class="pre">manifest.active</span></code> before calling).</p></li>
+<li><p><strong>db</strong> (<em>VerificationDB</em>) – Provides the file-hash + producer lookups the chain walk needs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> (grounded) iff at least one chain candidate matches a valid
+anchor by absolute path AND hash-consistency; <code class="docutils literal notranslate"><span class="pre">False</span></code> (unsourced)
+when every root is unregistered.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.load_sources_manifest">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">load_sources_manifest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_sources/_manifest.html#load_sources_manifest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.load_sources_manifest" title="Link to this definition"></a></dt>
+<dd><p>Load + tamper-check the registered-source manifest.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>) – Explicit manifest path (tier 1). Falls through to
+<code class="docutils literal notranslate"><span class="pre">$SCITEX_CLEW_SOURCES</span></code> (tier 2) then the tier-3 default.</p></li>
+<li><p><strong>root</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>) – Project root the manifest relpaths resolve against. When <code class="docutils literal notranslate"><span class="pre">None</span></code>,
+derived from the manifest location (canonical layout) or the cwd
+project-root walk.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> when the manifest file does not exist — the gate is then
+INACTIVE (opt-in: zero behavior change). A present manifest is parsed,
+schema-validated, and every entry tamper-checked (recompute each
+file’s sha256 vs the pinned value).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference internal" href="#scitex_clew.SourcesManifest" title="scitex_clew._sources._manifest.SourcesManifest"><code class="xref py py-class docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a>]</span></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – On a malformed manifest (not JSON, wrong schema string, missing
+    <code class="docutils literal notranslate"><span class="pre">sources</span></code> list, or a malformed entry). Fail-loud, never silent-empty.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_clew.resolve_sources_path">
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">resolve_sources_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_sources/_manifest.html#resolve_sources_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.resolve_sources_path" title="Link to this definition"></a></dt>
+<dd><p>Resolve the manifest path via the three-tier precedence.</p>
+<p>Mirrors <code class="xref py py-func docutils literal notranslate"><span class="pre">scitex_clew._db._core.resolve_db_path()</span></code> exactly:
+tier1 explicit arg &gt; tier2 <code class="docutils literal notranslate"><span class="pre">$SCITEX_CLEW_SOURCES</span></code> &gt; tier3
+<code class="docutils literal notranslate"><span class="pre">&lt;project_root&gt;/.scitex/clew/sources.json</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The resolved path and a human-readable label of the producing tier.
+This function only resolves — it neither creates nor requires the
+file.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">SourcesManifest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_enforced</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signature_valid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_sources/_manifest.html#SourcesManifest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.SourcesManifest" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A loaded, tamper-checked registered-source manifest.</p>
+<p><code class="docutils literal notranslate"><span class="pre">active</span></code> is the OPT-IN switch: the gate only fires when at least one
+VALID entry is present. An absent manifest loads as <code class="docutils literal notranslate"><span class="pre">None</span></code> (see
+<a class="reference internal" href="#scitex_clew.load_sources_manifest" title="scitex_clew.load_sources_manifest"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a>); a present-but-empty or all-invalid
+manifest is <code class="docutils literal notranslate"><span class="pre">active</span> <span class="pre">is</span> <span class="pre">False</span></code> so the gate stays dormant.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.schema">
+<span class="sig-name descname"><span class="pre">schema</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#scitex_clew.SourcesManifest.schema" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.root">
+<span class="sig-name descname"><span class="pre">root</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a></span><a class="headerlink" href="#scitex_clew.SourcesManifest.root" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.path">
+<span class="sig-name descname"><span class="pre">path</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a></span><a class="headerlink" href="#scitex_clew.SourcesManifest.path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.entries">
+<span class="sig-name descname"><span class="pre">entries</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><span class="pre">SourceEntry</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#scitex_clew.SourcesManifest.entries" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.signature">
+<span class="sig-name descname"><span class="pre">signature</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#scitex_clew.SourcesManifest.signature" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.signing_enforced">
+<span class="sig-name descname"><span class="pre">signing_enforced</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span><a class="headerlink" href="#scitex_clew.SourcesManifest.signing_enforced" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.signature_valid">
+<span class="sig-name descname"><span class="pre">signature_valid</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#scitex_clew.SourcesManifest.signature_valid" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.valid_entries">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">valid_entries</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><span class="pre">SourceEntry</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#scitex_clew.SourcesManifest.valid_entries" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.invalid_entries">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">invalid_entries</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><span class="pre">SourceEntry</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#scitex_clew.SourcesManifest.invalid_entries" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.trusted">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">trusted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><a class="headerlink" href="#scitex_clew.SourcesManifest.trusted" title="Link to this definition"></a></dt>
+<dd><p>False iff signing is ENFORCED but the manifest’s signature is
+missing/invalid — an untrusted manifest anchors NOTHING (so a tampered
+or unsigned-under-an-enforcing-key manifest cannot ground any claim:
+“without the key it can’t be run/edited”).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.active">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">active</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><a class="headerlink" href="#scitex_clew.SourcesManifest.active" title="Link to this definition"></a></dt>
+<dd><p>Gate FIRES iff signing is enforced (a committed signing.pub) OR &gt;=1
+VALID anchor exists.</p>
+<p>When signing is enforced the gate fires even for an UNTRUSTED manifest —
+so is_grounded blocks ALL its claims (an unsigned or tampered manifest
+must not silently pass by making the gate go dormant).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.anchor_paths">
+<span class="sig-name descname"><span class="pre">anchor_paths</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_sources/_manifest.html#SourcesManifest.anchor_paths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.SourcesManifest.anchor_paths" title="Link to this definition"></a></dt>
+<dd><p>Resolved absolute paths of the VALID anchors (for grounding); EMPTY
+when the manifest is untrusted (unsigned/tampered under an enforcing key).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Set</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.pinned_for">
+<span class="sig-name descname"><span class="pre">pinned_for</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">abspath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_sources/_manifest.html#SourcesManifest.pinned_for"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.SourcesManifest.pinned_for" title="Link to this definition"></a></dt>
+<dd><p>Pinned sha256 for a VALID anchor at <code class="docutils literal notranslate"><span class="pre">abspath</span></code> (else <code class="docutils literal notranslate"><span class="pre">None</span></code>);
+always <code class="docutils literal notranslate"><span class="pre">None</span></code> when the manifest is untrusted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scitex_clew.SourcesManifest.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_enforced</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signature_valid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scitex_clew.SourcesManifest.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.stamp">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">stamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'file'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_stamp.html#stamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.stamp" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">stamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'file'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_attest/_stamp.html#stamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.stamp" title="Link to this definition"></a></dt>
 <dd><p>Record root hash with external timestamp.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>backend</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – One of: file, rfc3161, zenodo.</p></li>
-<li><p><strong>service_url</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – URL for RFC 3161 TSA or Zenodo API.</p></li>
-<li><p><strong>session_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Specific sessions to stamp. If None, stamps all successful runs.</p></li>
-<li><p><strong>output_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Directory for file-based stamps (default: &lt;db_dir&gt;/stamps, i.e. .scitex/clew/runtime/stamps/).</p></li>
+<li><p><strong>backend</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – One of: file, rfc3161, zenodo.</p></li>
+<li><p><strong>service_url</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – URL for RFC 3161 TSA or Zenodo API.</p></li>
+<li><p><strong>session_ids</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Specific sessions to stamp. If None, stamps all successful runs.</p></li>
+<li><p><strong>output_dir</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Directory for file-based stamps (default: &lt;db_dir&gt;/stamps, i.e. .scitex/clew/runtime/stamps/).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The timestamp proof record.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Stamp</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Stamp</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.list_stamps">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">list_stamps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_stamp.html#list_stamps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.list_stamps" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">list_stamps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_attest/_stamp.html#list_stamps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.list_stamps" title="Link to this definition"></a></dt>
 <dd><p>List all stamps.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -526,44 +1070,49 @@ no explicit upstream (use sparingly).</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.check_stamp">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">check_stamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stamp_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_stamp.html#check_stamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.check_stamp" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">check_stamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stamp_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_attest/_stamp.html#check_stamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.check_stamp" title="Link to this definition"></a></dt>
 <dd><p>Verify a stamp against current verification state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>stamp_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Specific stamp to check. If None, checks the latest stamp.</p>
+<dd class="field-odd"><p><strong>stamp_id</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Specific stamp to check. If None, checks the latest stamp.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>{stamp, current_root_hash, matches, details}</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.hash_file">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">hash_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sha256'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8192</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_hash.html#hash_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.hash_file" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">hash_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sha256'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8192</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hash_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_hash.html#hash_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.hash_file" title="Link to this definition"></a></dt>
 <dd><p>Compute hash of a file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>Path</em>) – Path to the file to hash</p></li>
-<li><p><strong>algorithm</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Hash algorithm (default: sha256)</p></li>
-<li><p><strong>chunk_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Size of chunks to read (default: 8192)</p></li>
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]</span>) – Path to the file to hash</p></li>
+<li><p><strong>algorithm</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Hash algorithm (default: sha256)</p></li>
+<li><p><strong>chunk_size</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Size of chunks to read (default: 8192)</p></li>
+<li><p><strong>hash_cache</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Per-pass cache mapping resolved-path -&gt; hash. When provided, the
+resolved path is looked up first; on a miss the file is hashed and
+the result is stored so subsequent calls within the same pass reuse
+the cached value. Pass <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) to disable caching —
+direct calls to <code class="docutils literal notranslate"><span class="pre">hash_file</span></code> are unaffected.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Hexadecimal hash string (first 32 characters)</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
 </dd>
 </dl>
 <div class="admonition-examples admonition">
 <p class="admonition-title">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hash_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">)</span>
-<span class="go">&#39;a1b2c3d4e5f6...&#39;</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hash_file</span><span class="p">(</span><span class="s2">"data.csv"</span><span class="p">)</span>
+<span class="go">'a1b2c3d4e5f6...'</span>
 </pre></div>
 </div>
 </div>
@@ -576,23 +1125,23 @@ no explicit upstream (use sparingly).</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>Path</em>) – Directory path</p></li>
-<li><p><strong>pattern</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Glob pattern for files (default: “*”)</p></li>
-<li><p><strong>recursive</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to search recursively (default: True)</p></li>
-<li><p><strong>algorithm</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Hash algorithm (default: sha256)</p></li>
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]</span>) – Directory path</p></li>
+<li><p><strong>pattern</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Glob pattern for files (default: “*”)</p></li>
+<li><p><strong>recursive</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Whether to search recursively (default: True)</p></li>
+<li><p><strong>algorithm</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Hash algorithm (default: sha256)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Mapping of relative paths to hashes</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
 </dd>
 </dl>
 <div class="admonition-examples admonition">
 <p class="admonition-title">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hash_directory</span><span class="p">(</span><span class="s2">&quot;./data/&quot;</span><span class="p">)</span>
-<span class="go">{&#39;input.csv&#39;: &#39;a1b2...&#39;, &#39;config.yaml&#39;: &#39;c3d4...&#39;}</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hash_directory</span><span class="p">(</span><span class="s2">"./data/"</span><span class="p">)</span>
+<span class="go">{'input.csv': 'a1b2...', 'config.yaml': 'c3d4...'}</span>
 </pre></div>
 </div>
 </div>
@@ -607,7 +1156,7 @@ returned with the same <code class="docutils literal notranslate"><span class="p
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_clew.mermaid">
-<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">mermaid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grouper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew.html#mermaid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.mermaid" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_clew.</span></span><span class="sig-name descname"><span class="pre">mermaid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grouper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_clew/_core/_convenience.html#mermaid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_clew.mermaid" title="Link to this definition"></a></dt>
 <dd><p>Generate a Mermaid DAG diagram.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -634,9 +1183,9 @@ to generate outputs and populate the verification database.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dest</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>Path</em>) – Destination directory.  Created if it does not exist.
+<li><p><strong>dest</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></span>) – Destination directory.  Created if it does not exist.
 Existing script files are overwritten.</p></li>
-<li><p><strong>variant</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Example variant: “sequential” (default) or “multi_parent”.</p></li>
+<li><p><strong>variant</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Example variant: “sequential” (default) or “multi_parent”.</p></li>
 <li><p><strong>find_examples_dir</strong> (<em>callable</em><em>, </em><em>optional</em>) – Locator callable <code class="docutils literal notranslate"><span class="pre">(variant:</span> <span class="pre">str)</span> <span class="pre">-&gt;</span> <span class="pre">Optional[Path]</span></code> used to
 resolve the bundled examples source. Production callers should
 not pass this; it is the canonical PA-306 §1 DI seam — tests
@@ -648,7 +1197,7 @@ directory or <code class="docutils literal notranslate"><span class="pre">None</
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">{&quot;path&quot;:</span> <span class="pre">str,</span> <span class="pre">&quot;files&quot;:</span> <span class="pre">list[str],</span> <span class="pre">&quot;file_count&quot;:</span> <span class="pre">int,</span> <span class="pre">&quot;variant&quot;:</span> <span class="pre">str}</span></code></p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
@@ -666,11 +1215,11 @@ directory or <code class="docutils literal notranslate"><span class="pre">None</
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>session_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Unique session identifier</p></li>
-<li><p><strong>script_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Path to the script being run</p></li>
-<li><p><strong>parent_session</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Parent session ID for chain tracking</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to log status messages</p></li>
-<li><p><strong>metadata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Additional metadata (e.g. notebook_path, cell_index)</p></li>
+<li><p><strong>session_id</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Unique session identifier</p></li>
+<li><p><strong>script_path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Path to the script being run</p></li>
+<li><p><strong>parent_session</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Parent session ID for chain tracking</p></li>
+<li><p><strong>verbose</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Whether to log status messages</p></li>
+<li><p><strong>metadata</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span>) – Additional metadata (e.g. notebook_path, cell_index)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -686,10 +1235,10 @@ directory or <code class="docutils literal notranslate"><span class="pre">None</
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>status</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Final status (success, failed, error)</p></li>
-<li><p><strong>exit_code</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Exit code of the script</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to log status messages</p></li>
-<li><p><strong>register</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, register session hashes with remote Clew Registry.
+<li><p><strong>status</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Final status (success, failed, error)</p></li>
+<li><p><strong>exit_code</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Exit code of the script</p></li>
+<li><p><strong>verbose</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Whether to log status messages</p></li>
+<li><p><strong>register</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]</span>) – If True, register session hashes with remote Clew Registry.
 If None, checks SCITEX_AUTO_REGISTER environment variable.</p></li>
 </ul>
 </dd>

@@ -107,7 +107,7 @@ The agent does not call Clew often enough → imperative skill phrasing, plus ma
 
 The skill phrasing is too verbose and burns context → keep skill ≤200 lines; the existing 19-call API + 9 MCP tools should not need additional wrapper documentation in the skill itself, only the *when-to-call* discipline.
 
-DAG queries become slow at full BixBench-205 scale → SQLite is already indexed in v1; profile at the 5-capsule study if latency exceeds 100 ms per query, pre-compute reachability into a flat materialized view.
+DAG queries become slow at full BixBench-205 scale → the store's indexed columns already cover v1; profile at the 5-capsule study if latency exceeds 100 ms per query, pre-compute reachability into a flat materialized view.
 
 ## Decision points (user-owned)
 

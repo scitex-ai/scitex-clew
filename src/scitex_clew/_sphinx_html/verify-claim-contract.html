@@ -1,0 +1,463 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The verify_claim Consumer Contract &mdash; SciTeX Clew v0.0.0</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=7026087e"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Grouping" href="grouping.html" />
+    <link rel="prev" title="Concepts" href="concepts.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SciTeX Clew
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#basic-installation">Basic Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#with-cli-support">With CLI Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#with-mcp-server">With MCP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#all-optional-dependencies">All Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#development-installation">Development Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#cli">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#mcp-server">MCP Server</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#database-selection-precedence">Database selection precedence</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grouping.html">Grouping</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#built-in-groupers">Built-in groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#spec-schema">Spec schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#custom-groupers">Custom groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#merkle-roots">Merkle roots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grouping.html#grouping-invariants">Grouping invariants</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#core-commands">Core Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#introspection">Introspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#mcp-subcommands">MCP Subcommands</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mcp.html">MCP Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#starting-the-server">Starting the Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#mcp-client-configuration">MCP Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#available-tools">Available Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html#diagnostics">Diagnostics</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/scitex_clew.html">scitex_clew</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.chain"><code class="docutils literal notranslate"><span class="pre">chain()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.dag"><code class="docutils literal notranslate"><span class="pre">dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun"><code class="docutils literal notranslate"><span class="pre">rerun()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun_dag"><code class="docutils literal notranslate"><span class="pre">rerun_dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.on_session_start"><code class="docutils literal notranslate"><span class="pre">on_session_start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.on_session_close"><code class="docutils literal notranslate"><span class="pre">on_session_close()</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#example-1-basic-verification">Example 1: Basic Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#example-2-chain-verification">Example 2: Chain Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#example-3-mermaid-diagram">Example 3: Mermaid Diagram</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SciTeX Clew</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">The verify_claim Consumer Contract</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/ywatanabe1989/scitex-clew/blob/main/docs/sphinx/verify-claim-contract.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="the-verify-claim-consumer-contract">
+<h1>The verify_claim Consumer Contract<a class="headerlink" href="#the-verify-claim-consumer-contract" title="Link to this heading"></a></h1>
+<p>This page is the binding call/return contract of
+<a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_claim" title="scitex_clew.verify_claim"><code class="xref py py-func docutils literal notranslate"><span class="pre">scitex_clew.verify_claim()</span></code></a> for downstream consumers
+(scitex-live-paper, scitex-writer). It is audited against the source at
+<strong>v0.7.0</strong> (<code class="docutils literal notranslate"><span class="pre">src/scitex_clew/_claim/_verify.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">src/scitex_clew/_claim/_model.py</span></code>).</p>
+<p>Motivation: a consumer once integrated against an imagined API —
+<code class="docutils literal notranslate"><span class="pre">against=</span></code> / <code class="docutils literal notranslate"><span class="pre">bundle_root=</span></code> keyword arguments, an assumed internal
+git checkout, and a top-level <code class="docutils literal notranslate"><span class="pre">result[&quot;status&quot;]</span></code> / <code class="docutils literal notranslate"><span class="pre">verified_at</span></code> —
+and mismatched on all four axes. The actual contract follows.</p>
+<section id="signature-one-positional-no-commit-argument-no-checkout">
+<h2>Signature — one positional, no commit argument, no checkout<a class="headerlink" href="#signature-one-positional-no-commit-argument-no-checkout" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">clew</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">clew</span><span class="o">.</span><span class="n">verify_claim</span><span class="p">(</span><span class="n">claim_id_or_location</span><span class="p">)</span>   <span class="c1"># -&gt; dict</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">claim_id_or_location</span></code> is a <code class="docutils literal notranslate"><span class="pre">claim_id</span></code>, a <code class="docutils literal notranslate"><span class="pre">&quot;paper.tex:L42&quot;</span></code>
+location string, or a bare file path (resolves to the first claim on
+that file).</p></li>
+<li><p>There is <strong>no</strong> <code class="docutils literal notranslate"><span class="pre">against=</span></code>, <code class="docutils literal notranslate"><span class="pre">bundle_root=</span></code>, or commit argument.
+The only other parameters are internal per-pass performance caches
+(<code class="docutils literal notranslate"><span class="pre">hash_cache=None</span></code> / <code class="docutils literal notranslate"><span class="pre">chain_cache=None</span></code>) threaded in by
+<code class="docutils literal notranslate"><span class="pre">verify_all_claims</span></code>.</p></li>
+<li><p><strong>Clew never runs git.</strong> It re-hashes the claim’s <code class="docutils literal notranslate"><span class="pre">source_file</span></code> on
+disk, at its <em>current</em> state. To verify “as of commit X”, the host
+must check out X first, then call <code class="docutils literal notranslate"><span class="pre">verify_claim</span></code>. This
+git-agnosticism is by design; there is no verify-at-commit helper.</p></li>
+<li><p>Side effect: the claim row’s <code class="docutils literal notranslate"><span class="pre">status</span></code> and <code class="docutils literal notranslate"><span class="pre">verified_at</span></code> are
+written back to the database on every resolved verification.</p></li>
+</ul>
+</section>
+<section id="return-shape">
+<h2>Return shape<a class="headerlink" href="#return-shape" title="Link to this heading"></a></h2>
+<p>An unresolved lookup is the <strong>only</strong> case with a top-level <code class="docutils literal notranslate"><span class="pre">status</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"not_found"</span><span class="p">,</span> <span class="s2">"message"</span><span class="p">:</span> <span class="s2">"No claim found for '...'"</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>A resolved claim returns exactly four top-level keys:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 12.0%" />
+<col style="width: 68.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">claim</span></code></p></td>
+<td><p>dict</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Claim.to_dict()</span></code>: <code class="docutils literal notranslate"><span class="pre">claim_id</span></code>, <code class="docutils literal notranslate"><span class="pre">file_path</span></code>, <code class="docutils literal notranslate"><span class="pre">line_number</span></code>,
+<code class="docutils literal notranslate"><span class="pre">claim_type</span></code>, <code class="docutils literal notranslate"><span class="pre">claim_value</span></code>, <code class="docutils literal notranslate"><span class="pre">source_session</span></code>,
+<code class="docutils literal notranslate"><span class="pre">source_file</span></code>, <code class="docutils literal notranslate"><span class="pre">source_hash</span></code>, <code class="docutils literal notranslate"><span class="pre">registered_at</span></code>,
+<code class="docutils literal notranslate"><span class="pre">verified_at</span></code>, <code class="docutils literal notranslate"><span class="pre">status</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">source_verified</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>stored <code class="docutils literal notranslate"><span class="pre">source_hash</span></code> matches the fresh re-hash of <code class="docutils literal notranslate"><span class="pre">source_file</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">chain_verified</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>upstream <code class="docutils literal notranslate"><span class="pre">&#64;stx.session</span></code> provenance chain verifies</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">details</span></code></p></td>
+<td><p>list</p></td>
+<td><p>human-readable notes (hash match/mismatch, chain run counts, errors)</p></td>
+</tr>
+</tbody>
+</table>
+<p>Gotchas:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">status</span></code> and <code class="docutils literal notranslate"><span class="pre">verified_at</span></code> live inside <code class="docutils literal notranslate"><span class="pre">result[&quot;claim&quot;]</span></code>, never
+at the top level of a resolved result.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">result[&quot;claim&quot;][&quot;status&quot;]</span></code> is refreshed to this pass’s outcome;
+<code class="docutils literal notranslate"><span class="pre">result[&quot;claim&quot;][&quot;verified_at&quot;]</span></code> is the value as read at resolution
+time (the DB row receives a new timestamp, the returned dict does not).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">resolved_status</span></code> / <code class="docutils literal notranslate"><span class="pre">color</span></code> / <code class="docutils literal notranslate"><span class="pre">display_group</span></code> /
+<code class="docutils literal notranslate"><span class="pre">display_color</span></code> are <strong>not</strong> in this return — they are claims.json
+(schema v1.3) enrichment fields written by
+<a class="reference internal" href="api/scitex_clew.html#scitex_clew.export_claims_json" title="scitex_clew.export_claims_json"><code class="xref py py-func docutils literal notranslate"><span class="pre">scitex_clew.export_claims_json()</span></code></a>.</p></li>
+</ul>
+</section>
+<section id="two-status-vocabularies">
+<h2>Two status vocabularies<a class="headerlink" href="#two-status-vocabularies" title="Link to this heading"></a></h2>
+<p><strong>(a)</strong> <code class="docutils literal notranslate"><span class="pre">VerificationStatus</span></code> enum
+(<code class="docutils literal notranslate"><span class="pre">src/scitex_clew/_chain/_types.py</span></code>) — for runs, files, chains, and
+DAGs: <code class="docutils literal notranslate"><span class="pre">VERIFIED</span></code>, <code class="docutils literal notranslate"><span class="pre">MISMATCH</span></code>, <code class="docutils literal notranslate"><span class="pre">SUSPECT</span></code>, <code class="docutils literal notranslate"><span class="pre">MISSING</span></code>, <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>.</p>
+<p><strong>(b)</strong> Claim <code class="docutils literal notranslate"><span class="pre">status</span></code> strings stored on the claims row:
+<code class="docutils literal notranslate"><span class="pre">registered</span></code>, <code class="docutils literal notranslate"><span class="pre">verified</span></code>, <code class="docutils literal notranslate"><span class="pre">suspect</span></code>, <code class="docutils literal notranslate"><span class="pre">mismatch</span></code>, <code class="docutils literal notranslate"><span class="pre">missing</span></code> —
+plus <code class="docutils literal notranslate"><span class="pre">not_found</span></code> as a lookup outcome (never stored).</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 55.0%" />
+<col style="width: 45.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Outcome of <code class="docutils literal notranslate"><span class="pre">verify_claim</span></code></p></th>
+<th class="head"><p>Claim <code class="docutils literal notranslate"><span class="pre">status</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>source file gone</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">missing</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>stored hash differs from current hash</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mismatch</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>hash matches, chain fails</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">suspect</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>hash matches, chain verifies</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">verified</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>never verified (initial)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">registered</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>v0.7.0 rename:</strong> the claim status <code class="docutils literal notranslate"><span class="pre">partial</span></code> was renamed to
+<code class="docutils literal notranslate"><span class="pre">suspect</span></code>. Legacy stored <code class="docutils literal notranslate"><span class="pre">&quot;partial&quot;</span></code> rows are normalized to
+<code class="docutils literal notranslate"><span class="pre">&quot;suspect&quot;</span></code> at read time. <code class="docutils literal notranslate"><span class="pre">suspect</span></code> now deliberately spans both
+vocabularies — one word for “locally valid, upstream not confirmed”.</p>
+<p>Keep separate: client-side transient UI states (<code class="docutils literal notranslate"><span class="pre">verifying</span></code>,
+<code class="docutils literal notranslate"><span class="pre">error</span></code>) are <strong>not</strong> clew statuses, and paper-level badge
+vocabularies (e.g. the unified feed’s <code class="docutils literal notranslate"><span class="pre">badge_state</span></code>:
+<code class="docutils literal notranslate"><span class="pre">all_verified</span></code> / <code class="docutils literal notranslate"><span class="pre">partial</span></code> / <code class="docutils literal notranslate"><span class="pre">failing</span></code>) are a separate aggregate
+vocabulary.</p>
+</section>
+<section id="claims-json-v1-3-enrichment-and-precedence">
+<h2>claims.json v1.3 enrichment and precedence<a class="headerlink" href="#claims-json-v1-3-enrichment-and-precedence" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code> adds per claim: <code class="docutils literal notranslate"><span class="pre">resolved_status</span></code>, <code class="docutils literal notranslate"><span class="pre">color</span></code>
+(bare 6-hex, no <code class="docutils literal notranslate"><span class="pre">#</span></code>), <code class="docutils literal notranslate"><span class="pre">chain_has_exception</span></code>, <code class="docutils literal notranslate"><span class="pre">chain_has_frozen</span></code>,
+<code class="docutils literal notranslate"><span class="pre">display_group</span></code>, <code class="docutils literal notranslate"><span class="pre">display_color</span></code>, <code class="docutils literal notranslate"><span class="pre">exception_reasons</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">resolved_status</span></code> follows the precedence
+<code class="docutils literal notranslate"><span class="pre">mismatch</span></code>/<code class="docutils literal notranslate"><span class="pre">missing</span></code> &gt; [<strong>verified claims only</strong>: <code class="docutils literal notranslate"><span class="pre">exception</span></code> &gt;
+<code class="docutils literal notranslate"><span class="pre">frozen</span></code>] &gt; <code class="docutils literal notranslate"><span class="pre">suspect</span></code> &gt; <code class="docutils literal notranslate"><span class="pre">verified</span></code> &gt; <code class="docutils literal notranslate"><span class="pre">registered</span></code>. Chain
+overrides never promote an unverified claim — no false-green.</p>
+<p>Canonical full-7 palette (<code class="docutils literal notranslate"><span class="pre">_CLAIM_PALETTE</span></code>, bare hex):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 25.0%" />
+<col style="width: 45.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Status</p></th>
+<th class="head"><p>Hex</p></th>
+<th class="head"><p>Hue</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">verified</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2da44e</span></code></p></td>
+<td><p>green</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">suspect</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">d29922</span></code></p></td>
+<td><p>amber</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mismatch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cf222e</span></code></p></td>
+<td><p>red</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">missing</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">a40e26</span></code></p></td>
+<td><p>dark red</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">registered</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">6e7781</span></code></p></td>
+<td><p>grey</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">exception</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">8250df</span></code></p></td>
+<td><p>violet</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0072b2</span></code></p></td>
+<td><p>blue (Okabe-Ito)</p></td>
+</tr>
+</tbody>
+</table>
+<p>4-bucket display collapse: <code class="docutils literal notranslate"><span class="pre">verified</span></code>+<code class="docutils literal notranslate"><span class="pre">frozen</span></code> → <strong>verified</strong>;
+<code class="docutils literal notranslate"><span class="pre">suspect</span></code>+<code class="docutils literal notranslate"><span class="pre">registered</span></code> → <strong>suspect</strong>;
+<code class="docutils literal notranslate"><span class="pre">mismatch</span></code>+<code class="docutils literal notranslate"><span class="pre">missing</span></code> → <strong>failed</strong>; <code class="docutils literal notranslate"><span class="pre">exception</span></code> →
+<strong>exception</strong>. Consumers holding the pre-v1.3 table (<code class="docutils literal notranslate"><span class="pre">partial</span>
+<span class="pre">d29922</span></code>, <code class="docutils literal notranslate"><span class="pre">missing</span> <span class="pre">cf222e</span></code>, light/dark variants) have a stale copy —
+read <code class="docutils literal notranslate"><span class="pre">palette</span></code> / <code class="docutils literal notranslate"><span class="pre">display_palette</span></code> / <code class="docutils literal notranslate"><span class="pre">display_groups</span></code> from the
+exported claims.json instead of hardcoding.</p>
+</section>
+<section id="database-selection-precedence">
+<h2>Database selection precedence<a class="headerlink" href="#database-selection-precedence" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">scitex_dev.store.host_store()</span></code> resolves the store in two steps:</p>
+<ol class="arabic simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">SCITEX_STORE_DSN</span></code> environment variable, if set — an explicit
+override wins outright.</p></li>
+<li><p>Otherwise the per-host PostgreSQL over its UNIX socket.</p></li>
+</ol>
+<p>There is deliberately no third step and no local-file fallback. clew has
+no database file, no <code class="docutils literal notranslate"><span class="pre">db_path</span></code> argument anywhere, and no
+<code class="docutils literal notranslate"><span class="pre">SCITEX_CLEW_DB_PATH</span></code> (retired).</p>
+<p>Host-side re-verify recipe:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># HOST owns git: check out the pinned commit, then re-verify.</span>
+<span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"git"</span><span class="p">,</span> <span class="s2">"-C"</span><span class="p">,</span> <span class="n">bundle_root</span><span class="p">,</span> <span class="s2">"checkout"</span><span class="p">,</span> <span class="n">pinned_commit</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">clew</span><span class="o">.</span><span class="n">verify_claim</span><span class="p">(</span><span class="n">claim_id</span><span class="p">)</span>
+<span class="n">claim_status</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"claim"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"status"</span><span class="p">)</span>   <span class="c1"># not result["status"]</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A capability this recipe lost. Before the Postgres migration a bundle
+carried its OWN database file, so a host could re-verify a bundle
+produced elsewhere by pointing clew at that file. Provenance now lives
+in the host store and a bundle carries none, so the claims re-verified
+are the ones recorded on the host doing the verifying. The file
+re-hashing above is unaffected.</p>
+</div>
+<p>See also the <code class="docutils literal notranslate"><span class="pre">scitex-clew</span></code> skill page
+<code class="docutils literal notranslate"><span class="pre">05_verify-claim-contract.md</span></code> for the same contract in skill form.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="concepts.html" class="btn btn-neutral float-left" title="Concepts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="grouping.html" class="btn btn-neutral float-right" title="Grouping" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,576 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scitex_clew._citation._api &mdash; SciTeX Clew v0.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SciTeX Clew
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#basic-installation">Basic Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-cli-support">With CLI Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-mcp-server">With MCP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#all-optional-dependencies">All Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#development-installation">Development Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#cli">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#mcp-server">MCP Server</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../grouping.html">Grouping</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#built-in-groupers">Built-in groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#spec-schema">Spec schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#custom-groupers">Custom groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#merkle-roots">Merkle roots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#grouping-invariants">Grouping invariants</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#core-commands">Core Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#introspection">Introspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#mcp-subcommands">MCP Subcommands</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../mcp.html">MCP Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#starting-the-server">Starting the Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#mcp-client-configuration">MCP Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#available-tools">Available Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#diagnostics">Diagnostics</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/scitex_clew.html">scitex_clew</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.chain"><code class="docutils literal notranslate"><span class="pre">chain()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.dag"><code class="docutils literal notranslate"><span class="pre">dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun"><code class="docutils literal notranslate"><span class="pre">rerun()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_dag"><code class="docutils literal notranslate"><span class="pre">rerun_dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_start"><code class="docutils literal notranslate"><span class="pre">on_session_start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_close"><code class="docutils literal notranslate"><span class="pre">on_session_close()</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-1-basic-verification">Example 1: Basic Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-2-chain-verification">Example 2: Chain Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-3-mermaid-diagram">Example 3: Mermaid Diagram</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SciTeX Clew</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">scitex_clew._citation._api</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scitex_clew._citation._api</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""Citation public API — add_citation (push), list, verify, aggregate, format."""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">scitex_dev.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">ANY_REVISION</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._heuristics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">classify_entry</span><span class="p">,</span>
+    <span class="n">coerce_entries</span><span class="p">,</span>
+    <span class="n">derive_status</span><span class="p">,</span>
+    <span class="n">metadata_hash</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._model</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Citation</span><span class="p">,</span>
+    <span class="n">citations_store</span><span class="p">,</span>
+    <span class="n">ensure_citations_table</span><span class="p">,</span>
+    <span class="n">lookup_citation</span><span class="p">,</span>
+    <span class="n">row_to_citation</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="add_citation">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.add_citation">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_citation</span><span class="p">(</span>
+    <span class="n">cite_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">manuscript_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">line_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">doi</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">source_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">is_stub</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">resolved</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Citation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Register (push) a citation node resolved by scitex-scholar.</span>
+
+<span class="sd">    This is the ledger-write half of the push model: scholar resolves a</span>
+<span class="sd">    ``\\cite`` key to a real source and records the outcome here. clew stores</span>
+<span class="sd">    the node plus a content hash over the normalized metadata so a later</span>
+<span class="sd">    out-of-band edit to the bib entry is caught (drift -&gt; hash mismatch).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cite_key : str</span>
+<span class="sd">        The BibTeX citation key (e.g. ``"Berens2009CircStat"``).</span>
+<span class="sd">    manuscript_file : str, optional</span>
+<span class="sd">        Manuscript the key is cited from (e.g. ``paper.tex``).</span>
+<span class="sd">    line_number : int, optional</span>
+<span class="sd">        Line number of the ``\\cite`` in the manuscript.</span>
+<span class="sd">    doi : str, optional</span>
+<span class="sd">        Resolved DOI of the real source (None for a stub / unresolved).</span>
+<span class="sd">    source_id : str, optional</span>
+<span class="sd">        Scholar's internal source identifier for the resolved record.</span>
+<span class="sd">    metadata : dict, optional</span>
+<span class="sd">        Bib fields (author/year/title/journal/doi) used for the content hash.</span>
+<span class="sd">    url : str, optional</span>
+<span class="sd">        Explicit source URL. Takes precedence over the derived</span>
+<span class="sd">        ``https://doi.org/&lt;doi&gt;`` link — supply it for no-DOI records</span>
+<span class="sd">        (e.g. SemanticScholar CorpusId-only) so the renderer has an href.</span>
+<span class="sd">    is_stub : bool, optional</span>
+<span class="sd">        True if scholar flagged this as a stub / placeholder. Default False.</span>
+<span class="sd">    resolved : bool, optional</span>
+<span class="sd">        True if scholar resolved the key to a real source. Default True.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Citation</span>
+<span class="sd">        The stored citation node.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cite_key</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">(</span><span class="n">cite_key</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"cite_key must be a non-empty string"</span><span class="p">)</span>
+
+    <span class="n">status</span> <span class="o">=</span> <span class="n">derive_status</span><span class="p">(</span><span class="n">resolved</span><span class="o">=</span><span class="n">resolved</span><span class="p">,</span> <span class="n">is_stub</span><span class="o">=</span><span class="n">is_stub</span><span class="p">,</span> <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">)</span>
+    <span class="n">meta_hash</span> <span class="o">=</span> <span class="n">metadata_hash</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
+    <span class="n">verified_at</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">"verified"</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="n">citation</span> <span class="o">=</span> <span class="n">Citation</span><span class="p">(</span>
+        <span class="n">cite_key</span><span class="o">=</span><span class="n">cite_key</span><span class="p">,</span>
+        <span class="n">manuscript_file</span><span class="o">=</span><span class="p">(</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">manuscript_file</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span> <span class="k">if</span> <span class="n">manuscript_file</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">),</span>
+        <span class="n">line_number</span><span class="o">=</span><span class="n">line_number</span><span class="p">,</span>
+        <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span>
+        <span class="n">source_id</span><span class="o">=</span><span class="n">source_id</span><span class="p">,</span>
+        <span class="n">resolved</span><span class="o">=</span><span class="n">resolved</span><span class="p">,</span>
+        <span class="n">is_stub</span><span class="o">=</span><span class="n">is_stub</span><span class="p">,</span>
+        <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
+        <span class="n">metadata_hash</span><span class="o">=</span><span class="n">meta_hash</span><span class="p">,</span>
+        <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span>
+        <span class="n">verified_at</span><span class="o">=</span><span class="n">verified_at</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="n">ensure_citations_table</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+
+    <span class="c1"># INSERT OR REPLACE never named registered_at in its column list, so on</span>
+    <span class="c1"># every (re-)registration the DDL default was filled in</span>
+    <span class="c1"># (CURRENT_TIMESTAMP) rather than preserving the prior value — i.e. it</span>
+    <span class="c1"># was always reset to "now". Preserve that exact behavior explicitly,</span>
+    <span class="c1"># since `store.put` is a partial update (an omitted field is left alone,</span>
+    <span class="c1"># not reset).</span>
+    <span class="k">with</span> <span class="n">citations_store</span><span class="p">()</span> <span class="k">as</span> <span class="n">store</span><span class="p">:</span>
+        <span class="n">store</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">"cite_key"</span><span class="p">:</span> <span class="n">citation</span><span class="o">.</span><span class="n">cite_key</span><span class="p">,</span>
+                <span class="s2">"manuscript_file"</span><span class="p">:</span> <span class="n">citation</span><span class="o">.</span><span class="n">manuscript_file</span><span class="p">,</span>
+                <span class="s2">"line_number"</span><span class="p">:</span> <span class="n">citation</span><span class="o">.</span><span class="n">line_number</span><span class="p">,</span>
+                <span class="s2">"doi"</span><span class="p">:</span> <span class="n">citation</span><span class="o">.</span><span class="n">doi</span><span class="p">,</span>
+                <span class="s2">"source_id"</span><span class="p">:</span> <span class="n">citation</span><span class="o">.</span><span class="n">source_id</span><span class="p">,</span>
+                <span class="s2">"resolved"</span><span class="p">:</span> <span class="n">resolved</span><span class="p">,</span>
+                <span class="s2">"is_stub"</span><span class="p">:</span> <span class="n">is_stub</span><span class="p">,</span>
+                <span class="s2">"status"</span><span class="p">:</span> <span class="n">citation</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
+                <span class="s2">"metadata_json"</span><span class="p">:</span> <span class="n">metadata</span> <span class="k">if</span> <span class="n">metadata</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">"metadata_hash"</span><span class="p">:</span> <span class="n">citation</span><span class="o">.</span><span class="n">metadata_hash</span><span class="p">,</span>
+                <span class="s2">"url"</span><span class="p">:</span> <span class="n">citation</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+                <span class="s2">"registered_at"</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+                <span class="s2">"verified_at"</span><span class="p">:</span> <span class="n">citation</span><span class="o">.</span><span class="n">verified_at</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">expected_revision</span><span class="o">=</span><span class="n">ANY_REVISION</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">citation</span></div>
+
+
+
+<div class="viewcode-block" id="list_citations">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.list_citations">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_citations</span><span class="p">(</span>
+    <span class="n">manuscript_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">status</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Citation</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""List registered citation nodes with optional filters."""</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="n">ensure_citations_table</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">citations_store</span><span class="p">()</span> <span class="k">as</span> <span class="n">store</span><span class="p">:</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">rows</span><span class="p">(</span><span class="n">include_hidden</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">manuscript_file</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">manuscript_file</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"manuscript_file"</span><span class="p">)</span> <span class="o">==</span> <span class="n">target</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">status</span><span class="p">:</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"status"</span><span class="p">)</span> <span class="o">==</span> <span class="n">status</span><span class="p">]</span>
+
+    <span class="n">rows</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cite_key"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">rows</span><span class="p">[:</span><span class="n">limit</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">row_to_citation</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="verify_citations">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.verify_citations">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_citations</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Verify a set of cited keys against the clew citation ledger.</span>
+
+<span class="sd">    This is the primitive the compiler's pre-flight calls. For each entry it</span>
+<span class="sd">    returns the per-key verdict the writer gate branches on.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    entries : list[dict] | list[str]</span>
+<span class="sd">        Cited keys. Each dict carries at least ``"key"`` plus any bib fields</span>
+<span class="sd">        the compiler extracted (``doi``/``journal``/``note``/``title``/</span>
+<span class="sd">        ``author``/``year``). A bare string is treated as ``{"key": ...}``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict[str, dict]</span>
+<span class="sd">        ``{cite_key: {"status", "doi", "source_id", "link", "reason"}}`` where</span>
+<span class="sd">        ``status`` is one of ``{verified, stub, unverified, unknown}`` and</span>
+<span class="sd">        ``link`` is the resolved source URL for an href (scholar-supplied url,</span>
+<span class="sd">        else ``https://doi.org/&lt;doi&gt;``, else None). The compiler treats</span>
+<span class="sd">        anything other than ``"verified"`` as a gate hit and renders the</span>
+<span class="sd">        marker from ``status`` (style) + ``link`` (href) + ``reason`` (tooltip).</span>
+<span class="sd">    """</span>
+    <span class="n">coerced</span> <span class="o">=</span> <span class="n">coerce_entries</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="n">ensure_citations_table</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+
+    <span class="n">out</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">coerced</span><span class="p">:</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"key"</span><span class="p">]</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="n">lookup_citation</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="n">verdict</span> <span class="o">=</span> <span class="n">classify_entry</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"status"</span><span class="p">:</span> <span class="n">verdict</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
+            <span class="s2">"doi"</span><span class="p">:</span> <span class="n">verdict</span><span class="o">.</span><span class="n">doi</span><span class="p">,</span>
+            <span class="s2">"source_id"</span><span class="p">:</span> <span class="n">verdict</span><span class="o">.</span><span class="n">source_id</span><span class="p">,</span>
+            <span class="s2">"link"</span><span class="p">:</span> <span class="n">verdict</span><span class="o">.</span><span class="n">link</span><span class="p">,</span>
+            <span class="s2">"reason"</span><span class="p">:</span> <span class="n">verdict</span><span class="o">.</span><span class="n">reason</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+
+<div class="viewcode-block" id="verify_all_citations">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.verify_all_citations">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_all_citations</span><span class="p">(</span><span class="n">entries</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Reduce a set of cited keys to a fail-loud ``VerificationResult``.</span>
+
+<span class="sd">    Same aggregate contract as :func:`scitex_clew.verify_all_claims`, so the</span>
+<span class="sd">    compiler gets a single ``result.ok`` DONE-gate covering citations. Per-key</span>
+<span class="sd">    verdicts reduce onto the citation exit codes (CITATION_STUB / _UNRESOLVED /</span>
+<span class="sd">    _UNLINKED, plus HASH_MISMATCH on drift), each config-tunable via</span>
+<span class="sd">    ``.scitex/clew`` ``verify.severity``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    entries : list[dict] | list[str]</span>
+<span class="sd">        Cited keys (see :func:`verify_citations`).</span>
+<span class="sd">    strict : bool, optional</span>
+<span class="sd">        Reserved for parity with the claim gate; currently a no-op for</span>
+<span class="sd">        citations (every citation pattern already defaults to ERROR).</span>
+<span class="sd">    config : str | pathlib.Path, optional</span>
+<span class="sd">        Explicit ``.scitex/clew`` config overriding the resolved severity map.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    VerificationResult</span>
+<span class="sd">        ``result.ok`` (exit 0) iff every cited key is ``verified``.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._claim</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClaimVerification</span><span class="p">,</span> <span class="n">VerificationResult</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._cli._exit_codes</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">KEY_BY_CODE</span><span class="p">,</span>
+        <span class="n">NO_CLAIMS</span><span class="p">,</span>
+        <span class="n">OK</span><span class="p">,</span>
+        <span class="n">classify_exit</span><span class="p">,</span>
+        <span class="n">name_of</span><span class="p">,</span>
+        <span class="n">reason_of</span><span class="p">,</span>
+        <span class="n">resolve_severity</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">severities</span> <span class="o">=</span> <span class="n">resolve_severity</span><span class="p">(</span><span class="n">explicit</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span>
+    <span class="n">severity_view</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">KEY_BY_CODE</span><span class="p">[</span><span class="n">code</span><span class="p">]:</span> <span class="n">lvl</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">for</span> <span class="n">code</span><span class="p">,</span> <span class="n">lvl</span> <span class="ow">in</span> <span class="n">severities</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">code</span> <span class="ow">in</span> <span class="n">KEY_BY_CODE</span>
+    <span class="p">}</span>
+
+    <span class="n">coerced</span> <span class="o">=</span> <span class="n">coerce_entries</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">coerced</span><span class="p">:</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">errors</span><span class="p">,</span> <span class="n">warnings</span> <span class="o">=</span> <span class="n">classify_exit</span><span class="p">([</span><span class="n">NO_CLAIMS</span><span class="p">],</span> <span class="n">severities</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">VerificationResult</span><span class="p">(</span>
+            <span class="n">exit_code</span><span class="o">=</span><span class="n">exit_code</span><span class="p">,</span>
+            <span class="n">exit_name</span><span class="o">=</span><span class="n">name_of</span><span class="p">(</span><span class="n">exit_code</span><span class="p">),</span>
+            <span class="n">reason</span><span class="o">=</span><span class="n">reason_of</span><span class="p">(</span><span class="n">exit_code</span><span class="p">),</span>
+            <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span>
+            <span class="n">total</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">verified</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">counts</span><span class="o">=</span><span class="p">{</span><span class="n">name_of</span><span class="p">(</span><span class="n">NO_CLAIMS</span><span class="p">):</span> <span class="mi">1</span><span class="p">},</span>
+            <span class="n">claims</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">severities</span><span class="o">=</span><span class="n">severity_view</span><span class="p">,</span>
+            <span class="n">errors</span><span class="o">=</span><span class="n">errors</span><span class="p">,</span>
+            <span class="n">warnings</span><span class="o">=</span><span class="n">warnings</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="n">ensure_citations_table</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+
+    <span class="n">rows</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ClaimVerification</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">codes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">counts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">verified</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">coerced</span><span class="p">:</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"key"</span><span class="p">]</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="n">lookup_citation</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="n">verdict</span> <span class="o">=</span> <span class="n">classify_entry</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span>
+        <span class="n">codes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">verdict</span><span class="o">.</span><span class="n">code</span><span class="p">)</span>
+        <span class="n">cname</span> <span class="o">=</span> <span class="n">name_of</span><span class="p">(</span><span class="n">verdict</span><span class="o">.</span><span class="n">code</span><span class="p">)</span>
+        <span class="n">counts</span><span class="p">[</span><span class="n">cname</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cname</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">verdict</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="n">OK</span><span class="p">:</span>
+            <span class="n">verified</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">sev</span> <span class="o">=</span> <span class="s2">"ok"</span> <span class="k">if</span> <span class="n">verdict</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="n">OK</span> <span class="k">else</span> <span class="n">severities</span><span class="p">[</span><span class="n">verdict</span><span class="o">.</span><span class="n">code</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">ClaimVerification</span><span class="p">(</span>
+                <span class="n">claim_id</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+                <span class="n">location</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">location</span> <span class="k">if</span> <span class="n">record</span> <span class="k">else</span> <span class="n">key</span><span class="p">,</span>
+                <span class="n">claim_value</span><span class="o">=</span><span class="n">verdict</span><span class="o">.</span><span class="n">doi</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">verdict</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
+                <span class="n">source_file</span><span class="o">=</span><span class="n">verdict</span><span class="o">.</span><span class="n">source_id</span><span class="p">,</span>
+                <span class="n">source_session</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">source_verified</span><span class="o">=</span><span class="p">(</span><span class="n">verdict</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"verified"</span><span class="p">),</span>
+                <span class="n">chain_verified</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">outcome</span><span class="o">=</span><span class="n">cname</span><span class="p">,</span>
+                <span class="n">severity</span><span class="o">=</span><span class="n">sev</span><span class="p">,</span>
+                <span class="n">details</span><span class="o">=</span><span class="p">[</span><span class="n">verdict</span><span class="o">.</span><span class="n">reason</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">errors</span><span class="p">,</span> <span class="n">warnings</span> <span class="o">=</span> <span class="n">classify_exit</span><span class="p">(</span><span class="n">codes</span><span class="p">,</span> <span class="n">severities</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">VerificationResult</span><span class="p">(</span>
+        <span class="n">exit_code</span><span class="o">=</span><span class="n">exit_code</span><span class="p">,</span>
+        <span class="n">exit_name</span><span class="o">=</span><span class="n">name_of</span><span class="p">(</span><span class="n">exit_code</span><span class="p">),</span>
+        <span class="n">reason</span><span class="o">=</span><span class="n">reason_of</span><span class="p">(</span><span class="n">exit_code</span><span class="p">),</span>
+        <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span>
+        <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">coerced</span><span class="p">),</span>
+        <span class="n">verified</span><span class="o">=</span><span class="n">verified</span><span class="p">,</span>
+        <span class="n">counts</span><span class="o">=</span><span class="n">counts</span><span class="p">,</span>
+        <span class="n">claims</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span>
+        <span class="n">severities</span><span class="o">=</span><span class="n">severity_view</span><span class="p">,</span>
+        <span class="n">errors</span><span class="o">=</span><span class="n">errors</span><span class="p">,</span>
+        <span class="n">warnings</span><span class="o">=</span><span class="n">warnings</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">format_citations</span><span class="p">(</span><span class="n">citations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Citation</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Format citation nodes for terminal display."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">citations</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"No citations registered."</span>
+    <span class="n">icons</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"verified"</span><span class="p">:</span> <span class="s2">"✓"</span><span class="p">,</span> <span class="s2">"stub"</span><span class="p">:</span> <span class="s2">"✗"</span><span class="p">,</span> <span class="s2">"unverified"</span><span class="p">:</span> <span class="s2">"~"</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">:</span> <span class="s2">"?"</span><span class="p">}</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">citations</span><span class="p">:</span>
+        <span class="n">icon</span> <span class="o">=</span> <span class="n">icons</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="s2">"?"</span><span class="p">)</span>
+        <span class="n">doi</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" doi:</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">doi</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">doi</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">icon</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">cite_key</span><span class="si">}{</span><span class="n">doi</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">format_verify_map</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Format a :func:`verify_citations` map for terminal display."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"No citations checked."</span>
+    <span class="n">icons</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"verified"</span><span class="p">:</span> <span class="s2">"✓"</span><span class="p">,</span> <span class="s2">"stub"</span><span class="p">:</span> <span class="s2">"✗"</span><span class="p">,</span> <span class="s2">"unverified"</span><span class="p">:</span> <span class="s2">"~"</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">:</span> <span class="s2">"?"</span><span class="p">}</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">icon</span> <span class="o">=</span> <span class="n">icons</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">"status"</span><span class="p">],</span> <span class="s2">"?"</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">icon</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">v</span><span class="p">[</span><span class="s1">'status'</span><span class="p">]</span><span class="si">}</span><span class="s2"> — </span><span class="si">{</span><span class="n">v</span><span class="p">[</span><span class="s1">'reason'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="c1"># EOF</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

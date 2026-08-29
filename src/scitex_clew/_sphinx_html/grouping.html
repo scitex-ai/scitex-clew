@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Grouping &mdash; SciTeX Clew v0.2.16</title>
+  <title>Grouping &mdash; SciTeX Clew v0.0.0</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=e2418eca"></script>
+      <script src="_static/documentation_options.js?v=7026087e"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -23,7 +23,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="CLI Reference" href="cli.html" />
-    <link rel="prev" title="Concepts" href="concepts.html" /> 
+    <link rel="prev" title="The verify_claim Consumer Contract" href="verify-claim-contract.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -71,7 +71,16 @@
 <li class="toctree-l2"><a class="reference internal" href="concepts.html#three-verification-modes">Three Verification Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
 <li class="toctree-l2"><a class="reference internal" href="concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Grouping</a><ul>
@@ -111,11 +120,43 @@
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
@@ -208,10 +249,10 @@ meaningful.</p>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scitex_clew.groupers</span><span class="w"> </span><span class="kn">import</span> <span class="n">pattern_grouper</span><span class="p">,</span> <span class="n">auto</span><span class="p">,</span> <span class="n">compose</span>
 
 <span class="c1"># callable</span>
-<span class="n">clew</span><span class="o">.</span><span class="n">mermaid</span><span class="p">(</span><span class="n">claims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">grouper</span><span class="o">=</span><span class="n">pattern_grouper</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;P\d</span><span class="si">{2}</span><span class="s2">&quot;</span><span class="p">))</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">mermaid</span><span class="p">(</span><span class="n">claims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">grouper</span><span class="o">=</span><span class="n">pattern_grouper</span><span class="p">(</span><span class="sa">r</span><span class="s2">"P\d</span><span class="si">{2}</span><span class="s2">"</span><span class="p">))</span>
 
 <span class="c1"># JSON/dict spec</span>
-<span class="n">clew</span><span class="o">.</span><span class="n">mermaid</span><span class="p">(</span><span class="n">claims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">grouper</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;auto&quot;</span><span class="p">})</span>
+<span class="n">clew</span><span class="o">.</span><span class="n">mermaid</span><span class="p">(</span><span class="n">claims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">grouper</span><span class="o">=</span><span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"auto"</span><span class="p">})</span>
 
 <span class="c1"># fall back to .scitex/clew/config.yaml</span>
 <span class="n">clew</span><span class="o">.</span><span class="n">mermaid</span><span class="p">(</span><span class="n">claims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -226,8 +267,8 @@ meaningful.</p>
 <span class="nt">grouper</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">compose</span>
 <span class="w">  </span><span class="nt">steps</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">pattern</span><span class="p p-Indicator">,</span><span class="nt"> regex</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;P\d{2}&#39;</span><span class="p p-Indicator">}</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">pattern</span><span class="p p-Indicator">,</span><span class="nt"> regex</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;fold_\d+&#39;</span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">pattern</span><span class="p p-Indicator">,</span><span class="nt"> regex</span><span class="p">:</span><span class="w"> </span><span class="s">'P\d{2}'</span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">pattern</span><span class="p p-Indicator">,</span><span class="nt"> regex</span><span class="p">:</span><span class="w"> </span><span class="s">'fold_\d+'</span><span class="p p-Indicator">}</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">directory</span><span class="p p-Indicator">,</span><span class="nt"> min_size</span><span class="p">:</span><span class="w"> </span><span class="nv">10</span><span class="p p-Indicator">,</span><span class="nt"> depth</span><span class="p">:</span><span class="w"> </span><span class="nv">2</span><span class="p p-Indicator">}</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">session_bundle</span><span class="p p-Indicator">,</span><span class="nt"> max_files</span><span class="p">:</span><span class="w"> </span><span class="nv">3</span><span class="p p-Indicator">}</span>
 </pre></div>
@@ -245,7 +286,7 @@ upward from CWD. Explicit <code class="docutils literal notranslate"><span class
         <span class="k">return</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>   <span class="c1"># list[FileEntry | Group]</span>
     <span class="k">return</span> <span class="n">_g</span>
 
-<span class="n">register_grouper</span><span class="p">(</span><span class="s2">&quot;mine&quot;</span><span class="p">,</span> <span class="n">my_factory</span><span class="p">)</span>
+<span class="n">register_grouper</span><span class="p">(</span><span class="s2">"mine"</span><span class="p">,</span> <span class="n">my_factory</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Spec escape hatch (not honored in MCP for safety):</p>
@@ -274,7 +315,7 @@ verify; <code class="docutils literal notranslate"><span class="pre">⚠</span><
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="concepts.html" class="btn btn-neutral float-left" title="Concepts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="verify-claim-contract.html" class="btn btn-neutral float-left" title="The verify_claim Consumer Contract" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="cli.html" class="btn btn-neutral float-right" title="CLI Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

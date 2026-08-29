@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew._observers._session &mdash; SciTeX Clew v0.0.0</title>
+  <title>scitex_clew._sources._writer &mdash; SciTeX Clew v0.0.0</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -191,7 +191,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">scitex_clew._observers._session</li>
+      <li class="breadcrumb-item active">scitex_clew._sources._writer</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -200,16 +200,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for scitex_clew._observers._session</h1><div class="highlight"><pre>
+  <h1>Source code for scitex_clew._sources._writer</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
-<span class="sd">"""Session lifecycle hooks for scitex-clew.</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""Registered-source manifest WRITER — the human-run, sanctioned write path.</span>
 
-<span class="sd">These thin wrappers are invoked by ``@scitex.session`` (or any equivalent</span>
-<span class="sd">session manager) at the start and end of a run. They delegate to the</span>
-<span class="sd">``scitex_clew._tracker`` machinery so that a run record is opened on start</span>
-<span class="sd">and finalized (with a combined hash) on close.</span>
-
-<span class="sd">They import only scitex-clew internals; no scitex-io dependency is needed.</span>
+<span class="sd">Only this module (and its ``clew register-source`` CLI wrapper) writes the</span>
+<span class="sd">manifest. Verify/export never write it. Registration is idempotent: re-</span>
+<span class="sd">registering a path updates its pinned hash.</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -217,180 +215,151 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.._core</span><span class="w"> </span><span class="kn">import</span> <span class="n">getLogger</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_tracker</span><span class="p">,</span> <span class="n">start_tracking</span><span class="p">,</span> <span class="n">stop_tracking</span>
-
-<span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-
-
-<div class="viewcode-block" id="on_session_start">
-<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.on_session_start">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">on_session_start</span><span class="p">(</span>
-    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">script_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">parent_session</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Hook called when a session starts.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    session_id : str</span>
-<span class="sd">        Unique session identifier</span>
-<span class="sd">    script_path : str, optional</span>
-<span class="sd">        Path to the script being run</span>
-<span class="sd">    parent_session : str, optional</span>
-<span class="sd">        Parent session ID for chain tracking</span>
-<span class="sd">    verbose : bool, optional</span>
-<span class="sd">        Whether to log status messages</span>
-<span class="sd">    metadata : dict, optional</span>
-<span class="sd">        Additional metadata (e.g. notebook_path, cell_index)</span>
-<span class="sd">    """</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">start_tracking</span><span class="p">(</span>
-            <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
-            <span class="n">script_path</span><span class="o">=</span><span class="n">script_path</span><span class="p">,</span>
-            <span class="n">parent_session</span><span class="o">=</span><span class="n">parent_session</span><span class="p">,</span>
-            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Could not start verification tracking: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._db._core</span><span class="w"> </span><span class="kn">import</span> <span class="n">_find_project_root</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._manifest</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SOURCES_SCHEMA</span><span class="p">,</span>
+    <span class="n">full_sha256</span><span class="p">,</span>
+    <span class="n">load_sources_manifest</span><span class="p">,</span>
+    <span class="n">resolve_sources_path</span><span class="p">,</span>
+<span class="p">)</span>
 
 
-
-<div class="viewcode-block" id="on_session_close">
-<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.on_session_close">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">on_session_close</span><span class="p">(</span>
-    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"success"</span><span class="p">,</span>
-    <span class="n">exit_code</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">register</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Hook called when a session closes.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    status : str, optional</span>
-<span class="sd">        Final status (success, failed, error)</span>
-<span class="sd">    exit_code : int, optional</span>
-<span class="sd">        Exit code of the script</span>
-<span class="sd">    verbose : bool, optional</span>
-<span class="sd">        Whether to log status messages</span>
-<span class="sd">    register : bool, optional</span>
-<span class="sd">        If True, register session hashes with remote Clew Registry.</span>
-<span class="sd">        If None, checks SCITEX_AUTO_REGISTER environment variable.</span>
-<span class="sd">    """</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">tracker</span> <span class="o">=</span> <span class="n">get_tracker</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span><span class="p">:</span>
-            <span class="c1"># Provenance-completeness check (#45): a succeeded session that wrote</span>
-            <span class="c1"># outputs but recorded ZERO provenance is the #44-class gap. A failed</span>
-            <span class="c1"># session's incomplete recording is expected, so only check success.</span>
-            <span class="n">_warn_if_unrecorded_outputs</span><span class="p">(</span><span class="n">tracker</span><span class="p">)</span>
-        <span class="n">stop_tracking</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">exit_code</span><span class="o">=</span><span class="n">exit_code</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">_should_auto_register</span><span class="p">(</span><span class="n">register</span><span class="p">)</span> <span class="ow">and</span> <span class="n">tracker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">_auto_register_session</span><span class="p">(</span><span class="n">tracker</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Could not stop verification tracking: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
-
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_warn_if_unrecorded_outputs</span><span class="p">(</span><span class="n">tracker</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""WARN if the session wrote outputs but recorded ZERO output provenance.</span>
-
-<span class="sd">    The provenance-completeness citizen (#45). The INDEPENDENT saves signal is</span>
-<span class="sd">    the session OUTPUT DIR (passed via ``metadata["output_dir"]`` and populated</span>
-<span class="sd">    by the save itself) — so it fires precisely when clew's ``on_io_save`` did</span>
-<span class="sd">    NOT record (the #44 gap: ``@stx.session`` + ``stx.io.save`` but empty</span>
-<span class="sd">    file_hashes), which an on_io_save-derived counter is blind to. Predicate:</span>
-
-<span class="sd">        output_dir has &gt;=1 file  AND  tracker recorded 0 outputs  -&gt;  WARN</span>
-
-<span class="sd">    False-positive-free: a read-only / zero-output session has an empty/absent</span>
-<span class="sd">    output dir and stays silent. DEFENSIVE: silently skips when ``output_dir`` is</span>
-<span class="sd">    absent from metadata (a pre-enabler scitex-session, or any caller that does</span>
-<span class="sd">    not send it), so it is inert-safe until that signal exists and lights up the</span>
-<span class="sd">    moment it does. Never raises.</span>
-<span class="sd">    """</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">tracker</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">tracker</span><span class="p">,</span> <span class="s2">"_outputs"</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">or</span> <span class="p">{})</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span>  <span class="c1"># provenance WAS recorded -&gt; no gap</span>
-        <span class="n">run</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="n">tracker</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">run</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="n">meta</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">meta</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">meta</span><span class="p">)</span> <span class="k">if</span> <span class="n">meta</span> <span class="k">else</span> <span class="p">{}</span>
-        <span class="n">output_dir</span> <span class="o">=</span> <span class="p">(</span><span class="n">meta</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"output_dir"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">output_dir</span><span class="p">:</span>
-            <span class="k">return</span>  <span class="c1"># no independent saves signal yet -&gt; skip</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-            <span class="n">dirs</span> <span class="o">=</span> <span class="p">[</span><span class="n">out</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># The RUNNING output dir may have MOVED to &lt;base&gt;/&lt;final-status&gt;/&lt;id&gt;</span>
-            <span class="c1"># by the time this close-hook fires (the RUNNING-&gt;FINISHED rename);</span>
-            <span class="c1"># resolve by globbing sibling status subdirs for the same session-id</span>
-            <span class="c1"># leaf. Best-effort + inert-safe (no match -&gt; skip), so the check is</span>
-            <span class="c1"># robust regardless of close-hook-vs-move ordering.</span>
-            <span class="n">base</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
-            <span class="n">dirs</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">"*/</span><span class="si">{</span><span class="n">out</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()]</span>
-                <span class="k">if</span> <span class="n">base</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span>
-                <span class="k">else</span> <span class="p">[]</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">dirs</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="n">file_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
-            <span class="mi">1</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dirs</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="s2">"*"</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">file_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span>  <span class="c1"># session wrote nothing -&gt; no gap</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="s2">"clew: session </span><span class="si">%s</span><span class="s2"> wrote </span><span class="si">%d</span><span class="s2"> output file(s) under </span><span class="si">%s</span><span class="s2"> but recorded ZERO "</span>
-            <span class="s2">"provenance — outputs were saved outside a live @stx.session tracker "</span>
-            <span class="s2">"(wrap saves in @stx.session, or check the scitex-io observer wiring). "</span>
-            <span class="s2">"The submission gate will treat these outputs as UNSOURCED."</span><span class="p">,</span>
-            <span class="n">tracker</span><span class="o">.</span><span class="n">session_id</span><span class="p">,</span>
-            <span class="n">file_count</span><span class="p">,</span>
-            <span class="n">output_dir</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># completeness is a nicety — never break close</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"clew: session-close completeness check skipped: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
-
-
-<span class="c1"># ── Registry helpers ──</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_should_auto_register</span><span class="p">(</span><span class="n">register</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Check whether auto-registration is enabled."""</span>
-    <span class="k">if</span> <span class="n">register</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">register</span>
-
-    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"SCITEX_AUTO_REGISTER"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span>
-        <span class="s2">"1"</span><span class="p">,</span>
-        <span class="s2">"true"</span><span class="p">,</span>
-        <span class="s2">"yes"</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_write_manifest_dict</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">sources</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">signature</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Serialize the manifest dict to ``path`` (creates parents)."""</span>
+    <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"schema"</span><span class="p">:</span> <span class="n">SOURCES_SCHEMA</span><span class="p">,</span>
+        <span class="s2">"sources"</span><span class="p">:</span> <span class="n">sources</span><span class="p">,</span>
+        <span class="s2">"signature"</span><span class="p">:</span> <span class="n">signature</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="c1"># Canonical serialization (sort_keys) so the on-disk pretty-JSON — minus its</span>
+    <span class="c1"># signature — IS the signable byte string (matches _signing.canonical_bytes).</span>
+    <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_auto_register_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Register session hashes with remote Clew Registry (fire-and-forget)."""</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">.._attest._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_registry</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_raw</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Read the raw manifest dict from ``path`` (empty skeleton if absent)."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"schema"</span><span class="p">:</span> <span class="n">SOURCES_SCHEMA</span><span class="p">,</span> <span class="s2">"sources"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"signature"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
 
-        <span class="n">get_registry</span><span class="p">()</span><span class="o">.</span><span class="n">register_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"clew: failed to auto-register session </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_relpath</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">root</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Best-effort relative path of ``file_path`` from ``root``."""</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">ap</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">root</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="c1"># Outside the project root — store the path as-is (still resolvable).</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">ap</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="register_source">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.register_source">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">register_source</span><span class="p">(</span>
+    <span class="n">files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">sources_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Register one or more files as trusted sources (idempotent).</span>
+
+<span class="sd">    Computes each file's full sha256 and appends/updates a ``{path, sha256}``</span>
+<span class="sd">    entry in the manifest, creating it at the tier-3 path if absent. Re-</span>
+<span class="sd">    registering a path updates its hash (idempotent).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    files : str | Path | list</span>
+<span class="sd">        File(s) to register. Each must exist (its content is hashed now).</span>
+<span class="sd">    sources_path : str | Path, optional</span>
+<span class="sd">        Explicit manifest path (else tier-2 env / tier-3 default).</span>
+<span class="sd">    root : str | Path, optional</span>
+<span class="sd">        Project root that relpaths are stored against (default: cwd walk).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Path</span>
+<span class="sd">        The manifest path written to (absolute).</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="n">files</span><span class="p">]</span>
+    <span class="n">resolved</span><span class="p">,</span> <span class="n">_tier</span> <span class="o">=</span> <span class="n">resolve_sources_path</span><span class="p">(</span><span class="n">sources_path</span><span class="p">)</span>
+    <span class="n">resolved</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">root_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span> <span class="k">if</span> <span class="n">root</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_find_project_root</span><span class="p">()</span>
+
+    <span class="n">raw</span> <span class="o">=</span> <span class="n">_load_raw</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sources"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="n">by_path</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"path"</span><span class="p">]):</span> <span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">sources</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)}</span>
+
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fp</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Cannot register a source that does not exist: </span><span class="si">{</span><span class="n">fp</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="n">rel</span> <span class="o">=</span> <span class="n">_relpath</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">root_path</span><span class="p">)</span>
+        <span class="n">by_path</span><span class="p">[</span><span class="n">rel</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"path"</span><span class="p">:</span> <span class="n">rel</span><span class="p">,</span> <span class="s2">"sha256"</span><span class="p">:</span> <span class="n">full_sha256</span><span class="p">(</span><span class="n">fp</span><span class="p">)}</span>
+
+    <span class="n">ordered</span> <span class="o">=</span> <span class="p">[</span><span class="n">by_path</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">by_path</span><span class="p">)]</span>
+    <span class="c1"># Editing sources invalidates any prior signature — the content changed, so</span>
+    <span class="c1"># the old signature no longer matches. Drop it; the human re-runs `clew sign`.</span>
+    <span class="n">_write_manifest_dict</span><span class="p">(</span><span class="n">resolved</span><span class="p">,</span> <span class="n">ordered</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">resolved</span></div>
+
+
+
+<div class="viewcode-block" id="unregister_source">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.unregister_source">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">unregister_source</span><span class="p">(</span>
+    <span class="n">files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">sources_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Remove one or more registered sources (idempotent; no-op if absent)."""</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="n">files</span><span class="p">]</span>
+    <span class="n">resolved</span><span class="p">,</span> <span class="n">_tier</span> <span class="o">=</span> <span class="n">resolve_sources_path</span><span class="p">(</span><span class="n">sources_path</span><span class="p">)</span>
+    <span class="n">resolved</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">root_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span> <span class="k">if</span> <span class="n">root</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_find_project_root</span><span class="p">()</span>
+
+    <span class="n">raw</span> <span class="o">=</span> <span class="n">_load_raw</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sources"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="n">drop</span> <span class="o">=</span> <span class="p">{</span><span class="n">_relpath</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">root_path</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">}</span>
+    <span class="n">kept</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">e</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">sources</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"path"</span><span class="p">))</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">drop</span>
+    <span class="p">]</span>
+    <span class="c1"># Editing sources invalidates any prior signature (see register_source).</span>
+    <span class="n">_write_manifest_dict</span><span class="p">(</span><span class="n">resolved</span><span class="p">,</span> <span class="n">kept</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">resolved</span></div>
+
+
+
+<div class="viewcode-block" id="list_sources">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.list_sources">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_sources</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">sources_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return the manifest entries with a per-entry validity check.</span>
+
+<span class="sd">    Each dict carries ``path``, ``sha256``, ``abspath``, ``valid`` (bool), and</span>
+<span class="sd">    ``reason`` (``OK`` / ``TAMPERED`` / ``MISSING``). Returns ``[]`` when no</span>
+<span class="sd">    manifest exists.</span>
+<span class="sd">    """</span>
+    <span class="n">manifest</span> <span class="o">=</span> <span class="n">load_sources_manifest</span><span class="p">(</span><span class="n">sources_path</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">manifest</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">manifest</span><span class="o">.</span><span class="n">entries</span><span class="p">]</span></div>
+
 
 
 <span class="c1"># EOF</span>

@@ -1,0 +1,649 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scitex_clew._sources._manifest &mdash; SciTeX Clew v0.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SciTeX Clew
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#basic-installation">Basic Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-cli-support">With CLI Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-mcp-server">With MCP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#all-optional-dependencies">All Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#development-installation">Development Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#cli">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#mcp-server">MCP Server</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../grouping.html">Grouping</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#built-in-groupers">Built-in groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#spec-schema">Spec schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#custom-groupers">Custom groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#merkle-roots">Merkle roots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#grouping-invariants">Grouping invariants</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#core-commands">Core Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#introspection">Introspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#mcp-subcommands">MCP Subcommands</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../mcp.html">MCP Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#starting-the-server">Starting the Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#mcp-client-configuration">MCP Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#available-tools">Available Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#diagnostics">Diagnostics</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/scitex_clew.html">scitex_clew</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.chain"><code class="docutils literal notranslate"><span class="pre">chain()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.dag"><code class="docutils literal notranslate"><span class="pre">dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun"><code class="docutils literal notranslate"><span class="pre">rerun()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_dag"><code class="docutils literal notranslate"><span class="pre">rerun_dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_start"><code class="docutils literal notranslate"><span class="pre">on_session_start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_close"><code class="docutils literal notranslate"><span class="pre">on_session_close()</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-1-basic-verification">Example 1: Basic Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-2-chain-verification">Example 2: Chain Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-3-mermaid-diagram">Example 3: Mermaid Diagram</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SciTeX Clew</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">scitex_clew._sources._manifest</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scitex_clew._sources._manifest</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""Registered-source manifest — host-side, hash-pinned trust whitelist.</span>
+
+<span class="sd">Why this exists</span>
+<span class="sd">---------------</span>
+<span class="sd">``green = link-hash-consistency`` is not enough: a claim can be</span>
+<span class="sd">link-hash-consistent yet reach NO true source (its provenance chain</span>
+<span class="sd">terminates at a hand-made leaf). This module loads a human-registered</span>
+<span class="sd">whitelist of *trusted source files*, each pinned by ``sha256``, so the</span>
+<span class="sd">verify/export gate can demote an otherwise-green-but-ungrounded claim to</span>
+<span class="sd">the ``unsourced`` verdict.</span>
+
+<span class="sd">Manifest format (JSON)::</span>
+
+<span class="sd">    {</span>
+<span class="sd">      "schema": "sources-1.0",</span>
+<span class="sd">      "sources": [{"path": "&lt;relpath&gt;", "sha256": "&lt;hex&gt;"}],</span>
+<span class="sd">      "signature": null</span>
+<span class="sd">    }</span>
+
+<span class="sd">* ``path`` is relative to the project root (the ``.scitex/`` parent).</span>
+<span class="sd">* ``sha256`` is the full 64-char hex digest of the file at registration</span>
+<span class="sd">  time (the flat per-file v0.2 contract locked with scitex-dataset — NOT</span>
+<span class="sd">  the nested ``digest{algo,value,of}`` capsule digest).</span>
+<span class="sd">* ``signature`` holds the manifest's Ed25519 signature (default ``null``</span>
+<span class="sd">  for an unsigned manifest). Signature enforcement is LIVE and OPT-IN:</span>
+<span class="sd">  committing ``&lt;root&gt;/.scitex/clew/signed/signing.pub`` activates it (see</span>
+<span class="sd">  ``_check_manifest_signature``), after which an unsigned or badly-signed</span>
+<span class="sd">  manifest is UNTRUSTED and anchors nothing (``SourcesManifest.trusted``).</span>
+<span class="sd">  It fails CLOSED — if the pubkey is committed but verification is unavailable</span>
+<span class="sd">  (python-cryptography / the ``[all]`` extra absent) the manifest is treated as</span>
+<span class="sd">  untrusted, so signing cannot be bypassed by dropping the crypto dependency.</span>
+<span class="sd">  (:func:`verify_signature` is a legacy no-op seam, superseded by</span>
+<span class="sd">  ``_check_manifest_signature``.)</span>
+
+<span class="sd">Resolution tiers (mirrors :func:`scitex_clew._db._core.resolve_db_path`):</span>
+<span class="sd">tier1 explicit arg &gt; tier2 ``$SCITEX_CLEW_SOURCES`` &gt; tier3</span>
+<span class="sd">``&lt;project_root&gt;/.scitex/clew/sources.json``.</span>
+
+<span class="sd">This manifest is READ by verify/export; it is NEVER written by verify or</span>
+<span class="sd">any agent-facing code path. The only sanctioned writer is the</span>
+<span class="sd">``clew register-source`` CLI (human-run) — see :mod:`._writer`.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._core</span><span class="w"> </span><span class="kn">import</span> <span class="n">getLogger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._db._core</span><span class="w"> </span><span class="kn">import</span> <span class="n">_find_project_root</span>
+
+<span class="n">_log</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">SOURCES_SCHEMA</span> <span class="o">=</span> <span class="s2">"sources-1.0"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">full_sha256</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the full 64-char sha256 hex digest of ``path`` (streamed)."""</span>
+    <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8192</span><span class="p">),</span> <span class="sa">b</span><span class="s2">""</span><span class="p">):</span>
+            <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">hasher</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SourceEntry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""One registered source: a hash-pinned trusted file.</span>
+
+<span class="sd">    ``valid`` is the tamper-check outcome — ``True`` iff the file exists on</span>
+<span class="sd">    disk AND its current sha256 equals the pinned value. An invalid entry is</span>
+<span class="sd">    NOT a trust anchor and is surfaced loudly (``reason`` says why).</span>
+<span class="sd">    """</span>
+
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># relpath as stored in the manifest</span>
+    <span class="n">sha256</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># pinned full hex digest</span>
+    <span class="n">abspath</span><span class="p">:</span> <span class="n">Path</span>  <span class="c1"># resolved absolute path (root / path)</span>
+    <span class="n">valid</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># "OK" | "MISSING" | "TAMPERED"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"path"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+            <span class="s2">"sha256"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">sha256</span><span class="p">,</span>
+            <span class="s2">"abspath"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">abspath</span><span class="p">),</span>
+            <span class="s2">"valid"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid</span><span class="p">,</span>
+            <span class="s2">"reason"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reason</span><span class="p">,</span>
+        <span class="p">}</span>
+
+
+<div class="viewcode-block" id="SourcesManifest">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SourcesManifest</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A loaded, tamper-checked registered-source manifest.</span>
+
+<span class="sd">    ``active`` is the OPT-IN switch: the gate only fires when at least one</span>
+<span class="sd">    VALID entry is present. An absent manifest loads as ``None`` (see</span>
+<span class="sd">    :func:`load_sources_manifest`); a present-but-empty or all-invalid</span>
+<span class="sd">    manifest is ``active is False`` so the gate stays dormant.</span>
+<span class="sd">    """</span>
+
+    <span class="n">schema</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">root</span><span class="p">:</span> <span class="n">Path</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Path</span>
+    <span class="n">entries</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SourceEntry</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">signature</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Signature enforcement (set by load_sources_manifest). ``signing_enforced``</span>
+    <span class="c1"># is True iff a ``signed/signing.pub`` is committed for this project; when</span>
+    <span class="c1"># enforced, ``signature_valid`` is the Ed25519 verification result. When NOT</span>
+    <span class="c1"># enforced (no committed pubkey) ``signature_valid`` is None and the manifest</span>
+    <span class="c1"># is trusted as before (opt-in — zero behavior change until a key is added).</span>
+    <span class="n">signing_enforced</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">signature_valid</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">valid_entries</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SourceEntry</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">entries</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">valid</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">invalid_entries</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SourceEntry</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">entries</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">e</span><span class="o">.</span><span class="n">valid</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">trusted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""False iff signing is ENFORCED but the manifest's signature is</span>
+<span class="sd">        missing/invalid — an untrusted manifest anchors NOTHING (so a tampered</span>
+<span class="sd">        or unsigned-under-an-enforcing-key manifest cannot ground any claim:</span>
+<span class="sd">        "without the key it can't be run/edited")."""</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signing_enforced</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">signature_valid</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">active</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Gate FIRES iff signing is enforced (a committed signing.pub) OR &gt;=1</span>
+<span class="sd">        VALID anchor exists.</span>
+
+<span class="sd">        When signing is enforced the gate fires even for an UNTRUSTED manifest —</span>
+<span class="sd">        so is_grounded blocks ALL its claims (an unsigned or tampered manifest</span>
+<span class="sd">        must not silently pass by making the gate go dormant)."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">signing_enforced</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valid_entries</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SourcesManifest.anchor_paths">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">anchor_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Resolved absolute paths of the VALID anchors (for grounding); EMPTY</span>
+<span class="sd">        when the manifest is untrusted (unsigned/tampered under an enforcing key)."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">trusted</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">abspath</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_entries</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="SourcesManifest.pinned_for">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pinned_for</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">abspath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Pinned sha256 for a VALID anchor at ``abspath`` (else ``None``);</span>
+<span class="sd">        always ``None`` when the manifest is untrusted."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">trusted</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_entries</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">abspath</span><span class="p">)</span> <span class="o">==</span> <span class="n">abspath</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">e</span><span class="o">.</span><span class="n">sha256</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_project_root_for</span><span class="p">(</span><span class="n">sources_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Project root a manifest's relpaths resolve against.</span>
+
+<span class="sd">    The canonical layout is ``&lt;root&gt;/.scitex/clew/sources.json`` — when the</span>
+<span class="sd">    manifest sits there, the root is unambiguous (three parents up). For a</span>
+<span class="sd">    manifest resolved from an explicit/env path elsewhere, fall back to the</span>
+<span class="sd">    cwd-based project-root walk (same as the DB resolver).</span>
+<span class="sd">    """</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">sources_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"clew"</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">".scitex"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+    <span class="k">return</span> <span class="n">_find_project_root</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="resolve_sources_path">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.resolve_sources_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_sources_path</span><span class="p">(</span>
+    <span class="n">sources_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Resolve the manifest path via the three-tier precedence.</span>
+
+<span class="sd">    Mirrors :func:`scitex_clew._db._core.resolve_db_path` exactly:</span>
+<span class="sd">    tier1 explicit arg &gt; tier2 ``$SCITEX_CLEW_SOURCES`` &gt; tier3</span>
+<span class="sd">    ``&lt;project_root&gt;/.scitex/clew/sources.json``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple of (Path, str)</span>
+<span class="sd">        The resolved path and a human-readable label of the producing tier.</span>
+<span class="sd">        This function only resolves — it neither creates nor requires the</span>
+<span class="sd">        file.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">sources_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">sources_path</span><span class="p">),</span> <span class="s2">"explicit sources_path argument"</span>
+    <span class="n">env_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"SCITEX_CLEW_SOURCES"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">env_path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">env_path</span><span class="p">),</span> <span class="s2">"SCITEX_CLEW_SOURCES environment variable"</span>
+    <span class="c1"># tier3: prefer the canonical signable location signed/sources.json, then</span>
+    <span class="c1"># user_definitions/ (pre-rename), then the flat legacy path (see</span>
+    <span class="c1"># _resolve_sources_tier3).</span>
+    <span class="k">return</span> <span class="n">_resolve_sources_tier3</span><span class="p">(</span><span class="n">_find_project_root</span><span class="p">()</span> <span class="o">/</span> <span class="s2">".scitex"</span> <span class="o">/</span> <span class="s2">"clew"</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_sources_tier3</span><span class="p">(</span><span class="n">clew_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Tier-3 manifest precedence within a ``.scitex/clew`` dir.</span>
+
+<span class="sd">    signed/sources.json &gt; user_definitions/sources.json (pre-rename) &gt; flat</span>
+<span class="sd">    legacy sources.json. If none exists yet, default NEW manifests to signed/ so</span>
+<span class="sd">    register-source + sign + the gate all share one canonical location. Split</span>
+<span class="sd">    out (taking ``clew_dir`` explicitly) so it is exercisable against a real temp</span>
+<span class="sd">    dir without patching the project-root walk.</span>
+<span class="sd">    """</span>
+    <span class="n">signed</span> <span class="o">=</span> <span class="n">clew_dir</span> <span class="o">/</span> <span class="s2">"signed"</span> <span class="o">/</span> <span class="s2">"sources.json"</span>
+    <span class="k">for</span> <span class="n">candidate</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">signed</span><span class="p">,</span> <span class="s2">"signed/ manifest (project-root walk)"</span><span class="p">),</span>
+        <span class="p">(</span>
+            <span class="n">clew_dir</span> <span class="o">/</span> <span class="s2">"user_definitions"</span> <span class="o">/</span> <span class="s2">"sources.json"</span><span class="p">,</span>
+            <span class="s2">"user_definitions/ manifest (pre-rename, project-root walk)"</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="p">(</span><span class="n">clew_dir</span> <span class="o">/</span> <span class="s2">"sources.json"</span><span class="p">,</span> <span class="s2">"legacy .scitex/clew/sources.json"</span><span class="p">),</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">candidate</span><span class="p">,</span> <span class="n">label</span>
+    <span class="k">return</span> <span class="n">signed</span><span class="p">,</span> <span class="s2">"signed/ default (project-root walk; not yet created)"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_signature</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">signature</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Legacy no-op signature seam — SUPERSEDED by ``_check_manifest_signature``.</span>
+
+<span class="sd">    Signature enforcement is now LIVE via ``_check_manifest_signature``</span>
+<span class="sd">    (opt-in through a committed ``signing.pub``, Ed25519, fail-closed), wired</span>
+<span class="sd">    into :func:`load_sources_manifest`. This seam predates that path, is not</span>
+<span class="sd">    the enforcement point, and always returns ``True``; trust is determined by</span>
+<span class="sd">    ``SourcesManifest.trusted`` / ``SourcesManifest.active``. Retained</span>
+<span class="sd">    for back-compat (still exported) — do not use it to gate trust.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_manifest_signature</span><span class="p">(</span>
+    <span class="n">raw</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="n">Path</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Determine signature-enforcement state for a manifest.</span>
+
+<span class="sd">    Enforcement is OPT-IN: it activates only when a public key is committed at</span>
+<span class="sd">    ``&lt;root&gt;/.scitex/clew/signed/signing.pub``. Returns</span>
+<span class="sd">    ``(signing_enforced, signature_valid)``:</span>
+
+<span class="sd">    * no committed pubkey -&gt; ``(False, None)`` — signing NOT enforced (zero</span>
+<span class="sd">      behavior change; the manifest stays trusted as before).</span>
+<span class="sd">    * pubkey present -&gt; ``(True, &lt;Ed25519 verify result&gt;)`` — the manifest must</span>
+<span class="sd">      carry a valid signature over its canonical form, else it is untrusted and</span>
+<span class="sd">      anchors nothing.</span>
+
+<span class="sd">    Fails CLOSED: if a pubkey is committed but verification is unavailable</span>
+<span class="sd">    (python-cryptography / the ``[all]`` extra not installed here), returns</span>
+<span class="sd">    ``(True, False)`` — an unverifiable manifest is untrusted, so signing cannot</span>
+<span class="sd">    be bypassed by dropping the crypto dependency.</span>
+<span class="sd">    """</span>
+    <span class="n">pubkey_path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="s2">".scitex"</span> <span class="o">/</span> <span class="s2">"clew"</span> <span class="o">/</span> <span class="s2">"signed"</span> <span class="o">/</span> <span class="s2">"signing.pub"</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pubkey_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._signing</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_signed</span><span class="p">,</span> <span class="n">verify_manifest</span>
+
+        <span class="n">valid</span> <span class="o">=</span> <span class="n">verify_manifest</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">pubkey_path</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">())</span>
+    <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># pragma: no cover - only when [all] is absent</span>
+        <span class="n">_log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"clew: signing.pub is committed at </span><span class="si">%s</span><span class="s2"> but signature verification is "</span>
+            <span class="s2">"unavailable (</span><span class="si">%s</span><span class="s2">) — the manifest is treated as UNTRUSTED. Install "</span>
+            <span class="s2">"scitex-clew[all] in this environment to verify signed sources."</span><span class="p">,</span>
+            <span class="n">pubkey_path</span><span class="p">,</span>
+            <span class="n">exc</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">valid</span><span class="p">:</span>
+        <span class="n">why</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">"is UNSIGNED"</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_signed</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+            <span class="k">else</span> <span class="s2">"has an INVALID signature (tampered or wrong key)"</span>
+        <span class="p">)</span>
+        <span class="n">_log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"clew: manifest </span><span class="si">%s</span><span class="s2"> under an enforcing signing.pub (</span><span class="si">%s</span><span class="s2">) — its anchors "</span>
+            <span class="s2">"are UNTRUSTED and every claim will be unsourced until it is re-signed "</span>
+            <span class="s2">"with `clew sign`."</span><span class="p">,</span>
+            <span class="n">why</span><span class="p">,</span>
+            <span class="n">pubkey_path</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="load_sources_manifest">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.load_sources_manifest">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_sources_manifest</span><span class="p">(</span>
+    <span class="n">sources_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SourcesManifest</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Load + tamper-check the registered-source manifest.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sources_path : str or Path, optional</span>
+<span class="sd">        Explicit manifest path (tier 1). Falls through to</span>
+<span class="sd">        ``$SCITEX_CLEW_SOURCES`` (tier 2) then the tier-3 default.</span>
+<span class="sd">    root : str or Path, optional</span>
+<span class="sd">        Project root the manifest relpaths resolve against. When ``None``,</span>
+<span class="sd">        derived from the manifest location (canonical layout) or the cwd</span>
+<span class="sd">        project-root walk.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    SourcesManifest or None</span>
+<span class="sd">        ``None`` when the manifest file does not exist — the gate is then</span>
+<span class="sd">        INACTIVE (opt-in: zero behavior change). A present manifest is parsed,</span>
+<span class="sd">        schema-validated, and every entry tamper-checked (recompute each</span>
+<span class="sd">        file's sha256 vs the pinned value).</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        On a malformed manifest (not JSON, wrong schema string, missing</span>
+<span class="sd">        ``sources`` list, or a malformed entry). Fail-loud, never silent-empty.</span>
+<span class="sd">    """</span>
+    <span class="n">resolved</span><span class="p">,</span> <span class="n">_tier</span> <span class="o">=</span> <span class="n">resolve_sources_path</span><span class="p">(</span><span class="n">sources_path</span><span class="p">)</span>
+    <span class="n">resolved</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">resolved</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># opt-in: no manifest =&gt; gate inactive</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">resolved</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Registered-source manifest is malformed (not valid JSON): "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">resolved</span><span class="si">}</span><span class="s2"> — </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Registered-source manifest must be a JSON object: </span><span class="si">{</span><span class="n">resolved</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"schema"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">schema</span> <span class="o">!=</span> <span class="n">SOURCES_SCHEMA</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Registered-source manifest has unexpected schema </span><span class="si">{</span><span class="n">schema</span><span class="si">!r}</span><span class="s2"> "</span>
+            <span class="sa">f</span><span class="s2">"(expected </span><span class="si">{</span><span class="n">SOURCES_SCHEMA</span><span class="si">!r}</span><span class="s2">): </span><span class="si">{</span><span class="n">resolved</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sources"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sources</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Registered-source manifest 'sources' must be a list: </span><span class="si">{</span><span class="n">resolved</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+
+    <span class="n">signature</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"signature"</span><span class="p">)</span>
+
+    <span class="n">root_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="k">if</span> <span class="n">root</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_project_root_for</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+
+    <span class="n">entries</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SourceEntry</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sources</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"path"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span> <span class="ow">or</span> <span class="s2">"sha256"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Registered-source manifest entry #</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> is malformed "</span>
+                <span class="sa">f</span><span class="s2">"(need 'path' and 'sha256'): </span><span class="si">{</span><span class="n">item</span><span class="si">!r}</span><span class="s2"> in </span><span class="si">{</span><span class="n">resolved</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="n">rel</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">"path"</span><span class="p">])</span>
+        <span class="n">pinned</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">"sha256"</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">abspath</span> <span class="o">=</span> <span class="p">(</span><span class="n">root_path</span> <span class="o">/</span> <span class="n">rel</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">abspath</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">valid</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"MISSING"</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">full_sha256</span><span class="p">(</span><span class="n">abspath</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">current</span> <span class="o">==</span> <span class="n">pinned</span><span class="p">:</span>
+                <span class="n">valid</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"OK"</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">valid</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"TAMPERED"</span>
+        <span class="n">entries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">SourceEntry</span><span class="p">(</span>
+                <span class="n">path</span><span class="o">=</span><span class="n">rel</span><span class="p">,</span>
+                <span class="n">sha256</span><span class="o">=</span><span class="n">pinned</span><span class="p">,</span>
+                <span class="n">abspath</span><span class="o">=</span><span class="n">abspath</span><span class="p">,</span>
+                <span class="n">valid</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span>
+                <span class="n">reason</span><span class="o">=</span><span class="n">reason</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">signing_enforced</span><span class="p">,</span> <span class="n">signature_valid</span> <span class="o">=</span> <span class="n">_check_manifest_signature</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">root_path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">SourcesManifest</span><span class="p">(</span>
+        <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+        <span class="n">root</span><span class="o">=</span><span class="n">root_path</span><span class="p">,</span>
+        <span class="n">path</span><span class="o">=</span><span class="n">resolved</span><span class="p">,</span>
+        <span class="n">entries</span><span class="o">=</span><span class="n">entries</span><span class="p">,</span>
+        <span class="n">signature</span><span class="o">=</span><span class="n">signature</span><span class="p">,</span>
+        <span class="n">signing_enforced</span><span class="o">=</span><span class="n">signing_enforced</span><span class="p">,</span>
+        <span class="n">signature_valid</span><span class="o">=</span><span class="n">signature_valid</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="c1"># EOF</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

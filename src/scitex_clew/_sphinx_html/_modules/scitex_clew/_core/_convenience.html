@@ -1,0 +1,505 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scitex_clew._core._convenience &mdash; SciTeX Clew v0.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SciTeX Clew
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#basic-installation">Basic Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-cli-support">With CLI Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-mcp-server">With MCP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#all-optional-dependencies">All Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#development-installation">Development Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#cli">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#mcp-server">MCP Server</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../grouping.html">Grouping</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#built-in-groupers">Built-in groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#spec-schema">Spec schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#custom-groupers">Custom groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#merkle-roots">Merkle roots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#grouping-invariants">Grouping invariants</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#core-commands">Core Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#introspection">Introspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#mcp-subcommands">MCP Subcommands</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../mcp.html">MCP Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#starting-the-server">Starting the Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#mcp-client-configuration">MCP Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#available-tools">Available Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#diagnostics">Diagnostics</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/scitex_clew.html">scitex_clew</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.chain"><code class="docutils literal notranslate"><span class="pre">chain()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.dag"><code class="docutils literal notranslate"><span class="pre">dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun"><code class="docutils literal notranslate"><span class="pre">rerun()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_dag"><code class="docutils literal notranslate"><span class="pre">rerun_dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_start"><code class="docutils literal notranslate"><span class="pre">on_session_start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_close"><code class="docutils literal notranslate"><span class="pre">on_session_close()</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-1-basic-verification">Example 1: Basic Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-2-chain-verification">Example 2: Chain Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-3-mermaid-diagram">Example 3: Mermaid Diagram</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SciTeX Clew</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">scitex_clew._core._convenience</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scitex_clew._core._convenience</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""Eager public convenience wrappers for scitex_clew.</span>
+
+<span class="sd">Extracted from ``__init__.py`` to keep that file under the 512-line limit, and</span>
+<span class="sd">housed under ``_core/`` (not a flat root module) per PS-108b so the package</span>
+<span class="sd">root stays under the flat-file threshold.</span>
+
+<span class="sd">These wrappers are defined eagerly (cheap — they're just function objects plus</span>
+<span class="sd">the :func:`_supports_return_as` decorator). Each body does a function-local</span>
+<span class="sd">``from ..&lt;submodule&gt; import …`` so the heavy submodule is only imported on first</span>
+<span class="sd">invocation. Python caches the resulting module in ``sys.modules``, so the</span>
+<span class="sd">local-import overhead on subsequent calls is a dict lookup. Importing this</span>
+<span class="sd">module itself therefore adds no measurable cold-start cost (audit §10).</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Lazy decorator from scitex-dev (audit §10 cold-start)</span>
+<span class="c1">#</span>
+<span class="c1"># ``supports_return_as`` adds ``return_as="result"`` support. We MUST apply it</span>
+<span class="c1"># at function-definition time to preserve that public API behaviour, but</span>
+<span class="c1"># importing ``scitex_dev.decorators`` eagerly costs ~190ms (it pulls in</span>
+<span class="c1"># ``scitex_dev._core.types`` + dataclasses + copy). That single import was</span>
+<span class="c1"># pushing ``import scitex_clew`` over the audit-cli §10 500 ms threshold in CI</span>
+<span class="c1"># py3.12.</span>
+<span class="c1">#</span>
+<span class="c1"># Trick: wrap the decorator. At definition time we just record the function</span>
+<span class="c1"># unchanged (cheap). The first *call* into any wrapper resolves the real</span>
+<span class="c1"># decorator from scitex_dev.decorators, applies it, and patches the module</span>
+<span class="c1"># global so subsequent calls skip the indirection. Net cost at import: zero.</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_supports_return_as</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Defer scitex_dev.decorators.supports_return_as to first call."""</span>
+
+    <span class="n">_decorated</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">_decorated</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">scitex_dev.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+                    <span class="n">supports_return_as</span> <span class="k">as</span> <span class="n">_real</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">_decorated</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">_real</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="c1"># scitex-dev may import optional ML libs whose runtime-init</span>
+                <span class="c1"># can fail with VersionError / RuntimeError; fall back to</span>
+                <span class="c1"># the bare function, preserving normal call semantics.</span>
+                <span class="n">_decorated</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn</span>
+        <span class="k">return</span> <span class="n">_decorated</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">_wrapper</span><span class="o">.</span><span class="n">__wrapped__</span> <span class="o">=</span> <span class="n">fn</span>
+    <span class="n">_wrapper</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">"__name__"</span><span class="p">,</span> <span class="s2">"_wrapper"</span><span class="p">)</span>
+    <span class="n">_wrapper</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">fn</span><span class="o">.</span><span class="vm">__doc__</span>
+    <span class="n">_wrapper</span><span class="o">.</span><span class="vm">__qualname__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">"__qualname__"</span><span class="p">,</span> <span class="n">_wrapper</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_wrapper</span>
+
+
+<div class="viewcode-block" id="list_runs">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.list_runs">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_runs</span><span class="p">(</span><span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""List tracked runs."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">list_runs</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="status">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.status">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">status</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">"""Get verification status summary (like git status)."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_status</span>
+
+    <span class="k">return</span> <span class="n">get_status</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="run">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.run">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">from_scratch</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Verify a specific run.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    session_id : str</span>
+<span class="sd">        Session identifier</span>
+<span class="sd">    from_scratch : bool, optional</span>
+<span class="sd">        If True, re-execute the script and verify outputs (slow but thorough).</span>
+<span class="sd">        If False, only compare hashes (fast).</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">from_scratch</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.._rerun</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_by_rerun</span>
+
+        <span class="k">return</span> <span class="n">verify_by_rerun</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_run</span>
+
+    <span class="k">return</span> <span class="n">verify_run</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="chain">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.chain">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">chain</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Verify the dependency chain for a target file."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_chain</span>
+
+    <span class="k">return</span> <span class="n">verify_chain</span><span class="p">(</span><span class="n">target</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="stats">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.stats">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">stats</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">"""Get database statistics."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">stats</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="dag">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.dag">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dag</span><span class="p">(</span><span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">claims</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Verify the DAG for multiple targets or all claims.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    targets : list of str or Path, optional</span>
+<span class="sd">        Target files to verify (mutually exclusive with ``claims``).</span>
+<span class="sd">    claims : bool, optional</span>
+<span class="sd">        If True, build the DAG from every registered claim.</span>
+<span class="sd">    strict : bool, optional</span>
+<span class="sd">        If True (F2), return a failure-attribution dict with</span>
+<span class="sd">        ``failed_node`` / ``root_cause`` / ``invalidated_claims`` /</span>
+<span class="sd">        ``still_valid_claims`` instead of a ``DAGVerification``.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">strict</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_dag_strict</span>
+
+        <span class="k">return</span> <span class="n">verify_dag_strict</span><span class="p">(</span><span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span> <span class="n">claims</span><span class="o">=</span><span class="n">claims</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">claims</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.._claim</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_claims_dag</span>
+
+        <span class="k">return</span> <span class="n">verify_claims_dag</span><span class="p">()</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_dag</span>
+
+    <span class="k">return</span> <span class="n">verify_dag</span><span class="p">(</span><span class="n">targets</span> <span class="ow">or</span> <span class="p">[])</span></div>
+
+
+
+<div class="viewcode-block" id="rerun">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.rerun">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">rerun</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span> <span class="n">cleanup</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Re-execute a session in a sandbox and compare outputs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target : str or list[str]</span>
+<span class="sd">        Session ID, script path, or artifact path.</span>
+<span class="sd">    timeout : int, optional</span>
+<span class="sd">        Maximum execution time in seconds (default: 300).</span>
+<span class="sd">    cleanup : bool, optional</span>
+<span class="sd">        Remove sandbox outputs after verification (default: True).</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._rerun</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_by_rerun</span>
+
+    <span class="k">return</span> <span class="n">verify_by_rerun</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="n">cleanup</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="mermaid">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.mermaid">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">mermaid</span><span class="p">(</span>
+    <span class="n">session_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">target_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">target_files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">claims</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">grouper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Generate a Mermaid DAG diagram.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    session_id : str, optional</span>
+<span class="sd">        Start from this session.</span>
+<span class="sd">    target_file : str, optional</span>
+<span class="sd">        Start from the session that produced this file.</span>
+<span class="sd">    target_files : list of str, optional</span>
+<span class="sd">        Multiple target files (multi-target DAG).</span>
+<span class="sd">    claims : bool, optional</span>
+<span class="sd">        If True, build DAG from all registered claims.</span>
+<span class="sd">    grouper : callable | dict | None, optional</span>
+<span class="sd">        File grouping strategy. Callable or JSON/dict spec (see</span>
+<span class="sd">        ``scitex_clew.groupers.resolve_spec``). If ``None``, falls back to</span>
+<span class="sd">        ``.scitex/clew/config.yaml`` (key ``grouper``) if present.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">grouper</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.._groupers._config</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_project_config</span>
+
+        <span class="n">grouper</span> <span class="o">=</span> <span class="n">load_project_config</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"grouper"</span><span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._viz</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_mermaid_dag</span>
+
+    <span class="k">return</span> <span class="n">generate_mermaid_dag</span><span class="p">(</span>
+        <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
+        <span class="n">target_file</span><span class="o">=</span><span class="n">target_file</span><span class="p">,</span>
+        <span class="n">target_files</span><span class="o">=</span><span class="n">target_files</span><span class="p">,</span>
+        <span class="n">claims</span><span class="o">=</span><span class="n">claims</span><span class="p">,</span>
+        <span class="n">grouper</span><span class="o">=</span><span class="n">grouper</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="estimate">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.estimate">[docs]</a>
+<span class="nd">@_supports_return_as</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">estimate</span><span class="p">(</span><span class="n">script_or_target</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">heavy_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Pre-flight runtime/success estimate for a script or target file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    script_or_target : str</span>
+<span class="sd">        Path to a Python script or a target output file.  Target files are</span>
+<span class="sd">        resolved to their producing script via the run DB.</span>
+<span class="sd">    heavy_threshold : int, optional</span>
+<span class="sd">        Override the p90 threshold (seconds) above which the ``heavy`` flag</span>
+<span class="sd">        is set.  Defaults to :data:`scitex_clew.HEAVY_THRESHOLD_SECONDS`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    EstimateResult</span>
+<span class="sd">        Estimation result with match_tier, p50/p90 runtime, success rate,</span>
+<span class="sd">        typical #outputs, heavy flag, and hint text.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._estimate</span><span class="w"> </span><span class="kn">import</span> <span class="n">HEAVY_THRESHOLD_SECONDS</span><span class="p">,</span> <span class="n">estimate</span> <span class="k">as</span> <span class="n">_estimate</span>
+
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">heavy_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">"heavy_threshold"</span><span class="p">]</span> <span class="o">=</span> <span class="n">heavy_threshold</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">"heavy_threshold"</span><span class="p">]</span> <span class="o">=</span> <span class="n">HEAVY_THRESHOLD_SECONDS</span>
+    <span class="k">return</span> <span class="n">_estimate</span><span class="p">(</span><span class="n">script_or_target</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"list_runs"</span><span class="p">,</span>
+    <span class="s2">"status"</span><span class="p">,</span>
+    <span class="s2">"run"</span><span class="p">,</span>
+    <span class="s2">"chain"</span><span class="p">,</span>
+    <span class="s2">"stats"</span><span class="p">,</span>
+    <span class="s2">"dag"</span><span class="p">,</span>
+    <span class="s2">"rerun"</span><span class="p">,</span>
+    <span class="s2">"mermaid"</span><span class="p">,</span>
+    <span class="s2">"estimate"</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># EOF</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

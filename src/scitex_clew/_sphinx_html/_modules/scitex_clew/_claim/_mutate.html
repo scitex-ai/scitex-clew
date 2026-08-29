@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew._observers._session &mdash; SciTeX Clew v0.0.0</title>
+  <title>scitex_clew._claim._mutate &mdash; SciTeX Clew v0.0.0</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -191,7 +191,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">scitex_clew._observers._session</li>
+      <li class="breadcrumb-item active">scitex_clew._claim._mutate</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -200,197 +200,207 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for scitex_clew._observers._session</h1><div class="highlight"><pre>
+  <h1>Source code for scitex_clew._claim._mutate</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
-<span class="sd">"""Session lifecycle hooks for scitex-clew.</span>
-
-<span class="sd">These thin wrappers are invoked by ``@scitex.session`` (or any equivalent</span>
-<span class="sd">session manager) at the start and end of a run. They delegate to the</span>
-<span class="sd">``scitex_clew._tracker`` machinery so that a run record is opened on start</span>
-<span class="sd">and finalized (with a combined hash) on close.</span>
-
-<span class="sd">They import only scitex-clew internals; no scitex-io dependency is needed.</span>
-<span class="sd">"""</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""Claim lifecycle mutations — remove / supersede (single + by-prefix)."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.._core</span><span class="w"> </span><span class="kn">import</span> <span class="n">getLogger</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_tracker</span><span class="p">,</span> <span class="n">start_tracking</span><span class="p">,</span> <span class="n">stop_tracking</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scitex_dev.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">ANY_REVISION</span>
 
-<span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._model</span><span class="w"> </span><span class="kn">import</span> <span class="n">_file_path_matches_prefix</span><span class="p">,</span> <span class="n">_resolve_claim</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._store</span><span class="w"> </span><span class="kn">import</span> <span class="n">_open_store</span>
 
 
-<div class="viewcode-block" id="on_session_start">
-<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.on_session_start">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">on_session_start</span><span class="p">(</span>
-    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">script_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">parent_session</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Hook called when a session starts.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_auto_export</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Re-emit claims.json after a mutation (best-effort, never fatal)."""</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"SCITEX_CLEW_AUTO_EXPORT_CLAIMS"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"0"</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._export</span><span class="w"> </span><span class="kn">import</span> <span class="n">export_claims_json</span>
+
+        <span class="n">export_claims_json</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_w</span>
+
+        <span class="n">_w</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"scitex_clew auto-export of claims.json failed after </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">!r}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="ne">RuntimeWarning</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="remove_claim">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.remove_claim">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">remove_claim</span><span class="p">(</span><span class="n">claim_id_or_location</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Hard-delete a claim from the database.</span>
+
+<span class="sd">    Permanently removes the claim row identified by ``claim_id_or_location``</span>
+<span class="sd">    (a claim_id string, a location like ``"paper.tex:L42"``, or a bare file</span>
+<span class="sd">    path — resolved via the same logic as :func:`verify_claim`).</span>
+
+<span class="sd">    After deletion :func:`export_claims_json` is called so the JSON</span>
+<span class="sd">    artifact stays in sync with the DB.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    session_id : str</span>
-<span class="sd">        Unique session identifier</span>
-<span class="sd">    script_path : str, optional</span>
-<span class="sd">        Path to the script being run</span>
-<span class="sd">    parent_session : str, optional</span>
-<span class="sd">        Parent session ID for chain tracking</span>
-<span class="sd">    verbose : bool, optional</span>
-<span class="sd">        Whether to log status messages</span>
-<span class="sd">    metadata : dict, optional</span>
-<span class="sd">        Additional metadata (e.g. notebook_path, cell_index)</span>
+<span class="sd">    claim_id_or_location : str</span>
+<span class="sd">        Claim identifier.  Resolution order:</span>
+<span class="sd">        1. Exact ``claim_id`` match.</span>
+<span class="sd">        2. Location string ``"file.tex:L42"``.</span>
+<span class="sd">        3. File path only (first row).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        ``True`` if a row was deleted; ``False`` if nothing matched.</span>
 <span class="sd">    """</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+
+    <span class="n">claim</span> <span class="o">=</span> <span class="n">_resolve_claim</span><span class="p">(</span><span class="n">claim_id_or_location</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">claim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># A Store never deletes a row — hide() sets the ``hidden`` flag instead</span>
+    <span class="c1"># (the ONLY removal it offers). Every read in this package defaults to</span>
+    <span class="c1"># ``include_hidden=False``, so a hidden claim reads exactly like the old</span>
+    <span class="c1"># hard-deleted one everywhere except a caller that deliberately asks for</span>
+    <span class="c1"># the hidden view.</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">_open_store</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">start_tracking</span><span class="p">(</span>
-            <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
-            <span class="n">script_path</span><span class="o">=</span><span class="n">script_path</span><span class="p">,</span>
-            <span class="n">parent_session</span><span class="o">=</span><span class="n">parent_session</span><span class="p">,</span>
-            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Could not start verification tracking: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+        <span class="n">store</span><span class="o">.</span><span class="n">hide</span><span class="p">({</span><span class="s2">"claim_id"</span><span class="p">:</span> <span class="n">claim</span><span class="o">.</span><span class="n">claim_id</span><span class="p">},</span> <span class="n">expected_revision</span><span class="o">=</span><span class="n">ANY_REVISION</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">store</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">_auto_export</span><span class="p">(</span><span class="s2">"remove_claim"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
 
 
 
-<div class="viewcode-block" id="on_session_close">
-<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.on_session_close">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">on_session_close</span><span class="p">(</span>
-    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"success"</span><span class="p">,</span>
-    <span class="n">exit_code</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">register</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Hook called when a session closes.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">remove_claims_by_prefix</span><span class="p">(</span><span class="n">file_path_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Hard-delete all claims whose file_path starts with ``file_path_prefix``.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    status : str, optional</span>
-<span class="sd">        Final status (success, failed, error)</span>
-<span class="sd">    exit_code : int, optional</span>
-<span class="sd">        Exit code of the script</span>
-<span class="sd">    verbose : bool, optional</span>
-<span class="sd">        Whether to log status messages</span>
-<span class="sd">    register : bool, optional</span>
-<span class="sd">        If True, register session hashes with remote Clew Registry.</span>
-<span class="sd">        If None, checks SCITEX_AUTO_REGISTER environment variable.</span>
+<span class="sd">    file_path_prefix : str</span>
+<span class="sd">        Path prefix (resolved).  All claims under this root are deleted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    int</span>
+<span class="sd">        Number of rows deleted.</span>
 <span class="sd">    """</span>
+    <span class="n">resolved_prefix</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">file_path_prefix</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">resolved_prefix</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">):</span>
+        <span class="n">resolved_prefix</span> <span class="o">=</span> <span class="n">resolved_prefix</span> <span class="o">+</span> <span class="s2">"/"</span>
+
+    <span class="n">store</span> <span class="o">=</span> <span class="n">_open_store</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">tracker</span> <span class="o">=</span> <span class="n">get_tracker</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span><span class="p">:</span>
-            <span class="c1"># Provenance-completeness check (#45): a succeeded session that wrote</span>
-            <span class="c1"># outputs but recorded ZERO provenance is the #44-class gap. A failed</span>
-            <span class="c1"># session's incomplete recording is expected, so only check success.</span>
-            <span class="n">_warn_if_unrecorded_outputs</span><span class="p">(</span><span class="n">tracker</span><span class="p">)</span>
-        <span class="n">stop_tracking</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">exit_code</span><span class="o">=</span><span class="n">exit_code</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">_should_auto_register</span><span class="p">(</span><span class="n">register</span><span class="p">)</span> <span class="ow">and</span> <span class="n">tracker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">_auto_register_session</span><span class="p">(</span><span class="n">tracker</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Could not stop verification tracking: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+        <span class="n">deleted</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">rows</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">_file_path_matches_prefix</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="s2">"file_path"</span><span class="p">],</span> <span class="n">resolved_prefix</span><span class="p">):</span>
+                <span class="n">store</span><span class="o">.</span><span class="n">hide</span><span class="p">(</span>
+                    <span class="p">{</span><span class="s2">"claim_id"</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="s2">"claim_id"</span><span class="p">]},</span> <span class="n">expected_revision</span><span class="o">=</span><span class="n">ANY_REVISION</span>
+                <span class="p">)</span>
+                <span class="n">deleted</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">store</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">_auto_export</span><span class="p">(</span><span class="s2">"remove_claims_by_prefix"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">deleted</span>
 
 
+<div class="viewcode-block" id="supersede_claim">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.supersede_claim">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">supersede_claim</span><span class="p">(</span><span class="n">claim_id_or_location</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Soft-retire a claim by setting its status to ``"superseded"``.</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_warn_if_unrecorded_outputs</span><span class="p">(</span><span class="n">tracker</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""WARN if the session wrote outputs but recorded ZERO output provenance.</span>
+<span class="sd">    The row is kept in the database (audit trail) but excluded from the</span>
+<span class="sd">    default :func:`list_claims` view (``include_superseded=False`` is the</span>
+<span class="sd">    default), from :func:`verify_all_claims`, and from the default</span>
+<span class="sd">    :func:`export_claims_json` output.</span>
 
-<span class="sd">    The provenance-completeness citizen (#45). The INDEPENDENT saves signal is</span>
-<span class="sd">    the session OUTPUT DIR (passed via ``metadata["output_dir"]`` and populated</span>
-<span class="sd">    by the save itself) — so it fires precisely when clew's ``on_io_save`` did</span>
-<span class="sd">    NOT record (the #44 gap: ``@stx.session`` + ``stx.io.save`` but empty</span>
-<span class="sd">    file_hashes), which an on_io_save-derived counter is blind to. Predicate:</span>
+<span class="sd">    This allows a user to retire stale/dead claims so that ``clew verify``</span>
+<span class="sd">    can reach exit 0 without deleting the historical record.</span>
 
-<span class="sd">        output_dir has &gt;=1 file  AND  tracker recorded 0 outputs  -&gt;  WARN</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    claim_id_or_location : str</span>
+<span class="sd">        Claim identifier resolved the same way as :func:`remove_claim`.</span>
 
-<span class="sd">    False-positive-free: a read-only / zero-output session has an empty/absent</span>
-<span class="sd">    output dir and stays silent. DEFENSIVE: silently skips when ``output_dir`` is</span>
-<span class="sd">    absent from metadata (a pre-enabler scitex-session, or any caller that does</span>
-<span class="sd">    not send it), so it is inert-safe until that signal exists and lights up the</span>
-<span class="sd">    moment it does. Never raises.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        ``True`` if the claim existed and was updated; ``False`` if nothing</span>
+<span class="sd">        matched.</span>
 <span class="sd">    """</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+
+    <span class="n">claim</span> <span class="o">=</span> <span class="n">_resolve_claim</span><span class="p">(</span><span class="n">claim_id_or_location</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">claim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="n">store</span> <span class="o">=</span> <span class="n">_open_store</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">tracker</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">tracker</span><span class="p">,</span> <span class="s2">"_outputs"</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">or</span> <span class="p">{})</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span>  <span class="c1"># provenance WAS recorded -&gt; no gap</span>
-        <span class="n">run</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="n">tracker</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">run</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="n">meta</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">meta</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">meta</span><span class="p">)</span> <span class="k">if</span> <span class="n">meta</span> <span class="k">else</span> <span class="p">{}</span>
-        <span class="n">output_dir</span> <span class="o">=</span> <span class="p">(</span><span class="n">meta</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"output_dir"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">output_dir</span><span class="p">:</span>
-            <span class="k">return</span>  <span class="c1"># no independent saves signal yet -&gt; skip</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-            <span class="n">dirs</span> <span class="o">=</span> <span class="p">[</span><span class="n">out</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># The RUNNING output dir may have MOVED to &lt;base&gt;/&lt;final-status&gt;/&lt;id&gt;</span>
-            <span class="c1"># by the time this close-hook fires (the RUNNING-&gt;FINISHED rename);</span>
-            <span class="c1"># resolve by globbing sibling status subdirs for the same session-id</span>
-            <span class="c1"># leaf. Best-effort + inert-safe (no match -&gt; skip), so the check is</span>
-            <span class="c1"># robust regardless of close-hook-vs-move ordering.</span>
-            <span class="n">base</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
-            <span class="n">dirs</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">"*/</span><span class="si">{</span><span class="n">out</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()]</span>
-                <span class="k">if</span> <span class="n">base</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span>
-                <span class="k">else</span> <span class="p">[]</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">dirs</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="n">file_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
-            <span class="mi">1</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dirs</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="s2">"*"</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
+        <span class="n">store</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">"claim_id"</span><span class="p">:</span> <span class="n">claim</span><span class="o">.</span><span class="n">claim_id</span><span class="p">,</span>
+                <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"superseded"</span><span class="p">,</span>
+                <span class="s2">"verified_at"</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="p">},</span>
+            <span class="n">expected_revision</span><span class="o">=</span><span class="n">ANY_REVISION</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">file_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span>  <span class="c1"># session wrote nothing -&gt; no gap</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="s2">"clew: session </span><span class="si">%s</span><span class="s2"> wrote </span><span class="si">%d</span><span class="s2"> output file(s) under </span><span class="si">%s</span><span class="s2"> but recorded ZERO "</span>
-            <span class="s2">"provenance — outputs were saved outside a live @stx.session tracker "</span>
-            <span class="s2">"(wrap saves in @stx.session, or check the scitex-io observer wiring). "</span>
-            <span class="s2">"The submission gate will treat these outputs as UNSOURCED."</span><span class="p">,</span>
-            <span class="n">tracker</span><span class="o">.</span><span class="n">session_id</span><span class="p">,</span>
-            <span class="n">file_count</span><span class="p">,</span>
-            <span class="n">output_dir</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># completeness is a nicety — never break close</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"clew: session-close completeness check skipped: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">store</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">_auto_export</span><span class="p">(</span><span class="s2">"supersede_claim"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
 
 
-<span class="c1"># ── Registry helpers ──</span>
 
+<span class="k">def</span><span class="w"> </span><span class="nf">supersede_claims_by_prefix</span><span class="p">(</span><span class="n">file_path_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Soft-retire all claims whose file_path starts with ``file_path_prefix``.</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_should_auto_register</span><span class="p">(</span><span class="n">register</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Check whether auto-registration is enabled."""</span>
-    <span class="k">if</span> <span class="n">register</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">register</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    file_path_prefix : str</span>
+<span class="sd">        Path prefix (resolved).</span>
 
-    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"SCITEX_AUTO_REGISTER"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span>
-        <span class="s2">"1"</span><span class="p">,</span>
-        <span class="s2">"true"</span><span class="p">,</span>
-        <span class="s2">"yes"</span><span class="p">,</span>
-    <span class="p">)</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    int</span>
+<span class="sd">        Number of rows updated to status ``"superseded"``.</span>
+<span class="sd">    """</span>
+    <span class="n">resolved_prefix</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">file_path_prefix</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">resolved_prefix</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">):</span>
+        <span class="n">resolved_prefix</span> <span class="o">=</span> <span class="n">resolved_prefix</span> <span class="o">+</span> <span class="s2">"/"</span>
 
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_auto_register_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Register session hashes with remote Clew Registry (fire-and-forget)."""</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">_open_store</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">.._attest._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_registry</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+        <span class="n">updated</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">rows</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">_file_path_matches_prefix</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="s2">"file_path"</span><span class="p">],</span> <span class="n">resolved_prefix</span><span class="p">):</span>
+                <span class="n">store</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">"claim_id"</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="s2">"claim_id"</span><span class="p">],</span>
+                        <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"superseded"</span><span class="p">,</span>
+                        <span class="s2">"verified_at"</span><span class="p">:</span> <span class="n">now</span><span class="p">,</span>
+                    <span class="p">},</span>
+                    <span class="n">expected_revision</span><span class="o">=</span><span class="n">ANY_REVISION</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">updated</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">store</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-        <span class="n">get_registry</span><span class="p">()</span><span class="o">.</span><span class="n">register_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"clew: failed to auto-register session </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+    <span class="n">_auto_export</span><span class="p">(</span><span class="s2">"supersede_claims_by_prefix"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">updated</span>
 
 
 <span class="c1"># EOF</span>
