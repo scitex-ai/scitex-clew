@@ -52,6 +52,12 @@ dev = [
     "pytest-timeout>=2.0",
     "scitex-dev>=0.11.7",
     "cryptography>=41.0",
+    # clew's stores are Postgres-backed and its tests run against a REAL
+    # database (tests/conftest.py gives each test its own schema). Declared
+    # here rather than relied on transitively: conftest skips when the
+    # driver is missing, and a silently-absent psycopg would turn the whole
+    # store suite into skips that read exactly like passes.
+    "psycopg[binary]>=3.1",
 ]
 docs = [
     "sphinx>=7.0",

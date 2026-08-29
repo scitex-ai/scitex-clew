@@ -75,6 +75,25 @@ jobs:
   tests:
     name: pytest-matrix-on-ubuntu-py${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    # clew's stores are Postgres-backed and its tests run against a REAL
+    # database — no mocks, no in-memory stand-in. tests/conftest.py gives
+    # each test its own throwaway schema on this service and treats an
+    # unreachable or read-only cluster as a FAILURE, not a skip: a skipped
+    # store suite is indistinguishable from a passing one.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: scitex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     strategy:
       fail-fast: false
       matrix:
@@ -98,9 +117,16 @@ jobs:
           uv pip install --python .venv/bin/python -e ".[all,dev]" \
             || uv pip install --python .venv/bin/python -e ".[dev]" \
             || uv pip install --python .venv/bin/python -e .
+      - name: Confirm the driver is installed
+        # conftest SKIPS when psycopg is missing (a property of the
+        # interpreter, not of the code). In CI a skip here would hide the
+        # entire store suite, so fail the job instead if it is absent.
+        run: .venv/bin/python -c "import psycopg; print('psycopg', psycopg.__version__)"
       - name: Run tests
         # PATH prepend so any test that subprocess-calls a console script
         # finds it in .venv/bin/.
+        env:
+          SCITEX_CLEW_TEST_DSN: postgresql://postgres:postgres@127.0.0.1:5432/scitex
         run: |
           export PATH="$PWD/.venv/bin:$PATH"
           .venv/bin/pytest tests/ --cov=src/scitex_clew --cov-report=xml --cov-report=term
