@@ -3,8 +3,9 @@
 """CLI tests for the rerun / chain / register-intermediate commands.
 
 - Drive each subcommand in-process via ``click.testing.CliRunner``.
-- Inject an isolated temp DB via ``set_db()`` so nothing leaks between tests.
-- Empty-DB happy paths exercise the wiring (JSON shape, exit code) without
+- The autouse ``isolated_store`` fixture (tests/conftest.py) gives each test
+  its own throwaway PostgreSQL schema, so nothing leaks between tests.
+- Empty-store happy paths exercise the wiring (JSON shape, exit code) without
   re-executing any user scripts; error paths cover the obvious failure.
 """
 
@@ -18,18 +19,15 @@ import pytest
 # click lives in the [cli] extra, not the base deps.
 CliRunner = pytest.importorskip("click.testing").CliRunner
 
-import scitex_clew._db as _db_module
 from scitex_clew._cli._main import main
-from scitex_clew._db import set_db
+from scitex_clew._db import get_db
 
 _FAKE_SESSION = "2026Y-05M-27D-00h00m00s_Test-main"
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    set_db(tmp_path / "cli_rerun_chain.db")
-    yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
+def isolated_db(isolated_store):
+    return get_db()
 
 
 @pytest.fixture

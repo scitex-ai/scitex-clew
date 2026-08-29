@@ -56,40 +56,24 @@ def _swap_attr(obj, name, value):
 
 @pytest.fixture
 def clew_env_sandbox():
-    """Snapshot SCITEX_CLEW_DB_PATH + cwd + the global DB instance; restore
-    on teardown.
+    """Snapshot the cwd; restore it on teardown.
 
-    Real-state save/restore, NOT a mock — it mutates the live process env,
-    cwd, and ``scitex_clew._db._core._DB_INSTANCE`` and unwinds them (PA-306
-    forbids ``monkeypatch``; this fixture is the explicit equivalent).
+    Real-state save/restore, NOT a mock — it mutates the live process cwd and
+    unwinds it (PA-306 forbids ``monkeypatch``; this fixture is the explicit
+    equivalent). Store isolation is NOT this fixture's job any more: clew
+    resolves its stores through ``host_store()``, and the autouse
+    ``isolated_store`` fixture in tests/conftest.py gives each test its own
+    throwaway PostgreSQL schema.
     """
-    from scitex_clew._db import _core as _db_core
-
-    saved_env = os.environ.get("SCITEX_CLEW_DB_PATH")
     saved_cwd = os.getcwd()
-    saved_instance = _db_core._DB_INSTANCE
 
     class _Sandbox:
-        def set_env(self, store_path) -> None:
-            os.environ["SCITEX_CLEW_DB_PATH"] = str(store_path)
-
-        def unset_env(self) -> None:
-            os.environ.pop("SCITEX_CLEW_DB_PATH", None)
-
         def chdir(self, path) -> None:
             os.chdir(path)
 
-        def clear_db_instance(self) -> None:
-            _db_core._DB_INSTANCE = None
-
     yield _Sandbox()
 
-    if saved_env is None:
-        os.environ.pop("SCITEX_CLEW_DB_PATH", None)
-    else:
-        os.environ["SCITEX_CLEW_DB_PATH"] = saved_env
     os.chdir(saved_cwd)
-    _db_core._DB_INSTANCE = saved_instance
 
 
 class _FakeDB:
@@ -1928,18 +1912,6 @@ class TestGenerateHtmlDag:
 class TestRenderDag:
     """render_dag writes correctly formatted output to the specified file."""
 
-    @pytest.fixture(autouse=True)
-    def _existing_tmp_store(self, tmp_path, clew_env_sandbox):
-        """render_dag fails loud when no store exists on disk; give every
-        test in this class a real (schema-only) store via the env-var tier
-        so the swapped-generator render paths stay exercised."""
-        from scitex_clew._db import VerificationDB
-
-        store = tmp_path / "clew-store" / "clew.db"
-        VerificationDB(db_path=store)
-        clew_env_sandbox.set_env(store)
-        clew_env_sandbox.clear_db_instance()
-
     def _mock_mermaid(self):
         return "graph TD\n    A --> B"
 
@@ -2371,113 +2343,69 @@ class TestRenderDag:
 
 
 
-class TestRenderDagExplicitStore:
-    """render_dag(db_path=...) targets an explicit store and fails loud
-    (clew-feat-render-dag-explicit-store): out-of-tree rendering works via
-    the kwarg, a missing store raises, and an empty view never writes."""
+class TestRenderDagHostStore:
+    """render_dag reads THE host store and fails loud on an empty view.
 
-    def _seed_store(self, dir_path, script_name="script_oot.py"):
-        from scitex_clew._db import VerificationDB
+    There is no ``db_path`` kwarg and no store file to point at any more:
+    clew resolves every store through ``host_store()``. What survives from
+    the explicit-store contract is the half that never depended on a path —
+    rendering works from any working directory, and an empty view raises
+    instead of writing a diagram of nothing.
+    """
 
-        store = dir_path / "clew.db"
-        db = VerificationDB(db_path=store)
+    def _seed_store(self, script_name="script_oot.py"):
+        from scitex_clew._db import get_db
+
+        db = get_db()
         db.add_run("sess-oot-001", f"/abs/scripts/{script_name}")
         db.finish_run("sess-oot-001", status="success")
-        return store
 
-    def test_db_path_kwarg_renders_out_of_tree_writes_file(self, tmp_path, clew_env_sandbox):
+    def test_render_from_unrelated_cwd_writes_file(self, tmp_path, clew_env_sandbox):
         # Arrange
         from scitex_clew._viz._mermaid import render_dag
 
-        capsule = tmp_path / "capsule"
-        capsule.mkdir()
-        store = self._seed_store(capsule)
+        self._seed_store()
         elsewhere = tmp_path / "unrelated-repo"
         elsewhere.mkdir()
         clew_env_sandbox.chdir(elsewhere)
         out = elsewhere / "dag.mmd"
         # Act
-        result = render_dag(out, db_path=store)
+        result = render_dag(out)
         # Assert
         assert result == out and out.exists()
 
-    def test_db_path_kwarg_renders_out_of_tree_contains_run(self, tmp_path, clew_env_sandbox):
+    def test_render_from_unrelated_cwd_contains_run(self, tmp_path, clew_env_sandbox):
         # Arrange
         from scitex_clew._viz._mermaid import render_dag
 
-        capsule = tmp_path / "capsule"
-        capsule.mkdir()
-        store = self._seed_store(capsule)
+        self._seed_store()
         elsewhere = tmp_path / "unrelated-repo"
         elsewhere.mkdir()
         clew_env_sandbox.chdir(elsewhere)
         out = elsewhere / "dag.mmd"
         # Act
-        render_dag(out, db_path=store)
+        render_dag(out)
         # Assert
         assert "script_oot.py" in out.read_text()
 
-    def test_db_path_missing_store_raises_file_not_found(self, tmp_path):
+    def test_empty_store_view_raises_value_error(self, tmp_path):
         # Arrange
         from scitex_clew._viz._mermaid import render_dag
 
-        missing = tmp_path / "nowhere" / "clew.db"
-        out = tmp_path / "dag.mmd"
-        # Act
-        # Assert
-        with pytest.raises(FileNotFoundError, match="explicit db_path argument"):
-            render_dag(out, db_path=missing)
-
-    def test_db_path_missing_store_message_names_precedence(self, tmp_path):
-        # Arrange
-        from scitex_clew._viz._mermaid import render_dag
-
-        missing = tmp_path / "nowhere" / "clew.db"
-        out = tmp_path / "dag.mmd"
-        # Act
-        # Assert
-        with pytest.raises(FileNotFoundError, match="SCITEX_CLEW_DB_PATH"):
-            render_dag(out, db_path=missing)
-
-    def test_walk_tier_missing_store_raises_file_not_found(self, tmp_path, clew_env_sandbox):
-        # Arrange
-        from scitex_clew._viz._mermaid import render_dag
-
-        clew_env_sandbox.clear_db_instance()
-        clew_env_sandbox.unset_env()
-        elsewhere = tmp_path / "unrelated-repo"
-        elsewhere.mkdir()
-        clew_env_sandbox.chdir(elsewhere)
-        out = elsewhere / "dag.mmd"
-        # Act
-        # Assert
-        with pytest.raises(FileNotFoundError, match="project-root walk"):
-            render_dag(out)
-
-    def test_db_path_empty_store_view_raises_value_error(self, tmp_path):
-        # Arrange
-        from scitex_clew._db import VerificationDB
-        from scitex_clew._viz._mermaid import render_dag
-
-        store = tmp_path / "clew.db"
-        VerificationDB(db_path=store)
         out = tmp_path / "dag.mmd"
         # Act
         # Assert
         with pytest.raises(ValueError, match="view is empty"):
-            render_dag(out, db_path=store)
+            render_dag(out)
 
-    def test_db_path_empty_view_writes_no_output_file(self, tmp_path):
+    def test_empty_view_writes_no_output_file(self, tmp_path):
         # Arrange
-        from scitex_clew._db import VerificationDB
         from scitex_clew._viz._mermaid import render_dag
 
-        store = tmp_path / "clew.db"
-        VerificationDB(db_path=store)
         out = tmp_path / "dag.mmd"
         # Act
         try:
-            render_dag(out, db_path=store)
+            render_dag(out)
         except ValueError:
             pass  # the raise itself is covered by the sibling test above
         # Assert
@@ -2487,70 +2415,22 @@ class TestRenderDagExplicitStore:
         # Arrange
         from scitex_clew._viz._mermaid import render_dag
 
-        store = self._seed_store(tmp_path)
+        self._seed_store()
         out = tmp_path / "dag.mmd"
         # Act
         # Assert
         with pytest.raises(ValueError, match="view is empty"):
-            render_dag(out, claims=True, db_path=store)
+            render_dag(out, claims=True)
 
     def test_json_empty_view_raises_value_error(self, tmp_path):
         # Arrange
-        from scitex_clew._db import VerificationDB
         from scitex_clew._viz._mermaid import render_dag
 
-        store = tmp_path / "clew.db"
-        VerificationDB(db_path=store)
         out = tmp_path / "dag.json"
         # Act
         # Assert
         with pytest.raises(ValueError, match="view is empty"):
-            render_dag(out, db_path=store)
-
-    def test_env_var_tier_resolves_store_for_render(self, tmp_path, clew_env_sandbox):
-        # Arrange
-        from scitex_clew._viz._mermaid import render_dag
-
-        store = self._seed_store(tmp_path)
-        clew_env_sandbox.clear_db_instance()
-        clew_env_sandbox.set_env(store)
-        out = tmp_path / "dag.mmd"
-        # Act
-        render_dag(out)
-        # Assert
-        assert "script_oot.py" in out.read_text()
-
-    def test_db_path_kwarg_beats_env_var_tier(self, tmp_path, clew_env_sandbox):
-        # Arrange
-        from scitex_clew._db import VerificationDB
-        from scitex_clew._viz._mermaid import render_dag
-
-        env_dir = tmp_path / "env-store"
-        env_dir.mkdir()
-        VerificationDB(db_path=env_dir / "clew.db")  # empty store
-        kwarg_dir = tmp_path / "kwarg-store"
-        kwarg_dir.mkdir()
-        kwarg_store = self._seed_store(kwarg_dir, script_name="script_kwarg_wins.py")
-        clew_env_sandbox.clear_db_instance()
-        clew_env_sandbox.set_env(env_dir / "clew.db")
-        out = tmp_path / "dag.mmd"
-        # Act
-        render_dag(out, db_path=kwarg_store)
-        # Assert
-        assert "script_kwarg_wins.py" in out.read_text()
-
-    def test_render_scoped_store_restores_previous_global(self, tmp_path):
-        # Arrange
-        from scitex_clew._db import _core as _db_core
-        from scitex_clew._viz._mermaid import render_dag
-
-        previous_instance = _db_core._DB_INSTANCE
-        store = self._seed_store(tmp_path)
-        out = tmp_path / "dag.mmd"
-        # Act
-        render_dag(out, db_path=store)
-        # Assert
-        assert _db_core._DB_INSTANCE is previous_instance
+            render_dag(out)
 
 
 # ===========================================================================

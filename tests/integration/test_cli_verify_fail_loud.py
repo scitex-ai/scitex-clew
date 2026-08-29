@@ -11,7 +11,8 @@ pointing at it, and printed "DONE" — the claims were never verified).
 
 Strategy (mirrors test_cli_claim_hash_stamp.py / PA-306 §3 no-mocks):
   - drive the real CLI via ``click.testing.CliRunner`` in-process,
-  - isolate the DB with ``set_db()`` (autouse),
+  - isolate the store with the autouse ``isolated_store`` fixture from
+    tests/conftest.py (a throwaway PostgreSQL schema per test),
   - seed REAL runs / file hashes via the live ``VerificationDB`` rather
     than mocking — every assertion observes a real verification pass.
   - AAA marker comments + one observable assertion per test (PA-307 §3).
@@ -27,10 +28,9 @@ import pytest
 # click is in the [cli] extra (not [project] deps) — PA-303.
 CliRunner = pytest.importorskip("click.testing").CliRunner
 
-import scitex_clew._db as _db_module
 from scitex_clew._cli import _exit_codes as codes
 from scitex_clew._cli._main import main
-from scitex_clew._db import set_db
+from scitex_clew._db import get_db
 from scitex_clew._hash import hash_file
 
 
@@ -40,15 +40,12 @@ from scitex_clew._hash import hash_file
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
+def isolated_db(isolated_store):
     # Disable the claims.json auto-export so the read-only artifact does not
-    # leak between the per-test temp DBs (PA-306: real state, explicit undo).
+    # leak between the per-test schemas (PA-306: real state, explicit undo).
     prev = os.environ.get("SCITEX_CLEW_AUTO_EXPORT_CLAIMS")
     os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = "0"
-    db_path = tmp_path / "verify_failloud.db"
-    set_db(db_path)
-    yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
+    yield get_db()
     if prev is None:
         os.environ.pop("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", None)
     else:
