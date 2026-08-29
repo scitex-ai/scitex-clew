@@ -5,9 +5,9 @@
 Mirrors ``src/scitex_clew/_cli/_citation.py``. The compiler (scitex-writer)
 gates the build on this command's exit code.
 
-Per PA-306 §3 (no mocks): real isolated DB via set_db + CliRunner + a real
-temp .bib file. Per PA-307 §3: AAA marker comments + one observable assertion
-per test.
+Per PA-306 §3 (no mocks): the real store — each test gets its own PostgreSQL
+schema from tests/conftest.py — plus CliRunner and a real temp .bib file. Per
+PA-307 §3: AAA marker comments + one observable assertion per test.
 """
 
 from __future__ import annotations
@@ -18,17 +18,8 @@ import pytest
 
 CliRunner = pytest.importorskip("click.testing").CliRunner
 
-import scitex_clew._db as _db_module
 from scitex_clew._cli import _exit_codes as codes
 from scitex_clew._cli._main import main
-from scitex_clew._db import set_db
-
-
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    set_db(tmp_path / "cli_citation.db")
-    yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
 
 
 @pytest.fixture

@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 """CLI tests for ``clew export-claims`` (mirrors ``_cli/_export.py``).
 
-Per PA-306 §3 (no mocks): real isolated DB + CliRunner. Per PA-307 §3: AAA
-markers + one assertion per test.
+Per PA-306 §3 (no mocks): the real store — each test gets its own PostgreSQL
+schema from tests/conftest.py — plus CliRunner. Per PA-307 §3: AAA markers +
+one assertion per test.
 """
 
 from __future__ import annotations
@@ -15,18 +16,15 @@ import pytest
 
 CliRunner = pytest.importorskip("click.testing").CliRunner
 
-import scitex_clew._db as _db_module
 from scitex_clew._cli._main import main
-from scitex_clew._db import set_db
+from scitex_clew._db import get_db
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
+def isolated_db():
     prev = os.environ.get("SCITEX_CLEW_AUTO_EXPORT_CLAIMS")
     os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = "0"
-    set_db(tmp_path / "cli_export.db")
-    yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
+    yield get_db()
     if prev is None:
         os.environ.pop("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", None)
     else:
