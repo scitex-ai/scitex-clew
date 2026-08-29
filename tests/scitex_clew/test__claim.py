@@ -43,7 +43,7 @@ def _force_claims_status(db, status):
     used throughout this file to force a claim into a specific status for
     export/color/display-group tests, now that claims live in a
     :class:`scitex_dev.store.Store` (oplog + hide/unhide) rather than a bare
-    sqlite3 ``claims`` table — see ``scitex_clew._claim._model``.
+    per-file ``claims`` table — see ``scitex_clew._claim._model``.
     """
     from scitex_clew._claim._model import _update_claim_status
     from scitex_clew._claim._store import _open_store

@@ -18,7 +18,7 @@ pytest.importorskip("cryptography")
 
 import scitex_clew as clew  # noqa: E402
 from scitex_clew._claim._register import list_claims  # noqa: E402
-from scitex_clew._db import use_db  # noqa: E402
+from scitex_clew._db import get_db  # noqa: E402
 from scitex_clew._sources import is_grounded, load_sources_manifest  # noqa: E402
 from scitex_clew._sources._signing import (  # noqa: E402
     generate_keypair,
@@ -27,26 +27,25 @@ from scitex_clew._sources._signing import (  # noqa: E402
 from scitex_clew._sources._writer import register_source  # noqa: E402
 
 
-def _paths(tmp_path):
+def _manifest_path(tmp_path):
     clew_dir = tmp_path / ".scitex" / "clew"
     clew_dir.mkdir(parents=True)
-    return clew_dir / "clew.db", clew_dir / "sources.json"
+    return clew_dir / "sources.json"
 
 
-def _register_run_claim(tmp_path, db_path, manifest_path):
+def _register_run_claim(tmp_path, manifest_path):
     """Register a data source, record a run reading it -> output, claim on the
     output. Returns the Claim (grounds to the source under a trusted manifest)."""
     src = tmp_path / "data.csv"
     src.write_text("x\n1\n")
     out = tmp_path / "out.json"
     out.write_text('{"n": 1}\n')
-    with use_db(db_path):
-        register_source([src], sources_path=manifest_path, root=tmp_path)
-        with clew.session() as run:
-            run.record_input(src)
-            run.record_output(out)
-        clew.add_claim("paper.tex", "value", 1, "1", source_file=str(out))
-        return list_claims(limit=10)[0]
+    register_source([src], sources_path=manifest_path, root=tmp_path)
+    with clew.session() as run:
+        run.record_input(src)
+        run.record_output(out)
+    clew.add_claim("paper.tex", "value", 1, "1", source_file=str(out))
+    return list_claims(limit=10)[0]
 
 
 def _commit_pubkey(tmp_path):
@@ -70,7 +69,7 @@ def _sign_on_disk(manifest_path, private_pem):
 
 def test_no_pubkey_is_permissive_and_active(tmp_path):
     # Arrange — no signing.pub committed.
-    _, manifest_path = _paths(tmp_path)
+    manifest_path = _manifest_path(tmp_path)
     src = tmp_path / "data.csv"
     src.write_text("x\n1\n")
     register_source([src], sources_path=manifest_path, root=tmp_path)
@@ -82,7 +81,7 @@ def test_no_pubkey_is_permissive_and_active(tmp_path):
 
 def test_unsigned_manifest_under_pubkey_keeps_gate_active(tmp_path):
     # Arrange — pubkey committed, manifest UNSIGNED (untrusted).
-    _, manifest_path = _paths(tmp_path)
+    manifest_path = _manifest_path(tmp_path)
     src = tmp_path / "data.csv"
     src.write_text("x\n1\n")
     register_source([src], sources_path=manifest_path, root=tmp_path)
@@ -95,7 +94,7 @@ def test_unsigned_manifest_under_pubkey_keeps_gate_active(tmp_path):
 
 def test_unsigned_manifest_under_pubkey_anchors_nothing(tmp_path):
     # Arrange
-    _, manifest_path = _paths(tmp_path)
+    manifest_path = _manifest_path(tmp_path)
     src = tmp_path / "data.csv"
     src.write_text("x\n1\n")
     register_source([src], sources_path=manifest_path, root=tmp_path)
@@ -111,35 +110,35 @@ def test_unsigned_manifest_under_pubkey_anchors_nothing(tmp_path):
 
 def test_signed_manifest_grounds_a_claim(tmp_path):
     # Arrange — register + run + claim, then commit pubkey and SIGN the manifest.
-    db_path, manifest_path = _paths(tmp_path)
-    claim = _register_run_claim(tmp_path, db_path, manifest_path)
+    manifest_path = _manifest_path(tmp_path)
+    claim = _register_run_claim(tmp_path, manifest_path)
     private_pem = _commit_pubkey(tmp_path)
     _sign_on_disk(manifest_path, private_pem)
-    with use_db(db_path) as db:
-        manifest = load_sources_manifest(manifest_path, root=tmp_path)
-        # Act
-        grounded = is_grounded(claim, manifest, db)
+    db = get_db()
+    manifest = load_sources_manifest(manifest_path, root=tmp_path)
+    # Act
+    grounded = is_grounded(claim, manifest, db)
     # Assert — trusted signed manifest grounds the claim to its registered source.
     assert grounded is True
 
 
 def test_untrusted_manifest_blocks_a_grounded_claim(tmp_path):
     # Arrange — identical run+claim, but commit pubkey WITHOUT signing (untrusted).
-    db_path, manifest_path = _paths(tmp_path)
-    claim = _register_run_claim(tmp_path, db_path, manifest_path)
+    manifest_path = _manifest_path(tmp_path)
+    claim = _register_run_claim(tmp_path, manifest_path)
     _commit_pubkey(tmp_path)
-    with use_db(db_path) as db:
-        manifest = load_sources_manifest(manifest_path, root=tmp_path)
-        # Act
-        grounded = is_grounded(claim, manifest, db)
+    db = get_db()
+    manifest = load_sources_manifest(manifest_path, root=tmp_path)
+    # Act
+    grounded = is_grounded(claim, manifest, db)
     # Assert — the SAME claim that grounds when signed is BLOCKED when untrusted.
     assert grounded is False
 
 
 def test_tampered_manifest_blocks_a_grounded_claim(tmp_path):
     # Arrange — sign, then tamper (inject a fabricated source) -> signature breaks.
-    db_path, manifest_path = _paths(tmp_path)
-    claim = _register_run_claim(tmp_path, db_path, manifest_path)
+    manifest_path = _manifest_path(tmp_path)
+    claim = _register_run_claim(tmp_path, manifest_path)
     private_pem = _commit_pubkey(tmp_path)
     _sign_on_disk(manifest_path, private_pem)
     raw = json.loads(manifest_path.read_text())
@@ -147,9 +146,9 @@ def test_tampered_manifest_blocks_a_grounded_claim(tmp_path):
     manifest_path.write_text(
         json.dumps(raw, indent=2, sort_keys=True, ensure_ascii=False)
     )
-    with use_db(db_path) as db:
-        manifest = load_sources_manifest(manifest_path, root=tmp_path)
-        # Act
-        grounded = is_grounded(claim, manifest, db)
+    db = get_db()
+    manifest = load_sources_manifest(manifest_path, root=tmp_path)
+    # Act
+    grounded = is_grounded(claim, manifest, db)
     # Assert — tamper breaks the signature -> untrusted -> claim blocked.
     assert grounded is False
