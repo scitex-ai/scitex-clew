@@ -11,7 +11,8 @@ Coverage:
   (f) target-file argument resolves to its producing script
   (g) CLI --json shape
 
-All test DBs are built via the package's own DB API (no raw SQL fixtures).
+All test DBs are built via the package's own DB API (no raw SQL fixtures),
+against the per-test PostgreSQL schema from tests/conftest.py.
 No mocks used.
 """
 
@@ -20,7 +21,6 @@ from __future__ import annotations
 import json
 import time
 from datetime import datetime, timedelta
-from pathlib import Path
 
 import pytest
 
@@ -41,9 +41,14 @@ CliRunner = pytest.importorskip("click.testing").CliRunner
 # ---------------------------------------------------------------------------
 
 
-def _make_db(tmp_path: Path) -> VerificationDB:
-    """Create an isolated VerificationDB in a temp directory."""
-    return VerificationDB(tmp_path / "test_estimate.db")
+def _make_db() -> VerificationDB:
+    """Open the per-test database.
+
+    Isolation is supplied by the autouse `isolated_store` fixture in
+    tests/conftest.py: each test gets its own throwaway PostgreSQL schema,
+    so `VerificationDB()` takes no argument.
+    """
+    return VerificationDB()
 
 
 def _iso(dt: datetime) -> str:
@@ -207,7 +212,7 @@ class TestExactHashMatch:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "s1", str(script), h, 60.0)
         # Act
         result = estimate(str(script), db=db)
@@ -221,7 +226,7 @@ class TestExactHashMatch:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "s1", str(script), h, 60.0)
         _add_completed_run(db, "s2", str(script), h, 90.0)
         # Act
@@ -236,7 +241,7 @@ class TestExactHashMatch:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "s1", str(script), h, 60.0)
         _add_completed_run(db, "s2", str(script), h, 120.0)
         _add_completed_run(db, "s3", str(script), h, 180.0)
@@ -252,7 +257,7 @@ class TestExactHashMatch:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "s1", str(script), h, 60.0, status="success")
         _add_completed_run(db, "s2", str(script), h, 70.0, status="success")
         # Act
@@ -267,7 +272,7 @@ class TestExactHashMatch:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "s1", str(script), h, 60.0, status="success", exit_code=0)
         _add_completed_run(db, "s2", str(script), h, 70.0, status="failed", exit_code=1)
         # Act
@@ -282,7 +287,7 @@ class TestExactHashMatch:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "s1", str(script), h, 60.0)
         # Act
         result = estimate(str(script), db=db)
@@ -300,7 +305,7 @@ class TestPathHistoryFallback:
         # Arrange — register run with a stale hash, then update the script
         script = tmp_path / "analyze.py"
         script.write_text("print('v1')\n")
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "s1", str(script), "stalehash000000000000000000000000", 50.0)
         # Update the script so the hash no longer matches
         script.write_text("print('v2')\n")
@@ -313,7 +318,7 @@ class TestPathHistoryFallback:
         # Arrange
         script = tmp_path / "analyze.py"
         script.write_text("print('v1')\n")
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "s1", str(script), "stalehash000000000000000000000000", 50.0)
         script.write_text("print('v2')\n")
         # Act
@@ -325,7 +330,7 @@ class TestPathHistoryFallback:
         # Arrange
         script = tmp_path / "analyze.py"
         script.write_text("print('v1')\n")
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "s1", str(script), "stalehash000000000000000000000000", 50.0)
         script.write_text("print('v2')\n")
         # Act
@@ -337,7 +342,7 @@ class TestPathHistoryFallback:
         # Arrange
         script = tmp_path / "analyze.py"
         script.write_text("print('v1')\n")
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "s1", str(script), "stale1000000000000000000000000000", 50.0)
         _add_completed_run(db, "s2", str(script), "stale2000000000000000000000000000", 80.0)
         script.write_text("print('v2')\n")
@@ -357,7 +362,7 @@ class TestColdStart:
         # Arrange — empty DB, script with no history
         script = tmp_path / "fresh.py"
         script.write_text("print('new')\n")
-        db = _make_db(tmp_path)
+        db = _make_db()
         # Act
         result = estimate(str(script), db=db)
         # Assert
@@ -367,7 +372,7 @@ class TestColdStart:
         # Arrange
         script = tmp_path / "fresh.py"
         script.write_text("print('new')\n")
-        db = _make_db(tmp_path)
+        db = _make_db()
         # Act
         result = estimate(str(script), db=db)
         # Assert — must not fabricate
@@ -377,7 +382,7 @@ class TestColdStart:
         # Arrange
         script = tmp_path / "fresh.py"
         script.write_text("print('new')\n")
-        db = _make_db(tmp_path)
+        db = _make_db()
         # Act
         result = estimate(str(script), db=db)
         # Assert
@@ -387,7 +392,7 @@ class TestColdStart:
         # Arrange
         script = tmp_path / "fresh.py"
         script.write_text("print('new')\n")
-        db = _make_db(tmp_path)
+        db = _make_db()
         # Act
         result = estimate(str(script), db=db)
         # Assert
@@ -397,7 +402,7 @@ class TestColdStart:
         # Arrange
         script = tmp_path / "fresh.py"
         script.write_text("print('new')\n")
-        db = _make_db(tmp_path)
+        db = _make_db()
         # Act
         result = estimate(str(script), db=db)
         # Assert
@@ -417,7 +422,7 @@ class TestHeavyFlag:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         threshold = 60  # use a small threshold for the test
         for i, dur in enumerate([600.0, 700.0, 800.0]):
             _add_completed_run(db, f"s{i}", str(script), h, dur)
@@ -433,7 +438,7 @@ class TestHeavyFlag:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         for i, dur in enumerate([5.0, 10.0, 15.0]):
             _add_completed_run(db, f"s{i}", str(script), h, dur)
         # Act
@@ -448,7 +453,7 @@ class TestHeavyFlag:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         for i, dur in enumerate([400.0, 500.0, 600.0]):
             _add_completed_run(db, f"s{i}", str(script), h, dur)
         # Act
@@ -478,7 +483,7 @@ class TestOutputCount:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         for i, (sid, n_out) in enumerate([("o1", 2), ("o2", 4), ("o3", 6)]):
             _add_completed_run(db, sid, str(script), h, 30.0 + i * 10)
             for j in range(n_out):
@@ -495,7 +500,7 @@ class TestOutputCount:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "r1", str(script), h, 20.0)
         # Act
         result = estimate(str(script), db=db)
@@ -516,7 +521,7 @@ class TestTargetFileResolution:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         target = tmp_path / "results" / "out.csv"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text("data\n")
@@ -534,7 +539,7 @@ class TestTargetFileResolution:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         target = tmp_path / "out.csv"
         target.write_text("data\n")
         _add_completed_run(db, "p1", str(script), h, 45.0)
@@ -548,7 +553,7 @@ class TestTargetFileResolution:
 
     def test_nonexistent_target_falls_back_to_cold_start(self, tmp_path):
         # Arrange — target file does not exist, no DB records
-        db = _make_db(tmp_path)
+        db = _make_db()
         nonexistent = tmp_path / "missing.csv"
         # Act
         result = estimate(str(nonexistent), db=db)
@@ -712,7 +717,7 @@ class TestCachedIntermediateHintsFreshness:
         script = tmp_path / "proc.py"
         script.write_text("pass\n")
         artifact = tmp_path / "intermediate.csv"
-        db = _make_db(tmp_path)
+        db = _make_db()
         self._setup_producer_session(tmp_path, db, script, artifact, "col1,col2\n1,2\n")
         self._setup_consumer_session(tmp_path, db, script, artifact)
         # artifact on disk still matches what prod_s1 produced
@@ -726,7 +731,7 @@ class TestCachedIntermediateHintsFreshness:
         script = tmp_path / "proc2.py"
         script.write_text("pass\n")
         artifact = tmp_path / "intermediate2.csv"
-        db = _make_db(tmp_path)
+        db = _make_db()
         self._setup_producer_session(tmp_path, db, script, artifact, "col1,col2\n1,2\n")
         self._setup_consumer_session(tmp_path, db, script, artifact)
         # Overwrite artifact so its current hash differs from what prod_s1 recorded
@@ -741,7 +746,7 @@ class TestCachedIntermediateHintsFreshness:
         script = tmp_path / "proc3.py"
         script.write_text("pass\n")
         artifact = tmp_path / "intermediate3.csv"
-        db = _make_db(tmp_path)
+        db = _make_db()
         self._setup_producer_session(tmp_path, db, script, artifact, "col1,col2\n1,2\n")
         self._setup_consumer_session(tmp_path, db, script, artifact)
         # Delete the artifact so it is missing on disk

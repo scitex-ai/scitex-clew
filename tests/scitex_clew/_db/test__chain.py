@@ -9,9 +9,15 @@ from scitex_clew._db import VerificationDB
 
 
 @pytest.fixture
-def db(tmp_path):
-    """Fresh isolated DB for each test."""
-    return VerificationDB(tmp_path / "chain_test.db")
+def db():
+    """Fresh isolated DB for each test.
+
+    Isolation comes from the autouse `isolated_store` fixture in
+    tests/conftest.py — every test runs against its OWN throwaway
+    PostgreSQL schema, so `VerificationDB()` needs no argument and there
+    is nothing per-file left to set up.
+    """
+    return VerificationDB()
 
 
 def _add_run(db, session_id, script_path="/path/script.py", parent_session=None):
