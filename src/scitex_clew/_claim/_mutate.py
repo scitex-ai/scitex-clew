@@ -67,7 +67,7 @@ def remove_claim(claim_id_or_location: str) -> bool:
     # ``include_hidden=False``, so a hidden claim reads exactly like the old
     # hard-deleted one everywhere except a caller that deliberately asks for
     # the hidden view.
-    store = _open_store(db.db_path)
+    store = _open_store()
     try:
         store.hide({"claim_id": claim.claim_id}, expected_revision=ANY_REVISION)
     finally:
@@ -90,13 +90,11 @@ def remove_claims_by_prefix(file_path_prefix: str) -> int:
     int
         Number of rows deleted.
     """
-    db = get_db()
-
     resolved_prefix = str(Path(file_path_prefix).resolve())
     if not resolved_prefix.endswith("/"):
         resolved_prefix = resolved_prefix + "/"
 
-    store = _open_store(db.db_path)
+    store = _open_store()
     try:
         deleted = 0
         for row in store.rows():
@@ -140,7 +138,7 @@ def supersede_claim(claim_id_or_location: str) -> bool:
     if claim is None:
         return False
 
-    store = _open_store(db.db_path)
+    store = _open_store()
     try:
         store.put(
             {
@@ -170,13 +168,11 @@ def supersede_claims_by_prefix(file_path_prefix: str) -> int:
     int
         Number of rows updated to status ``"superseded"``.
     """
-    db = get_db()
-
     resolved_prefix = str(Path(file_path_prefix).resolve())
     if not resolved_prefix.endswith("/"):
         resolved_prefix = resolved_prefix + "/"
 
-    store = _open_store(db.db_path)
+    store = _open_store()
     try:
         now = datetime.now().isoformat()
         updated = 0

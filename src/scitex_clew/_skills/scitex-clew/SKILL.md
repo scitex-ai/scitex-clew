@@ -17,7 +17,7 @@ interfaces:
 
 # scitex-clew
 
-Hash-based verification tracking for reproducible science. Zero dependencies (pure stdlib + sqlite3). Auto-integrates with `@stx.session` and `stx.io` when scitex is present.
+Hash-based verification tracking for reproducible science. Provenance is recorded in the per-host PostgreSQL store. Auto-integrates with `@stx.session` and `stx.io` when scitex is present.
 
 ## Why clew — the broken-twin incident
 

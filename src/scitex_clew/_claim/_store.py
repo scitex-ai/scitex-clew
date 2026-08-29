@@ -7,32 +7,37 @@ limit) so the schema declaration and the Store-construction plumbing have
 their own home, separate from the ``Claim`` dataclasses and the
 resolve/update helpers that use them.
 
-Why ``StoreTarget.sqlite(...)`` and not ``host_store()``
-----------------------------------------------------------
-``host_store()`` resolves exactly ONE Postgres-backed store PER HOST
-(ADR-0006). clew's claims ledger is the opposite shape: MANY portable
-per-PROJECT sqlite files (one per manuscript/repo, written by many
-concurrent LOCAL processes — see the docstring that used to live on
-``_db/_connect.py``), each expected to work with zero fleet infrastructure
-(an author verifying a paper on a laptop with no Postgres) and to stay
-directly readable as a raw ``.db`` file by scitex-io. ``StoreTarget.sqlite``
-is the store's local, file-backed target — the escape hatch documented in
-``_target.py`` for exactly this case — so it keeps clew's
-zero-Postgres-dependency, portable-single-file property while still moving
-this module off raw ``sqlite3`` calls onto the store's oplog +
-hide/unhide semantics (card ``sqlite-migration-scitex-clew-20260828``).
+Why ``host_store()``
+--------------------
+``host_store()`` resolves THE store this host uses (ADR-0006):
+``SCITEX_STORE_DSN`` when set, otherwise the per-host PostgreSQL over its
+UNIX socket. It is the single switch — this module constructs no DSN and
+no path of its own.
+
+An earlier revision opened a local file-backed target instead, on the
+argument that clew's claims ledger is many portable per-PROJECT files that
+must work with zero fleet infrastructure and stay readable as a plain
+``.db``. That rationale is overruled: a file has no concept of WHO, so the
+portability it buys is the portability of a store nobody can be
+authenticated against.
 
 The claims store's physical tables (``claims_rows`` / ``claims_oplog`` /
-``claims_cursor`` / ``claims_identity``) live in the SAME ``.db`` file as
-the (not-yet-migrated) raw-sqlite ``runs`` / ``file_hashes`` tables. The
-names do not collide — the dialect always suffixes the schema name — so
-one project keeps exactly one ``.db`` file.
+``claims_cursor`` / ``claims_identity``) share the one host database with
+clew's other stores. The names do not collide — the dialect always
+suffixes the store name.
+
+WHAT THIS GIVES UP. ``claim_id`` is author-chosen and was previously
+namespaced by the per-project file. In one host database it is not: two
+projects on the same host that use the same ``claim_id`` now address the
+SAME row, and ``MergeRule.LAST_WRITER_WINS`` resolves the clash silently.
+Scoping claims by project is deliberately NOT attempted here — it is a
+schema-key change across every read path — but it is a real consequence,
+recorded rather than papered over.
 """
 
 from __future__ import annotations
 
 import socket
-from pathlib import Path
 
 from scitex_dev.store import (
     FieldKind,
@@ -41,8 +46,8 @@ from scitex_dev.store import (
     MergeRule,
     Schema,
     Store,
-    StoreTarget,
     WriterPolicy,
+    host_store,
 )
 
 __all__ = ["_CLAIMS_SCHEMA", "_node_id", "_open_store"]
@@ -51,10 +56,10 @@ __all__ = ["_CLAIMS_SCHEMA", "_node_id", "_open_store"]
 def _node_id() -> str:
     """The Store node id — the oplog's origin and the HLC's tie-breaker.
 
-    clew's claims store is a plain per-project file with no fleet identity
-    to draw on, so the hostname — the Store docstring's own suggested
-    stand-in — is what identifies "who wrote this" across the many
-    concurrent local processes that touch one project's ``clew.db``.
+    clew has no fleet identity of its own to draw on, so the hostname — the
+    Store docstring's own suggested stand-in — is what identifies "who
+    wrote this" across the many concurrent local processes that touch the
+    host store.
     """
     return socket.gethostname() or "clew"
 
@@ -158,16 +163,15 @@ _CLAIMS_SCHEMA = Schema.build(
 )
 
 
-def _open_store(db_path) -> Store:
-    """Open (creating if absent) the claims :class:`Store` at ``db_path``.
+def _open_store() -> Store:
+    """Open (creating if absent) the claims :class:`Store` on the host store.
 
-    A fresh ``Store`` per call — mirroring the open-connection /
-    do-work / close-connection lifecycle every caller in this package used
-    to run against a raw ``sqlite3.Connection`` (the pre-migration
-    ``_clew_sqlite_connect``). Callers are responsible for ``store.close()``
-    (wrap the call in ``try/finally``, exactly as before).
+    A fresh ``Store`` per call — mirroring the open / do-work / close
+    lifecycle every caller in this package already used. Callers are
+    responsible for ``store.close()`` (wrap the call in ``try/finally``,
+    exactly as before).
     """
-    target = StoreTarget.sqlite(Path(db_path), pkg="scitex_clew", name="claims")
+    target = host_store(pkg="scitex_clew", name="claims")
     return Store(
         target,
         _CLAIMS_SCHEMA,

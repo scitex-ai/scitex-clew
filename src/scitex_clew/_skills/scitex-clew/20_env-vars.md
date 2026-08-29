@@ -9,20 +9,23 @@ tags: [scitex-clew-env-vars]
 
 | Variable | Purpose | Default | Type |
 |---|---|---|---|
-| `SCITEX_CLEW_DB_PATH` | Override for the claim-verification SQLite database location. | `<project_root>/.scitex/clew/runtime/clew.db` | path |
+| `SCITEX_STORE_DSN` | Override for THE store this host uses. Owned by `scitex_dev.store.host_store()`, not by clew. | per-host PostgreSQL over its UNIX socket | Postgres DSN |
 | `SCITEX_CLEW_DEBUG_MODE` | Enable verbose tracing for claim execution and DAG re-run. | `false` | bool |
 | `SCITEX_API_TOKEN` | Ecosystem-wide API token (shared with scitex-cloud); used when clew tools call remote endpoints. | `—` | string (required when remote) |
 | `SCITEX_REGISTRY_URL` | URL of the optional SciTeX registry for cross-machine claim lookup. | unset | string (URL) |
 
-DB path precedence (`resolve_db_path()` in `src/scitex_clew/_db/_core.py`):
-explicit `db_path` argument > `SCITEX_CLEW_DB_PATH` >
-`<project_root>/.scitex/clew/runtime/clew.db`, where the project root is
-the nearest ancestor of the cwd containing `.git` or `pyproject.toml`
-(fallback: cwd itself). The DB is project-scoped, **not** under `~/.scitex`.
-A legacy `db.sqlite` (previous default `runtime/db.sqlite`, or the flat
-`.scitex/clew/db.sqlite`) auto-migrates to `clew.db` on first open with a
-deprecation warning (WAL-safe: the predecessor is checkpointed before the
-rename so any uncheckpointed `-wal` data is preserved).
+Store resolution (`scitex_dev.store.host_store()`): `SCITEX_STORE_DSN` if
+set, otherwise the per-host PostgreSQL over its UNIX socket. There are only
+those two steps, and there is deliberately no local-file fallback — a host
+whose Postgres is down must fail loudly rather than start writing to a
+private store nobody else can see.
+
+clew has **no database file** and no clew-specific path variable.
+`SCITEX_CLEW_DB_PATH` is retired and has no effect. Provenance is
+per-HOST, not per-project: every project on one machine shares the one
+store, and clew's four stores are separated inside it by their store
+`name` (`runs`, `file_hashes`, `claims`, `citations`, …), not by
+directory.
 
 ## Feature flags
 

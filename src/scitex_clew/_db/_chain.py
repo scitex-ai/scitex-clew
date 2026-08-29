@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-# Timestamp: "2026-08-28 (sqlite-migration-scitex-clew-20260828)"
+# Timestamp: "2026-08-29 (clew-postgres-store-migration)"
 # File: src/scitex_clew/_db/_chain.py
 """Chain and DAG relationship operations for VerificationDB (Store-backed).
 
 Every method reads via ``self._runs`` / ``self._session_parents``
 (``scitex_dev.store.Store`` instances built in ``_core.py``) with a
-Python-side filter/sort — Store has no WHERE/JOIN/ORDER-BY. No sqlite3
+Python-side filter/sort — Store has no WHERE/JOIN/ORDER-BY. No raw DB
 import here: `set_parent`/`add_parent` write through `VerificationDB.put`
-methods only (sqlite-migration-scitex-clew-20260828 cleanup: the legacy
-raw-sqlite `runs` mirror and its `_mirror_run_field` helper are gone).
+methods only (the legacy raw `runs` mirror and its `_mirror_run_field`
+helper are gone).
 
 The legacy raw `session_parents` table (and its startup backfill,
 `_migrate_session_parents`) is RETIRED — a repo-wide grep found nothing

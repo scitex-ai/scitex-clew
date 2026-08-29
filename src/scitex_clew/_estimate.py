@@ -17,7 +17,7 @@ CLI
     $ clew estimate scripts/train.py
     $ clew estimate results/fig1.png --json
 
-DB-query layer (sqlite-migration-scitex-clew-20260828)
+DB-query layer (clew-postgres-store-migration)
 --------------------------------------------------------
 The 5 DB-touching helpers formerly here (``_query_runs_by_hash``,
 ``_query_runs_by_path``, ``_output_bytes_for_sessions``,
@@ -25,7 +25,7 @@ The 5 DB-touching helpers formerly here (``_query_runs_by_hash``,
 ``_count_outputs_for_sessions``) now live in ``_estimate_queries.py`` —
 split out purely to respect this file's 512-line limit — and are
 re-exported below so existing imports keep working. They no longer call
-``VerificationDB._connect()`` / import ``sqlite3``; they read
+``VerificationDB._connect()`` / import a raw DB driver; they read
 ``db._runs`` / ``db._file_hashes`` (``scitex_dev.store.Store``) instead.
 """
 

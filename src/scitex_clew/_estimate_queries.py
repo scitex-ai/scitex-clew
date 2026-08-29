@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Timestamp: "2026-08-28 (sqlite-migration-scitex-clew-20260828)"
+# Timestamp: "2026-08-29 (clew-postgres-store-migration)"
 # File: src/scitex_clew/_estimate_queries.py
 """DB-query layer for :mod:`scitex_clew._estimate` (Store-backed).
 
@@ -7,7 +7,7 @@ Extracted from ``_estimate.py`` purely to keep that file under the
 project's 512-line limit (see ``GITIGNORED/REFACTORING.md`` while the
 split is in flight). These are the same module-private helpers that used
 to live in ``_estimate.py`` and reached into ``VerificationDB._connect()``
-for a raw ``sqlite3`` connection; ``_estimate.py`` re-exports every name
+for a raw DB-API connection; ``_estimate.py`` re-exports every name
 here so ``from scitex_clew._estimate import _cached_intermediate_hints``
 (used by this package's own tests) keeps working unchanged.
 
@@ -16,7 +16,7 @@ Every function below now reads ``db._runs`` / ``db._file_hashes``
 ``.rows()`` and filters/sorts/joins in Python — Store has no
 WHERE/JOIN/ORDER-BY/LIMIT support, an accepted O(n)-scan trade-off for
 what is normally a small per-project DB (same trade-off ``_db/_queries.py``
-and ``_db/_file_hashes.py`` already made). No ``sqlite3`` import, no
+and ``_db/_file_hashes.py`` already made). No raw DB driver import, no
 ``db._connect()`` call anywhere in this file.
 """
 

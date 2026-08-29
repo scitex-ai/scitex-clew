@@ -133,7 +133,7 @@ scitex clew stats                        # Database statistics
 scitex_clew/
 ├── __init__.py          # Public API (lazy PEP-562 registry in _core/_public_api)
 ├── _hash.py             # SHA256 hashing utilities
-├── _db/                 # SQLite database
+├── _db/                 # Store-backed verification storage
 ├── _tracker.py          # Session tracking integration
 ├── _chain/              # Chain/DAG verification logic
 ├── _rerun.py            # Rerun verification (sandbox)

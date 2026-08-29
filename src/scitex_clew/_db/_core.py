@@ -1,54 +1,47 @@
 #!/usr/bin/env python3
 # Timestamp: "2026-03-04 (ywatanabe)"
 # File: /home/ywatanabe/proj/scitex-python/src/scitex/clew/_db.py
-"""Store-backed database for verification tracking (sqlite-migration-scitex-clew-20260828).
+"""Store-backed database for verification tracking.
 
-This module drives ``scitex_dev.store.Store`` — a local file-backed target
-(``StoreTarget.sqlite``), not a fleet Postgres — for the ``runs``,
+This module drives ``scitex_dev.store.Store`` for the ``runs``,
 ``file_hashes``, ``verification_results`` and ``session_parents`` tables.
-clew keeps its zero-Postgres-dependency, single-file-portability property;
-the *mechanism* is the store's oplog + hide/unhide primitives, not raw
-``sqlite3`` DDL/DML. Schemas live in ``_schema.py``, path resolution in
-``_paths.py`` (both split out of this file to respect the project's
-512-line limit; see ``GITIGNORED/REFACTORING.md``).
+The target is resolved by :func:`scitex_dev.store.host_store` — THE store
+this host uses, per ADR-0006 — and nothing here constructs a DSN or a file
+path of its own. There is exactly one switch (``SCITEX_STORE_DSN``, read by
+``host_store()``), not a constant per call site.
+
+Storage is the per-host PostgreSQL instance. clew has no database file: an
+earlier revision of this module used a local file-backed target for a
+"portable single file, zero fleet infrastructure" property, and that
+rationale is overruled — a file store has no concept of WHO, so handing a
+collaborator one is sharing, not collaborating. What is genuinely lost by
+the change is recorded in the PR body, not papered over here.
+
+The four stores differ only by ``name=``, which is what separates their
+tables inside the one database.
 
 Store has NO WHERE/JOIN/ORDER-BY/LIMIT support: every query below is
 ``store.rows()`` (or ``store.get(key)`` for exact lookups) plus a Python
-filter/sort/aggregate, an accepted O(n)-scan trade-off for what is normally
-a small per-project DB.
+filter/sort/aggregate — an accepted O(n)-scan trade-off.
 
-This closes out the ``sqlite-migration-scitex-clew-20260828`` migration: the
-temporary write-only legacy raw-sqlite mirror of ``runs``/``file_hashes``
-(kept only so 5 not-yet-migrated call sites — ``_gate_plugin.py``,
-``_attest/_stamp.py``, ``_core/_node_class.py``, ``_estimate.py``,
-``_claim/_export.py`` — could keep reading the raw tables unmodified) is
-gone now that all five read the Store instead, and the now-dead
-``_connect.py`` stdlib-only connect helper it used has been deleted
-entirely (it had zero remaining callers). The only raw ``sqlite3`` left
-anywhere in ``_db/`` is ``_migrate_rename.py`` — a deliberate, documented
-exception: a WAL-checkpoint/rename that must run on the raw file BEFORE
-any Store can exist at that path, so it cannot go through the Store
-abstraction.
+Schemas live in ``_schema.py``; the project-root walk that resolves the
+regenerable ``claims.json`` artifact lives in ``_paths.py`` (both split out
+of this file to respect the project's 512-line limit; see
+``GITIGNORED/REFACTORING.md``).
 """
 
 from __future__ import annotations
 
 import json
-from contextlib import contextmanager
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
-from scitex_dev.store import ANY_REVISION, Store, StoreTarget, WriterPolicy
+from scitex_dev.store import ANY_REVISION, Store, StoreTarget, WriterPolicy, host_store
 
 from ._chain import ChainMixin
 from ._file_hashes import FileHashMixin
-from ._paths import (
-    _default_claims_json_path,
-    _default_db_path,
-    _find_project_root,
-    resolve_db_path,
-)
+#: Re-exported: several modules import these from ``._db._core``.
+from ._paths import _default_claims_json_path, _find_project_root  # noqa: F401
 from ._queries import VerificationQueryMixin
 from ._schema import (
     FILE_HASHES_SCHEMA,
@@ -60,11 +53,8 @@ from ._schema import (
 
 __all__ = [
     "VerificationDB",
-    "get_active_db_path",
     "get_db",
-    "resolve_db_path",
-    "set_db",
-    "use_db",
+    "reset_db",
 ]
 
 
@@ -84,29 +74,17 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
     >>> db.add_file_hash("2025Y-11M-18D-09h12m03s_HmH5", "data.csv", "a1b2c3", "input")
     """
 
-    def __init__(self, db_path: Optional[Union[str, Path]] = None):
-        """
-        Initialize database connection.
+    def __init__(self) -> None:
+        """Open clew's four stores against THE store this host uses.
 
-        Parameters
-        ----------
-        db_path : str or Path, optional
-            Path to database file. Resolution order:
-            1. Explicit db_path argument
-            2. SCITEX_CLEW_DB_PATH environment variable
-            3. {project_root}/.scitex/clew/runtime/clew.db where
-               project_root is found by walking up from cwd until a
-               .git / pyproject.toml is found; falls back to cwd if no
-               root marker is found.
+        Takes no path and no DSN. ``host_store()`` answers "which store does
+        this host use" — ``SCITEX_STORE_DSN`` when set, otherwise the
+        per-host Postgres over its UNIX socket — and it is the only switch.
         """
-        db_path, _tier = resolve_db_path(db_path)
-        self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-
         node = resolve_node_id()
 
         def _target(name: str) -> StoreTarget:
-            return StoreTarget.sqlite(self.db_path, pkg="scitex_clew", name=name)
+            return host_store(pkg="scitex_clew", name=name)
 
         self._runs = Store(
             _target("runs"), RUNS_SCHEMA, node=node, writer_policy=WriterPolicy.MULTI_WRITER
@@ -262,6 +240,16 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
     # File hash operations — implemented in FileHashMixin (_file_hashes.py)
     # -------------------------------------------------------------------------
 
+    def close(self) -> None:
+        """Close all four stores. Idempotent — Store.close() tolerates repeats."""
+        for store in (
+            self._runs,
+            self._file_hashes,
+            self._verifications,
+            self._session_parents,
+        ):
+            store.close()
+
 
 # Global instance
 _DB_INSTANCE: Optional[VerificationDB] = None
@@ -275,48 +263,22 @@ def get_db() -> VerificationDB:
     return _DB_INSTANCE
 
 
-def set_db(db_path: Union[str, Path]) -> VerificationDB:
-    """Set the global database instance to use a specific path.
+def reset_db() -> None:
+    """Drop the cached global instance so the next ``get_db()`` re-resolves.
 
-    Parameters
-    ----------
-    db_path : str or Path
-        Path to database file (e.g. "./.scitex/clew/runtime/clew.db" for project-relative).
+    ``host_store()`` reads ``SCITEX_STORE_DSN`` once per ``VerificationDB``
+    construction, and ``get_db()`` caches the instance for the life of the
+    process. Anything that changes which store this process should reach —
+    a test that gives itself a throwaway schema, an operator flipping the
+    env var — must call this so the change is actually picked up.
 
-    Returns
-    -------
-    VerificationDB
-        The new database instance.
+    This is NOT a store selector. The selector is ``SCITEX_STORE_DSN``,
+    owned by the primitive; this only invalidates a cache.
     """
     global _DB_INSTANCE
-    _DB_INSTANCE = VerificationDB(db_path=db_path)
-    return _DB_INSTANCE
-
-
-def get_active_db_path() -> Optional[Path]:
-    """Return the path of the already-configured global DB instance, if any.
-
-    ``None`` means no global instance has been created yet (neither
-    ``get_db()`` nor ``set_db()`` has run in this process).
-    """
-    return _DB_INSTANCE.db_path if _DB_INSTANCE is not None else None
-
-
-@contextmanager
-def use_db(db_path: Union[str, Path]):
-    """Temporarily point the global DB instance at ``db_path``.
-
-    Restores the previous global instance on exit, so scoped out-of-tree
-    reads (e.g. ``render_dag(..., db_path=...)``) do not leak into later
-    calls in the same process.
-    """
-    global _DB_INSTANCE
-    previous = _DB_INSTANCE
-    _DB_INSTANCE = VerificationDB(db_path=db_path)
-    try:
-        yield _DB_INSTANCE
-    finally:
-        _DB_INSTANCE = previous
+    if _DB_INSTANCE is not None:
+        _DB_INSTANCE.close()
+    _DB_INSTANCE = None
 
 
 # EOF

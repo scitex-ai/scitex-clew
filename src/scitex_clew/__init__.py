@@ -2,7 +2,8 @@
 """
 scitex-clew — Hash-based verification for reproducible science.
 
-Standalone package. Zero dependencies (pure stdlib + sqlite3).
+Provenance is recorded in THE store this host uses — the per-host
+PostgreSQL, resolved by ``scitex_dev.store.host_store()``.
 When used with scitex, integration is automatic via @stx.session + stx.io.
 
 Public API::
@@ -217,7 +218,7 @@ if TYPE_CHECKING:
         stamp,
     )
     from ._cli._exit_codes import Severity  # noqa: F401
-    from ._db import VerificationDB, get_db, set_db  # noqa: F401
+    from ._db import VerificationDB, get_db, reset_db  # noqa: F401
     from ._estimate import (  # noqa: F401
         HEAVY_THRESHOLD_SECONDS,
         EstimateResult,

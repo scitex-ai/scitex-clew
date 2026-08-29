@@ -310,15 +310,15 @@ class VerificationResult:
         }
 
 
-def migrate_add_claims_table(db_path: Path) -> None:
-    """Ensure the claims store exists at ``db_path``. Safe to call multiple times.
+def migrate_add_claims_table() -> None:
+    """Ensure the claims store exists. Safe to call multiple times.
 
     The ``Store`` constructor itself performs the schema-creation equivalent
     of the old ``CREATE TABLE IF NOT EXISTS`` DDL (under a schema lock), so
     "ensure" is now "open a Store once and close it" — enough to
     materialise the physical tables without holding a connection open.
     """
-    _open_store(db_path).close()
+    _open_store().close()
 
 
 def _generate_claim_id(
@@ -346,17 +346,21 @@ def _generate_claim_id(
     return f"claim_{h}"
 
 
-def _ensure_claims_table(db) -> None:
-    """Ensure the claims table exists (run migration)."""
-    migrate_add_claims_table(db.db_path)
+def _ensure_claims_table(db=None) -> None:
+    """Ensure the claims table exists (run migration).
+
+    ``db`` is accepted and ignored: there is one store per host and it does
+    not depend on which ``VerificationDB`` the caller happens to hold.
+    """
+    migrate_add_claims_table()
 
 
 def _file_path_matches_prefix(file_path: Optional[str], resolved_prefix: str) -> bool:
     """Whether ``file_path`` matches the old
     ``file_path LIKE '<prefix>%' OR file_path = '<prefix without trailing />'``.
 
-    SQLite's ``LIKE`` is case-insensitive on ASCII by default (the raw
-    sqlite3 connect helper this package used to call never set
+    The original ``LIKE`` was case-insensitive on ASCII by default (the
+    raw connect helper this package used to call never set
     ``case_sensitive_like``), so the comparison lower-cases both sides.
     ``resolved_prefix`` must already end with the path separator — every
     caller resolves it that way before calling this.
@@ -387,7 +391,7 @@ def _row_to_claim(row) -> Claim:
 
 def _resolve_claim(identifier: str, db) -> Optional[Claim]:
     """Resolve a claim by ID or location string."""
-    store = _open_store(db.db_path)
+    store = _open_store()
     try:
         # Try claim_id first
         row = store.get({"claim_id": identifier})
@@ -405,7 +409,7 @@ def _resolve_claim(identifier: str, db) -> Optional[Claim]:
             return None
 
         # Try file path only (returns first match, NULL line_number first —
-        # mirrors SQLite's ``ORDER BY line_number`` NULL-first ascending order).
+        # mirrors the original ``ORDER BY line_number`` NULL-first order).
         fpath = str(Path(identifier).resolve())
         candidates = [r for r in store.rows() if r.values["file_path"] == fpath]
         if not candidates:
@@ -422,7 +426,7 @@ def _resolve_claim(identifier: str, db) -> Optional[Claim]:
 
 def _update_claim_status(claim_id: str, status: str, db) -> None:
     """Update claim verification status. No-op if the claim does not exist."""
-    store = _open_store(db.db_path)
+    store = _open_store()
     try:
         if store.get({"claim_id": claim_id}) is None:
             return

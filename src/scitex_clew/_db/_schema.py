@@ -6,7 +6,7 @@ Extracted from `_core.py` only to keep that file under the project's
 512-line limit; the schemas and the node-id resolver are otherwise exactly
 what `_core.py` would have declared inline.
 
-See the ``sqlite-migration-scitex-clew-20260828`` card and the PR body for
+See the PR body for
 the design rationale behind each schema, in particular:
 
 - ``file_hashes`` / ``session_parents``: composite IDENTITY replacing the
@@ -89,7 +89,7 @@ FILE_HASHES_SCHEMA = Schema.build(
         "frozen": _data_field(FieldKind.BOOL),
         "host": _data_field(FieldKind.TEXT),
         "recorded_at": _data_field(FieldKind.TEXT, required=True, indexed=True),
-        # Added by sqlite-migration-scitex-clew-20260828 PR 4
+        # Added by the store migration's node-class PR
         # (feat/clew-node-class-store-migration) — was a raw
         # `ALTER TABLE file_hashes ADD COLUMN node_class TEXT` in the
         # pre-migration `_core/_node_class.py::migrate_add_node_class`.

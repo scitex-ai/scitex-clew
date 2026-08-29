@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Timestamp: "2026-08-28 (sqlite-migration-scitex-clew-20260828)"
+# Timestamp: "2026-08-29 (clew-postgres-store-migration)"
 # File: src/scitex_clew/_attest/_stamp.py
 """External hash timestamping for temporal integrity.
 
@@ -11,12 +11,12 @@ Backends (increasing trust level):
   - rfc3161: RFC 3161 Timestamping Authority (production standard)
   - zenodo:  Zenodo deposit with DOI (archival, citable)
 
-This module drives ``scitex_dev.store.Store`` — a local file-backed target
-(``StoreTarget.sqlite``) — for its own ``stamps`` table (sole owner, no
-cross-table joins). It also READS PR #143's migrated ``runs`` Store
-(``VerificationDB._runs``) to compute the root hash — no writes, no
-sqlite3 import needed for that either. See the
-``sqlite-migration-scitex-clew-20260828`` card.
+This module drives ``scitex_dev.store.Store`` on the target
+:func:`host_store` resolves — THE store this host uses (ADR-0006) — for its
+own ``stamps`` table (sole owner, no cross-table joins). It also READS the
+``runs`` Store (``VerificationDB._runs``) to compute the root hash — no
+writes. This module constructs no DSN and no path of its own; the one
+switch is ``SCITEX_STORE_DSN``, read by ``host_store()``.
 
 Store has no WHERE/ORDER-BY/LIMIT: every query below is
 ``store.rows()`` (or ``store.get(key)`` for exact lookups) plus a Python
@@ -54,8 +54,8 @@ from scitex_dev.store import (
     MergeRule,
     Schema,
     Store,
-    StoreTarget,
     WriterPolicy,
+    host_store,
 )
 
 from .._db import get_db
@@ -131,17 +131,16 @@ class Stamp:
         }
 
 
-def _stamps_store(db_path: Path) -> Store:
-    """Construct the ``stamps`` Store for ``db_path``.
+def _stamps_store() -> Store:
+    """Construct the ``stamps`` Store on the host store.
 
     Idempotent — Store.__init__ runs CREATE TABLE IF NOT EXISTS (+ additive
     migrations) under the dialect's schema lock, so this is safe to call
     repeatedly, matching the pre-migration ``migrate_add_stamps_table``
-    contract. Each call opens its own sqlite connection (mirrors the
-    previous per-call ``sqlite3.connect``/close pattern); the underlying
-    connection is reclaimed when the Store is garbage-collected.
+    contract. Each call opens its own connection; the underlying connection
+    is reclaimed when the Store is garbage-collected.
     """
-    target = StoreTarget.sqlite(Path(db_path), pkg="scitex_clew", name="stamps")
+    target = host_store(pkg="scitex_clew", name="stamps")
     return Store(
         target,
         STAMPS_SCHEMA,
@@ -150,14 +149,18 @@ def _stamps_store(db_path: Path) -> Store:
     )
 
 
-def migrate_add_stamps_table(db_path: Path) -> None:
+def migrate_add_stamps_table() -> None:
     """Create the stamps store's backing tables if not present. Safe to call multiple times."""
-    _stamps_store(db_path)
+    _stamps_store()
 
 
-def _ensure_stamps_table(db) -> Store:
-    """Ensure the stamps Store exists for ``db.db_path``, returning it."""
-    return _stamps_store(db.db_path)
+def _ensure_stamps_table(db=None) -> Store:
+    """Ensure the stamps Store exists, returning it.
+
+    ``db`` is accepted and ignored: there is one store per host and it does
+    not depend on which ``VerificationDB`` the caller happens to hold.
+    """
+    return _stamps_store()
 
 
 def compute_root_hash(session_ids: Optional[List[str]] = None) -> Dict:
@@ -384,8 +387,12 @@ def _stamp_file(stamp_id, root, timestamp, output_dir=None):
     if output_dir:
         stamp_dir = Path(output_dir)
     else:
-        db = get_db()
-        stamp_dir = db.db_path.parent / "stamps"
+        # Was ``db.db_path.parent / "stamps"``. There is no database file to
+        # sit beside any more, so the JSON proofs land in the project's
+        # regenerable-output directory — the same place claims.json goes.
+        from .._db._core import _find_project_root
+
+        stamp_dir = _find_project_root() / ".scitex" / "clew" / "runtime" / "stamps"
 
     stamp_dir.mkdir(parents=True, exist_ok=True)
     stamp_path = stamp_dir / f"{stamp_id}.json"
