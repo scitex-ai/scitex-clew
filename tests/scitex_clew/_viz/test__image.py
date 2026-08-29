@@ -17,8 +17,7 @@ from __future__ import annotations
 
 import pytest
 
-import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
+from scitex_clew._db import get_db
 from scitex_clew._hash import hash_file
 
 
@@ -33,16 +32,10 @@ matplotlib = pytest.importorskip("matplotlib", reason="matplotlib not installed"
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    """Fresh per-test DB; reset after."""
-    # Arrange
-    db_path = tmp_path / "test_image.db"
-    set_db(db_path)
-    # Act
-    yield _db_module.get_db()
-    # Assert (teardown)
-    _db_module._DB_INSTANCE = None
+@pytest.fixture
+def isolated_db():
+    """This test's own store — tests/conftest.py gives each test a schema."""
+    return get_db()
 
 
 @pytest.fixture
