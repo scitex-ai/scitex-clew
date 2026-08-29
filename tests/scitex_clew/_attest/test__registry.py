@@ -13,7 +13,6 @@ import urllib.request
 import pytest
 
 import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
 from scitex_clew._attest._registry import ClewRegistry, DEFAULT_REGISTRY_URL, get_registry
 
 
@@ -89,15 +88,6 @@ def _make_return_value_urlopen(response):
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-
-
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    """Inject a fresh temp DB and reset global state after each test."""
-    db_path = tmp_path / "registry_test.db"
-    set_db(db_path)
-    yield
-    _db_module._DB_INSTANCE = None
 
 
 @pytest.fixture(autouse=True)

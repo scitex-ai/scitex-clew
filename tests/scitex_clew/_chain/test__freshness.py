@@ -14,21 +14,9 @@ Covers:
 
 from __future__ import annotations
 
-import pytest
-
 import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
 from scitex_clew._chain import VerificationLevel, VerificationStatus
 from scitex_clew._chain._freshness import _is_session_fresh, _skipped_result
-
-
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    """Inject a fresh temp DB and reset global state after each test."""
-    db_path = tmp_path / "freshness_test.db"
-    set_db(db_path)
-    yield
-    _db_module._DB_INSTANCE = None
 
 
 def _build_session(db, tmp_path, session_id, script_content="# script"):

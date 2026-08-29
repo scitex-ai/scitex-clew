@@ -6,7 +6,6 @@ from __future__ import annotations
 import pytest
 
 import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
 from scitex_clew._tracker import (
     SessionTracker,
     get_tracker,
@@ -17,12 +16,9 @@ from scitex_clew._tracker import (
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    """Inject a fresh temp DB and reset global state after each test."""
-    db_path = tmp_path / "tracker_test.db"
-    set_db(db_path)
+def isolated_db():
+    """Reset the tracker singleton after each test."""
     yield
-    _db_module._DB_INSTANCE = None
     set_tracker(None)
 
 

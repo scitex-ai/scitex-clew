@@ -9,7 +9,6 @@ import pytest
 
 import scitex_clew
 import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
 from scitex_clew._observers._session import (
     _warn_if_unrecorded_outputs,
     on_session_close,
@@ -19,12 +18,9 @@ from scitex_clew._tracker import get_tracker, set_tracker
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    """Inject a fresh temp clew.db and reset global state after each test."""
-    db_path = tmp_path / "clew.db"
-    set_db(db_path)
+def isolated_db():
+    """Reset the tracker singleton after each test."""
     yield
-    _db_module._DB_INSTANCE = None
     set_tracker(None)
 
 
