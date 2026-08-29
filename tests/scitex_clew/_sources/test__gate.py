@@ -15,19 +15,16 @@ import pytest
 
 import scitex_clew._db as _db_module
 from scitex_clew._claim._register import add_claim
-from scitex_clew._db import set_db
 from scitex_clew._hash import hash_file
 from scitex_clew._sources._gate import is_grounded
 from scitex_clew._sources._manifest import full_sha256, load_sources_manifest
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
+def isolated_db():
     prev = os.environ.get("SCITEX_CLEW_AUTO_EXPORT_CLAIMS")
     os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = "0"
-    set_db(tmp_path / "gate.db")
     yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
     if prev is None:
         os.environ.pop("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", None)
     else:
