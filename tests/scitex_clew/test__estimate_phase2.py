@@ -63,9 +63,9 @@ def _add_completed_run(
 ) -> None:
     """Add a completed run with the given wall-clock duration.
 
-    NOTE (sqlite-migration-scitex-clew-20260828 — final cleanup):
+    NOTE (the 2026-08-28 store migration — final cleanup):
     `_estimate.py`'s queries read `db._runs` (a `scitex_dev.store.Store`)
-    exclusively; the legacy raw-sqlite mirror `db._connect()` used to
+    exclusively; the legacy raw-file mirror `db._connect()` used to
     expose (now removed entirely) never enters the picture. Overwrite
     started_at/finished_at through the Store's own partial-update path
     instead (`Store.put()` with only session_id + the two timestamp
@@ -95,10 +95,10 @@ def _add_completed_run(
 class TestMigrationAddsSizeBytes:
     """Store-backed `size_bytes` support.
 
-    RETARGETED (sqlite-migration-scitex-clew-20260828 final cleanup): this
-    class originally exercised the legacy raw-sqlite mirror's idempotent
+    RETARGETED (the 2026-08-28 store migration, final cleanup): this
+    class originally exercised the legacy raw-file mirror's idempotent
     `ALTER TABLE file_hashes ADD COLUMN size_bytes` migration (including
-    opening a `VerificationDB` against a hand-rolled pre-existing sqlite
+    opening a `VerificationDB` against a hand-rolled pre-existing store
     file with old-shape tables, and reading the result back via
     `db._connect()`). That legacy mirror and its
     `_migrate_file_hashes_size_bytes` helper are deleted — Store schemas
@@ -139,9 +139,9 @@ class TestMigrationAddsSizeBytes:
 
 
 class TestSizeBytesPopulatedOnRecordOutput:
-    """RETARGETED (sqlite-migration-scitex-clew-20260828 final cleanup):
+    """RETARGETED (the 2026-08-28 store migration, final cleanup):
     originally read `size_bytes` back via `db._connect()` against the now-
-    deleted legacy raw-sqlite mirror. `db._file_hashes` (the Store) is the
+    deleted legacy raw-file mirror. `db._file_hashes` (the Store) is the
     real source of truth and now the only place these tests read from.
     """
 

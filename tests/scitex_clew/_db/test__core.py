@@ -39,9 +39,9 @@ class TestVerificationDB:
     def test_init_creates_runs_table(self, db):
         """Initialization must create a Store-backed `runs` table.
 
-        RETARGETED (sqlite-migration-scitex-clew-20260828 final cleanup):
-        this used to open the legacy raw-sqlite mirror via `db._connect()`
-        and check `sqlite_master` for a `runs` table. That mirror is gone;
+        RETARGETED (the 2026-08-28 store migration, final cleanup):
+        this used to open the legacy raw-file mirror via `db._connect()`
+        and check the table catalogue for a `runs` table. That mirror is gone;
         the equivalent Store-side fact is that a row written through the
         public API round-trips through `self._runs` (the Store instance).
         """
@@ -55,7 +55,7 @@ class TestVerificationDB:
     def test_init_creates_file_hashes_table(self, db):
         """Initialization must create a Store-backed `file_hashes` table.
 
-        RETARGETED (sqlite-migration-scitex-clew-20260828 final cleanup):
+        RETARGETED (the 2026-08-28 store migration, final cleanup):
         see `test_init_creates_runs_table` above — same rationale, applied
         to `self._file_hashes`.
         """
@@ -662,11 +662,11 @@ class TestDatabaseStats:
 class TestProvenanceMigration:
     """Tests for `provenance`/`exception_reason` persistence (Store-backed).
 
-    RETARGETED (sqlite-migration-scitex-clew-20260828 final cleanup): this
-    class originally exercised the legacy raw-sqlite mirror's idempotent
+    RETARGETED (the 2026-08-28 store migration, final cleanup): this
+    class originally exercised the legacy raw-file mirror's idempotent
     `ALTER TABLE runs ADD COLUMN provenance/exception_reason` migration —
-    including a scenario that seeded a hand-rolled pre-migration-shaped
-    sqlite file directly with raw SQL, then read the migrated mirror table
+    including a scenario that seeded a hand-rolled pre-migration-shaped store
+    file directly with raw SQL, then read the migrated mirror table
     back via `db._connect()`. That legacy mirror (and its
     `_migrate_runs_provenance` helper) is deleted — Store schemas carry
     `provenance`/`exception_reason` as first-class fields from creation,
@@ -814,10 +814,10 @@ class TestAddRunProvenance:
 class TestFrozenMigration:
     """Tests for the `frozen` field on file_hashes rows (Store-backed).
 
-    RETARGETED (sqlite-migration-scitex-clew-20260828 final cleanup): this
-    class originally exercised the legacy raw-sqlite mirror's idempotent
+    RETARGETED (the 2026-08-28 store migration, final cleanup): this
+    class originally exercised the legacy raw-file mirror's idempotent
     `ALTER TABLE file_hashes ADD COLUMN frozen` migration, including a
-    hand-rolled pre-migration-shaped sqlite file. That legacy mirror (and
+    hand-rolled pre-migration-shaped store file. That legacy mirror (and
     `_migrate_file_hashes_frozen`) is deleted — Store schemas carry
     `frozen` as a first-class field from creation, so there is no
     additive-ALTER-TABLE step left to test. These tests now assert the

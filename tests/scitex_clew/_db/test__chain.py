@@ -667,7 +667,7 @@ class TestGetDag:
 
 
 # ---------------------------------------------------------------------------
-# Legacy session_parents backfill: RETIRED (sqlite-migration-scitex-clew-20260828)
+# Legacy session_parents backfill: RETIRED (the 2026-08-28 store migration)
 # ---------------------------------------------------------------------------
 #
 # `_migrate_session_parents()` (and the raw `session_parents` table it
@@ -683,7 +683,7 @@ class TestGetDag:
 # `test_existing_parent_migrated_to_junction` built) can no longer be
 # "migrated": `get_parents()` is Store-backed and reads exclusively from
 # `self._session_parents` (a scitex_dev.store.Store), which has no
-# knowledge of rows inserted directly into a raw sqlite `runs` table
+# knowledge of rows inserted directly into a raw `runs` table
 # outside `add_run()`/`add_parent()`. This is an accepted, documented
 # behavior change — see the PR body.
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# Timestamp: "2026-08-28 (sqlite-migration-scitex-clew-20260828)"
+# Timestamp: "2026-08-29 (clew-postgres-store-migration)"
 # File: tests/scitex_clew/test__estimate_queries.py
 """Focused join-logic tests for scitex_clew._estimate_queries._cached_intermediate_hints.
 
-This is the trickiest of the 5 functions migrated off raw sqlite3 in this
+This is the trickiest of the 5 functions migrated off the raw file driver in this
 PR: it reimplements a real SQL self-join (file_hashes JOIN file_hashes)
 plus a JOIN to runs, in Python over Store rows. These tests exercise the
 exact semantics of that original SQL beyond what test__estimate.py /

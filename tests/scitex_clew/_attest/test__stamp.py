@@ -204,9 +204,9 @@ class TestStampDataclass:
 
 class TestMigrateAddStampsTable:
     # RETARGETED (clew's Postgres migration): `stamps` is no longer a raw
-    # sqlite table in a file — `migrate_add_stamps_table()` takes no path and
+    # table inside a store file — `migrate_add_stamps_table()` takes no path and
     # constructs a `scitex_dev.store.Store` on the host store. There is no
-    # file to open with sqlite3 and no `sqlite_master` to interrogate, so the
+    # file to open and no table catalogue to interrogate, so the
     # same "table got created, idempotently" intent is expressed through the
     # Store API: a store whose backing tables exist answers `rows()` with a
     # list instead of raising.

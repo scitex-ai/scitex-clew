@@ -316,15 +316,15 @@ class TestInferNodeClass:
 
 
 class TestMigrateAddNodeClass:
-    """NOTE (sqlite-migration-scitex-clew-20260828 PR 4 — accepted behavior
-    change): the pre-migration tests here hand-created a raw sqlite3
+    """NOTE (the 2026-08-28 store migration, node-class PR — accepted behavior
+    change): the pre-migration tests here hand-created a raw
     ``file_hashes`` table (no ``node_class`` column) and asserted that
     ``migrate_add_node_class`` ran ``ALTER TABLE ... ADD COLUMN`` against
     it, checking ``PRAGMA table_info`` before/after. That premise no longer
     holds: ``node_class`` is now a plain field of ``FILE_HASHES_SCHEMA``
     (see ``_db/_schema.py``), created as a real column by
     ``Store.__init__``'s ``CREATE TABLE IF NOT EXISTS`` the moment a
-    ``file_hashes`` store is opened — there is no more separate raw-sqlite
+    ``file_hashes`` store is opened — there is no more separate raw-file
     ``file_hashes`` table for this function to inspect or ALTER. Retargeted
     to verify what IS still true: the call is a safe, idempotent way to
     ensure the DB is ready, and the ``node_class`` field it used to "add"
@@ -362,9 +362,9 @@ class TestMigrateAddNodeClass:
 
 
 class TestSetNodeClass:
-    """NOTE (sqlite-migration-scitex-clew-20260828 PR 4 — accepted behavior
+    """NOTE (the 2026-08-28 store migration, node-class PR — accepted behavior
     change): the pre-migration ``_setup_db`` helper hand-created a raw
-    sqlite3 ``file_hashes`` table and inserted a row directly, bypassing
+    file_hashes table and inserted a row directly, bypassing
     ``VerificationDB``. Now that ``file_hashes`` is a
     ``scitex_dev.store.Store`` table, records only exist once written
     through the real API (``add_run`` + ``add_file_hash``); retargeted to
@@ -447,9 +447,9 @@ class TestSetNodeClass:
 
 
 class TestAutoClassify:
-    """NOTE (sqlite-migration-scitex-clew-20260828 PR 4 — accepted behavior
+    """NOTE (the 2026-08-28 store migration, node-class PR — accepted behavior
     change): the pre-migration ``_setup_db`` helper hand-created a raw
-    sqlite3 ``file_hashes`` table and bulk-inserted rows directly. Now that
+    file_hashes table and bulk-inserted rows directly. Now that
     ``file_hashes`` is a ``scitex_dev.store.Store`` table, rows only exist
     once written through the real API (``add_run`` + ``add_file_hash``);
     retargeted to seed via that API and to read results back via

@@ -67,9 +67,9 @@ def _add_completed_run(
 ) -> None:
     """Add a completed run with the given wall-clock duration.
 
-    NOTE (sqlite-migration-scitex-clew-20260828 — final cleanup):
+    NOTE (the 2026-08-28 store migration — final cleanup):
     `_estimate.py`'s queries read `db._runs` (a `scitex_dev.store.Store`)
-    exclusively; the legacy raw-sqlite mirror `db._connect()` used to
+    exclusively; the legacy raw-file mirror `db._connect()` used to
     expose (now removed entirely) never enters the picture. Overwrite
     started_at/finished_at through the Store's own partial-update path
     (`Store.put()` with only session_id + the two timestamp fields,
