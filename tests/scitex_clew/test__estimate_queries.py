@@ -31,7 +31,6 @@ PA-307: one assertion per test, shared setup lifted into helper functions.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from pathlib import Path
 
 from scitex_dev.store import ANY_REVISION
 
@@ -40,8 +39,9 @@ from scitex_clew._estimate import _cached_intermediate_hints
 from scitex_clew._hash import hash_file as _hf
 
 
-def _make_db(tmp_path: Path) -> VerificationDB:
-    return VerificationDB(tmp_path / "test_queries.db")
+def _make_db() -> VerificationDB:
+    """Open the per-test database (own PostgreSQL schema, see conftest)."""
+    return VerificationDB()
 
 
 def _iso(dt: datetime) -> str:
@@ -73,7 +73,7 @@ def _hints_two_producers_same_file_path(tmp_path):
     the on-disk file). Consumer c1 inputs the CURRENT content (v2), which
     only matches what p2 recorded — p1's recorded hash is now stale."""
     shared = tmp_path / "shared.csv"
-    db = _make_db(tmp_path)
+    db = _make_db()
 
     shared.write_text("v1")
     hash_v1 = _hf(shared)
@@ -129,7 +129,7 @@ class TestProducerSessionExcludesSelf:
         # own output and its own input (fh2.session_id != sid must exclude it).
         artifact = tmp_path / "self.csv"
         artifact.write_text("data")
-        db = _make_db(tmp_path)
+        db = _make_db()
         h = _hf(artifact)
         _run_at(db, "self1", "/self.py", datetime(2026, 1, 1, 9, 0, 0))
         db.add_file_hash("self1", str(artifact), h, "output")
@@ -155,7 +155,7 @@ def _hints_orphan_vs_good_producer(tmp_path):
     orphan_file.write_text("orphan data")
     good_file = tmp_path / "good.csv"
     good_file.write_text("good data")
-    db = _make_db(tmp_path)
+    db = _make_db()
 
     orphan_hash = _hf(orphan_file)
     db.add_file_hash("orphan-producer", str(orphan_file), orphan_hash, "output")
@@ -205,7 +205,7 @@ def _hints_six_producers_one_consumer(tmp_path):
     by a distinct session with a distinct started_at. ORDER BY producer
     started_at DESC + LIMIT 5 (this query's own scope) must keep only the
     5 most-recently-started producers."""
-    db = _make_db(tmp_path)
+    db = _make_db()
     for i in range(1, 7):  # p1..p6, p6 started most recently
         f = tmp_path / f"file{i}.csv"
         f.write_text(f"content-{i}")
@@ -251,7 +251,7 @@ class TestLimitFivePerSessionId:
         # its own (12 producers total). If LIMIT 5 were (incorrectly) global
         # across the whole session_ids list instead of per-sid, the second
         # consumer's candidates would be starved.
-        db = _make_db(tmp_path)
+        db = _make_db()
 
         def _seed(consumer_id, prefix):
             for i in range(1, 7):
