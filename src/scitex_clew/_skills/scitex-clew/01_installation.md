@@ -1,7 +1,7 @@
 ---
 description: |
   [TOPIC] Installation
-  [DETAILS] pip install scitex-clew. Pure-stdlib + sqlite3, zero deps. Auto-integrates with @stx.session and stx.io if scitex is present.
+  [DETAILS] pip install scitex-clew. Records provenance in the per-host PostgreSQL store. Auto-integrates with @stx.session and stx.io if scitex is present.
 tags: [scitex-clew-installation]
 ---
 
@@ -13,7 +13,8 @@ tags: [scitex-clew-installation]
 pip install scitex-clew
 ```
 
-Zero dependencies — pure-stdlib + sqlite3. Works standalone.
+Provenance is stored in the per-host PostgreSQL instance, reached through
+`scitex_dev.store.host_store()`.
 
 ## Optional (auto-integration)
 
@@ -32,16 +33,18 @@ clew status                                # git-status-like overview
 python -c "import scitex_clew; print(scitex_clew.__version__)"
 ```
 
-## Database location
+## Store location
 
-By default at `<project_root>/.scitex/clew/runtime/clew.db`, where the
-project root is found by walking up from the cwd to the nearest directory
-containing `.git` or `pyproject.toml` (fallback: cwd itself). A legacy
-`db.sqlite` (either `runtime/db.sqlite` or the flat
-`<project_root>/.scitex/clew/db.sqlite`) auto-migrates to `clew.db` on
-first open (WAL-safe: checkpoint-then-rename).
-Precedence: explicit `db_path` arg > `SCITEX_CLEW_DB_PATH` env var > this
-project-root walk. See [20_env-vars.md](20_env-vars.md) for details.
+clew has **no database file**. Its four stores (`runs`, `file_hashes`,
+`claims`, `citations`, …) resolve through
+`scitex_dev.store.host_store()`: `SCITEX_STORE_DSN` if set, otherwise the
+per-host PostgreSQL over its UNIX socket. See
+[20_env-vars.md](20_env-vars.md) for details.
+
+Storage is per-HOST; records stay per-project. Every project on one machine
+shares the one database, and a `project` identity column keeps their
+records apart — `SCITEX_CLEW_PROJECT` overrides it, defaulting to the
+project-root path. `SCITEX_CLEW_DB_PATH` is retired and has no effect.
 
 ## Editable install (development)
 

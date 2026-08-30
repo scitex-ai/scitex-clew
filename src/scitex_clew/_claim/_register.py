@@ -138,7 +138,7 @@ def add_claim(
     # PARTIAL update instead (omitted fields are left alone), so both are
     # passed explicitly here to keep that same reset-on-overwrite behavior.
     db = get_db()
-    store = _open_store(db.db_path)
+    store = _open_store()
     try:
         store.put(
             {
@@ -161,7 +161,7 @@ def add_claim(
 
     # Auto-export the canonical claims.json so consumers (verifier,
     # scitex-writer, human eyes) can read a stable artifact without
-    # talking to sqlite. Default ON; opt out with
+    # talking to the store. Default ON; opt out with
     # SCITEX_CLEW_AUTO_EXPORT_CLAIMS=0 if you're streaming thousands of
     # claims and the per-call rewrite cost matters. The cost is O(N×K)
     # where N is total claims in the DB and K is rewrite size — for
@@ -224,8 +224,6 @@ def list_claims(
     -------
     list of Claim
     """
-    db = get_db()
-
     resolved_file_path = str(Path(file_path).resolve()) if file_path else None
     resolved_prefix = None
     if file_path_prefix:
@@ -234,7 +232,7 @@ def list_claims(
         if not resolved_prefix.endswith("/"):
             resolved_prefix = resolved_prefix + "/"
 
-    store = _open_store(db.db_path)
+    store = _open_store()
     try:
         rows = store.rows()
     finally:
@@ -263,7 +261,7 @@ def list_claims(
             continue
         matched.append(row)
 
-    # ORDER BY file_path, line_number — SQLite sorts NULL line_number first
+    # ORDER BY file_path, line_number — NULL line_number sorts first
     # in ascending order, mirrored here as a (is_not_none, value) key.
     matched.sort(
         key=lambda r: (

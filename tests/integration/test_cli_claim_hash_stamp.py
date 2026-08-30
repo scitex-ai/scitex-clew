@@ -5,7 +5,8 @@
 Strategy
 --------
 - Use ``click.testing.CliRunner`` to drive every subcommand in-process.
-- Inject an isolated temp DB via ``set_db()`` so claims/stamps don't leak.
+- The autouse ``isolated_store`` fixture (tests/conftest.py) gives each test
+  its own throwaway PostgreSQL schema, so claims/stamps don't leak.
 - Cover happy path + at least one error path per command.
 """
 
@@ -18,9 +19,8 @@ import pytest
 # PA-303: click is in the [cli] extra (not [project] deps).
 CliRunner = pytest.importorskip("click.testing").CliRunner
 
-import scitex_clew._db as _db_module
 from scitex_clew._cli._main import main
-from scitex_clew._db import set_db
+from scitex_clew._db import get_db
 
 
 # ---------------------------------------------------------------------------
@@ -29,11 +29,8 @@ from scitex_clew._db import set_db
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    db_path = tmp_path / "f1_cli.db"
-    set_db(db_path)
-    yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
+def isolated_db(isolated_store):
+    return get_db()
 
 
 @pytest.fixture

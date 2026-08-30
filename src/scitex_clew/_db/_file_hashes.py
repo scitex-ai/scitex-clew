@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# Timestamp: "2026-08-28 (sqlite-migration-scitex-clew-20260828)"
+# Timestamp: "2026-08-29 (clew-postgres-store-migration)"
 # File: src/scitex_clew/_db/_file_hashes.py
 """File-hash record operations for VerificationDB (Store-backed).
 
 Every read is ``self._file_hashes.rows()`` (a ``scitex_dev.store.Store``
 built in ``_core.py``) filtered/sorted in Python — Store has no
 WHERE/JOIN/ORDER-BY. This is an accepted O(n)-scan trade-off for what is
-normally a small per-project DB (see the PR body). No sqlite3 import here
-(sqlite-migration-scitex-clew-20260828 cleanup: the legacy raw-sqlite
+normally a small store (see the PR body). No raw DB driver import here
+(the legacy raw
 `file_hashes` mirror and its `_mirror_file_hash` helper are gone).
 """
 

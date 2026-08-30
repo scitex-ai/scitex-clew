@@ -9,8 +9,7 @@ import json
 
 import pytest
 
-import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
+from scitex_clew._db import get_db
 
 
 def _run(coro):
@@ -27,11 +26,8 @@ def _get_tools(mcp):
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    db_path = tmp_path / "f1_mcp.db"
-    set_db(db_path)
-    yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
+def isolated_db(isolated_store):
+    return get_db()
 
 
 @pytest.fixture

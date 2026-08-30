@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-# Timestamp: "2026-08-28 (sqlite-migration-scitex-clew-20260828)"
+# Timestamp: "2026-08-29 (clew-postgres-store-migration)"
 # File: src/scitex_clew/_db/_queries.py
 """Verification recording, history, and statistics queries (Store-backed).
 
 Every read is ``self._verifications.rows()`` / ``self._runs.rows()`` /
 ``self._file_hashes.rows()`` (``scitex_dev.store.Store`` instances built in
 ``_core.py``) filtered/sorted/counted in Python — Store has no
-WHERE/JOIN/ORDER-BY/COUNT. No sqlite3 import here.
+WHERE/JOIN/ORDER-BY/COUNT.
 
 ``verification_results`` uses a synthetic uuid4 IDENTITY (``verification_id``)
 rather than a composite of (session_id, level, verified_at): the original
@@ -121,7 +121,11 @@ class VerificationQueryMixin:
             "failed_runs": sum(1 for r in runs if r.values.get("status") == "failed"),
             "total_file_records": len(file_hashes),
             "unique_files": len({r.values.get("file_path") for r in file_hashes}),
-            "db_path": str(self.db_path),
+            # Was ``"db_path": str(self.db_path)``. There is no database file;
+            # ``describe()`` is the store primitive's own credential-free
+            # one-liner, so this reports WHICH store answered without ever
+            # printing a DSN password into stdout or an MCP tool result.
+            "store": self._runs.target.describe(),
         }
 
 

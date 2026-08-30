@@ -7,7 +7,7 @@ Exercises the OPT-IN gate through the public surfaces a harness uses:
 (resolved_status/color), monotonicity, precedence vs hash failures, and the
 ``clew register-source`` / ``list-sources`` CLI round-trip.
 
-Per PA-306 §3 (no mocks): real isolated DB, real manifest on disk, real
+Per PA-306 §3 (no mocks): real isolated store, real manifest on disk, real
 chain walk. Lives under tests/integration/ (out of the src<->test mirror
 scope) because it spans _sources + _claim + _cli.
 """
@@ -21,26 +21,23 @@ import pytest
 from click.testing import CliRunner
 
 import scitex_clew as clew
-import scitex_clew._db as _db_module
 from scitex_clew._cli import _exit_codes as codes
 from scitex_clew._cli._main import main
-from scitex_clew._db import set_db
+from scitex_clew._db import get_db
 from scitex_clew._hash import hash_file
 from scitex_clew._sources._manifest import SOURCES_SCHEMA, full_sha256
 
 
 @pytest.fixture(autouse=True)
-def sandbox(tmp_path):
-    """Isolated DB + isolated sources manifest, both cleaned up."""
+def sandbox(tmp_path, isolated_store):
+    """Isolated store (per-test schema) + isolated sources manifest."""
     prev_export = os.environ.get("SCITEX_CLEW_AUTO_EXPORT_CLAIMS")
     prev_sources = os.environ.get("SCITEX_CLEW_SOURCES")
     os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = "0"
     os.environ["SCITEX_CLEW_SOURCES"] = str(
         tmp_path / ".scitex" / "clew" / "sources.json"
     )
-    set_db(tmp_path / ".scitex" / "clew" / "runtime" / "clew.db")
-    yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
+    yield get_db()
     for key, prev in (
         ("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", prev_export),
         ("SCITEX_CLEW_SOURCES", prev_sources),

@@ -89,8 +89,9 @@ How It Works
 ------------
 
 1. **Recording**: During a session, Clew computes SHA-256 hashes of all input
-   and output files, storing them alongside session metadata in a local SQLite
-   database.
+   and output files, storing them alongside session metadata in the store this
+   host uses — the per-host PostgreSQL, resolved by
+   ``scitex_dev.store.host_store()``.
 
 2. **Verification**: At any point, you can verify a session by recomputing
    hashes and comparing them to the recorded values. If any file has changed,
@@ -159,9 +160,10 @@ Architecture
    │    _hash.py    _chain/     _claim/    _attest/   │
    │    _tracker.py _rerun.py   _estimate.py          │
    ├─────────────────────────────────────────────────┤
-   │  Storage: SQLite (db.sqlite)                      │
+   │  Storage: per-host PostgreSQL (host_store())      │
    │    runs, file_hashes, session_parents, claims    │
    └─────────────────────────────────────────────────┘
 
-**Zero dependencies** — pure stdlib + sqlite3. Optional extras: ``click`` (CLI),
+Provenance lives in the per-host PostgreSQL store, reached through
+``scitex_dev.store.host_store()``. Optional extras: ``click`` (CLI),
 ``fastmcp`` (MCP server), ``sphinx`` (docs).

@@ -56,7 +56,7 @@ tracker.
 
 ## Semantics
 
-- **Zero-dep:** uses `hashlib` + sqlite only. No numpy/h5py/scitex import.
+- **Zero-dep:** uses `hashlib` + the store only. No numpy/h5py/scitex import.
 - **Not competing with `@stx.session`:** this is clew's OWN recorder writing
   clew's OWN `runs`/`file_hashes` tables — the *inverse* of the observer seam
   (instead of `@stx.session` firing hooks into clew, you call clew directly). It

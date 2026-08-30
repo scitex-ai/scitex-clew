@@ -100,12 +100,12 @@ def add_citation(
     ensure_citations_table(db)
 
     # INSERT OR REPLACE never named registered_at in its column list, so on
-    # every (re-)registration SQLite filled the DDL default
+    # every (re-)registration the DDL default was filled in
     # (CURRENT_TIMESTAMP) rather than preserving the prior value — i.e. it
     # was always reset to "now". Preserve that exact behavior explicitly,
     # since `store.put` is a partial update (an omitted field is left alone,
     # not reset).
-    with citations_store(db.db_path) as store:
+    with citations_store() as store:
         store.put(
             {
                 "cite_key": citation.cite_key,
@@ -137,7 +137,7 @@ def list_citations(
     db = get_db()
     ensure_citations_table(db)
 
-    with citations_store(db.db_path) as store:
+    with citations_store() as store:
         rows = store.rows(include_hidden=False)
 
     if manuscript_file:

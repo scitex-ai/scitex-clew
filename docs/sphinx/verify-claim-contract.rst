@@ -178,25 +178,33 @@ exported claims.json instead of hardcoding.
 Database selection precedence
 -----------------------------
 
-``resolve_db_path()`` (``src/scitex_clew/_db/_core.py``) resolves the
-store in three tiers:
+``scitex_dev.store.host_store()`` resolves the store in two steps:
 
-1. Explicit ``db_path`` — ``VerificationDB(db_path=...)`` and, new in
-   0.7.0, ``render_dag(..., db_path=...)``.
-2. The ``SCITEX_CLEW_DB_PATH`` environment variable.
-3. Project-root walk from the current working directory (nearest
-   ancestor containing ``.git`` or ``pyproject.toml``) →
-   ``<root>/.scitex/clew/runtime/db.sqlite``.
+1. The ``SCITEX_STORE_DSN`` environment variable, if set — an explicit
+   override wins outright.
+2. Otherwise the per-host PostgreSQL over its UNIX socket.
+
+There is deliberately no third step and no local-file fallback. clew has
+no database file, no ``db_path`` argument anywhere, and no
+``SCITEX_CLEW_DB_PATH`` (retired).
 
 Host-side re-verify recipe:
 
 .. code-block:: python
 
-   # HOST owns git: check out the pinned commit, point clew at the bundle DB.
+   # HOST owns git: check out the pinned commit, then re-verify.
    subprocess.run(["git", "-C", bundle_root, "checkout", pinned_commit], check=True)
-   os.environ["SCITEX_CLEW_DB_PATH"] = f"{bundle_root}/.scitex/clew/runtime/db.sqlite"
    result = clew.verify_claim(claim_id)
    claim_status = result.get("claim", {}).get("status")   # not result["status"]
+
+.. note::
+
+   A capability this recipe lost. Before the Postgres migration a bundle
+   carried its OWN database file, so a host could re-verify a bundle
+   produced elsewhere by pointing clew at that file. Provenance now lives
+   in the host store and a bundle carries none, so the claims re-verified
+   are the ones recorded on the host doing the verifying. The file
+   re-hashing above is unaffected.
 
 See also the ``scitex-clew`` skill page
 ``05_verify-claim-contract.md`` for the same contract in skill form.

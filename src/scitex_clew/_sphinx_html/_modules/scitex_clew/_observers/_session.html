@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew._observers._session &mdash; SciTeX Clew v0.2.16</title>
+  <title>scitex_clew._observers._session &mdash; SciTeX Clew v0.0.0</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=e2418eca"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -68,7 +68,16 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#three-verification-modes">Three Verification Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../grouping.html">Grouping</a><ul>
@@ -108,11 +117,43 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
@@ -150,7 +191,6 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
-          <li class="breadcrumb-item"><a href="../../scitex_clew.html">scitex_clew</a></li>
       <li class="breadcrumb-item active">scitex_clew._observers._session</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -162,7 +202,7 @@
              
   <h1>Source code for scitex_clew._observers._session</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
-<span class="sd">&quot;&quot;&quot;Session lifecycle hooks for scitex-clew.</span>
+<span class="sd">"""Session lifecycle hooks for scitex-clew.</span>
 
 <span class="sd">These thin wrappers are invoked by ``@scitex.session`` (or any equivalent</span>
 <span class="sd">session manager) at the start and end of a run. They delegate to the</span>
@@ -170,14 +210,16 @@
 <span class="sd">and finalized (with a combined hash) on close.</span>
 
 <span class="sd">They import only scitex-clew internals; no scitex-io dependency is needed.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">getLogger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._core</span><span class="w"> </span><span class="kn">import</span> <span class="n">getLogger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._tracker</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_tracker</span><span class="p">,</span> <span class="n">start_tracking</span><span class="p">,</span> <span class="n">stop_tracking</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -192,7 +234,7 @@
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Hook called when a session starts.</span>
 
 <span class="sd">    Parameters</span>
@@ -207,7 +249,7 @@
 <span class="sd">        Whether to log status messages</span>
 <span class="sd">    metadata : dict, optional</span>
 <span class="sd">        Additional metadata (e.g. notebook_path, cell_index)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">start_tracking</span><span class="p">(</span>
             <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
@@ -217,19 +259,19 @@
         <span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not start verification tracking: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Could not start verification tracking: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="on_session_close">
 <a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.on_session_close">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">on_session_close</span><span class="p">(</span>
-    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;success&quot;</span><span class="p">,</span>
+    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"success"</span><span class="p">,</span>
     <span class="n">exit_code</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">register</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Hook called when a session closes.</span>
 
 <span class="sd">    Parameters</span>
@@ -243,41 +285,112 @@
 <span class="sd">    register : bool, optional</span>
 <span class="sd">        If True, register session hashes with remote Clew Registry.</span>
 <span class="sd">        If None, checks SCITEX_AUTO_REGISTER environment variable.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">tracker</span> <span class="o">=</span> <span class="n">get_tracker</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span><span class="p">:</span>
+            <span class="c1"># Provenance-completeness check (#45): a succeeded session that wrote</span>
+            <span class="c1"># outputs but recorded ZERO provenance is the #44-class gap. A failed</span>
+            <span class="c1"># session's incomplete recording is expected, so only check success.</span>
+            <span class="n">_warn_if_unrecorded_outputs</span><span class="p">(</span><span class="n">tracker</span><span class="p">)</span>
         <span class="n">stop_tracking</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">exit_code</span><span class="o">=</span><span class="n">exit_code</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">_should_auto_register</span><span class="p">(</span><span class="n">register</span><span class="p">)</span> <span class="ow">and</span> <span class="n">tracker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">_auto_register_session</span><span class="p">(</span><span class="n">tracker</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not stop verification tracking: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Could not stop verification tracking: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_warn_if_unrecorded_outputs</span><span class="p">(</span><span class="n">tracker</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""WARN if the session wrote outputs but recorded ZERO output provenance.</span>
+
+<span class="sd">    The provenance-completeness citizen (#45). The INDEPENDENT saves signal is</span>
+<span class="sd">    the session OUTPUT DIR (passed via ``metadata["output_dir"]`` and populated</span>
+<span class="sd">    by the save itself) — so it fires precisely when clew's ``on_io_save`` did</span>
+<span class="sd">    NOT record (the #44 gap: ``@stx.session`` + ``stx.io.save`` but empty</span>
+<span class="sd">    file_hashes), which an on_io_save-derived counter is blind to. Predicate:</span>
+
+<span class="sd">        output_dir has &gt;=1 file  AND  tracker recorded 0 outputs  -&gt;  WARN</span>
+
+<span class="sd">    False-positive-free: a read-only / zero-output session has an empty/absent</span>
+<span class="sd">    output dir and stays silent. DEFENSIVE: silently skips when ``output_dir`` is</span>
+<span class="sd">    absent from metadata (a pre-enabler scitex-session, or any caller that does</span>
+<span class="sd">    not send it), so it is inert-safe until that signal exists and lights up the</span>
+<span class="sd">    moment it does. Never raises.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">tracker</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">tracker</span><span class="p">,</span> <span class="s2">"_outputs"</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">or</span> <span class="p">{})</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>  <span class="c1"># provenance WAS recorded -&gt; no gap</span>
+        <span class="n">run</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="n">tracker</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">run</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">meta</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">meta</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">meta</span><span class="p">)</span> <span class="k">if</span> <span class="n">meta</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="n">output_dir</span> <span class="o">=</span> <span class="p">(</span><span class="n">meta</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"output_dir"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">output_dir</span><span class="p">:</span>
+            <span class="k">return</span>  <span class="c1"># no independent saves signal yet -&gt; skip</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+            <span class="n">dirs</span> <span class="o">=</span> <span class="p">[</span><span class="n">out</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># The RUNNING output dir may have MOVED to &lt;base&gt;/&lt;final-status&gt;/&lt;id&gt;</span>
+            <span class="c1"># by the time this close-hook fires (the RUNNING-&gt;FINISHED rename);</span>
+            <span class="c1"># resolve by globbing sibling status subdirs for the same session-id</span>
+            <span class="c1"># leaf. Best-effort + inert-safe (no match -&gt; skip), so the check is</span>
+            <span class="c1"># robust regardless of close-hook-vs-move ordering.</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+            <span class="n">dirs</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">"*/</span><span class="si">{</span><span class="n">out</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()]</span>
+                <span class="k">if</span> <span class="n">base</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span>
+                <span class="k">else</span> <span class="p">[]</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">dirs</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">file_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="mi">1</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dirs</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="s2">"*"</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">file_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>  <span class="c1"># session wrote nothing -&gt; no gap</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"clew: session </span><span class="si">%s</span><span class="s2"> wrote </span><span class="si">%d</span><span class="s2"> output file(s) under </span><span class="si">%s</span><span class="s2"> but recorded ZERO "</span>
+            <span class="s2">"provenance — outputs were saved outside a live @stx.session tracker "</span>
+            <span class="s2">"(wrap saves in @stx.session, or check the scitex-io observer wiring). "</span>
+            <span class="s2">"The submission gate will treat these outputs as UNSOURCED."</span><span class="p">,</span>
+            <span class="n">tracker</span><span class="o">.</span><span class="n">session_id</span><span class="p">,</span>
+            <span class="n">file_count</span><span class="p">,</span>
+            <span class="n">output_dir</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># completeness is a nicety — never break close</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"clew: session-close completeness check skipped: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
 
 
 <span class="c1"># ── Registry helpers ──</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_should_auto_register</span><span class="p">(</span><span class="n">register</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check whether auto-registration is enabled.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Check whether auto-registration is enabled."""</span>
     <span class="k">if</span> <span class="n">register</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">register</span>
 
-    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SCITEX_AUTO_REGISTER&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span>
-        <span class="s2">&quot;1&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;true&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;yes&quot;</span><span class="p">,</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"SCITEX_AUTO_REGISTER"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="s2">"1"</span><span class="p">,</span>
+        <span class="s2">"true"</span><span class="p">,</span>
+        <span class="s2">"yes"</span><span class="p">,</span>
     <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_auto_register_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Register session hashes with remote Clew Registry (fire-and-forget).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Register session hashes with remote Clew Registry (fire-and-forget)."""</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">.._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_registry</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.._attest._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_registry</span>
 
         <span class="n">get_registry</span><span class="p">()</span><span class="o">.</span><span class="n">register_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;clew: failed to auto-register session </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"clew: failed to auto-register session </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
 
 
 <span class="c1"># EOF</span>

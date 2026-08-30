@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; SciTeX Clew v0.2.16</title>
+  <title>Index &mdash; SciTeX Clew v0.0.0</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=e2418eca"></script>
+      <script src="_static/documentation_options.js?v=7026087e"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -68,7 +68,16 @@
 <li class="toctree-l2"><a class="reference internal" href="concepts.html#three-verification-modes">Three Verification Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
 <li class="toctree-l2"><a class="reference internal" href="concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="grouping.html">Grouping</a><ul>
@@ -108,11 +117,43 @@
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
@@ -163,7 +204,8 @@
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
- <a href="#A"><strong>A</strong></a>
+ <a href="#_"><strong>_</strong></a>
+ | <a href="#A"><strong>A</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
@@ -172,15 +214,34 @@
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#O"><strong>O</strong></a>
+ | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
+ | <a href="#T"><strong>T</strong></a>
+ | <a href="#U"><strong>U</strong></a>
  | <a href="#V"><strong>V</strong></a>
  
 </div>
+<h2 id="_">_</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.__init__">__init__() (scitex_clew.SourcesManifest method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.active">active (scitex_clew.SourcesManifest property)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.add_citation">add_citation() (in module scitex_clew)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/scitex_clew.html#scitex_clew.add_claim">add_claim() (in module scitex_clew)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths">anchor_paths() (scitex_clew.SourcesManifest method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -208,7 +269,15 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.entries">entries (scitex_clew.SourcesManifest attribute)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.estimate">estimate() (in module scitex_clew)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/scitex_clew.html#scitex_clew.export_claims_json">export_claims_json() (in module scitex_clew)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.export_manuscript_claims">export_manuscript_claims() (in module scitex_clew)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -231,18 +300,30 @@
       <li><a href="api/scitex_clew.html#scitex_clew.init_examples">init_examples() (in module scitex_clew)</a>
 </li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries">invalid_entries (scitex_clew.SourcesManifest property)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.is_grounded">is_grounded() (in module scitex_clew)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.list_citations">list_citations() (in module scitex_clew)</a>
+</li>
       <li><a href="api/scitex_clew.html#scitex_clew.list_claims">list_claims() (in module scitex_clew)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.list_runs">list_runs() (in module scitex_clew)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/scitex_clew.html#scitex_clew.list_runs">list_runs() (in module scitex_clew)</a>
+      <li><a href="api/scitex_clew.html#scitex_clew.list_sources">list_sources() (in module scitex_clew)</a>
 </li>
       <li><a href="api/scitex_clew.html#scitex_clew.list_stamps">list_stamps() (in module scitex_clew)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.load_sources_manifest">load_sources_manifest() (in module scitex_clew)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -276,10 +357,26 @@
   </ul></td>
 </tr></table>
 
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.path">path (scitex_clew.SourcesManifest attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for">pinned_for() (scitex_clew.SourcesManifest method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/scitex_clew.html#scitex_clew.register_intermediate">register_intermediate() (in module scitex_clew)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.register_source">register_source() (in module scitex_clew)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.remove_claim">remove_claim() (in module scitex_clew)</a>
 </li>
       <li><a href="api/scitex_clew.html#scitex_clew.rerun">rerun() (in module scitex_clew)</a>
 </li>
@@ -289,6 +386,10 @@
 </li>
       <li><a href="api/scitex_clew.html#scitex_clew.rerun_dag">rerun_dag() (in module scitex_clew)</a>
 </li>
+      <li><a href="api/scitex_clew.html#scitex_clew.resolve_sources_path">resolve_sources_path() (in module scitex_clew)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.root">root (scitex_clew.SourcesManifest attribute)</a>
+</li>
       <li><a href="api/scitex_clew.html#scitex_clew.run">run() (in module scitex_clew)</a>
 </li>
   </ul></td>
@@ -297,6 +398,8 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.schema">schema (scitex_clew.SourcesManifest attribute)</a>
+</li>
       <li>
     scitex_clew
 
@@ -304,13 +407,39 @@
         <li><a href="api/scitex_clew.html#module-scitex_clew">module</a>
 </li>
       </ul></li>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.signature">signature (scitex_clew.SourcesManifest attribute)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid">signature_valid (scitex_clew.SourcesManifest attribute)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced">signing_enforced (scitex_clew.SourcesManifest attribute)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest">SourcesManifest (class in scitex_clew)</a>
+</li>
       <li><a href="api/scitex_clew.html#scitex_clew.stamp">stamp() (in module scitex_clew)</a>
 </li>
       <li><a href="api/scitex_clew.html#scitex_clew.stats">stats() (in module scitex_clew)</a>
 </li>
       <li><a href="api/scitex_clew.html#scitex_clew.status">status() (in module scitex_clew)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.supersede_claim">supersede_claim() (in module scitex_clew)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="T">T</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.trusted">trusted (scitex_clew.SourcesManifest property)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.unregister_source">unregister_source() (in module scitex_clew)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -318,6 +447,16 @@
 <h2 id="V">V</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries">valid_entries (scitex_clew.SourcesManifest property)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.verify_all_citations">verify_all_citations() (in module scitex_clew)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/scitex_clew.html#scitex_clew.verify_all_claims">verify_all_claims() (in module scitex_clew)</a>
+</li>
+      <li><a href="api/scitex_clew.html#scitex_clew.verify_citations">verify_citations() (in module scitex_clew)</a>
+</li>
       <li><a href="api/scitex_clew.html#scitex_clew.verify_claim">verify_claim() (in module scitex_clew)</a>
 </li>
   </ul></td>

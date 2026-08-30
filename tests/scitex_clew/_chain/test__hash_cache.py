@@ -27,13 +27,11 @@ Design (PA-306 §3 no-mocks):
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Dict
 
 import pytest
 
-import scitex_clew as clew
 from scitex_clew._chain._dag import verify_dag
 from scitex_clew._chain._verify_ops import verify_file, verify_run
 from scitex_clew._db import VerificationDB
@@ -46,28 +44,14 @@ from scitex_clew._hash import hash_file
 
 
 @pytest.fixture
-def isolated_db(tmp_path):
-    """Provide a fresh VerificationDB in a temporary directory.
+def isolated_db():
+    """Provide a VerificationDB bound to this test's isolated store.
 
-    Sets SCITEX_CLEW_DB_PATH and resets the module-level singleton so
-    subsequent get_db() calls use the test DB.
+    The autouse ``isolated_store`` fixture (tests/conftest.py) already puts
+    every test in its own throwaway PostgreSQL schema, so the DB takes no
+    path and there is no singleton to flush.
     """
-    db_path = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-
-    prev_env = os.environ.get("SCITEX_CLEW_DB_PATH")
-    os.environ["SCITEX_CLEW_DB_PATH"] = str(db_path)
-    clew.set_db(None)  # flush singleton
-
-    db = VerificationDB(db_path)
-    yield db
-
-    # Teardown
-    if prev_env is None:
-        os.environ.pop("SCITEX_CLEW_DB_PATH", None)
-    else:
-        os.environ["SCITEX_CLEW_DB_PATH"] = prev_env
-    clew.set_db(None)
+    return VerificationDB()
 
 
 def _write_file(path: Path, content: str) -> Path:

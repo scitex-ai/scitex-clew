@@ -85,41 +85,30 @@ def infer_node_class(file_path: str, role: str) -> Optional[str]:
     return None
 
 
-def migrate_add_node_class(db_path: Path) -> None:
+def migrate_add_node_class() -> None:
     """Ensure the ``file_hashes`` store has a ``node_class`` field.
 
-    Historically this ran ``ALTER TABLE file_hashes ADD COLUMN node_class
-    TEXT`` against the raw sqlite3 ``file_hashes`` table (idempotent via a
-    ``PRAGMA table_info`` guard). Since sqlite-migration-scitex-clew-20260828
-    PR 4, ``node_class`` is a plain (optional) field of ``FILE_HASHES_SCHEMA``
-    (see ``_db/_schema.py``) — ``Store.__init__`` creates it as a real column
-    via ``CREATE TABLE IF NOT EXISTS`` the first time a ``file_hashes`` store
-    is opened at ``db_path``, so there is no separate ALTER-TABLE step left
-    for this function to perform.
+    ``node_class`` is a plain (optional) field of ``FILE_HASHES_SCHEMA``
+    (see ``_db/_schema.py``) — ``Store.__init__`` creates it as a real
+    column the first time a ``file_hashes`` store is opened, so there is no
+    separate ALTER-TABLE step left for this function to perform.
 
     This is now effectively a no-op kept for backward-compatible call
-    sites that treat it as an idempotent "make sure the DB is ready" step:
-    constructing ``VerificationDB`` is enough to guarantee the field exists
-    on a freshly created store.
+    sites that treat it as an idempotent "make sure the store is ready"
+    step: constructing ``VerificationDB`` is enough to guarantee the field
+    exists on a freshly created store.
 
     Note: ``scitex_dev.store``'s additive-migration mechanism only
     back-fills the store's OWN internal columns (the oplog/cursor fence),
     not arbitrary new user schema fields — so a ``file_hashes`` store table
     created before ``node_class`` existed in the schema will not
-    retroactively gain the column. Not an issue for this migration (no
-    ``file_hashes`` Store table predates this field), but worth knowing if
-    a schema field is ever added to an already-deployed Store schema.
-
-    Parameters
-    ----------
-    db_path : Path
-        Path to the (scitex_dev.store-backed) database file.
+    retroactively gain the column. Worth knowing if a schema field is ever
+    added to an already-deployed Store schema.
     """
-    VerificationDB(db_path=db_path)
+    VerificationDB()
 
 
 def set_node_class(
-    db_path: Path,
     session_id: str,
     file_path: str,
     node_class: str,
@@ -128,8 +117,6 @@ def set_node_class(
 
     Parameters
     ----------
-    db_path : Path
-        Path to the (scitex_dev.store-backed) database.
     session_id : str
         Session identifier.
     file_path : str
@@ -150,7 +137,7 @@ def set_node_class(
         raise ValueError(
             f"Invalid node_class '{node_class}'. Must be one of: {NODE_CLASSES}"
         )
-    db = VerificationDB(db_path=db_path)
+    db = VerificationDB()
     matches = [
         row
         for row in db._file_hashes.rows()
@@ -169,7 +156,7 @@ def set_node_class(
         )
 
 
-def auto_classify(db_path: Path) -> int:
+def auto_classify() -> int:
     """Auto-classify all file_hashes records missing node_class.
 
     Returns
@@ -177,7 +164,7 @@ def auto_classify(db_path: Path) -> int:
     int
         Number of records updated.
     """
-    db = VerificationDB(db_path=db_path)
+    db = VerificationDB()
     updated = 0
     for row in db._file_hashes.rows():
         if row.values.get("node_class") is not None:

@@ -6,25 +6,16 @@ from __future__ import annotations
 import pytest
 
 import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
 from scitex_clew._attest._stamp import (
     STAMP_BACKENDS,
     Stamp,
+    _stamps_store,
     check_stamp,
     compute_root_hash,
     list_stamps,
     migrate_add_stamps_table,
     stamp,
 )
-
-
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    """Inject a temp DB for each test."""
-    db_path = tmp_path / "stamp_test.db"
-    set_db(db_path)
-    yield
-    _db_module._DB_INSTANCE = None
 
 
 def _add_successful_run(session_id: str, combined_hash: str = "deadbeef"):
@@ -212,50 +203,29 @@ class TestStampDataclass:
 
 
 class TestMigrateAddStampsTable:
-    # RETARGETED (sqlite-migration-scitex-clew-20260828, PR 5): `stamps` is no
-    # longer a literal raw-sqlite table — `migrate_add_stamps_table` now
-    # constructs a `scitex_dev.store.Store`, whose materialised current-state
-    # table for schema "stamps" is physically named "stamps_rows"
-    # (Dialect.rows_table: f"{schema.name}_rows"). The premise "there is a
-    # table literally named 'stamps'" no longer holds; these tests now check
-    # for the Store's rows table instead, keeping the same "table got
-    # created, idempotently" intent.
-    def test_creates_stamps_table(self, tmp_path):
+    # RETARGETED (clew's Postgres migration): `stamps` is no longer a raw
+    # table inside a store file — `migrate_add_stamps_table()` takes no path and
+    # constructs a `scitex_dev.store.Store` on the host store. There is no
+    # file to open and no table catalogue to interrogate, so the
+    # same "table got created, idempotently" intent is expressed through the
+    # Store API: a store whose backing tables exist answers `rows()` with a
+    # list instead of raising.
+    def test_creates_stamps_table(self):
         # Arrange
-        # Arrange
-        import sqlite3
+        migrate_add_stamps_table()
+        # Act
+        rows = _stamps_store().rows()
+        # Assert
+        assert isinstance(rows, list)
 
-        db_path = tmp_path / "migrate_test.db"
-        migrate_add_stamps_table(db_path)
-        conn = sqlite3.connect(str(db_path))
-        result = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='stamps_rows'"
-        ).fetchone()
-        # Act
-        # Act
-        conn.close()
-        # Assert
-        # Assert
-        assert result is not None
-
-    def test_idempotent_result_is_not_none(self, tmp_path):
+    def test_idempotent_result_is_not_none(self):
         # Arrange
-        # Arrange
-        import sqlite3
-
-        db_path = tmp_path / "migrate_test.db"
-        migrate_add_stamps_table(db_path)
-        migrate_add_stamps_table(db_path)  # Should not raise
-        conn = sqlite3.connect(str(db_path))
-        result = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='stamps_rows'"
-        ).fetchone()
+        migrate_add_stamps_table()
+        migrate_add_stamps_table()  # Should not raise
         # Act
-        # Act
-        conn.close()
+        rows = _stamps_store().rows()
         # Assert
-        # Assert
-        assert result is not None
+        assert isinstance(rows, list)
 
 
 # ---------------------------------------------------------------------------

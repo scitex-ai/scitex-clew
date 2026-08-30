@@ -13,22 +13,20 @@ from __future__ import annotations
 
 import pytest
 
-import scitex_clew._db as _db_module
 from scitex_clew._chain._types import FileVerification, RunVerification, VerificationStatus
 from scitex_clew._chain._verify_ops import verify_file, verify_run
-from scitex_clew._db import get_db, set_db
+from scitex_clew._db import get_db
 
 
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    """Fresh DB for every test; reset the global singleton after."""
-    # Arrange
-    db_path = tmp_path / "verify_ops_test.db"
-    set_db(db_path)
-    # Act
-    yield get_db()
-    # Assert (teardown)
-    _db_module._DB_INSTANCE = None
+@pytest.fixture
+def isolated_db():
+    """Hand each test the VerificationDB for its own isolated store.
+
+    The autouse ``isolated_store`` fixture (tests/conftest.py) already gives
+    every test a throwaway PostgreSQL schema, so there is nothing to wire up
+    and nothing to tear down here.
+    """
+    return get_db()
 
 
 class TestVerifyRunProvenanceSurfacing:

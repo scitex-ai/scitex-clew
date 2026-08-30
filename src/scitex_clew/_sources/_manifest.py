@@ -34,9 +34,10 @@ Manifest format (JSON)::
   (:func:`verify_signature` is a legacy no-op seam, superseded by
   ``_check_manifest_signature``.)
 
-Resolution tiers (mirrors :func:`scitex_clew._db._core.resolve_db_path`):
-tier1 explicit arg > tier2 ``$SCITEX_CLEW_SOURCES`` > tier3
-``<project_root>/.scitex/clew/sources.json``.
+Resolution tiers: tier1 explicit arg > tier2 ``$SCITEX_CLEW_SOURCES`` >
+tier3 ``<project_root>/.scitex/clew/sources.json``. (This used to be
+described as mirroring clew's store-path resolution; the store is no
+longer a file and has no path tiers, so these tiers now stand alone.)
 
 This manifest is READ by verify/export; it is NEVER written by verify or
 any agent-facing code path. The only sanctioned writer is the
@@ -182,9 +183,9 @@ def resolve_sources_path(
 ) -> Tuple[Path, str]:
     """Resolve the manifest path via the three-tier precedence.
 
-    Mirrors :func:`scitex_clew._db._core.resolve_db_path` exactly:
     tier1 explicit arg > tier2 ``$SCITEX_CLEW_SOURCES`` > tier3
-    ``<project_root>/.scitex/clew/sources.json``.
+    ``<project_root>/.scitex/clew/sources.json``. The store-path resolver
+    this once mirrored is gone — the store is not a file.
 
     Returns
     -------

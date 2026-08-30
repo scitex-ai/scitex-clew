@@ -6,8 +6,9 @@
 Strategy
 --------
 - Use click.testing.CliRunner to invoke all CLI entry points in-process.
-- Where commands call scitex_clew.* functions that touch the database, inject
-  an isolated temp DB via set_db() before each test and tear it down after.
+- Where commands call scitex_clew.* functions that touch the store, the
+  autouse ``isolated_store`` fixture (tests/conftest.py) has already given the
+  test its own throwaway PostgreSQL schema, so nothing leaks between tests.
 - MCP-related sub-commands that need fastmcp are tested by swapping the
   module-level ``fastmcp`` symbol via the hand-rolled ``_swap_attr``
   context manager (PA-306-compliant — no stdlib mock library used) so
@@ -94,9 +95,8 @@ class _CallArgs:
 click = pytest.importorskip("click")
 CliRunner = pytest.importorskip("click.testing").CliRunner
 
-import scitex_clew._db as _db_module
 from scitex_clew._cli._main import main
-from scitex_clew._db import set_db
+from scitex_clew._db import get_db
 
 
 # ---------------------------------------------------------------------------
@@ -105,17 +105,16 @@ from scitex_clew._db import set_db
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    """Inject a fresh temp DB as the global singleton for every test.
+def isolated_db(isolated_store):
+    """Hand the test the store bound to its own throwaway schema.
 
-    This prevents any CLI command that calls scitex_clew.status() /
-    clew.list_runs() / clew.stats() / clew.mermaid() from touching the
-    developer's real database.
+    Isolation itself comes from the autouse ``isolated_store`` fixture in
+    tests/conftest.py; depending on it here only pins the ordering, so the
+    ``VerificationDB`` handed out below is the one bound to THIS test's
+    schema. No CLI command that calls scitex_clew.status() / clew.list_runs()
+    / clew.stats() / clew.mermaid() can reach the developer's real store.
     """
-    db_path = tmp_path / "cli_test.db"
-    set_db(db_path)
-    yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
+    return get_db()
 
 
 @pytest.fixture

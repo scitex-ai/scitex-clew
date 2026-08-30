@@ -316,39 +316,37 @@ class TestInferNodeClass:
 
 
 class TestMigrateAddNodeClass:
-    """NOTE (sqlite-migration-scitex-clew-20260828 PR 4 — accepted behavior
-    change): the pre-migration tests here hand-created a raw sqlite3
+    """NOTE (the 2026-08-28 store migration, node-class PR — accepted behavior
+    change): the pre-migration tests here hand-created a raw
     ``file_hashes`` table (no ``node_class`` column) and asserted that
     ``migrate_add_node_class`` ran ``ALTER TABLE ... ADD COLUMN`` against
     it, checking ``PRAGMA table_info`` before/after. That premise no longer
     holds: ``node_class`` is now a plain field of ``FILE_HASHES_SCHEMA``
     (see ``_db/_schema.py``), created as a real column by
     ``Store.__init__``'s ``CREATE TABLE IF NOT EXISTS`` the moment a
-    ``file_hashes`` store is opened — there is no more separate raw-sqlite
+    ``file_hashes`` store is opened — there is no more separate raw-file
     ``file_hashes`` table for this function to inspect or ALTER. Retargeted
     to verify what IS still true: the call is a safe, idempotent way to
     ensure the DB is ready, and the ``node_class`` field it used to "add"
     is genuinely usable end-to-end afterward.
     """
 
-    def test_is_idempotent_and_does_not_raise(self, tmp_path):
+    def test_is_idempotent_and_does_not_raise(self):
         # Arrange
-        db_path = tmp_path / "test.db"
         # Act
-        migrate_add_node_class(db_path)
-        migrate_add_node_class(db_path)
+        migrate_add_node_class()
+        migrate_add_node_class()
         # Assert — reaching here without raising is the assertion.
         assert True
 
-    def test_node_class_field_usable_after_migrate(self, tmp_path):
+    def test_node_class_field_usable_after_migrate(self):
         # Arrange
-        db_path = tmp_path / "test.db"
-        migrate_add_node_class(db_path)
-        db = VerificationDB(db_path)
+        migrate_add_node_class()
+        db = VerificationDB()
         db.add_run("sess1", "/path/script.py")
         db.add_file_hash("sess1", "/path/data.csv", "abc123", "input")
         # Act
-        set_node_class(db_path, "sess1", "/path/data.csv", "input")
+        set_node_class("sess1", "/path/data.csv", "input")
         matches = [
             row
             for row in db._file_hashes.rows()
@@ -364,9 +362,9 @@ class TestMigrateAddNodeClass:
 
 
 class TestSetNodeClass:
-    """NOTE (sqlite-migration-scitex-clew-20260828 PR 4 — accepted behavior
+    """NOTE (the 2026-08-28 store migration, node-class PR — accepted behavior
     change): the pre-migration ``_setup_db`` helper hand-created a raw
-    sqlite3 ``file_hashes`` table and inserted a row directly, bypassing
+    file_hashes table and inserted a row directly, bypassing
     ``VerificationDB``. Now that ``file_hashes`` is a
     ``scitex_dev.store.Store`` table, records only exist once written
     through the real API (``add_run`` + ``add_file_hash``); retargeted to
@@ -374,19 +372,18 @@ class TestSetNodeClass:
     ``db._file_hashes.rows()`` instead of raw SQL.
     """
 
-    def _setup_db(self, db_path):
+    def _setup_db(self):
         """Create a real VerificationDB with one file_hash record."""
-        db = VerificationDB(db_path)
+        db = VerificationDB()
         db.add_run("sess1", "/path/script.py")
         db.add_file_hash("sess1", "/path/data.csv", "abc123", "input")
         return db
 
-    def test_set_valid_node_class(self, tmp_path):
+    def test_set_valid_node_class(self):
         # Arrange
-        db_path = tmp_path / "test.db"
-        db = self._setup_db(db_path)
+        db = self._setup_db()
         # Act
-        set_node_class(db_path, "sess1", "/path/data.csv", "input")
+        set_node_class("sess1", "/path/data.csv", "input")
         matches = [
             row
             for row in db._file_hashes.rows()
@@ -395,15 +392,14 @@ class TestSetNodeClass:
         # Assert
         assert matches[0].values["node_class"] == "input"
 
-    def test_set_all_valid_classes(self, tmp_path):
+    def test_set_all_valid_classes(self):
         # Arrange
         # Act
         # Assert
         for nc in NODE_CLASSES:
-            db_path = tmp_path / f"test_{nc}.db"
-            db = self._setup_db(db_path)
+            db = self._setup_db()
 
-            set_node_class(db_path, "sess1", "/path/data.csv", nc)
+            set_node_class("sess1", "/path/data.csv", nc)
 
             matches = [
                 row
@@ -412,17 +408,16 @@ class TestSetNodeClass:
             ]
             assert matches[0].values["node_class"] == nc
 
-    def test_multiple_roles_same_session_and_file_all_updated(self, tmp_path):
+    def test_multiple_roles_same_session_and_file_all_updated(self):
         # Arrange — the WHERE clause is (session_id, file_path) only, not the
         # full (session_id, file_path, role) composite identity, so a file
         # recorded under two roles in one session gets BOTH rows updated.
-        db_path = tmp_path / "test.db"
-        db = VerificationDB(db_path)
+        db = VerificationDB()
         db.add_run("sess1", "/path/script.py")
         db.add_file_hash("sess1", "/path/shared.csv", "hash-in", "input")
         db.add_file_hash("sess1", "/path/shared.csv", "hash-out", "output")
         # Act
-        set_node_class(db_path, "sess1", "/path/shared.csv", "processing")
+        set_node_class("sess1", "/path/shared.csv", "processing")
         matches = [
             row
             for row in db._file_hashes.rows()
@@ -434,13 +429,12 @@ class TestSetNodeClass:
             row.values["node_class"] == "processing" for row in matches
         )
 
-    def test_invalid_node_class_raises_value_error(self, tmp_path):
+    def test_invalid_node_class_raises_value_error(self):
         # Arrange
-        db_path = tmp_path / "test.db"
-        self._setup_db(db_path)
+        self._setup_db()
         # Act
         def _call():
-            set_node_class(db_path, "sess1", "/path/data.csv", "invalid_class")
+            set_node_class("sess1", "/path/data.csv", "invalid_class")
 
         # Assert
         with pytest.raises(ValueError, match="Invalid node_class"):
@@ -453,9 +447,9 @@ class TestSetNodeClass:
 
 
 class TestAutoClassify:
-    """NOTE (sqlite-migration-scitex-clew-20260828 PR 4 — accepted behavior
+    """NOTE (the 2026-08-28 store migration, node-class PR — accepted behavior
     change): the pre-migration ``_setup_db`` helper hand-created a raw
-    sqlite3 ``file_hashes`` table and bulk-inserted rows directly. Now that
+    file_hashes table and bulk-inserted rows directly. Now that
     ``file_hashes`` is a ``scitex_dev.store.Store`` table, rows only exist
     once written through the real API (``add_run`` + ``add_file_hash``);
     retargeted to seed via that API and to read results back via
@@ -464,10 +458,10 @@ class TestAutoClassify:
     tests above) rather than a raw INSERT.
     """
 
-    def _setup_db(self, db_path, rows):
+    def _setup_db(self, rows):
         """Create a real VerificationDB with the given (session_id, file_path,
         hash, role) file_hash records, none classified yet."""
-        db = VerificationDB(db_path)
+        db = VerificationDB()
         seen_sessions = set()
         for session_id, file_path, hash_value, role in rows:
             if session_id not in seen_sessions:
@@ -484,73 +478,67 @@ class TestAutoClassify:
         ]
         return matches[0].values.get("node_class")
 
-    def test_classifies_unclassified_rows(self, tmp_path):
+    def test_classifies_unclassified_rows(self):
         # Arrange
-        db_path = tmp_path / "test.db"
         rows = [
             ("s1", "data.csv", "h1", "input"),
             ("s1", "figure.png", "h2", "output"),
             ("s1", "script.py", "h3", "script"),
         ]
-        self._setup_db(db_path, rows)
+        self._setup_db(rows)
         # Act
-        updated = auto_classify(db_path)
+        updated = auto_classify()
         # Assert
         assert updated > 0
 
-    def test_skips_already_classified_rows(self, tmp_path):
+    def test_skips_already_classified_rows(self):
         # Arrange
-        db_path = tmp_path / "test.db"
-        db = self._setup_db(db_path, [("s1", "data.csv", "h1", "input")])
-        set_node_class(db_path, "s1", "data.csv", "source")
+        self._setup_db([("s1", "data.csv", "h1", "input")])
+        set_node_class("s1", "data.csv", "source")
         # Act
-        updated = auto_classify(db_path)
+        updated = auto_classify()
         # Assert — already classified, should not update
         assert updated == 0
 
-    def test_returns_count_of_updated_updated_is_int(self, tmp_path):
+    def test_returns_count_of_updated_updated_is_int(self):
         # Arrange
-        db_path = tmp_path / "test.db"
         rows = [
             ("s1", "file1.csv", "h1", "input"),
             ("s1", "file2.py", "h2", "script"),
         ]
-        self._setup_db(db_path, rows)
+        self._setup_db(rows)
         # Act
-        updated = auto_classify(db_path)
+        updated = auto_classify()
         # Assert
         assert isinstance(updated, int)
 
-    def test_returns_count_of_updated_updated_0(self, tmp_path):
+    def test_returns_count_of_updated_updated_0(self):
         # Arrange
-        db_path = tmp_path / "test.db"
         rows = [
             ("s1", "file1.csv", "h1", "input"),
             ("s1", "file2.py", "h2", "script"),
         ]
-        self._setup_db(db_path, rows)
+        self._setup_db(rows)
         # Act
-        updated = auto_classify(db_path)
+        updated = auto_classify()
         # Assert
         assert updated >= 0
 
-    def test_classifies_tex_output_as_claim(self, tmp_path):
+    def test_classifies_tex_output_as_claim(self):
         # Arrange
-        db_path = tmp_path / "test.db"
         rows = [("s1", "paper.tex", "h1", "output")]
-        db = self._setup_db(db_path, rows)
+        db = self._setup_db(rows)
         # Act
-        auto_classify(db_path)
+        auto_classify()
         # Assert
         assert self._node_class_for(db, "paper.tex") == "claim"
 
-    def test_classifies_png_output_as_output(self, tmp_path):
+    def test_classifies_png_output_as_output(self):
         # Arrange
-        db_path = tmp_path / "test.db"
         rows = [("s1", "fig.png", "h1", "output")]
-        db = self._setup_db(db_path, rows)
+        db = self._setup_db(rows)
         # Act
-        auto_classify(db_path)
+        auto_classify()
         # Assert
         assert self._node_class_for(db, "fig.png") == "output"
 

@@ -43,12 +43,12 @@ def _force_claims_status(db, status):
     used throughout this file to force a claim into a specific status for
     export/color/display-group tests, now that claims live in a
     :class:`scitex_dev.store.Store` (oplog + hide/unhide) rather than a bare
-    sqlite3 ``claims`` table — see ``scitex_clew._claim._model``.
+    per-file ``claims`` table — see ``scitex_clew._claim._model``.
     """
     from scitex_clew._claim._model import _update_claim_status
     from scitex_clew._claim._store import _open_store
 
-    store = _open_store(db.db_path)
+    store = _open_store()
     try:
         claim_ids = [row.values["claim_id"] for row in store.rows()]
     finally:
@@ -58,8 +58,8 @@ def _force_claims_status(db, status):
 
 
 # ---------------------------------------------------------------------------
-# Real-state save/restore helpers (NOT mocks — they touch os.environ /
-# os.getcwd / clew.set_db on the live process and unwind on teardown).
+# Real-state save/restore helpers (NOT mocks — they touch os.environ and
+# os.getcwd on the live process and unwind on teardown).
 # PA-306 forbids ``monkeypatch``; this fixture is the explicit equivalent.
 # ---------------------------------------------------------------------------
 
@@ -74,7 +74,6 @@ def env_sandbox():
     snapshot_env = {
         k: os.environ.get(k)
         for k in (
-            "SCITEX_CLEW_DB_PATH",
             "SCITEX_CLEW_CLAIMS_JSON",
             "SCITEX_CLEW_AUTO_EXPORT_CLAIMS",
         )
@@ -100,15 +99,16 @@ def env_sandbox():
         else:
             os.environ[k] = v
     os.chdir(snapshot_cwd)
-    clew.set_db(None)
 
 
 def _fresh_db(tmp_path: Path, sandbox) -> Path:
-    """Wire scitex_clew at a fresh per-test DB under tmp_path."""
-    db_path = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    sandbox.set_env("SCITEX_CLEW_DB_PATH", str(db_path))
-    clew.set_db(None)
+    """Return the per-test workdir with its clew runtime directory in place.
+
+    The store itself needs no wiring: the autouse ``isolated_store`` fixture
+    in tests/conftest.py already puts every test in its own throwaway
+    PostgreSQL schema, so there is no per-test database file to point at.
+    """
+    (tmp_path / ".scitex" / "clew" / "runtime").mkdir(parents=True, exist_ok=True)
     return tmp_path
 
 

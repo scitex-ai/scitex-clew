@@ -2,20 +2,31 @@
 # -*- coding: utf-8 -*-
 """Citation node model + storage primitives (schema, row I/O, lookup).
 
-Backed by ``scitex_dev.store.Store`` at a local SQLite target
-(:func:`StoreTarget.sqlite`) rather than raw ``sqlite3`` — clew's citation
-ledger is portable, zero-dependency, per-project product state (not fleet
-coordination state), so it deliberately keeps the single-local-file property
-rather than moving to a per-host Postgres (``host_store()``). The store
-primitive still gives us oplog-backed writes and hide/unhide semantics in
-place of hand-rolled SQL.
+Backed by ``scitex_dev.store.Store`` on the target :func:`host_store`
+resolves — THE store this host uses (ADR-0006). This module constructs no
+DSN and no path of its own; the one switch is ``SCITEX_STORE_DSN``, read by
+``host_store()``.
+
+An earlier revision used a local file-backed target, on the argument that
+clew's citation ledger is portable per-project product state rather than
+fleet coordination state. That is overruled.
+
+WHAT THE PER-PROJECT FILE USED TO DO, AND WHAT DOES IT NOW. ``cite_key`` is
+a BibTeX key chosen by the author, and the old per-project file was what
+kept two manuscripts' ``smith2020`` apart. One host database would have
+made them the SAME row, with ``MergeRule.LAST_WRITER_WINS`` picking a
+winner silently — one manuscript's bibliography overwriting another's.
+
+So the identity is ``(project, cite_key)``, not ``cite_key``. The scope is
+resolved in one place — :mod:`scitex_clew._db._scope` — and applied by
+:class:`~scitex_clew._db._scope.ProjectScopedStore` to reads and writes
+alike.
 """
 
 from __future__ import annotations
 
 import socket
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Dict, NamedTuple, Optional
 
 from scitex_dev.store import (
@@ -25,9 +36,11 @@ from scitex_dev.store import (
     MergeRule,
     Schema,
     Store,
-    StoreTarget,
     WriterPolicy,
+    host_store,
 )
+
+from .._db._scope import ProjectScopedStore
 
 # Public per-key status vocabulary (matches the writer/compiler contract).
 CITATION_STATUSES = ("verified", "stub", "unverified", "unknown")
@@ -124,13 +137,20 @@ class Verdict(NamedTuple):
 
 # -- store schema -------------------------------------------------------
 #
-# Columns kept 1:1 with the previous raw-sqlite ``citations`` table, minus
+# Columns kept 1:1 with the original hand-rolled ``citations`` table, minus
 # the autoincrement ``id`` (the store has its own row identity keyed by
 # ``cite_key``). No hard delete exists anywhere in this package (grepped the
 # whole ``_citation/`` tree), so there is no HIDE_FLAG field either.
 CITATIONS_SCHEMA = Schema.build(
     "citations",
     {
+        "project": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.IDENTITY,
+            required=True,
+            merge=MergeRule.IMMUTABLE,
+            indexed=False,
+        ),
         "cite_key": FieldPolicy(
             kind=FieldKind.TEXT,
             role=FieldRole.IDENTITY,
@@ -226,41 +246,41 @@ CITATIONS_SCHEMA = Schema.build(
 )
 
 
-def citations_store(db_path: Path) -> Store:
-    """Open (creating if absent) the citations ``Store`` for ``db_path``.
-
-    ``StoreTarget.sqlite`` — a LOCAL file-backed target, not ``host_store()``
-    — is the deliberate scope decision recorded on the sqlite-migration card:
-    clew's citation ledger is portable per-project state, so it keeps the
-    single-file/zero-Postgres property while moving off raw ``sqlite3`` onto
-    the store primitive.
+def citations_store() -> Store:
+    """Open (creating if absent) the citations ``Store`` on the host store.
 
     Table creation (and any additive-column migration) happens inside the
     ``Store`` constructor itself, so this is also what
     :func:`migrate_add_citations_table` calls. ``writer_policy`` is
-    ``MULTI_WRITER``: clew's DBs are written by many concurrent processes on
-    one project with no single durable "owner" per citation (see
-    ``_db/_connect.py``'s docstring).
+    ``MULTI_WRITER``: clew's stores are written by many concurrent
+    processes with no single durable "owner" per citation.
 
     The caller is responsible for closing the returned store — use it as a
-    context manager (``with citations_store(path) as store: ...``).
+    context manager (``with citations_store() as store: ...``).
     """
-    target = StoreTarget.sqlite(Path(db_path), pkg="scitex_clew", name="citations")
-    return Store(
-        target,
-        CITATIONS_SCHEMA,
-        node=socket.gethostname(),
-        writer_policy=WriterPolicy.MULTI_WRITER,
+    target = host_store(pkg="scitex_clew", name="citations")
+    return ProjectScopedStore(
+        Store(
+            target,
+            CITATIONS_SCHEMA,
+            node=socket.gethostname(),
+            writer_policy=WriterPolicy.MULTI_WRITER,
+        )
     )
 
 
-def migrate_add_citations_table(db_path: Path) -> None:
+def migrate_add_citations_table() -> None:
     """Create the citations store schema if not present. Safe to call repeatedly."""
-    citations_store(db_path).close()
+    citations_store().close()
 
 
-def ensure_citations_table(db) -> None:
-    migrate_add_citations_table(db.db_path)
+def ensure_citations_table(db=None) -> None:
+    """Ensure the citations store's tables exist.
+
+    ``db`` is accepted and ignored: there is one store per host and it does
+    not depend on which ``VerificationDB`` the caller happens to hold.
+    """
+    migrate_add_citations_table()
 
 
 def row_to_citation(row) -> Citation:
@@ -282,7 +302,7 @@ def row_to_citation(row) -> Citation:
 
 
 def lookup_citation(db, cite_key: str) -> Optional[Citation]:
-    with citations_store(db.db_path) as store:
+    with citations_store() as store:
         row = store.get({"cite_key": cite_key})
         return row_to_citation(row) if row else None
 

@@ -1,0 +1,714 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scitex_clew._attest._stamp &mdash; SciTeX Clew v0.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SciTeX Clew
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#basic-installation">Basic Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-cli-support">With CLI Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-mcp-server">With MCP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#all-optional-dependencies">All Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#development-installation">Development Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#cli">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#mcp-server">MCP Server</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../grouping.html">Grouping</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#built-in-groupers">Built-in groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#spec-schema">Spec schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#custom-groupers">Custom groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#merkle-roots">Merkle roots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#grouping-invariants">Grouping invariants</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#core-commands">Core Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#introspection">Introspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#mcp-subcommands">MCP Subcommands</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../mcp.html">MCP Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#starting-the-server">Starting the Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#mcp-client-configuration">MCP Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#available-tools">Available Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#diagnostics">Diagnostics</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/scitex_clew.html">scitex_clew</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.chain"><code class="docutils literal notranslate"><span class="pre">chain()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.dag"><code class="docutils literal notranslate"><span class="pre">dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun"><code class="docutils literal notranslate"><span class="pre">rerun()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_dag"><code class="docutils literal notranslate"><span class="pre">rerun_dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_start"><code class="docutils literal notranslate"><span class="pre">on_session_start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_close"><code class="docutils literal notranslate"><span class="pre">on_session_close()</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-1-basic-verification">Example 1: Basic Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-2-chain-verification">Example 2: Chain Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-3-mermaid-diagram">Example 3: Mermaid Diagram</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SciTeX Clew</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">scitex_clew._attest._stamp</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scitex_clew._attest._stamp</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># Timestamp: "2026-08-29 (clew-postgres-store-migration)"</span>
+<span class="c1"># File: src/scitex_clew/_attest/_stamp.py</span>
+<span class="sd">"""External hash timestamping for temporal integrity.</span>
+
+<span class="sd">Provides independent temporal proof that a verification chain was consistent</span>
+<span class="sd">at a specific point in time. Only hashes are transmitted — never actual data.</span>
+
+<span class="sd">Backends (increasing trust level):</span>
+<span class="sd">  - file:    Local JSON file with timestamp (development/testing)</span>
+<span class="sd">  - rfc3161: RFC 3161 Timestamping Authority (production standard)</span>
+<span class="sd">  - zenodo:  Zenodo deposit with DOI (archival, citable)</span>
+
+<span class="sd">This module drives ``scitex_dev.store.Store`` on the target</span>
+<span class="sd">:func:`host_store` resolves — THE store this host uses (ADR-0006) — for its</span>
+<span class="sd">own ``stamps`` table (sole owner, no cross-table joins). It also READS the</span>
+<span class="sd">``runs`` Store (``VerificationDB._runs``) to compute the root hash — no</span>
+<span class="sd">writes. This module constructs no DSN and no path of its own; the one</span>
+<span class="sd">switch is ``SCITEX_STORE_DSN``, read by ``host_store()``.</span>
+
+<span class="sd">Store has no WHERE/ORDER-BY/LIMIT: every query below is</span>
+<span class="sd">``store.rows()`` (or ``store.get(key)`` for exact lookups) plus a Python</span>
+<span class="sd">filter/sort — an accepted O(n)-scan trade-off for what is normally a small</span>
+<span class="sd">per-project DB, matching the rest of this migration.</span>
+
+<span class="sd">``stamps.metadata`` is kept as ``FieldKind.TEXT`` (pre-serialized JSON via</span>
+<span class="sd">``json.dumps``/``json.loads``), not ``FieldKind.JSON`` — mirrors the</span>
+<span class="sd">deliberate choice made for ``runs.metadata`` in PR #143: existing callers</span>
+<span class="sd">(``check_stamp``, ``list_stamps``) read/parse it as raw JSON text, and</span>
+<span class="sd">changing the stored type would be an observable behavior change for no</span>
+<span class="sd">benefit.</span>
+
+<span class="sd">There is no reliable business timestamp to sort "most recent stamp" by</span>
+<span class="sd">that is guaranteed monotonic with insertion order (the old autoincrement</span>
+<span class="sd">``id`` served that role pre-migration). Per this migration's established</span>
+<span class="sd">rule, ``check_stamp``/``list_stamps`` sort by ``row.hlc``</span>
+<span class="sd">(``wall_us``, ``logical``, ``node``) instead.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">scitex_dev.store</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ANY_REVISION</span><span class="p">,</span>
+    <span class="n">FieldKind</span><span class="p">,</span>
+    <span class="n">FieldPolicy</span><span class="p">,</span>
+    <span class="n">FieldRole</span><span class="p">,</span>
+    <span class="n">MergeRule</span><span class="p">,</span>
+    <span class="n">Schema</span><span class="p">,</span>
+    <span class="n">Store</span><span class="p">,</span>
+    <span class="n">WriterPolicy</span><span class="p">,</span>
+    <span class="n">host_store</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._db._schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_node_id</span>
+
+<span class="n">STAMP_BACKENDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"file"</span><span class="p">,</span> <span class="s2">"rfc3161"</span><span class="p">,</span> <span class="s2">"zenodo"</span><span class="p">,</span> <span class="s2">"scitex_cloud"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_identity_field</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">FieldPolicy</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">FieldPolicy</span><span class="p">(</span>
+        <span class="n">kind</span><span class="o">=</span><span class="n">FieldKind</span><span class="o">.</span><span class="n">TEXT</span><span class="p">,</span>
+        <span class="n">role</span><span class="o">=</span><span class="n">FieldRole</span><span class="o">.</span><span class="n">IDENTITY</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">merge</span><span class="o">=</span><span class="n">MergeRule</span><span class="o">.</span><span class="n">IMMUTABLE</span><span class="p">,</span>
+        <span class="n">indexed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_data_field</span><span class="p">(</span>
+    <span class="n">kind</span><span class="p">:</span> <span class="n">FieldKind</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">merge</span><span class="p">:</span> <span class="n">MergeRule</span> <span class="o">=</span> <span class="n">MergeRule</span><span class="o">.</span><span class="n">LAST_WRITER_WINS</span><span class="p">,</span>
+    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FieldPolicy</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">FieldPolicy</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">FieldRole</span><span class="o">.</span><span class="n">DATA</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="n">required</span><span class="p">,</span> <span class="n">merge</span><span class="o">=</span><span class="n">merge</span><span class="p">,</span> <span class="n">indexed</span><span class="o">=</span><span class="n">indexed</span><span class="p">)</span>
+
+
+<span class="c1">#: stamp_id is the sole IDENTITY field — it is already globally unique</span>
+<span class="c1">#: (sha256 of root_hash + microsecond-resolution timestamp, truncated).</span>
+<span class="c1">#: root_hash/timestamp/backend are NOT NULL in the original DDL; the rest</span>
+<span class="c1">#: (service_url, response_token, run_count, metadata) stay nullable, matching</span>
+<span class="c1">#: the original schema exactly. root_hash keeps its index (original</span>
+<span class="c1">#: `idx_stamps_hash`).</span>
+<span class="n">STAMPS_SCHEMA</span> <span class="o">=</span> <span class="n">Schema</span><span class="o">.</span><span class="n">build</span><span class="p">(</span>
+    <span class="s2">"stamps"</span><span class="p">,</span>
+    <span class="p">{</span>
+        <span class="s2">"stamp_id"</span><span class="p">:</span> <span class="n">_identity_field</span><span class="p">(),</span>
+        <span class="s2">"root_hash"</span><span class="p">:</span> <span class="n">_data_field</span><span class="p">(</span><span class="n">FieldKind</span><span class="o">.</span><span class="n">TEXT</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">indexed</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="s2">"timestamp"</span><span class="p">:</span> <span class="n">_data_field</span><span class="p">(</span><span class="n">FieldKind</span><span class="o">.</span><span class="n">TEXT</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="s2">"backend"</span><span class="p">:</span> <span class="n">_data_field</span><span class="p">(</span><span class="n">FieldKind</span><span class="o">.</span><span class="n">TEXT</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="s2">"service_url"</span><span class="p">:</span> <span class="n">_data_field</span><span class="p">(</span><span class="n">FieldKind</span><span class="o">.</span><span class="n">TEXT</span><span class="p">),</span>
+        <span class="s2">"response_token"</span><span class="p">:</span> <span class="n">_data_field</span><span class="p">(</span><span class="n">FieldKind</span><span class="o">.</span><span class="n">TEXT</span><span class="p">),</span>
+        <span class="s2">"run_count"</span><span class="p">:</span> <span class="n">_data_field</span><span class="p">(</span><span class="n">FieldKind</span><span class="o">.</span><span class="n">INTEGER</span><span class="p">),</span>
+        <span class="s2">"metadata"</span><span class="p">:</span> <span class="n">_data_field</span><span class="p">(</span><span class="n">FieldKind</span><span class="o">.</span><span class="n">TEXT</span><span class="p">),</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Stamp</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A temporal proof record."""</span>
+
+    <span class="n">stamp_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">root_hash</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">service_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">response_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">run_count</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"stamp_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">stamp_id</span><span class="p">,</span>
+            <span class="s2">"root_hash"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_hash</span><span class="p">,</span>
+            <span class="s2">"timestamp"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span><span class="p">,</span>
+            <span class="s2">"backend"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="p">,</span>
+            <span class="s2">"service_url"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">service_url</span><span class="p">,</span>
+            <span class="s2">"response_token"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_token</span><span class="p">,</span>
+            <span class="s2">"run_count"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_count</span><span class="p">,</span>
+            <span class="s2">"metadata"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
+        <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_stamps_store</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Store</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Construct the ``stamps`` Store on the host store.</span>
+
+<span class="sd">    Idempotent — Store.__init__ runs CREATE TABLE IF NOT EXISTS (+ additive</span>
+<span class="sd">    migrations) under the dialect's schema lock, so this is safe to call</span>
+<span class="sd">    repeatedly, matching the pre-migration ``migrate_add_stamps_table``</span>
+<span class="sd">    contract. Each call opens its own connection; the underlying connection</span>
+<span class="sd">    is reclaimed when the Store is garbage-collected.</span>
+<span class="sd">    """</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">host_store</span><span class="p">(</span><span class="n">pkg</span><span class="o">=</span><span class="s2">"scitex_clew"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"stamps"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Store</span><span class="p">(</span>
+        <span class="n">target</span><span class="p">,</span>
+        <span class="n">STAMPS_SCHEMA</span><span class="p">,</span>
+        <span class="n">node</span><span class="o">=</span><span class="n">resolve_node_id</span><span class="p">(),</span>
+        <span class="n">writer_policy</span><span class="o">=</span><span class="n">WriterPolicy</span><span class="o">.</span><span class="n">MULTI_WRITER</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">migrate_add_stamps_table</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Create the stamps store's backing tables if not present. Safe to call multiple times."""</span>
+    <span class="n">_stamps_store</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ensure_stamps_table</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Store</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Ensure the stamps Store exists, returning it.</span>
+
+<span class="sd">    ``db`` is accepted and ignored: there is one store per host and it does</span>
+<span class="sd">    not depend on which ``VerificationDB`` the caller happens to hold.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">_stamps_store</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_root_hash</span><span class="p">(</span><span class="n">session_ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Compute a Merkle-like root hash over all (or selected) runs.</span>
+
+<span class="sd">    The root hash combines all run combined_hashes in deterministic order,</span>
+<span class="sd">    providing a single fingerprint for the entire verification state.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    session_ids : list of str, optional</span>
+<span class="sd">        Specific sessions to include. If None, includes all successful runs.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        {root_hash, run_count, session_ids}</span>
+<span class="sd">    """</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="n">all_rows</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">_runs</span><span class="o">.</span><span class="n">rows</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">session_ids</span><span class="p">:</span>
+        <span class="n">wanted</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">session_ids</span><span class="p">)</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">all_rows</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session_id"</span><span class="p">)</span> <span class="ow">in</span> <span class="n">wanted</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">r</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">all_rows</span>
+            <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"status"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"success"</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"combined_hash"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">]</span>
+    <span class="n">selected</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session_id"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">selected</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"root_hash"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"run_count"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"session_ids"</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">selected</span><span class="p">:</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session_id"</span><span class="p">)</span>
+        <span class="n">combined_hash</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"combined_hash"</span><span class="p">)</span>
+        <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">session_id</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+        <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">combined_hash</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+        <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"root_hash"</span><span class="p">:</span> <span class="n">hasher</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span>
+        <span class="s2">"run_count"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span>
+        <span class="s2">"session_ids"</span><span class="p">:</span> <span class="n">ids</span><span class="p">,</span>
+    <span class="p">}</span>
+
+
+<div class="viewcode-block" id="stamp">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.stamp">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stamp</span><span class="p">(</span>
+    <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"file"</span><span class="p">,</span>
+    <span class="n">service_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">session_ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Stamp</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Record root hash with external timestamp.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    backend : str</span>
+<span class="sd">        One of: file, rfc3161, zenodo.</span>
+<span class="sd">    service_url : str, optional</span>
+<span class="sd">        URL for RFC 3161 TSA or Zenodo API.</span>
+<span class="sd">    session_ids : list of str, optional</span>
+<span class="sd">        Specific sessions to stamp. If None, stamps all successful runs.</span>
+<span class="sd">    output_dir : str, optional</span>
+<span class="sd">        Directory for file-based stamps (default: &lt;db_dir&gt;/stamps, i.e. .scitex/clew/runtime/stamps/).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Stamp</span>
+<span class="sd">        The timestamp proof record.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">backend</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">STAMP_BACKENDS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Invalid backend '</span><span class="si">{</span><span class="n">backend</span><span class="si">}</span><span class="s2">'. Must be one of: </span><span class="si">{</span><span class="n">STAMP_BACKENDS</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+
+    <span class="n">root</span> <span class="o">=</span> <span class="n">compute_root_hash</span><span class="p">(</span><span class="n">session_ids</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">root</span><span class="p">[</span><span class="s2">"root_hash"</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No runs to stamp (no successful runs with combined hashes)"</span><span class="p">)</span>
+
+    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+    <span class="n">root_hash</span> <span class="o">=</span> <span class="n">root</span><span class="p">[</span><span class="s2">"root_hash"</span><span class="p">]</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">root_hash</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">now</span><span class="si">}</span><span class="s2">"</span>
+    <span class="n">stamp_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"stamp_</span><span class="si">{</span><span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">12</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+
+    <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">"file"</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_stamp_file</span><span class="p">(</span><span class="n">stamp_id</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">now</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">"rfc3161"</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_stamp_rfc3161</span><span class="p">(</span><span class="n">stamp_id</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">now</span><span class="p">,</span> <span class="n">service_url</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">"zenodo"</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_stamp_zenodo</span><span class="p">(</span><span class="n">stamp_id</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">now</span><span class="p">,</span> <span class="n">service_url</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">"scitex_cloud"</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_stamp_scitex_cloud</span><span class="p">(</span><span class="n">stamp_id</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">now</span><span class="p">,</span> <span class="n">service_url</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported backend: </span><span class="si">{</span><span class="n">backend</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">stamp_obj</span> <span class="o">=</span> <span class="n">Stamp</span><span class="p">(</span>
+        <span class="n">stamp_id</span><span class="o">=</span><span class="n">stamp_id</span><span class="p">,</span>
+        <span class="n">root_hash</span><span class="o">=</span><span class="n">root</span><span class="p">[</span><span class="s2">"root_hash"</span><span class="p">],</span>
+        <span class="n">timestamp</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
+        <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span>
+        <span class="n">service_url</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"service_url"</span><span class="p">),</span>
+        <span class="n">response_token</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"response_token"</span><span class="p">),</span>
+        <span class="n">run_count</span><span class="o">=</span><span class="n">root</span><span class="p">[</span><span class="s2">"run_count"</span><span class="p">],</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"session_ids"</span><span class="p">:</span> <span class="n">root</span><span class="p">[</span><span class="s2">"session_ids"</span><span class="p">]},</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Store in database</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">_ensure_stamps_table</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">store</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">"stamp_id"</span><span class="p">:</span> <span class="n">stamp_obj</span><span class="o">.</span><span class="n">stamp_id</span><span class="p">,</span>
+            <span class="s2">"root_hash"</span><span class="p">:</span> <span class="n">stamp_obj</span><span class="o">.</span><span class="n">root_hash</span><span class="p">,</span>
+            <span class="s2">"timestamp"</span><span class="p">:</span> <span class="n">stamp_obj</span><span class="o">.</span><span class="n">timestamp</span><span class="p">,</span>
+            <span class="s2">"backend"</span><span class="p">:</span> <span class="n">stamp_obj</span><span class="o">.</span><span class="n">backend</span><span class="p">,</span>
+            <span class="s2">"service_url"</span><span class="p">:</span> <span class="n">stamp_obj</span><span class="o">.</span><span class="n">service_url</span><span class="p">,</span>
+            <span class="s2">"response_token"</span><span class="p">:</span> <span class="n">stamp_obj</span><span class="o">.</span><span class="n">response_token</span><span class="p">,</span>
+            <span class="s2">"run_count"</span><span class="p">:</span> <span class="n">stamp_obj</span><span class="o">.</span><span class="n">run_count</span><span class="p">,</span>
+            <span class="s2">"metadata"</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">stamp_obj</span><span class="o">.</span><span class="n">metadata</span><span class="p">),</span>
+        <span class="p">},</span>
+        <span class="n">expected_revision</span><span class="o">=</span><span class="n">ANY_REVISION</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">stamp_obj</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_stamp_from_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Stamp</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Build a Stamp dataclass from a stamps-Store Row."""</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Stamp</span><span class="p">(</span>
+        <span class="n">stamp_id</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="s2">"stamp_id"</span><span class="p">],</span>
+        <span class="n">root_hash</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"root_hash"</span><span class="p">),</span>
+        <span class="n">timestamp</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"timestamp"</span><span class="p">),</span>
+        <span class="n">backend</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"backend"</span><span class="p">),</span>
+        <span class="n">service_url</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"service_url"</span><span class="p">),</span>
+        <span class="n">response_token</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"response_token"</span><span class="p">),</span>
+        <span class="n">run_count</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"run_count"</span><span class="p">),</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span> <span class="k">if</span> <span class="n">metadata</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_hlc_sort_key</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Insertion-order proxy: (wall_us, logical, node) is a total order."""</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">hlc</span><span class="o">.</span><span class="n">wall_us</span><span class="p">,</span> <span class="n">row</span><span class="o">.</span><span class="n">hlc</span><span class="o">.</span><span class="n">logical</span><span class="p">,</span> <span class="n">row</span><span class="o">.</span><span class="n">hlc</span><span class="o">.</span><span class="n">node</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="check_stamp">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.check_stamp">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_stamp</span><span class="p">(</span><span class="n">stamp_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Verify a stamp against current verification state.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    stamp_id : str, optional</span>
+<span class="sd">        Specific stamp to check. If None, checks the latest stamp.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        {stamp, current_root_hash, matches, details}</span>
+<span class="sd">    """</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">_ensure_stamps_table</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">stamp_id</span><span class="p">:</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">stamp_id</span><span class="p">,))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">rows</span><span class="p">()</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">_hlc_sort_key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"not_found"</span><span class="p">,</span> <span class="s2">"message"</span><span class="p">:</span> <span class="s2">"No stamps found"</span><span class="p">}</span>
+
+    <span class="n">stored_stamp</span> <span class="o">=</span> <span class="n">_stamp_from_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+
+    <span class="c1"># Recompute root hash from the same sessions</span>
+    <span class="n">session_ids</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">stored_stamp</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session_ids"</span><span class="p">)</span> <span class="k">if</span> <span class="n">stored_stamp</span><span class="o">.</span><span class="n">metadata</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="p">)</span>
+    <span class="n">current</span> <span class="o">=</span> <span class="n">compute_root_hash</span><span class="p">(</span><span class="n">session_ids</span><span class="p">)</span>
+
+    <span class="n">matches</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="s2">"root_hash"</span><span class="p">]</span> <span class="o">==</span> <span class="n">stored_stamp</span><span class="o">.</span><span class="n">root_hash</span>
+    <span class="n">details</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">matches</span><span class="p">:</span>
+        <span class="n">details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Root hash matches stamp from </span><span class="si">{</span><span class="n">stored_stamp</span><span class="o">.</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Root hash CHANGED since stamp at </span><span class="si">{</span><span class="n">stored_stamp</span><span class="o">.</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Stamped:  </span><span class="si">{</span><span class="n">stored_stamp</span><span class="o">.</span><span class="n">root_hash</span><span class="p">[:</span><span class="mi">32</span><span class="p">]</span><span class="si">}</span><span class="s2">..."</span><span class="p">)</span>
+        <span class="n">details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Current:  </span><span class="si">{</span><span class="n">current</span><span class="p">[</span><span class="s1">'root_hash'</span><span class="p">][:</span><span class="mi">32</span><span class="p">]</span><span class="si">}</span><span class="s2">..."</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">current</span><span class="p">[</span><span class="s2">"run_count"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">stored_stamp</span><span class="o">.</span><span class="n">run_count</span><span class="p">:</span>
+        <span class="n">details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"  Run count changed: </span><span class="si">{</span><span class="n">stored_stamp</span><span class="o">.</span><span class="n">run_count</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">current</span><span class="p">[</span><span class="s1">'run_count'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"stamp"</span><span class="p">:</span> <span class="n">stored_stamp</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+        <span class="s2">"current_root_hash"</span><span class="p">:</span> <span class="n">current</span><span class="p">[</span><span class="s2">"root_hash"</span><span class="p">],</span>
+        <span class="s2">"matches"</span><span class="p">:</span> <span class="n">matches</span><span class="p">,</span>
+        <span class="s2">"details"</span><span class="p">:</span> <span class="n">details</span><span class="p">,</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="list_stamps">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.list_stamps">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_stamps</span><span class="p">(</span><span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Stamp</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""List all stamps."""</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">_ensure_stamps_table</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">rows</span><span class="p">()</span>
+    <span class="n">rows</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">_hlc_sort_key</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">_stamp_from_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">[:</span><span class="n">limit</span><span class="p">]]</span></div>
+
+
+
+<span class="c1"># ── Backend implementations ──</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_stamp_file</span><span class="p">(</span><span class="n">stamp_id</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""File-based stamping: write JSON proof to local directory."""</span>
+    <span class="k">if</span> <span class="n">output_dir</span><span class="p">:</span>
+        <span class="n">stamp_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Was ``db.db_path.parent / "stamps"``. There is no database file to</span>
+        <span class="c1"># sit beside any more, so the JSON proofs land in the project's</span>
+        <span class="c1"># regenerable-output directory — the same place claims.json goes.</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.._db._core</span><span class="w"> </span><span class="kn">import</span> <span class="n">_find_project_root</span>
+
+        <span class="n">stamp_dir</span> <span class="o">=</span> <span class="n">_find_project_root</span><span class="p">()</span> <span class="o">/</span> <span class="s2">".scitex"</span> <span class="o">/</span> <span class="s2">"clew"</span> <span class="o">/</span> <span class="s2">"runtime"</span> <span class="o">/</span> <span class="s2">"stamps"</span>
+
+    <span class="n">stamp_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">stamp_path</span> <span class="o">=</span> <span class="n">stamp_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">stamp_id</span><span class="si">}</span><span class="s2">.json"</span>
+
+    <span class="n">proof</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"stamp_id"</span><span class="p">:</span> <span class="n">stamp_id</span><span class="p">,</span>
+        <span class="s2">"root_hash"</span><span class="p">:</span> <span class="n">root</span><span class="p">[</span><span class="s2">"root_hash"</span><span class="p">],</span>
+        <span class="s2">"timestamp"</span><span class="p">:</span> <span class="n">timestamp</span><span class="p">,</span>
+        <span class="s2">"run_count"</span><span class="p">:</span> <span class="n">root</span><span class="p">[</span><span class="s2">"run_count"</span><span class="p">],</span>
+        <span class="s2">"backend"</span><span class="p">:</span> <span class="s2">"file"</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">stamp_path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">proof</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"service_url"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">stamp_path</span><span class="p">),</span> <span class="s2">"response_token"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_stamp_rfc3161</span><span class="p">(</span><span class="n">stamp_id</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">service_url</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""RFC 3161 Timestamping Authority."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">rfc3161ng</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">"RFC 3161 stamping requires 'rfc3161ng' package. "</span>
+            <span class="s2">"Install with: pip install rfc3161ng"</span>
+        <span class="p">)</span>
+
+    <span class="n">url</span> <span class="o">=</span> <span class="n">service_url</span> <span class="ow">or</span> <span class="s2">"http://zeitstempel.dfn.de"</span>
+    <span class="n">certificate</span> <span class="o">=</span> <span class="n">rfc3161ng</span><span class="o">.</span><span class="n">RemoteTimestamper</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+    <span class="n">hash_bytes</span> <span class="o">=</span> <span class="nb">bytes</span><span class="o">.</span><span class="n">fromhex</span><span class="p">(</span><span class="n">root</span><span class="p">[</span><span class="s2">"root_hash"</span><span class="p">])</span>
+    <span class="n">tst</span> <span class="o">=</span> <span class="n">certificate</span><span class="o">.</span><span class="n">timestamp</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">hash_bytes</span><span class="p">)</span>
+
+    <span class="n">token_hex</span> <span class="o">=</span> <span class="n">tst</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tst</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">tst</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"service_url"</span><span class="p">:</span> <span class="n">url</span><span class="p">,</span> <span class="s2">"response_token"</span><span class="p">:</span> <span class="n">token_hex</span><span class="p">[:</span><span class="mi">256</span><span class="p">]}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_stamp_zenodo</span><span class="p">(</span><span class="n">stamp_id</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">service_url</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Zenodo deposit: create a record with the root hash."""</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+        <span class="s2">"Zenodo stamping is planned for a future release. "</span>
+        <span class="s2">"Use 'file' or 'rfc3161' backend instead."</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_stamp_scitex_cloud</span><span class="p">(</span><span class="n">stamp_id</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">service_url</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""SciTeX Cloud registry: register root hash with server-side timestamp."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_registry</span>
+
+    <span class="n">registry</span> <span class="o">=</span> <span class="n">get_registry</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="n">service_url</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
+        <span class="n">root</span><span class="p">[</span><span class="s2">"root_hash"</span><span class="p">],</span>
+        <span class="n">source_type</span><span class="o">=</span><span class="s2">"stamp"</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">"stamp_id"</span><span class="p">:</span> <span class="n">stamp_id</span><span class="p">,</span>
+            <span class="s2">"run_count"</span><span class="p">:</span> <span class="n">root</span><span class="p">[</span><span class="s2">"run_count"</span><span class="p">],</span>
+            <span class="s2">"timestamp"</span><span class="p">:</span> <span class="n">timestamp</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+
+    <span class="n">url</span> <span class="o">=</span> <span class="n">service_url</span> <span class="ow">or</span> <span class="n">registry</span><span class="o">.</span><span class="n">base_url</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"data"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"registered_at"</span><span class="p">)</span> <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"success"</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"service_url"</span><span class="p">:</span> <span class="n">url</span><span class="p">,</span> <span class="s2">"response_token"</span><span class="p">:</span> <span class="n">token</span><span class="p">}</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"STAMP_BACKENDS"</span><span class="p">,</span>
+    <span class="s2">"Stamp"</span><span class="p">,</span>
+    <span class="s2">"check_stamp"</span><span class="p">,</span>
+    <span class="s2">"compute_root_hash"</span><span class="p">,</span>
+    <span class="s2">"list_stamps"</span><span class="p">,</span>
+    <span class="s2">"migrate_add_stamps_table"</span><span class="p">,</span>
+    <span class="s2">"stamp"</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># EOF</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

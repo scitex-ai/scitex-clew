@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 """Tests for the submission-completeness gate (HARD 1:1 question_id↔claim_id).
 
-Real temp DB + files (no mocks): build grounded claims exactly as the
+Real store + files (no mocks; each test owns a throwaway PostgreSQL schema
+handed out by tests/conftest.py): build grounded claims exactly as the
 grounded_claim_ids tests do (register a source, record a run reading it ->
 output, claim on the output with an explicit claim_id, verify), then diff a
 {question_id: claim_id} submission against the grounded claim_ids. The check is
@@ -10,25 +11,18 @@ non-raising; the assert form RAISES SubmissionCompletenessError on any
 missing / orphan / cardinality violation.
 
 Each test keeps a single assertion (PA-307 STX-TQ007) and AAA marker comments
-(STX-TQ002); the expensive real-DB arrange is shared via fixtures.
+(STX-TQ002); the expensive real-store arrange is shared via fixtures.
 """
 
 import pytest
 
 import scitex_clew as clew
-from scitex_clew._db import use_db
 from scitex_clew._sources._writer import register_source
 from scitex_clew._submission_gate import (
     SubmissionCompletenessError,
     assert_submission_complete,
     check_submission_completeness,
 )
-
-
-def _db_path(tmp_path):
-    p = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
-    p.parent.mkdir(parents=True)
-    return p
 
 
 def _make_grounded_claim(tmp_path, manifest, claim_id, *, src_name, out_name):
@@ -48,34 +42,21 @@ def _make_grounded_claim(tmp_path, manifest, claim_id, *, src_name, out_name):
 
 @pytest.fixture
 def grounded_workdir_two(tmp_path):
-    """A workdir whose clew DB has TWO grounded+verified claims: c1, c2."""
-    db_path = _db_path(tmp_path)
+    """A workdir whose store has TWO grounded+verified claims: c1, c2."""
     manifest = tmp_path / ".scitex" / "clew" / "sources.json"
-    with use_db(db_path):
-        _make_grounded_claim(tmp_path, manifest, "c1", src_name="a.csv", out_name="a.json")
-        _make_grounded_claim(tmp_path, manifest, "c2", src_name="b.csv", out_name="b.json")
-        clew.verify_all_claims()
+    _make_grounded_claim(tmp_path, manifest, "c1", src_name="a.csv", out_name="a.json")
+    _make_grounded_claim(tmp_path, manifest, "c2", src_name="b.csv", out_name="b.json")
+    clew.verify_all_claims()
     return tmp_path
 
 
 @pytest.fixture
 def grounded_workdir_one(tmp_path):
-    """A workdir whose clew DB has ONE grounded+verified claim: c1."""
-    db_path = _db_path(tmp_path)
+    """A workdir whose store has ONE grounded+verified claim: c1."""
     manifest = tmp_path / ".scitex" / "clew" / "sources.json"
-    with use_db(db_path):
-        _make_grounded_claim(tmp_path, manifest, "c1", src_name="a.csv", out_name="a.json")
-        clew.verify_all_claims()
+    _make_grounded_claim(tmp_path, manifest, "c1", src_name="a.csv", out_name="a.json")
+    clew.verify_all_claims()
     return tmp_path
-
-
-@pytest.fixture
-def empty_db_path(tmp_path):
-    """A real, empty clew DB (exists, zero claims)."""
-    db_path = _db_path(tmp_path)
-    with use_db(db_path):
-        pass
-    return db_path
 
 
 # ── all-match: strict 1:1 correspondence is OK ──
@@ -192,31 +173,31 @@ def test_duplicate_claim_citation_raises_error(grounded_workdir_two):
         gate()
 
 
-# ── empty submission + empty DB: trivially satisfied ──
+# ── empty submission + empty store: trivially satisfied ──
 
 
-def test_empty_submission_empty_db_ok(empty_db_path):
+def test_empty_submission_empty_store_ok(tmp_path):
     # Arrange
     submission = {}
     # Act
-    result = check_submission_completeness(submission, db_path=empty_db_path)
+    result = check_submission_completeness(submission, workdir=tmp_path)
     # Assert
     assert result.ok is True
 
 
-def test_empty_submission_empty_db_assert_passes(empty_db_path):
+def test_empty_submission_empty_store_assert_passes(tmp_path):
     # Arrange
     submission = {}
     # Act
-    outcome = assert_submission_complete(submission, db_path=empty_db_path)
+    outcome = assert_submission_complete(submission, workdir=tmp_path)
     # Assert
     assert outcome is None
 
 
-# ── no DB: grounded == [] -> every cited answer is missing ──
+# ── empty store: grounded == [] -> every cited answer is missing ──
 
 
-def test_no_db_marks_all_answers_missing(tmp_path):
+def test_empty_store_marks_all_answers_missing(tmp_path):
     # Arrange
     submission = {"q1": "c1", "q2": "c2"}
     # Act
@@ -225,7 +206,7 @@ def test_no_db_marks_all_answers_missing(tmp_path):
     assert result.missing == {"q1": "c1", "q2": "c2"}
 
 
-def test_no_db_leaves_no_orphan(tmp_path):
+def test_empty_store_leaves_no_orphan(tmp_path):
     # Arrange
     submission = {"q1": "c1", "q2": "c2"}
     # Act
@@ -234,7 +215,7 @@ def test_no_db_leaves_no_orphan(tmp_path):
     assert result.orphan == []
 
 
-def test_no_db_raises_completeness_error(tmp_path):
+def test_empty_store_raises_completeness_error(tmp_path):
     # Arrange
     submission = {"q1": "c1", "q2": "c2"}
     # Act

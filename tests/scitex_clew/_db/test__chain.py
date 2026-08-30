@@ -9,9 +9,15 @@ from scitex_clew._db import VerificationDB
 
 
 @pytest.fixture
-def db(tmp_path):
-    """Fresh isolated DB for each test."""
-    return VerificationDB(tmp_path / "chain_test.db")
+def db():
+    """Fresh isolated DB for each test.
+
+    Isolation comes from the autouse `isolated_store` fixture in
+    tests/conftest.py — every test runs against its OWN throwaway
+    PostgreSQL schema, so `VerificationDB()` needs no argument and there
+    is nothing per-file left to set up.
+    """
+    return VerificationDB()
 
 
 def _add_run(db, session_id, script_path="/path/script.py", parent_session=None):
@@ -661,7 +667,7 @@ class TestGetDag:
 
 
 # ---------------------------------------------------------------------------
-# Legacy session_parents backfill: RETIRED (sqlite-migration-scitex-clew-20260828)
+# Legacy session_parents backfill: RETIRED (the 2026-08-28 store migration)
 # ---------------------------------------------------------------------------
 #
 # `_migrate_session_parents()` (and the raw `session_parents` table it
@@ -677,7 +683,7 @@ class TestGetDag:
 # `test_existing_parent_migrated_to_junction` built) can no longer be
 # "migrated": `get_parents()` is Store-backed and reads exclusively from
 # `self._session_parents` (a scitex_dev.store.Store), which has no
-# knowledge of rows inserted directly into a raw sqlite `runs` table
+# knowledge of rows inserted directly into a raw `runs` table
 # outside `add_run()`/`add_parent()`. This is an accepted, documented
 # behavior change — see the PR body.
 

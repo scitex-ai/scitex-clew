@@ -6,7 +6,7 @@ Extracted from `_core.py` only to keep that file under the project's
 512-line limit; the schemas and the node-id resolver are otherwise exactly
 what `_core.py` would have declared inline.
 
-See the ``sqlite-migration-scitex-clew-20260828`` card and the PR body for
+See the PR body for
 the design rationale behind each schema, in particular:
 
 - ``file_hashes`` / ``session_parents``: composite IDENTITY replacing the
@@ -58,6 +58,7 @@ def _data_field(
 RUNS_SCHEMA = Schema.build(
     "runs",
     {
+        "project": _identity_field(),
         "session_id": _identity_field(),
         "script_path": _data_field(FieldKind.TEXT),
         "script_hash": _data_field(FieldKind.TEXT),
@@ -81,6 +82,7 @@ RUNS_SCHEMA = Schema.build(
 FILE_HASHES_SCHEMA = Schema.build(
     "file_hashes",
     {
+        "project": _identity_field(),
         "session_id": _identity_field(),
         "file_path": _identity_field(),
         "role": _identity_field(),
@@ -89,7 +91,7 @@ FILE_HASHES_SCHEMA = Schema.build(
         "frozen": _data_field(FieldKind.BOOL),
         "host": _data_field(FieldKind.TEXT),
         "recorded_at": _data_field(FieldKind.TEXT, required=True, indexed=True),
-        # Added by sqlite-migration-scitex-clew-20260828 PR 4
+        # Added by the store migration's node-class PR
         # (feat/clew-node-class-store-migration) — was a raw
         # `ALTER TABLE file_hashes ADD COLUMN node_class TEXT` in the
         # pre-migration `_core/_node_class.py::migrate_add_node_class`.
@@ -105,6 +107,7 @@ FILE_HASHES_SCHEMA = Schema.build(
 VERIFICATION_RESULTS_SCHEMA = Schema.build(
     "verification_results",
     {
+        "project": _identity_field(),
         "verification_id": _identity_field(),
         "session_id": _data_field(
             FieldKind.TEXT, required=True, merge=MergeRule.IMMUTABLE, indexed=True
@@ -123,6 +126,7 @@ VERIFICATION_RESULTS_SCHEMA = Schema.build(
 SESSION_PARENTS_SCHEMA = Schema.build(
     "session_parents",
     {
+        "project": _identity_field(),
         "session_id": _identity_field(),
         "parent_session": _identity_field(),
         "recorded_at": _data_field(

@@ -1,0 +1,623 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scitex_clew._claim._verify &mdash; SciTeX Clew v0.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SciTeX Clew
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#basic-installation">Basic Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-cli-support">With CLI Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-mcp-server">With MCP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#all-optional-dependencies">All Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#development-installation">Development Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#cli">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#mcp-server">MCP Server</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../grouping.html">Grouping</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#built-in-groupers">Built-in groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#spec-schema">Spec schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#custom-groupers">Custom groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#merkle-roots">Merkle roots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#grouping-invariants">Grouping invariants</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#core-commands">Core Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#introspection">Introspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#mcp-subcommands">MCP Subcommands</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../mcp.html">MCP Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#starting-the-server">Starting the Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#mcp-client-configuration">MCP Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#available-tools">Available Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#diagnostics">Diagnostics</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/scitex_clew.html">scitex_clew</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.chain"><code class="docutils literal notranslate"><span class="pre">chain()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.dag"><code class="docutils literal notranslate"><span class="pre">dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun"><code class="docutils literal notranslate"><span class="pre">rerun()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_dag"><code class="docutils literal notranslate"><span class="pre">rerun_dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_start"><code class="docutils literal notranslate"><span class="pre">on_session_start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_close"><code class="docutils literal notranslate"><span class="pre">on_session_close()</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-1-basic-verification">Example 1: Basic Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-2-chain-verification">Example 2: Chain Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-3-mermaid-diagram">Example 3: Mermaid Diagram</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SciTeX Clew</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">scitex_clew._claim._verify</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scitex_clew._claim._verify</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""Claim verification — verify_claim, verify_all_claims, verify_claims_dag."""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._model</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ClaimVerification</span><span class="p">,</span>
+    <span class="n">VerificationResult</span><span class="p">,</span>
+    <span class="n">_ensure_claims_table</span><span class="p">,</span>
+    <span class="n">_resolve_claim</span><span class="p">,</span>
+    <span class="n">_update_claim_status</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._register</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_claims</span>
+
+
+<div class="viewcode-block" id="verify_claim">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.verify_claim">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_claim</span><span class="p">(</span>
+    <span class="n">claim_id_or_location</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">hash_cache</span><span class="p">:</span> <span class="s2">"Optional[Dict[str, str]]"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">chain_cache</span><span class="p">:</span> <span class="s2">"Optional[Dict[str, object]]"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Verify a specific claim by checking its source against the verification chain.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    claim_id_or_location : str</span>
+<span class="sd">        Either a claim_id or a location string like "paper.tex:L42".</span>
+<span class="sd">    hash_cache : dict or None, optional</span>
+<span class="sd">        Per-pass cache mapping resolved-path -&gt; hash (see</span>
+<span class="sd">        :func:`scitex_clew._hash.hash_file`). When provided, a source file</span>
+<span class="sd">        shared by multiple claims is hashed at most once per pass. Pass</span>
+<span class="sd">        ``None`` (default) to disable caching — direct callers are unaffected.</span>
+<span class="sd">    chain_cache : dict or None, optional</span>
+<span class="sd">        Per-pass memo mapping ``str(resolved source_file)`` -&gt;</span>
+<span class="sd">        :class:`~scitex_clew._chain.ChainVerification`. When provided, the</span>
+<span class="sd">        full chain walk (``verify_chain``) for a source_file that appears on</span>
+<span class="sd">        multiple claims is executed at most once per :func:`verify_all_claims`</span>
+<span class="sd">        pass. Pass ``None`` (default) to disable memoization — direct callers</span>
+<span class="sd">        are unaffected.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Verification result with claim details and chain status.</span>
+<span class="sd">    """</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="n">_ensure_claims_table</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+
+    <span class="n">claim</span> <span class="o">=</span> <span class="n">_resolve_claim</span><span class="p">(</span><span class="n">claim_id_or_location</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">claim</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"not_found"</span><span class="p">,</span>
+            <span class="s2">"message"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"No claim found for '</span><span class="si">{</span><span class="n">claim_id_or_location</span><span class="si">}</span><span class="s2">'"</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"claim"</span><span class="p">:</span> <span class="n">claim</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+        <span class="s2">"source_verified"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">"chain_verified"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">"details"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Check source file exists and hash matches</span>
+    <span class="k">if</span> <span class="n">claim</span><span class="o">.</span><span class="n">source_file</span><span class="p">:</span>
+        <span class="n">source_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">claim</span><span class="o">.</span><span class="n">source_file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">source_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">result</span><span class="p">[</span><span class="s2">"details"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Source file missing: </span><span class="si">{</span><span class="n">claim</span><span class="o">.</span><span class="n">source_file</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">_update_claim_status</span><span class="p">(</span><span class="n">claim</span><span class="o">.</span><span class="n">claim_id</span><span class="p">,</span> <span class="s2">"missing"</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+            <span class="n">result</span><span class="p">[</span><span class="s2">"claim"</span><span class="p">][</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"missing"</span>
+            <span class="k">return</span> <span class="n">result</span>
+
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.._hash</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_file</span>
+
+        <span class="n">current_hash</span> <span class="o">=</span> <span class="n">hash_file</span><span class="p">(</span><span class="n">source_path</span><span class="p">,</span> <span class="n">hash_cache</span><span class="o">=</span><span class="n">hash_cache</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">claim</span><span class="o">.</span><span class="n">source_hash</span>
+            <span class="ow">and</span> <span class="n">current_hash</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">claim</span><span class="o">.</span><span class="n">source_hash</span><span class="p">)]</span>
+            <span class="o">==</span> <span class="n">claim</span><span class="o">.</span><span class="n">source_hash</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_hash</span><span class="p">)]</span>
+        <span class="p">):</span>
+            <span class="n">result</span><span class="p">[</span><span class="s2">"source_verified"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">result</span><span class="p">[</span><span class="s2">"details"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Source file hash matches"</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s2">"details"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Source hash mismatch: stored=</span><span class="si">{</span><span class="n">claim</span><span class="o">.</span><span class="n">source_hash</span><span class="si">}</span><span class="s2">, current=</span><span class="si">{</span><span class="n">current_hash</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+            <span class="n">_update_claim_status</span><span class="p">(</span><span class="n">claim</span><span class="o">.</span><span class="n">claim_id</span><span class="p">,</span> <span class="s2">"mismatch"</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+            <span class="n">result</span><span class="p">[</span><span class="s2">"claim"</span><span class="p">][</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"mismatch"</span>
+            <span class="k">return</span> <span class="n">result</span>
+
+    <span class="c1"># Verify the chain if we have a source file</span>
+    <span class="k">if</span> <span class="n">claim</span><span class="o">.</span><span class="n">source_file</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_chain</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Per-pass chain memo: avoid re-walking the same source chain when</span>
+            <span class="c1"># multiple claims share one source_file (strict-mode perf).</span>
+            <span class="n">chain_key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">claim</span><span class="o">.</span><span class="n">source_file</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">chain_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">chain_key</span> <span class="ow">in</span> <span class="n">chain_cache</span><span class="p">:</span>
+                <span class="n">chain</span> <span class="o">=</span> <span class="n">chain_cache</span><span class="p">[</span><span class="n">chain_key</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">chain</span> <span class="o">=</span> <span class="n">verify_chain</span><span class="p">(</span><span class="n">claim</span><span class="o">.</span><span class="n">source_file</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">chain_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">chain_cache</span><span class="p">[</span><span class="n">chain_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">chain</span>
+            <span class="n">result</span><span class="p">[</span><span class="s2">"chain_verified"</span><span class="p">]</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">is_verified</span>
+            <span class="k">if</span> <span class="n">chain</span><span class="o">.</span><span class="n">is_verified</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="s2">"details"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Chain verified (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">runs</span><span class="p">)</span><span class="si">}</span><span class="s2"> runs)"</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="s2">"details"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Chain verification failed (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">failed_runs</span><span class="p">)</span><span class="si">}</span><span class="s2"> failed runs)"</span>
+                <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s2">"details"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Chain verification error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># Update status</span>
+    <span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="s2">"source_verified"</span><span class="p">]</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s2">"chain_verified"</span><span class="p">]:</span>
+        <span class="n">_update_claim_status</span><span class="p">(</span><span class="n">claim</span><span class="o">.</span><span class="n">claim_id</span><span class="p">,</span> <span class="s2">"verified"</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"claim"</span><span class="p">][</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"verified"</span>
+    <span class="k">elif</span> <span class="n">result</span><span class="p">[</span><span class="s2">"source_verified"</span><span class="p">]:</span>
+        <span class="n">_update_claim_status</span><span class="p">(</span><span class="n">claim</span><span class="o">.</span><span class="n">claim_id</span><span class="p">,</span> <span class="s2">"suspect"</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"claim"</span><span class="p">][</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"suspect"</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_claims_dag</span><span class="p">(</span>
+    <span class="n">file_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">claim_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Build a unified DAG from all claims, tracing each back to its source.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    file_path : str, optional</span>
+<span class="sd">        Filter claims by manuscript file path.</span>
+<span class="sd">    claim_type : str, optional</span>
+<span class="sd">        Filter claims by type.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    DAGVerification</span>
+<span class="sd">        Unified verification result covering all claim source chains merged.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">DAGVerification</span><span class="p">,</span> <span class="n">VerificationStatus</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_dag</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">list_claims</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span> <span class="n">claim_type</span><span class="o">=</span><span class="n">claim_type</span><span class="p">)</span>
+
+    <span class="c1"># Collect unique source files from claims</span>
+    <span class="n">source_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">claims</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">source_file</span> <span class="ow">and</span> <span class="n">c</span><span class="o">.</span><span class="n">source_file</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">source_files</span><span class="p">:</span>
+            <span class="n">source_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">source_file</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">source_files</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">DAGVerification</span><span class="p">(</span>
+            <span class="n">target_files</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">runs</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">edges</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">status</span><span class="o">=</span><span class="n">VerificationStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+            <span class="n">topological_order</span><span class="o">=</span><span class="p">[],</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">verify_dag</span><span class="p">(</span><span class="n">source_files</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_classify_claim</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Classify a single ``verify_claim`` result into an exit code.</span>
+
+<span class="sd">    Maps the per-claim verification outcome onto the documented fail-loud</span>
+<span class="sd">    exit-code contract in :mod:`scitex_clew._cli._exit_codes`. Returns the</span>
+<span class="sd">    code for *this one claim* (the caller reduces over the whole set).</span>
+
+<span class="sd">    Decision tree (per claim):</span>
+
+<span class="sd">    * No ``source_file`` linked → ``UNVERIFIED`` (the fabrication case: a</span>
+<span class="sd">      claim registered against nothing computable — exactly the hand-coded</span>
+<span class="sd">      ``results.json`` story).</span>
+<span class="sd">    * Source file gone → ``SOURCE_MISSING``.</span>
+<span class="sd">    * Stored hash != current hash → ``HASH_MISMATCH``.</span>
+<span class="sd">    * Source hash matches but the claim was never marked verified</span>
+<span class="sd">      (``verified_at`` is null AND status is still ``registered``) →</span>
+<span class="sd">      ``UNVERIFIED``.</span>
+<span class="sd">    * Source verified:</span>
+<span class="sd">        * non-strict → ``OK`` (hash match is the bar).</span>
+<span class="sd">        * strict and chain NOT verified → ``NO_LINEAGE`` (hand-written</span>
+<span class="sd">          leaf, no ``@stx.session`` provenance upstream).</span>
+<span class="sd">        * strict and chain verified → ``OK``.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._cli._exit_codes</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">HASH_MISMATCH</span><span class="p">,</span>
+        <span class="n">NO_LINEAGE</span><span class="p">,</span>
+        <span class="n">OK</span><span class="p">,</span>
+        <span class="n">SOURCE_MISSING</span><span class="p">,</span>
+        <span class="n">UNVERIFIED</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">claim</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"claim"</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="n">claim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"status"</span><span class="p">)</span>
+    <span class="n">source_file</span> <span class="o">=</span> <span class="n">claim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"source_file"</span><span class="p">)</span>
+    <span class="n">verified_at</span> <span class="o">=</span> <span class="n">claim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"verified_at"</span><span class="p">)</span>
+
+    <span class="c1"># No computable source at all — the canonical fabrication case.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">source_file</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">UNVERIFIED</span>
+
+    <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">"missing"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">SOURCE_MISSING</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">"mismatch"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">HASH_MISMATCH</span>
+
+    <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"source_verified"</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">strict</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"chain_verified"</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">NO_LINEAGE</span>
+        <span class="k">return</span> <span class="n">OK</span>
+
+    <span class="c1"># Source linked but neither verified nor explicitly failed: it was</span>
+    <span class="c1"># never put through a real verification pass (verified_at null).</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">verified_at</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">UNVERIFIED</span>
+
+    <span class="c1"># Fallback — any other not-verified state is treated as unverified.</span>
+    <span class="k">return</span> <span class="n">UNVERIFIED</span>
+
+
+<div class="viewcode-block" id="verify_all_claims">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.verify_all_claims">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_all_claims</span><span class="p">(</span>
+    <span class="n">file_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">claim_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"VerificationResult"</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Verify every registered claim and reduce to a fail-loud result.</span>
+
+<span class="sd">    This is the reusable core behind ``clew verify`` (claim-set mode). It</span>
+<span class="sd">    re-verifies each claim (re-hashing its source and, in ``strict`` mode,</span>
+<span class="sd">    checking upstream ``@stx.session`` lineage), updates each claim's stored</span>
+<span class="sd">    status as a side effect (via :func:`verify_claim`), and reduces the</span>
+<span class="sd">    per-claim outcomes to a single :class:`VerificationResult`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    file_path : str, optional</span>
+<span class="sd">        Restrict to claims registered against this manuscript path.</span>
+<span class="sd">    claim_type : str, optional</span>
+<span class="sd">        Restrict to claims of this type.</span>
+<span class="sd">    strict : bool, optional</span>
+<span class="sd">        When True, a claim only passes if its source additionally has</span>
+<span class="sd">        upstream computation lineage (its provenance chain verifies).</span>
+<span class="sd">        A hand-written leaf (no ``@stx.session`` behind it) fails with</span>
+<span class="sd">        ``NO_LINEAGE`` even though its hash matches. ``strict`` also promotes</span>
+<span class="sd">        ``NO_LINEAGE`` to ERROR severity regardless of config. Default False.</span>
+<span class="sd">    config : str or pathlib.Path, optional</span>
+<span class="sd">        Explicit ``.scitex/clew`` config file/dir overriding the resolved</span>
+<span class="sd">        user/project severity map (see :mod:`scitex_clew._core._config`).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    VerificationResult</span>
+<span class="sd">        Structured outcome. ``result.exit_code == 0`` (``result.ok``) is the</span>
+<span class="sd">        DONE-gate; any nonzero code means the agent MUST abstain honestly</span>
+<span class="sd">        instead of claiming success. Per-pattern severity (configurable via</span>
+<span class="sd">        ``.scitex/clew``) decides which fired patterns are ``errors`` (fail)</span>
+<span class="sd">        vs ``warnings`` (tolerated). See :mod:`scitex_clew._cli._exit_codes`.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._cli._exit_codes</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">KEY_BY_CODE</span><span class="p">,</span>
+        <span class="n">NO_CLAIMS</span><span class="p">,</span>
+        <span class="n">OK</span><span class="p">,</span>
+        <span class="n">UNSOURCED</span><span class="p">,</span>
+        <span class="n">classify_exit</span><span class="p">,</span>
+        <span class="n">name_of</span><span class="p">,</span>
+        <span class="n">reason_of</span><span class="p">,</span>
+        <span class="n">resolve_severity</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">severities</span> <span class="o">=</span> <span class="n">resolve_severity</span><span class="p">(</span><span class="n">explicit</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span>
+
+    <span class="c1"># Registered-source gate (opt-in): load the manifest ONCE per pass. When</span>
+    <span class="c1"># absent -&gt; None -&gt; gate inactive (zero behavior change). A malformed</span>
+    <span class="c1"># manifest fails loud (ValueError) rather than silently disabling the gate.</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_grounded</span><span class="p">,</span> <span class="n">load_sources_manifest</span>
+
+    <span class="n">manifest</span> <span class="o">=</span> <span class="n">load_sources_manifest</span><span class="p">()</span>
+    <span class="n">gate_active</span> <span class="o">=</span> <span class="n">manifest</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">manifest</span><span class="o">.</span><span class="n">active</span>
+    <span class="n">severity_view</span> <span class="o">=</span> <span class="p">{</span><span class="n">KEY_BY_CODE</span><span class="p">[</span><span class="n">code</span><span class="p">]:</span> <span class="n">lvl</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">code</span><span class="p">,</span> <span class="n">lvl</span> <span class="ow">in</span> <span class="n">severities</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">list_claims</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span> <span class="n">claim_type</span><span class="o">=</span><span class="n">claim_type</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">10_000</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">claims</span><span class="p">:</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">errors</span><span class="p">,</span> <span class="n">warnings</span> <span class="o">=</span> <span class="n">classify_exit</span><span class="p">([</span><span class="n">NO_CLAIMS</span><span class="p">],</span> <span class="n">severities</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">VerificationResult</span><span class="p">(</span>
+            <span class="n">exit_code</span><span class="o">=</span><span class="n">exit_code</span><span class="p">,</span>
+            <span class="n">exit_name</span><span class="o">=</span><span class="n">name_of</span><span class="p">(</span><span class="n">exit_code</span><span class="p">),</span>
+            <span class="n">reason</span><span class="o">=</span><span class="n">reason_of</span><span class="p">(</span><span class="n">exit_code</span><span class="p">),</span>
+            <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span>
+            <span class="n">total</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">verified</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">counts</span><span class="o">=</span><span class="p">{</span><span class="n">name_of</span><span class="p">(</span><span class="n">NO_CLAIMS</span><span class="p">):</span> <span class="mi">1</span><span class="p">},</span>
+            <span class="n">claims</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">severities</span><span class="o">=</span><span class="n">severity_view</span><span class="p">,</span>
+            <span class="n">errors</span><span class="o">=</span><span class="n">errors</span><span class="p">,</span>
+            <span class="n">warnings</span><span class="o">=</span><span class="n">warnings</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Perf B: one hash_cache per pass so a source file shared by N claims is</span>
+    <span class="c1"># hashed exactly once (O(D) instead of O(C·D)).  The cache is fresh every</span>
+    <span class="c1"># call to verify_all_claims so a file changed between two independent passes</span>
+    <span class="c1"># is always re-hashed — no stale entries leak across passes.</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._chain._hash_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">new_hash_cache</span>
+
+    <span class="n">hash_cache</span> <span class="o">=</span> <span class="n">new_hash_cache</span><span class="p">()</span>
+    <span class="c1"># Strict-mode chain memo: in strict mode, verify_chain(source_file) walks</span>
+    <span class="c1"># upstream provenance — O(depth) per unique source.  Claims sharing one</span>
+    <span class="c1"># source_file would otherwise re-walk the same chain O(C) times.  The memo</span>
+    <span class="c1"># is keyed by str(resolved source_file) and populated on first encounter so</span>
+    <span class="c1"># each unique chain is walked at most once per pass.  A fresh dict is</span>
+    <span class="c1"># created each call so no stale entries leak across independent passes.</span>
+    <span class="n">chain_cache</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">per_claim</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ClaimVerification</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">per_codes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">verified</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">counts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">claims</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">verify_claim</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">claim_id</span><span class="p">,</span> <span class="n">hash_cache</span><span class="o">=</span><span class="n">hash_cache</span><span class="p">,</span> <span class="n">chain_cache</span><span class="o">=</span><span class="n">chain_cache</span><span class="p">)</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">_classify_claim</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span>
+
+        <span class="c1"># Source gate: an otherwise-OK (link-verified) claim whose chain reaches</span>
+        <span class="c1"># NO registered source is DEMOTED to UNSOURCED. Hash/lineage failures</span>
+        <span class="c1"># already carry a stronger code and are never overridden here.</span>
+        <span class="n">gate_status</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">gate_active</span> <span class="ow">and</span> <span class="n">code</span> <span class="o">==</span> <span class="n">OK</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_grounded</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">manifest</span><span class="p">,</span> <span class="n">db</span><span class="p">):</span>
+                <span class="n">code</span> <span class="o">=</span> <span class="n">UNSOURCED</span>
+                <span class="n">gate_status</span> <span class="o">=</span> <span class="s2">"unsourced"</span>
+
+        <span class="n">per_codes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+        <span class="n">cname</span> <span class="o">=</span> <span class="n">name_of</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+        <span class="n">counts</span><span class="p">[</span><span class="n">cname</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cname</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">code</span> <span class="o">==</span> <span class="n">OK</span><span class="p">:</span>
+            <span class="n">verified</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">rclaim</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"claim"</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">sev</span> <span class="o">=</span> <span class="s2">"ok"</span> <span class="k">if</span> <span class="n">code</span> <span class="o">==</span> <span class="n">OK</span> <span class="k">else</span> <span class="n">severities</span><span class="p">[</span><span class="n">code</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">per_claim</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">ClaimVerification</span><span class="p">(</span>
+                <span class="n">claim_id</span><span class="o">=</span><span class="n">c</span><span class="o">.</span><span class="n">claim_id</span><span class="p">,</span>
+                <span class="n">location</span><span class="o">=</span><span class="n">c</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
+                <span class="n">claim_value</span><span class="o">=</span><span class="n">c</span><span class="o">.</span><span class="n">claim_value</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">gate_status</span> <span class="ow">or</span> <span class="n">rclaim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"status"</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">status</span><span class="p">),</span>
+                <span class="n">source_file</span><span class="o">=</span><span class="n">rclaim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"source_file"</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">source_file</span><span class="p">),</span>
+                <span class="n">source_session</span><span class="o">=</span><span class="n">rclaim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"source_session"</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">source_session</span><span class="p">),</span>
+                <span class="n">source_verified</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"source_verified"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                <span class="n">chain_verified</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"chain_verified"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                <span class="n">outcome</span><span class="o">=</span><span class="n">cname</span><span class="p">,</span>
+                <span class="n">severity</span><span class="o">=</span><span class="n">sev</span><span class="p">,</span>
+                <span class="n">details</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"details"</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">errors</span><span class="p">,</span> <span class="n">warnings</span> <span class="o">=</span> <span class="n">classify_exit</span><span class="p">(</span><span class="n">per_codes</span><span class="p">,</span> <span class="n">severities</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">VerificationResult</span><span class="p">(</span>
+        <span class="n">exit_code</span><span class="o">=</span><span class="n">exit_code</span><span class="p">,</span>
+        <span class="n">exit_name</span><span class="o">=</span><span class="n">name_of</span><span class="p">(</span><span class="n">exit_code</span><span class="p">),</span>
+        <span class="n">reason</span><span class="o">=</span><span class="n">reason_of</span><span class="p">(</span><span class="n">exit_code</span><span class="p">),</span>
+        <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span>
+        <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">claims</span><span class="p">),</span>
+        <span class="n">verified</span><span class="o">=</span><span class="n">verified</span><span class="p">,</span>
+        <span class="n">counts</span><span class="o">=</span><span class="n">counts</span><span class="p">,</span>
+        <span class="n">claims</span><span class="o">=</span><span class="n">per_claim</span><span class="p">,</span>
+        <span class="n">severities</span><span class="o">=</span><span class="n">severity_view</span><span class="p">,</span>
+        <span class="n">errors</span><span class="o">=</span><span class="n">errors</span><span class="p">,</span>
+        <span class="n">warnings</span><span class="o">=</span><span class="n">warnings</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="c1"># EOF</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

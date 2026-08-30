@@ -163,5 +163,5 @@ See the individual example scripts for detailed comments.
 
 - Examples initialize data in `/tmp/clew_example` by default
 - Database is stored in `~/.scitex/clew/` (configurable via environment)
-- No external dependencies required (uses only stdlib + sqlite3)
+- Provenance is recorded in the per-host PostgreSQL store (`host_store()`)
 - When used with scitex, integration is automatic via `@stx.session` + `stx.io`
