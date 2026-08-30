@@ -958,8 +958,9 @@ class TestEveryStoreIsPostgresBacked:
         """Every store is on PostgreSQL, so none of them is a file.
 
         This used to read ``target.is_file_backed``. scitex-dev removed
-        that attribute along with the SQLite backend, and a test that
-        raises AttributeError is a broken test, not a kept promise.
+        that attribute along with the file-backed backend it described,
+        and a test that raises AttributeError is a broken test, not a
+        kept promise.
 
         Asking about ``backend`` instead states the same guarantee
         against an attribute both the old and new primitive expose, so

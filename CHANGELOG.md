@@ -8,15 +8,17 @@ versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
-- **clew's four stores moved off SQLite onto the per-host PostgreSQL.**
+- **clew's four stores moved off the retired embedded file engine onto
+  the per-host PostgreSQL.**
   `_attest/_stamp.py` (`stamps`), `_db/_core.py` (`runs`, `file_hashes`,
   `verification_results`, `session_parents`), `_citation/_model.py`
   (`citations`) and `_claim/_store.py` (`claims`) now resolve their target
   through `scitex_dev.store.host_store(pkg="scitex_clew", name=...)`.
-  Required by scitex-dev #762, which deletes `StoreTarget.sqlite()`,
-  `Backend.SQLITE`, `SqlitePath` and `DB_SUFFIX`; scitex-clew was the
-  fleet's only production caller. No DSN is written in source: the one
-  switch is `SCITEX_STORE_DSN`, owned by `host_store()`.
+  Required by scitex-dev #762, which deletes the file-backed `StoreTarget`
+  constructor, its `Backend` member, its path type and `DB_SUFFIX`;
+  scitex-clew was the fleet's only production caller. No DSN is written
+  in source: the one switch is `SCITEX_STORE_DSN`, owned by
+  `host_store()`.
 
 ### Removed — BREAKING
 - **clew has no database file.** `VerificationDB(db_path)` takes no
@@ -26,9 +28,8 @@ versions follow [Semantic Versioning](https://semver.org/).
   `SCITEX_CLEW_DB_PATH` environment variable is retired;
   `render_dag(db_path=)`, `clew print-mermaid --db` and
   `clew gate-completeness --db-path` are removed; `stats()` reports
-  `"store"` instead of `"db_path"`. The legacy `db.sqlite` → `clew.db`
-  auto-rename (`_db/_migrate_rename.py`) is deleted with the file notion
-  it served.
+  `"store"` instead of `"db_path"`. The legacy default-store auto-rename
+  (`_db/_migrate_rename.py`) is deleted with the file notion it served.
 
 ### Capabilities lost by the above, recorded rather than papered over
 - **Reading a foreign capsule's provenance.** The submission gate globbed
