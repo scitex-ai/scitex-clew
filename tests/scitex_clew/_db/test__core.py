@@ -955,13 +955,27 @@ class TestEveryStoreIsPostgresBacked:
         store.close()
 
     def test_no_store_is_file_backed(self):
+        """Every store is on PostgreSQL, so none of them is a file.
+
+        This used to read ``target.is_file_backed``. scitex-dev removed
+        that attribute along with the SQLite backend, and a test that
+        raises AttributeError is a broken test, not a kept promise.
+
+        Asking about ``backend`` instead states the same guarantee
+        against an attribute both the old and new primitive expose, so
+        this fails for the right reason — a store on some other engine —
+        under either version, rather than passing because the thing it
+        asked about stopped existing.
+        """
         # Arrange
         db = VerificationDB()
         stores = [db._runs, db._file_hashes, db._verifications, db._session_parents]
         # Act
-        file_backed = [s.target.name for s in stores if s.target.is_file_backed]
+        off_postgres = [
+            s.target.name for s in stores if s.target.backend is not Backend.POSTGRES
+        ]
         # Assert
-        assert file_backed == []
+        assert off_postgres == []
 
 
 class TestTheOneSwitch:
