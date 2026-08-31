@@ -22,19 +22,16 @@ import pytest
 import scitex_clew as clew
 import scitex_clew._db as _db_module
 from scitex_clew._cli import _exit_codes as codes
-from scitex_clew._db import set_db
 from scitex_clew._hash import hash_file
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
+def isolated_db():
     # Real env mutation with explicit undo (PA-306 forbids monkeypatch):
-    # disable the read-only claims.json auto-export between temp DBs.
+    # disable the read-only claims.json auto-export.
     prev = os.environ.get("SCITEX_CLEW_AUTO_EXPORT_CLAIMS")
     os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = "0"
-    set_db(tmp_path / "verify_all.db")
     yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
     if prev is None:
         os.environ.pop("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", None)
     else:

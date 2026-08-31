@@ -73,7 +73,7 @@ clew print-mermaid
 clew print-mermaid --claims
 
 # Target a store outside the current tree (host-side / post-run)
-clew print-mermaid --claims --db runs/capsule/.scitex/clew/runtime/clew.db
+clew print-mermaid --claims
 ```
 
 ## Claim commands

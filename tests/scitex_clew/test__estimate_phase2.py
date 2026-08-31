@@ -4,7 +4,7 @@
 """Tests for Phase 2 additions to scitex_clew._estimate.
 
 Coverage:
-  (h) schema migration adds size_bytes column to pre-existing DB without data loss
+  (h) size_bytes round-trips through the Store
   (i) size_bytes populated on record_output via SessionTracker
   (j) typical_output_bytes is median of per-run total output bytes
   (k) missing size_bytes data yields None — no fabrication
@@ -18,9 +18,7 @@ PA-307: one assertion per test, with Arrange/Act/Assert markers.
 
 from __future__ import annotations
 
-import sqlite3
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Optional
 
 import pytest
@@ -40,9 +38,14 @@ from scitex_clew._estimate import (
 # ---------------------------------------------------------------------------
 
 
-def _make_db(tmp_path: Path) -> VerificationDB:
-    """Create an isolated VerificationDB in a temp directory."""
-    return VerificationDB(tmp_path / "test_p2.db")
+def _make_db() -> VerificationDB:
+    """Open the per-test database.
+
+    Isolation is supplied by the autouse `isolated_store` fixture in
+    tests/conftest.py: each test gets its own throwaway PostgreSQL schema,
+    so `VerificationDB()` takes no argument.
+    """
+    return VerificationDB()
 
 
 def _iso(dt: datetime) -> str:
@@ -58,16 +61,30 @@ def _add_completed_run(
     duration_seconds: float,
     status: str = "success",
 ) -> None:
-    """Add a completed run with the given wall-clock duration."""
+    """Add a completed run with the given wall-clock duration.
+
+    NOTE (the 2026-08-28 store migration — final cleanup):
+    `_estimate.py`'s queries read `db._runs` (a `scitex_dev.store.Store`)
+    exclusively; the legacy raw-file mirror `db._connect()` used to
+    expose (now removed entirely) never enters the picture. Overwrite
+    started_at/finished_at through the Store's own partial-update path
+    instead (`Store.put()` with only session_id + the two timestamp
+    fields, mirroring `finish_run()`'s own partial-put pattern).
+    """
+    from scitex_dev.store import ANY_REVISION
+
     start = datetime(2026, 1, 1, 12, 0, 0)
     end = start + timedelta(seconds=duration_seconds)
     db.add_run(session_id, script_path, script_hash=script_hash)
     db.finish_run(session_id, status=status)
-    with db._connect() as conn:
-        conn.execute(
-            "UPDATE runs SET started_at=?, finished_at=? WHERE session_id=?",
-            (_iso(start), _iso(end), session_id),
-        )
+    db._runs.put(
+        {
+            "session_id": session_id,
+            "started_at": _iso(start),
+            "finished_at": _iso(end),
+        },
+        expected_revision=ANY_REVISION,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -76,104 +93,44 @@ def _add_completed_run(
 
 
 class TestMigrationAddsSizeBytes:
-    def test_migration_column_exists_after_open(self, tmp_path):
-        # Arrange — create DB manually without size_bytes column
-        db_path = tmp_path / "legacy.db"
-        conn = sqlite3.connect(db_path)
-        conn.execute(
-            """
-            CREATE TABLE file_hashes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                file_path TEXT NOT NULL,
-                hash TEXT NOT NULL,
-                role TEXT NOT NULL,
-                recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE runs (
-                session_id TEXT PRIMARY KEY,
-                script_path TEXT,
-                script_hash TEXT,
-                started_at TIMESTAMP,
-                finished_at TIMESTAMP,
-                status TEXT,
-                exit_code INTEGER,
-                parent_session TEXT,
-                combined_hash TEXT,
-                metadata TEXT
-            )
-            """
-        )
-        conn.commit()
-        conn.close()
-        # Act — open via VerificationDB triggers migration
-        db = VerificationDB(db_path)
-        with db._connect() as conn2:
-            columns = {row[1] for row in conn2.execute("PRAGMA table_info(file_hashes)").fetchall()}
-        # Assert
-        assert "size_bytes" in columns
+    """Store-backed `size_bytes` support.
 
-    def test_migration_preserves_existing_rows(self, tmp_path):
-        # Arrange — create DB manually, insert a row, then open via VerificationDB
-        db_path = tmp_path / "legacy2.db"
-        conn = sqlite3.connect(db_path)
-        conn.execute(
-            """
-            CREATE TABLE file_hashes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                file_path TEXT NOT NULL,
-                hash TEXT NOT NULL,
-                role TEXT NOT NULL,
-                recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE runs (
-                session_id TEXT PRIMARY KEY,
-                script_path TEXT,
-                script_hash TEXT,
-                started_at TIMESTAMP,
-                finished_at TIMESTAMP,
-                status TEXT,
-                exit_code INTEGER,
-                parent_session TEXT,
-                combined_hash TEXT,
-                metadata TEXT
-            )
-            """
-        )
-        conn.execute(
-            "INSERT INTO runs (session_id, script_path, status) VALUES (?, ?, ?)",
-            ("sess-old", "/old/script.py", "success"),
-        )
-        conn.execute(
-            "INSERT INTO file_hashes (session_id, file_path, hash, role) VALUES (?, ?, ?, ?)",
-            ("sess-old", "/old/out.csv", "abc123", "output"),
-        )
-        conn.commit()
-        conn.close()
-        # Act — open via VerificationDB migrates and preserves data
-        db = VerificationDB(db_path)
-        hashes = db.get_file_hashes("sess-old", role="output")
-        # Assert
-        assert "/old/out.csv" in hashes
+    RETARGETED (the 2026-08-28 store migration, final cleanup): this
+    class originally exercised the legacy raw-file mirror's idempotent
+    `ALTER TABLE file_hashes ADD COLUMN size_bytes` migration (including
+    opening a `VerificationDB` against a hand-rolled pre-existing store
+    file with old-shape tables, and reading the result back via
+    `db._connect()`). That legacy mirror and its
+    `_migrate_file_hashes_size_bytes` helper are deleted — Store schemas
+    carry `size_bytes` as a first-class field from creation, so there is
+    no additive-ALTER-TABLE step left to test. These tests now assert the
+    equivalent real behavior: `size_bytes` round-trips through the Store,
+    and survives a second `VerificationDB()` instance reading the same
+    store.
+    """
 
-    def test_migration_idempotent_on_second_open(self, tmp_path):
-        # Arrange — open twice; second open should not raise
-        db = _make_db(tmp_path)
-        # Act — second open of the same path
-        db2 = VerificationDB(tmp_path / "test_p2.db")
-        with db2._connect() as conn:
-            columns = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()}
+    def test_size_bytes_round_trips_through_store(self):
+        # Arrange
+        db = VerificationDB()
+        db.add_run("s1", "/path/script.py")
+        db.add_file_hash("s1", "/data/file.csv", "abc123", "input", size_bytes=42)
+        # Act
+        rows = [r for r in db._file_hashes.rows() if r.values.get("session_id") == "s1"]
         # Assert
-        assert "size_bytes" in columns
+        assert rows[0].values.get("size_bytes") == 42
+
+    def test_size_bytes_visible_across_reopened_db_instances(self):
+        # Arrange — open once, write, then construct a SECOND
+        # VerificationDB against the same store (Store-backed replacement
+        # for "migration is idempotent on second open").
+        db = _make_db()
+        db.add_run("s1", "/path/script.py")
+        db.add_file_hash("s1", "/data/file.csv", "abc123", "input", size_bytes=17)
+        # Act — second instance, same store
+        db2 = VerificationDB()
+        rows = [r for r in db2._file_hashes.rows() if r.values.get("session_id") == "s1"]
+        # Assert
+        assert rows[0].values.get("size_bytes") == 17
 
 
 # ---------------------------------------------------------------------------
@@ -182,41 +139,47 @@ class TestMigrationAddsSizeBytes:
 
 
 class TestSizeBytesPopulatedOnRecordOutput:
+    """RETARGETED (the 2026-08-28 store migration, final cleanup):
+    originally read `size_bytes` back via `db._connect()` against the now-
+    deleted legacy raw-file mirror. `db._file_hashes` (the Store) is the
+    real source of truth and now the only place these tests read from.
+    """
+
     def test_size_bytes_stored_after_record_output(self, tmp_path):
         # Arrange — create a real file and a tracker
         from scitex_clew._tracker import SessionTracker
 
-        db = _make_db(tmp_path)
+        db = _make_db()
         out_file = tmp_path / "result.csv"
         out_file.write_bytes(b"a,b,c\n1,2,3\n")
         tracker = SessionTracker("sz-sess-1", db=db)
         # Act
         tracker.record_output(out_file)
-        with db._connect() as conn:
-            row = conn.execute(
-                "SELECT size_bytes FROM file_hashes WHERE session_id=? AND role='output'",
-                ("sz-sess-1",),
-            ).fetchone()
+        rows = [
+            r
+            for r in db._file_hashes.rows()
+            if r.values.get("session_id") == "sz-sess-1" and r.values.get("role") == "output"
+        ]
         # Assert
-        assert row is not None and row[0] == out_file.stat().st_size
+        assert rows and rows[0].values.get("size_bytes") == out_file.stat().st_size
 
     def test_size_bytes_stored_after_record_input(self, tmp_path):
         # Arrange
         from scitex_clew._tracker import SessionTracker
 
-        db = _make_db(tmp_path)
+        db = _make_db()
         in_file = tmp_path / "data.csv"
         in_file.write_bytes(b"x\n" * 100)
         tracker = SessionTracker("sz-sess-2", db=db)
         # Act
         tracker.record_input(in_file)
-        with db._connect() as conn:
-            row = conn.execute(
-                "SELECT size_bytes FROM file_hashes WHERE session_id=? AND role='input'",
-                ("sz-sess-2",),
-            ).fetchone()
+        rows = [
+            r
+            for r in db._file_hashes.rows()
+            if r.values.get("session_id") == "sz-sess-2" and r.values.get("role") == "input"
+        ]
         # Assert
-        assert row is not None and row[0] == in_file.stat().st_size
+        assert rows and rows[0].values.get("size_bytes") == in_file.stat().st_size
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +195,7 @@ class TestTypicalOutputBytes:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         for sid, total in [("v1", 100), ("v2", 200), ("v3", 300)]:
             _add_completed_run(db, sid, str(script), h, 10.0)
             # Write one output of exactly `total` bytes
@@ -249,7 +212,7 @@ class TestTypicalOutputBytes:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "m1", str(script), h, 5.0)
         db.add_file_hash("m1", "/out/a.bin", "ha", "output", size_bytes=60)
         db.add_file_hash("m1", "/out/b.bin", "hb", "output", size_bytes=40)
@@ -272,7 +235,7 @@ class TestNoFabricationWhenSizeBytesAbsent:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "ns1", str(script), h, 8.0)
         # Insert with no size_bytes (None → NULL)
         db.add_file_hash("ns1", "/out/nosiz.bin", "hnosiz", "output", size_bytes=None)
@@ -285,7 +248,7 @@ class TestNoFabricationWhenSizeBytesAbsent:
         # Arrange — empty DB
         script = tmp_path / "cold.py"
         script.write_text("print('cold')\n")
-        db = _make_db(tmp_path)
+        db = _make_db()
         # Act
         result = estimate(str(script), db=db)
         # Assert
@@ -313,7 +276,7 @@ class TestCachedIntermediateHint:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         shared = tmp_path / "intermediate.csv"
         shared.write_text("intermediate data")
         shared_file = str(shared)
@@ -332,7 +295,7 @@ class TestCachedIntermediateHint:
         # matches s3's recorded output hash (fresh → hint emitted)
         from scitex_clew._hash import hash_file as _hf
 
-        db = _make_db(tmp_path)
+        db = _make_db()
         shared = tmp_path / "data.csv"
         shared.write_text("shared data")
         shared_file = str(shared)
@@ -348,9 +311,9 @@ class TestCachedIntermediateHint:
         # Assert
         assert len(hints) > 0
 
-    def test_no_reuse_hint_when_no_shared_files(self, tmp_path):
+    def test_no_reuse_hint_when_no_shared_files(self):
         # Arrange — two sessions with disjoint files
-        db = _make_db(tmp_path)
+        db = _make_db()
         db.add_run("a1", "/scriptA.py")
         db.finish_run("a1")
         db.add_file_hash("a1", "/out/A.csv", "ha", "output")
@@ -376,7 +339,7 @@ class TestHintIncludesVolumeText:
         from scitex_clew._hash import hash_file as _hf
 
         h = _hf(script)
-        db = _make_db(tmp_path)
+        db = _make_db()
         _add_completed_run(db, "b1", str(script), h, 10.0)
         db.add_file_hash("b1", "/out/big.bin", "hbig", "output", size_bytes=1024 * 1024)
         # Act

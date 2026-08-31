@@ -7,8 +7,8 @@ stx.io; clew's io observer ingests it here (scholar never imports clew). Ingest
 maps each entry 1:1 to ``add_citation`` (idempotent upsert), independent of an
 active session.
 
-Per PA-306 §3 (no mocks): real isolated DB. Per PA-307 §3: AAA markers + one
-assertion per test.
+Per PA-306 §3 (no mocks): the real store — tests/conftest.py gives each test
+its own PostgreSQL schema. Per PA-307 §3: AAA markers + one assertion per test.
 """
 
 from __future__ import annotations
@@ -18,21 +18,18 @@ import os
 import pytest
 
 import scitex_clew as clew
-import scitex_clew._db as _db_module
 from scitex_clew._citation._ingest import (
     ingest_citations_artifact,
     is_citation_artifact,
 )
-from scitex_clew._db import set_db
+from scitex_clew._db import get_db
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
+def isolated_db():
     prev = os.environ.get("SCITEX_CLEW_AUTO_EXPORT_CLAIMS")
     os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = "0"
-    set_db(tmp_path / "ingest.db")
-    yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
+    yield get_db()
     if prev is None:
         os.environ.pop("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", None)
     else:

@@ -110,7 +110,7 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     # _db
     "VerificationDB": ("._db", "VerificationDB"),
     "get_db": ("._db", "get_db"),
-    "set_db": ("._db", "set_db"),
+    "reset_db": ("._db", "reset_db"),
     # _examples
     "init_examples": ("._examples", "init_examples"),
     # _hash

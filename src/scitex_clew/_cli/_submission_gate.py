@@ -39,13 +39,7 @@ from ._claim import _json_mode
     "--workdir",
     "workdir",
     type=click.Path(),
-    help="Capsule/project dir to locate the clew DB + sources manifest.",
-)
-@click.option(
-    "--db-path",
-    "db_path",
-    type=click.Path(),
-    help="Explicit clew DB path (overrides the workdir DB search).",
+    help="Capsule/project dir to locate the sources manifest.",
 )
 @click.option(
     "--sources-path",
@@ -59,7 +53,6 @@ def gate_completeness_cmd(
     ctx: click.Context,
     submission_path,
     workdir,
-    db_path,
     sources_path,
     as_json: bool,
 ):
@@ -90,7 +83,6 @@ def gate_completeness_cmd(
     result = check_submission_completeness(
         submission,
         workdir=workdir,
-        db_path=db_path,
         sources_path=sources_path,
     )
 

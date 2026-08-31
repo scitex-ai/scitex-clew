@@ -119,7 +119,8 @@ The same JSON/dict schema works across Python, CLI (`--grouper`), MCP (`{"groupe
 
 ## Installation
 
-Requires Python >= 3.10. **Zero dependencies** — pure stdlib + sqlite3.
+Requires Python >= 3.10. Provenance is recorded in the per-host PostgreSQL
+store, reached through `scitex_dev.store.host_store()`.
 
 ```bash
 pip install scitex-clew
@@ -149,7 +150,7 @@ graph LR
 scitex-clew/
 ├── src/scitex_clew/
 │   ├── __init__.py              # status, run, chain, dag, rerun, mermaid
-│   ├── _db/                     # sqlite3 hash-linked DAG store (package)
+│   ├── _db/                     # hash-linked DAG store, Store-backed (package)
 │   │   ├── __init__.py
 │   │   ├── _core.py             # VerificationDB, connection mgmt
 │   │   ├── _chain.py            # ChainMixin: get_chain, get_children, set_parent

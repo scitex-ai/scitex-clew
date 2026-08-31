@@ -13,11 +13,12 @@ Five classes classify pipeline nodes by their role:
 
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 from typing import Optional
 
-from .._db._connect import connect as _clew_sqlite_connect
+from scitex_dev.store import ANY_REVISION
+
+from .._db._core import VerificationDB
 
 # Canonical node classes
 NODE_CLASSES = ("source", "input", "processing", "output", "claim")
@@ -84,63 +85,78 @@ def infer_node_class(file_path: str, role: str) -> Optional[str]:
     return None
 
 
-def migrate_add_node_class(db_path: Path) -> None:
-    """Add node_class column to file_hashes table if not present.
+def migrate_add_node_class() -> None:
+    """Ensure the ``file_hashes`` store has a ``node_class`` field.
 
-    Safe to call multiple times (idempotent).
+    ``node_class`` is a plain (optional) field of ``FILE_HASHES_SCHEMA``
+    (see ``_db/_schema.py``) — ``Store.__init__`` creates it as a real
+    column the first time a ``file_hashes`` store is opened, so there is no
+    separate ALTER-TABLE step left for this function to perform.
 
-    Parameters
-    ----------
-    db_path : Path
-        Path to the SQLite database file.
+    This is now effectively a no-op kept for backward-compatible call
+    sites that treat it as an idempotent "make sure the store is ready"
+    step: constructing ``VerificationDB`` is enough to guarantee the field
+    exists on a freshly created store.
+
+    Note: ``scitex_dev.store``'s additive-migration mechanism only
+    back-fills the store's OWN internal columns (the oplog/cursor fence),
+    not arbitrary new user schema fields — so a ``file_hashes`` store table
+    created before ``node_class`` existed in the schema will not
+    retroactively gain the column. Worth knowing if a schema field is ever
+    added to an already-deployed Store schema.
     """
-    conn = _clew_sqlite_connect(str(db_path))
-    try:
-        cursor = conn.execute("PRAGMA table_info(file_hashes)")
-        columns = {row[1] for row in cursor.fetchall()}
-        if "node_class" not in columns:
-            conn.execute("ALTER TABLE file_hashes ADD COLUMN node_class TEXT")
-            conn.commit()
-    finally:
-        conn.close()
+    VerificationDB()
 
 
 def set_node_class(
-    db_path: Path,
     session_id: str,
     file_path: str,
     node_class: str,
 ) -> None:
-    """Set node_class for a specific file hash record.
+    """Set node_class for every file hash record matching (session_id, file_path).
 
     Parameters
     ----------
-    db_path : Path
-        Path to the SQLite database.
     session_id : str
         Session identifier.
     file_path : str
         Path to the file.
     node_class : str
         One of: source, input, processing, output, claim.
+
+    Notes
+    -----
+    Matches on ``(session_id, file_path)`` only — NOT the full
+    ``(session_id, file_path, role)`` composite identity — reproducing the
+    original raw-SQL ``UPDATE ... WHERE session_id = ? AND file_path = ?``
+    behavior. A file recorded under multiple roles in the same session
+    (e.g. both an input to one step and the output of another) has every
+    matching row updated.
     """
     if node_class not in NODE_CLASSES:
         raise ValueError(
             f"Invalid node_class '{node_class}'. Must be one of: {NODE_CLASSES}"
         )
-    conn = _clew_sqlite_connect(str(db_path))
-    try:
-        conn.execute(
-            "UPDATE file_hashes SET node_class = ? "
-            "WHERE session_id = ? AND file_path = ?",
-            (node_class, session_id, file_path),
+    db = VerificationDB()
+    matches = [
+        row
+        for row in db._file_hashes.rows()
+        if row.values.get("session_id") == session_id
+        and row.values.get("file_path") == file_path
+    ]
+    for row in matches:
+        db._file_hashes.put(
+            {
+                "session_id": row.values["session_id"],
+                "file_path": row.values["file_path"],
+                "role": row.values["role"],
+                "node_class": node_class,
+            },
+            expected_revision=ANY_REVISION,
         )
-        conn.commit()
-    finally:
-        conn.close()
 
 
-def auto_classify(db_path: Path) -> int:
+def auto_classify() -> int:
     """Auto-classify all file_hashes records missing node_class.
 
     Returns
@@ -148,24 +164,24 @@ def auto_classify(db_path: Path) -> int:
     int
         Number of records updated.
     """
-    conn = _clew_sqlite_connect(str(db_path))
-    try:
-        rows = conn.execute(
-            "SELECT id, file_path, role FROM file_hashes WHERE node_class IS NULL"
-        ).fetchall()
-        updated = 0
-        for row_id, file_path, role in rows:
-            nc = infer_node_class(file_path, role)
-            if nc:
-                conn.execute(
-                    "UPDATE file_hashes SET node_class = ? WHERE id = ?",
-                    (nc, row_id),
-                )
-                updated += 1
-        conn.commit()
-        return updated
-    finally:
-        conn.close()
+    db = VerificationDB()
+    updated = 0
+    for row in db._file_hashes.rows():
+        if row.values.get("node_class") is not None:
+            continue
+        nc = infer_node_class(row.values.get("file_path"), row.values.get("role"))
+        if nc:
+            db._file_hashes.put(
+                {
+                    "session_id": row.values["session_id"],
+                    "file_path": row.values["file_path"],
+                    "role": row.values["role"],
+                    "node_class": nc,
+                },
+                expected_revision=ANY_REVISION,
+            )
+            updated += 1
+    return updated
 
 
 __all__ = [

@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from .._claim._model import _ensure_claims_table, _resolve_claim
-from .._db._core import VerificationDB, _default_db_path
+from .._db import get_db
 from ._gate import _hash_consistent, collect_chain_files, is_grounded
 from ._manifest import SourcesManifest, _resolve_sources_tier3, load_sources_manifest
 
@@ -87,26 +87,6 @@ def _verdict(
         "reason": reason,
         "fix_hint": _FIX_HINTS[reason],
     }
-
-
-def _resolve_db_path_for_workdir(root: Path) -> Path:
-    """Resolve the clew DB path for an explicit ``root`` (not cwd).
-
-    Mirrors :func:`scitex_clew._db._core.resolve_db_path`'s tier2/tier3
-    precedence exactly (the ``SCITEX_CLEW_DB_PATH`` env var escape hatch,
-    then the canonical ``runtime/clew.db`` layout + migration via
-    :func:`~scitex_clew._db._core._default_db_path`), swapping only the
-    tier-3 "which directory is the project root" step from a cwd
-    upward-walk to the explicit ``root`` the caller already resolved from
-    ``workdir`` — the same "workdir IS the project root" convention already
-    established by :mod:`scitex_clew._gate_plugin` (scitex-dev's
-    pre-submission gate), the one existing precedent for an explicit-workdir
-    resolution in this codebase.
-    """
-    env_path = os.environ.get("SCITEX_CLEW_DB_PATH")
-    if env_path:
-        return Path(env_path)
-    return _default_db_path(root)
 
 
 def _resolve_sources_path_for_workdir(root: Path) -> Path:
@@ -195,9 +175,12 @@ def is_claim_grounded(claim_location: str, *, workdir: str = ".") -> Dict:
     ``grounded=True`` here too — reason ``"no_manifest"`` carries the
     "amber, not a failure" nuance the bool alone cannot express.
     """
+    # ``workdir`` still selects WHICH manifest is consulted (it is per-capsule,
+    # a file on disk). It no longer selects a store: clew has no database file,
+    # so runs and claims come from THE store this host uses — see
+    # ``_db/_core.py`` and the same reasoning in ``_gate_plugin.py``.
     root = Path(workdir).resolve()
-    db_path = _resolve_db_path_for_workdir(root)
-    db = VerificationDB(db_path=db_path)
+    db = get_db()
     _ensure_claims_table(db)
 
     claim = _resolve_claim(claim_location, db)

@@ -1,142 +1,75 @@
 #!/usr/bin/env python3
 # Timestamp: "2026-03-04 (ywatanabe)"
 # File: /home/ywatanabe/proj/scitex-python/src/scitex/clew/_db.py
-"""SQLite database for verification tracking."""
+"""Store-backed database for verification tracking.
+
+This module drives ``scitex_dev.store.Store`` for the ``runs``,
+``file_hashes``, ``verification_results`` and ``session_parents`` tables.
+The target is resolved by :func:`scitex_dev.store.host_store` — THE store
+this host uses, per ADR-0006 — and nothing here constructs a DSN or a file
+path of its own. There is exactly one switch (``SCITEX_STORE_DSN``, read by
+``host_store()``), not a constant per call site.
+
+Storage is the per-host PostgreSQL instance. clew has no database file: an
+earlier revision of this module used a local file-backed target for a
+"portable single file, zero fleet infrastructure" property, and that
+rationale is overruled — a file store has no concept of WHO, so handing a
+collaborator one is sharing, not collaborating. What is genuinely lost by
+the change is recorded in the PR body, not papered over here.
+
+The four stores differ only by ``name=``, which is what separates their
+tables inside the one database. What separates one PROJECT's records from
+another's inside those tables is the ``project`` identity field — see
+``_scope.py``, which resolves the scope once for reads and writes alike.
+The per-project database file used to do that job; nothing else would have
+picked it up.
+
+Store has NO WHERE/JOIN/ORDER-BY/LIMIT support: every query below is
+``store.rows()`` (or ``store.get(key)`` for exact lookups) plus a Python
+filter/sort/aggregate — an accepted O(n)-scan trade-off.
+
+Schemas live in ``_schema.py``; the project-root walk that resolves the
+regenerable ``claims.json`` artifact lives in ``_paths.py`` (both split out
+of this file to respect the project's 512-line limit; see
+``GITIGNORED/REFACTORING.md``).
+"""
 
 from __future__ import annotations
 
 import json
-import os
-import sqlite3
-import warnings
-from contextlib import contextmanager
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
+
+from scitex_dev.store import ANY_REVISION, Store, StoreTarget, WriterPolicy, host_store
 
 from ._chain import ChainMixin
-from ._connect import connect as _clew_sqlite_connect
 from ._file_hashes import FileHashMixin
-from ._migrate_rename import wal_safe_rename
+#: Re-exported: several modules import these from ``._db._core``.
+from ._paths import (  # noqa: F401
+    _default_claims_json_path,
+    _default_hints_json_path,
+    _find_project_root,
+)
+from ._scope import ProjectScopedStore
 from ._queries import VerificationQueryMixin
+from ._schema import (
+    FILE_HASHES_SCHEMA,
+    RUNS_SCHEMA,
+    SESSION_PARENTS_SCHEMA,
+    VERIFICATION_RESULTS_SCHEMA,
+    resolve_node_id,
+)
 
-
-def _find_project_root() -> Path:
-    """Walk up from cwd to find the project root (contains .git or pyproject.toml)."""
-    current = Path.cwd()
-    for parent in [current, *current.parents]:
-        if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
-            return parent
-    return current
-
-
-def _default_claims_json_path(project_root: Path) -> Path:
-    """Resolve the default canonical claims.json artifact path.
-
-    Returns ``<project_root>/.scitex/clew/runtime/claims.json`` per the
-    ecosystem local-state-directories convention. The runtime/ subdir
-    is the canonical home for regenerable per-host outputs — claims.json
-    is regenerable from the DB at any time, so it lives there alongside
-    ``clew.db``.
-
-    The resolved path is **just the path** — this function does not
-    write or read the file. ``scitex_clew.export_claims_json()`` writes
-    to it.
-    """
-    return project_root / ".scitex" / "clew" / "runtime" / "claims.json"
-
-
-def _default_hints_json_path(project_root: Path) -> Path:
-    """Resolve the default canonical manuscript-hints artifact path.
-
-    Returns ``<project_root>/.scitex/writer/hints.json`` — this is
-    scitex-writer's namespace (NOT ``.scitex/clew/``), because the artifact
-    is writer's manuscript-hints FEED (schema ``manuscript-hints/1``); clew
-    is one of several producers that MERGE-BY-SOURCE into it. See
-    :func:`scitex_clew._claim._hints.export_manuscript_hints`.
-
-    The resolved path is **just the path** — this function does not write or
-    read the file.
-    """
-    return project_root / ".scitex" / "writer" / "hints.json"
-
-
-def _default_db_path(project_root: Path) -> Path:
-    """Resolve the default database path under ``runtime/``.
-
-    Returns ``<project_root>/.scitex/clew/runtime/clew.db`` per the
-    fleet-wide ``.scitex/<pkg>/runtime/<pkg>.db`` convention (clew is a
-    reference implementation). The ``.db`` extension is also required for
-    scitex-io interop — its load dispatch registers ``.db`` → SQLite3 but
-    has no handler for ``.sqlite``.
-
-    Transparent auto-rename migration: if the canonical ``clew.db`` does
-    not yet exist but a predecessor does, rename the predecessor to
-    ``clew.db`` on first access (WAL-safe — see
-    ``_migrate_rename.wal_safe_rename``) and emit a one-time deprecation
-    warning. Predecessors are checked in order:
-
-    1. ``<root>/.scitex/clew/runtime/db.sqlite`` (the previous default)
-    2. ``<root>/.scitex/clew/db.sqlite`` (legacy flat location)
-    """
-    new = project_root / ".scitex" / "clew" / "runtime" / "clew.db"
-    if new.exists():
-        return new
-
-    predecessors = [
-        project_root / ".scitex" / "clew" / "runtime" / "db.sqlite",
-        project_root / ".scitex" / "clew" / "db.sqlite",
-    ]
-    for old in predecessors:
-        if old.exists():
-            new.parent.mkdir(parents=True, exist_ok=True)
-            wal_safe_rename(old, new)
-            warnings.warn(
-                f"Renamed database from {old} to {new}. "
-                "The legacy 'db.sqlite' name is deprecated and will be "
-                "removed in a future version. Set SCITEX_CLEW_DB_PATH to "
-                "suppress.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            break
-    return new
-
-
-def resolve_db_path(
-    db_path: Optional[Union[str, Path]] = None,
-) -> "tuple[Path, str]":
-    """Resolve the store path via the three-tier precedence.
-
-    Parameters
-    ----------
-    db_path : str or Path, optional
-        Explicit store path (tier 1). When ``None``, falls through to the
-        ``SCITEX_CLEW_DB_PATH`` environment variable (tier 2) and finally
-        the project-root walk from the current working directory (tier 3).
-
-    Returns
-    -------
-    tuple of (Path, str)
-        The resolved path and a human-readable label of the tier that
-        produced it. This function only resolves — it neither creates
-        nor requires the file; read-side callers (e.g. ``render_dag``)
-        use the label to fail loud when the store is missing.
-    """
-    if db_path is not None:
-        return Path(db_path), "explicit db_path argument"
-    env_path = os.environ.get("SCITEX_CLEW_DB_PATH")
-    if env_path:
-        return Path(env_path), "SCITEX_CLEW_DB_PATH environment variable"
-    return (
-        _default_db_path(_find_project_root()),
-        "project-root walk from the current working directory",
-    )
+__all__ = [
+    "VerificationDB",
+    "get_db",
+    "reset_db",
+]
 
 
 class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
     """
-    SQLite database for tracking session runs and file hashes.
+    Store-backed database for tracking session runs and file hashes.
 
     Stores:
     - runs: session_id, script_path, timestamps, status
@@ -150,150 +83,38 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
     >>> db.add_file_hash("2025Y-11M-18D-09h12m03s_HmH5", "data.csv", "a1b2c3", "input")
     """
 
-    def __init__(self, db_path: Optional[Union[str, Path]] = None):
+    def __init__(self) -> None:
+        """Open clew's four stores against THE store this host uses.
+
+        Takes no path and no DSN. ``host_store()`` answers "which store does
+        this host use" — ``SCITEX_STORE_DSN`` when set, otherwise the
+        per-host Postgres over its UNIX socket — and it is the only switch.
         """
-        Initialize database connection.
+        node = resolve_node_id()
 
-        Parameters
-        ----------
-        db_path : str or Path, optional
-            Path to database file. Resolution order:
-            1. Explicit db_path argument
-            2. SCITEX_CLEW_DB_PATH environment variable
-            3. {project_root}/.scitex/clew/runtime/clew.db where
-               project_root is found by walking up from cwd until a
-               .git / pyproject.toml is found; falls back to cwd if no
-               root marker is found.
-        """
-        db_path, _tier = resolve_db_path(db_path)
-        self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._init_schema()
+        def _target(name: str) -> StoreTarget:
+            return host_store(pkg="scitex_clew", name=name)
 
-    def _init_schema(self) -> None:
-        """Create database tables if they don't exist."""
-        with self._connect() as conn:
-            conn.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS runs (
-                    session_id TEXT PRIMARY KEY,
-                    script_path TEXT,
-                    script_hash TEXT,
-                    started_at TIMESTAMP,
-                    finished_at TIMESTAMP,
-                    status TEXT,
-                    exit_code INTEGER,
-                    parent_session TEXT,
-                    combined_hash TEXT,
-                    metadata TEXT,
-                    provenance TEXT DEFAULT 'tracked',
-                    exception_reason TEXT
-                );
-
-                CREATE TABLE IF NOT EXISTS file_hashes (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    session_id TEXT NOT NULL,
-                    file_path TEXT NOT NULL,
-                    hash TEXT NOT NULL,
-                    role TEXT NOT NULL,
-                    size_bytes INTEGER,
-                    frozen INTEGER DEFAULT 0,
-                    host TEXT,
-                    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (session_id) REFERENCES runs(session_id),
-                    UNIQUE(session_id, file_path, role)
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_file_path
-                    ON file_hashes(file_path);
-                CREATE INDEX IF NOT EXISTS idx_session
-                    ON file_hashes(session_id);
-                CREATE INDEX IF NOT EXISTS idx_role
-                    ON file_hashes(role);
-                CREATE INDEX IF NOT EXISTS idx_hash
-                    ON file_hashes(hash);
-                CREATE INDEX IF NOT EXISTS idx_runs_status
-                    ON runs(status);
-                CREATE INDEX IF NOT EXISTS idx_runs_parent
-                    ON runs(parent_session);
-
-                CREATE TABLE IF NOT EXISTS verification_results (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    session_id TEXT NOT NULL,
-                    verified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    level TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    FOREIGN KEY (session_id) REFERENCES runs(session_id)
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_verification_session
-                    ON verification_results(session_id);
-
-                CREATE TABLE IF NOT EXISTS session_parents (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    session_id TEXT NOT NULL,
-                    parent_session TEXT NOT NULL,
-                    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (session_id) REFERENCES runs(session_id),
-                    FOREIGN KEY (parent_session) REFERENCES runs(session_id),
-                    UNIQUE(session_id, parent_session)
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_session_parents_session
-                    ON session_parents(session_id);
-                CREATE INDEX IF NOT EXISTS idx_session_parents_parent
-                    ON session_parents(parent_session);
-                """
+        # Every store is project-scoped: one host database holds every
+        # project on this machine, and clew keys like ``claim_id`` and
+        # ``cite_key`` are author-chosen. See ``_scope.py`` — the scope is
+        # resolved there, once, for reads and writes alike.
+        def _open(name: str, schema) -> ProjectScopedStore:
+            return ProjectScopedStore(
+                Store(
+                    _target(name),
+                    schema,
+                    node=node,
+                    writer_policy=WriterPolicy.MULTI_WRITER,
+                )
             )
 
-        # Migrate existing parent_session data to junction table
-        self._migrate_session_parents()
-        # Phase 2: add size_bytes column to pre-existing DBs (idempotent)
-        self._migrate_file_hashes_size_bytes()
-        # Phase 3: add provenance + exception_reason to pre-existing runs tables (idempotent)
-        self._migrate_runs_provenance()
-        # Phase 4: add frozen column to pre-existing file_hashes tables (idempotent)
-        self._migrate_file_hashes_frozen()
-        # Phase 5: add host column to pre-existing file_hashes tables (idempotent)
-        self._migrate_file_hashes_host()
-
-    @contextmanager
-    def _connect(self):
-        """Context manager for database connection."""
-        conn = _clew_sqlite_connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        try:
-            yield conn
-            conn.commit()
-        finally:
-            conn.close()
-
-    # -------------------------------------------------------------------------
-    # Migration helpers
-    # -------------------------------------------------------------------------
-
-    def _migrate_runs_provenance(self) -> None:
-        """Add provenance and exception_reason columns to pre-existing runs tables (idempotent).
-
-        Safe to call even when the columns already exist: the PRAGMA check
-        guards the ALTER TABLE so no exception is raised on repeated runs.
-        Existing rows receive the default value ('tracked' / NULL) automatically.
-        """
-        with self._connect() as conn:
-            columns = {
-                row[1]
-                for row in conn.execute(
-                    "PRAGMA table_info(runs)"
-                ).fetchall()
-            }
-            if "provenance" not in columns:
-                conn.execute(
-                    "ALTER TABLE runs ADD COLUMN provenance TEXT DEFAULT 'tracked'"
-                )
-            if "exception_reason" not in columns:
-                conn.execute(
-                    "ALTER TABLE runs ADD COLUMN exception_reason TEXT"
-                )
+        self._runs = _open("runs", RUNS_SCHEMA)
+        self._file_hashes = _open("file_hashes", FILE_HASHES_SCHEMA)
+        self._verifications = _open(
+            "verification_results", VERIFICATION_RESULTS_SCHEMA
+        )
+        self._session_parents = _open("session_parents", SESSION_PARENTS_SCHEMA)
 
     # -------------------------------------------------------------------------
     # Run operations
@@ -332,26 +153,26 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
             provenance='exception' for operator accountability). E.g.
             '4.1 TB gPAC job, recipe-known, never re-run'. NULL for tracked nodes.
         """
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO runs
-                (session_id, script_path, script_hash, started_at, status,
-                 parent_session, metadata, provenance, exception_reason)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    session_id,
-                    script_path,
-                    script_hash,
-                    datetime.now().isoformat(),
-                    "running",
-                    parent_session,
-                    json.dumps(metadata) if metadata else None,
-                    provenance,
-                    exception_reason,
-                ),
-            )
+        values = {
+            "session_id": session_id,
+            "script_path": script_path,
+            "script_hash": script_hash,
+            "started_at": datetime.now().isoformat(),
+            # A re-registration (add_run called again for an existing
+            # session_id) FULL-REPLACES the row under the original
+            # `INSERT OR REPLACE` semantics — terminal fields reset.
+            # Store's put() is a PARTIAL update, so these are passed
+            # explicitly to reproduce the reset.
+            "finished_at": None,
+            "status": "running",
+            "exit_code": None,
+            "parent_session": parent_session,
+            "combined_hash": None,
+            "metadata": json.dumps(metadata) if metadata else None,
+            "provenance": provenance,
+            "exception_reason": exception_reason,
+        }
+        self._runs.put(values, expected_revision=ANY_REVISION)
 
     def finish_run(
         self,
@@ -374,29 +195,24 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         combined_hash : str, optional
             Combined hash of all inputs/outputs
         """
-        with self._connect() as conn:
-            conn.execute(
-                """
-                UPDATE runs
-                SET finished_at = ?, status = ?, exit_code = ?, combined_hash = ?
-                WHERE session_id = ?
-                """,
-                (
-                    datetime.now().isoformat(),
-                    status,
-                    exit_code,
-                    combined_hash,
-                    session_id,
-                ),
-            )
+        finished_at = datetime.now().isoformat()
+        self._runs.put(
+            {
+                "session_id": session_id,
+                "finished_at": finished_at,
+                "status": status,
+                "exit_code": exit_code,
+                "combined_hash": combined_hash,
+            },
+            expected_revision=ANY_REVISION,
+        )
 
     def get_run(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get run information by session ID."""
-        with self._connect() as conn:
-            row = conn.execute(
-                "SELECT * FROM runs WHERE session_id = ?", (session_id,)
-            ).fetchone()
-            return dict(row) if row else None
+        row = self._runs.get((session_id,))
+        if row is None:
+            return None
+        return {name: row.values.get(name) for name in RUNS_SCHEMA.fields}
 
     def list_runs(
         self,
@@ -421,31 +237,26 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         list of dict
             List of run records
         """
-        with self._connect() as conn:
-            if status:
-                rows = conn.execute(
-                    """
-                    SELECT * FROM runs
-                    WHERE status = ?
-                    ORDER BY started_at DESC
-                    LIMIT ? OFFSET ?
-                    """,
-                    (status, limit, offset),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    """
-                    SELECT * FROM runs
-                    ORDER BY started_at DESC
-                    LIMIT ? OFFSET ?
-                    """,
-                    (limit, offset),
-                ).fetchall()
-            return [dict(row) for row in rows]
+        rows = self._runs.rows()
+        if status:
+            rows = [r for r in rows if r.values.get("status") == status]
+        rows.sort(key=lambda r: r.values.get("started_at") or "", reverse=True)
+        page = rows[offset : offset + limit]
+        return [{name: r.values.get(name) for name in RUNS_SCHEMA.fields} for r in page]
 
     # -------------------------------------------------------------------------
     # File hash operations — implemented in FileHashMixin (_file_hashes.py)
     # -------------------------------------------------------------------------
+
+    def close(self) -> None:
+        """Close all four stores. Idempotent — Store.close() tolerates repeats."""
+        for store in (
+            self._runs,
+            self._file_hashes,
+            self._verifications,
+            self._session_parents,
+        ):
+            store.close()
 
 
 # Global instance
@@ -460,48 +271,22 @@ def get_db() -> VerificationDB:
     return _DB_INSTANCE
 
 
-def set_db(db_path: Union[str, Path]) -> VerificationDB:
-    """Set the global database instance to use a specific path.
+def reset_db() -> None:
+    """Drop the cached global instance so the next ``get_db()`` re-resolves.
 
-    Parameters
-    ----------
-    db_path : str or Path
-        Path to database file (e.g. "./.scitex/clew/runtime/clew.db" for project-relative).
+    ``host_store()`` reads ``SCITEX_STORE_DSN`` once per ``VerificationDB``
+    construction, and ``get_db()`` caches the instance for the life of the
+    process. Anything that changes which store this process should reach —
+    a test that gives itself a throwaway schema, an operator flipping the
+    env var — must call this so the change is actually picked up.
 
-    Returns
-    -------
-    VerificationDB
-        The new database instance.
+    This is NOT a store selector. The selector is ``SCITEX_STORE_DSN``,
+    owned by the primitive; this only invalidates a cache.
     """
     global _DB_INSTANCE
-    _DB_INSTANCE = VerificationDB(db_path=db_path)
-    return _DB_INSTANCE
-
-
-def get_active_db_path() -> Optional[Path]:
-    """Return the path of the already-configured global DB instance, if any.
-
-    ``None`` means no global instance has been created yet (neither
-    ``get_db()`` nor ``set_db()`` has run in this process).
-    """
-    return _DB_INSTANCE.db_path if _DB_INSTANCE is not None else None
-
-
-@contextmanager
-def use_db(db_path: Union[str, Path]):
-    """Temporarily point the global DB instance at ``db_path``.
-
-    Restores the previous global instance on exit, so scoped out-of-tree
-    reads (e.g. ``render_dag(..., db_path=...)``) do not leak into later
-    calls in the same process.
-    """
-    global _DB_INSTANCE
-    previous = _DB_INSTANCE
-    _DB_INSTANCE = VerificationDB(db_path=db_path)
-    try:
-        yield _DB_INSTANCE
-    finally:
-        _DB_INSTANCE = previous
+    if _DB_INSTANCE is not None:
+        _DB_INSTANCE.close()
+    _DB_INSTANCE = None
 
 
 # EOF

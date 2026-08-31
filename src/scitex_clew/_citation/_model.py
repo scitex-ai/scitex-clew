@@ -1,15 +1,46 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Citation node model + storage primitives (table, row I/O, lookup)."""
+"""Citation node model + storage primitives (schema, row I/O, lookup).
+
+Backed by ``scitex_dev.store.Store`` on the target :func:`host_store`
+resolves — THE store this host uses (ADR-0006). This module constructs no
+DSN and no path of its own; the one switch is ``SCITEX_STORE_DSN``, read by
+``host_store()``.
+
+An earlier revision used a local file-backed target, on the argument that
+clew's citation ledger is portable per-project product state rather than
+fleet coordination state. That is overruled.
+
+WHAT THE PER-PROJECT FILE USED TO DO, AND WHAT DOES IT NOW. ``cite_key`` is
+a BibTeX key chosen by the author, and the old per-project file was what
+kept two manuscripts' ``smith2020`` apart. One host database would have
+made them the SAME row, with ``MergeRule.LAST_WRITER_WINS`` picking a
+winner silently — one manuscript's bibliography overwriting another's.
+
+So the identity is ``(project, cite_key)``, not ``cite_key``. The scope is
+resolved in one place — :mod:`scitex_clew._db._scope` — and applied by
+:class:`~scitex_clew._db._scope.ProjectScopedStore` to reads and writes
+alike.
+"""
 
 from __future__ import annotations
 
-import sqlite3
+import socket
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Dict, NamedTuple, Optional
 
-from .._db._connect import connect as _clew_sqlite_connect
+from scitex_dev.store import (
+    FieldKind,
+    FieldPolicy,
+    FieldRole,
+    MergeRule,
+    Schema,
+    Store,
+    WriterPolicy,
+    host_store,
+)
+
+from .._db._scope import ProjectScopedStore
 
 # Public per-key status vocabulary (matches the writer/compiler contract).
 CITATION_STATUSES = ("verified", "stub", "unverified", "unknown")
@@ -104,78 +135,176 @@ class Verdict(NamedTuple):
     reason: str
 
 
-def migrate_add_citations_table(db_path: Path) -> None:
-    """Create the citations table if not present. Safe to call repeatedly."""
-    conn = _clew_sqlite_connect(str(db_path))
-    try:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS citations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cite_key TEXT UNIQUE NOT NULL,
-                manuscript_file TEXT,
-                line_number INTEGER,
-                doi TEXT,
-                source_id TEXT,
-                resolved INTEGER DEFAULT 1,
-                is_stub INTEGER DEFAULT 0,
-                status TEXT NOT NULL,
-                metadata_json TEXT,
-                metadata_hash TEXT,
-                url TEXT,
-                registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                verified_at TIMESTAMP
-            )
-            """
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_citations_key ON citations(cite_key)"
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_citations_manuscript "
-            "ON citations(manuscript_file)"
-        )
-        # Idempotent: add url to any pre-existing citations table (branch DBs
-        # created before the link field landed).
-        cols = {row[1] for row in conn.execute("PRAGMA table_info(citations)").fetchall()}
-        if "url" not in cols:
-            conn.execute("ALTER TABLE citations ADD COLUMN url TEXT")
-        conn.commit()
-    finally:
-        conn.close()
+# -- store schema -------------------------------------------------------
+#
+# Columns kept 1:1 with the original hand-rolled ``citations`` table, minus
+# the autoincrement ``id`` (the store has its own row identity keyed by
+# ``cite_key``). No hard delete exists anywhere in this package (grepped the
+# whole ``_citation/`` tree), so there is no HIDE_FLAG field either.
+CITATIONS_SCHEMA = Schema.build(
+    "citations",
+    {
+        "project": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.IDENTITY,
+            required=True,
+            merge=MergeRule.IMMUTABLE,
+            indexed=False,
+        ),
+        "cite_key": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.IDENTITY,
+            required=True,
+            merge=MergeRule.IMMUTABLE,
+            indexed=False,
+        ),
+        "manuscript_file": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.DATA,
+            required=False,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=True,
+        ),
+        "line_number": FieldPolicy(
+            kind=FieldKind.INTEGER,
+            role=FieldRole.DATA,
+            required=False,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=False,
+        ),
+        "doi": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.DATA,
+            required=False,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=False,
+        ),
+        "source_id": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.DATA,
+            required=False,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=False,
+        ),
+        "resolved": FieldPolicy(
+            kind=FieldKind.BOOL,
+            role=FieldRole.DATA,
+            required=False,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=False,
+        ),
+        "is_stub": FieldPolicy(
+            kind=FieldKind.BOOL,
+            role=FieldRole.DATA,
+            required=False,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=False,
+        ),
+        "status": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.DATA,
+            required=True,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=False,
+        ),
+        "metadata_json": FieldPolicy(
+            kind=FieldKind.JSON,
+            role=FieldRole.DATA,
+            required=False,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=False,
+        ),
+        "metadata_hash": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.DATA,
+            required=False,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=False,
+        ),
+        "url": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.DATA,
+            required=False,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=False,
+        ),
+        "registered_at": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.DATA,
+            required=False,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=False,
+        ),
+        "verified_at": FieldPolicy(
+            kind=FieldKind.TEXT,
+            role=FieldRole.DATA,
+            required=False,
+            merge=MergeRule.LAST_WRITER_WINS,
+            indexed=False,
+        ),
+    },
+)
 
 
-def ensure_citations_table(db) -> None:
-    migrate_add_citations_table(db.db_path)
+def citations_store() -> Store:
+    """Open (creating if absent) the citations ``Store`` on the host store.
+
+    Table creation (and any additive-column migration) happens inside the
+    ``Store`` constructor itself, so this is also what
+    :func:`migrate_add_citations_table` calls. ``writer_policy`` is
+    ``MULTI_WRITER``: clew's stores are written by many concurrent
+    processes with no single durable "owner" per citation.
+
+    The caller is responsible for closing the returned store — use it as a
+    context manager (``with citations_store() as store: ...``).
+    """
+    target = host_store(pkg="scitex_clew", name="citations")
+    return ProjectScopedStore(
+        Store(
+            target,
+            CITATIONS_SCHEMA,
+            node=socket.gethostname(),
+            writer_policy=WriterPolicy.MULTI_WRITER,
+        )
+    )
+
+
+def migrate_add_citations_table() -> None:
+    """Create the citations store schema if not present. Safe to call repeatedly."""
+    citations_store().close()
+
+
+def ensure_citations_table(db=None) -> None:
+    """Ensure the citations store's tables exist.
+
+    ``db`` is accepted and ignored: there is one store per host and it does
+    not depend on which ``VerificationDB`` the caller happens to hold.
+    """
+    migrate_add_citations_table()
 
 
 def row_to_citation(row) -> Citation:
+    values = row.values
     return Citation(
-        cite_key=row["cite_key"],
-        manuscript_file=row["manuscript_file"],
-        line_number=row["line_number"],
-        doi=row["doi"],
-        source_id=row["source_id"],
-        resolved=bool(row["resolved"]),
-        is_stub=bool(row["is_stub"]),
-        status=row["status"],
-        metadata_hash=row["metadata_hash"],
-        url=row["url"] if "url" in row.keys() else None,
-        registered_at=row["registered_at"],
-        verified_at=row["verified_at"],
+        cite_key=values["cite_key"],
+        manuscript_file=values.get("manuscript_file"),
+        line_number=values.get("line_number"),
+        doi=values.get("doi"),
+        source_id=values.get("source_id"),
+        resolved=bool(values.get("resolved")),
+        is_stub=bool(values.get("is_stub")),
+        status=values["status"],
+        metadata_hash=values.get("metadata_hash"),
+        url=values.get("url"),
+        registered_at=values.get("registered_at"),
+        verified_at=values.get("verified_at"),
     )
 
 
 def lookup_citation(db, cite_key: str) -> Optional[Citation]:
-    conn = _clew_sqlite_connect(str(db.db_path), read_only=True)
-    conn.row_factory = sqlite3.Row
-    try:
-        row = conn.execute(
-            "SELECT * FROM citations WHERE cite_key = ?", (cite_key,)
-        ).fetchone()
+    with citations_store() as store:
+        row = store.get({"cite_key": cite_key})
         return row_to_citation(row) if row else None
-    finally:
-        conn.close()
 
 
 # EOF

@@ -104,7 +104,6 @@ def check_submission_completeness(
     submission: Mapping[str, str],
     *,
     workdir: Optional[Union[str, Path]] = None,
-    db_path: Optional[Union[str, Path]] = None,
     sources_path: Optional[Union[str, Path]] = None,
 ) -> SubmissionCompletenessResult:
     """Compute the submission↔grounded diff WITHOUT raising.
@@ -113,21 +112,21 @@ def check_submission_completeness(
     ----------
     submission : Mapping[str, str]
         ``question_id -> claim_id`` (one answer per question).
-    workdir, db_path, sources_path
-        Passed straight through to :func:`grounded_claim_ids` to locate the DB
-        and sources manifest.
+    workdir, sources_path
+        Passed straight through to :func:`grounded_claim_ids` to locate the
+        sources manifest. Claims themselves come from the host store — there
+        is no per-capsule DB to locate any more.
 
     Returns
     -------
     SubmissionCompletenessResult
         With ``.ok``, ``.missing``, ``.orphan``, ``.duplicate_claims``, and a
         ``.report()`` summary. An empty submission is OK iff there are also zero
-        grounded claims; a missing DB yields ``grounded == []`` (so every cited
-        answer is ``missing`` and there are no orphans).
+        grounded claims; a store with no grounded claims yields
+        ``grounded == []`` (so every cited answer is ``missing`` and there are
+        no orphans).
     """
-    grounded = grounded_claim_ids(
-        workdir, db_path=db_path, sources_path=sources_path
-    )
+    grounded = grounded_claim_ids(workdir, sources_path=sources_path)
     grounded_set = set(grounded)
 
     # Reverse map: claim_id -> [question_id, ...] that cite it.
@@ -160,7 +159,6 @@ def assert_submission_complete(
     submission: Mapping[str, str],
     *,
     workdir: Optional[Union[str, Path]] = None,
-    db_path: Optional[Union[str, Path]] = None,
     sources_path: Optional[Union[str, Path]] = None,
 ) -> None:
     """HARD gate: RAISE :class:`SubmissionCompletenessError` unless strictly 1:1.
@@ -172,7 +170,6 @@ def assert_submission_complete(
     result = check_submission_completeness(
         submission,
         workdir=workdir,
-        db_path=db_path,
         sources_path=sources_path,
     )
     if not result.ok:

@@ -167,14 +167,14 @@ class TestBackwardCompat:
         # Assert
         assert callable(clew.get_db)
 
-    def test_set_db_callable_clew_set_db(self):
+    def test_reset_db_callable_clew_reset_db(self):
         # Arrange
         # Act
         # Assert
         # Arrange
         # Act
         # Assert
-        assert callable(clew.set_db)
+        assert callable(clew.reset_db)
 
     def test_get_status_callable_clew_get_status(self):
         # Arrange
@@ -368,7 +368,7 @@ class TestBackwardCompat:
         "verify_dag",
         "verify_by_rerun",
         "get_db",
-        "set_db",
+        "reset_db",
         "get_status",
         "get_tracker",
         "format_status",

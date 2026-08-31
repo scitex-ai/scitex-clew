@@ -7,54 +7,56 @@ is 0.24.1; CI installs the latest scitex-dev and runs these for real.
 """
 
 import hashlib
-import sqlite3
 
 import pytest
 
 pytest.importorskip("scitex_dev.gate")
 
 from scitex_clew._claim._model import migrate_add_claims_table  # noqa: E402
+from scitex_clew._claim._store import _open_store  # noqa: E402
 from scitex_clew._db import VerificationDB  # noqa: E402
 from scitex_clew._gate_plugin import _run, provide  # noqa: E402
 from scitex_clew._sources import register_source  # noqa: E402
+from scitex_dev.store import NEW_RECORD  # noqa: E402
 
 
 def _make_capsule(tmp_path, *, runs=1):
-    """Create a capsule workdir with a clew DB (schema + optional run rows)."""
+    """Create a capsule workdir; seed the host store with optional run rows.
+
+    The capsule carries no DB any more — provenance lives in the host store
+    (per-test PostgreSQL schema, see tests/conftest.py) — but it still needs
+    its directory, and the gate still re-hashes its registered source FILES.
+    """
     workdir = tmp_path / "capsule"
-    db_path = workdir / ".scitex" / "clew" / "runtime" / "clew.db"
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    db = VerificationDB(db_path=db_path)  # creates runs/file_hashes/... schema
-    migrate_add_claims_table(db_path)  # creates the claims table
+    workdir.mkdir(parents=True, exist_ok=True)
+    db = VerificationDB()  # creates runs/file_hashes/... schema
+    migrate_add_claims_table()  # creates the claims table
     for i in range(runs):
         db.add_run(f"sess{i}", "analysis.py")
-    return workdir, db_path
+    return workdir
 
 
-def _insert_claim(db_path, *, claim_id, status, source_file="", source_hash=""):
-    """Insert one claim row directly (real DB row, chosen status)."""
-    conn = sqlite3.connect(str(db_path))
+def _insert_claim(*, claim_id, status, source_file="", source_hash=""):
+    """Insert one claim row directly (real store row, chosen status)."""
+    store = _open_store()
     try:
-        conn.execute(
-            "INSERT INTO claims (claim_id, file_path, line_number, claim_type, "
-            "claim_value, source_session, source_file, source_hash, "
-            "verified_at, status) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (
-                claim_id,
-                "paper.tex",
-                1,
-                "value",
-                "0.94",
-                None,
-                source_file,
-                source_hash,
-                "2026-01-01T00:00:00",
-                status,
-            ),
+        store.put(
+            {
+                "claim_id": claim_id,
+                "file_path": "paper.tex",
+                "line_number": 1,
+                "claim_type": "value",
+                "claim_value": "0.94",
+                "source_session": None,
+                "source_file": source_file,
+                "source_hash": source_hash,
+                "verified_at": "2026-01-01T00:00:00",
+                "status": status,
+            },
+            expected_revision=NEW_RECORD,
         )
-        conn.commit()
     finally:
-        conn.close()
+        store.close()
 
 
 class TestProvide:
@@ -76,18 +78,9 @@ class TestProvide:
 
 
 class TestRun:
-    def test_no_clew_db_fails(self, tmp_path):
-        # Arrange
-        workdir = tmp_path / "empty_capsule"
-        workdir.mkdir()
-        # Act
-        result = _run(workdir, {})
-        # Assert
-        assert result.passed is False
-
     def test_zero_runs_fails(self, tmp_path):
         # Arrange
-        workdir, _db_path = _make_capsule(tmp_path, runs=0)
+        workdir = _make_capsule(tmp_path, runs=0)
         # Act
         result = _run(workdir, {})
         # Assert
@@ -95,7 +88,7 @@ class TestRun:
 
     def test_verified_claim_grounded_to_registered_source_passes(self, tmp_path):
         # Arrange
-        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        workdir = _make_capsule(tmp_path, runs=1)
         src = workdir / "data" / "raw.csv"
         src.parent.mkdir(parents=True, exist_ok=True)
         src.write_text("x,y\n1,2\n")
@@ -106,7 +99,6 @@ class TestRun:
         )
         digest = hashlib.sha256(src.read_bytes()).hexdigest()
         _insert_claim(
-            db_path,
             claim_id="c1",
             status="verified",
             source_file=str(src.resolve()),
@@ -120,7 +112,7 @@ class TestRun:
     def test_verified_but_ungrounded_claim_fails_as_unsourced(self, tmp_path):
         # Arrange — manifest active (a registered source exists) but the claim's
         # source_file is NOT registered -> is_grounded False -> unsourced.
-        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        workdir = _make_capsule(tmp_path, runs=1)
         registered = workdir / "data" / "registered.csv"
         registered.parent.mkdir(parents=True, exist_ok=True)
         registered.write_text("a\n1\n")
@@ -134,7 +126,6 @@ class TestRun:
         other.write_text("b\n2\n")
         digest = hashlib.sha256(other.read_bytes()).hexdigest()
         _insert_claim(
-            db_path,
             claim_id="c2",
             status="verified",
             source_file=str(other.resolve()),
@@ -149,8 +140,8 @@ class TestRun:
 
     def test_unverified_claim_fails(self, tmp_path):
         # Arrange — no manifest (gate inactive); a registered-status claim.
-        workdir, db_path = _make_capsule(tmp_path, runs=1)
-        _insert_claim(db_path, claim_id="c3", status="registered")
+        workdir = _make_capsule(tmp_path, runs=1)
+        _insert_claim(claim_id="c3", status="registered")
         # Act
         result = _run(workdir, {})
         # Assert
@@ -173,13 +164,12 @@ class TestRunRehashesAtGateTime:
     def test_clean_source_matching_hash_passes(self, tmp_path):
         # Arrange — a claim whose source STILL hashes to its recorded value; no
         # manifest (gate inactive) so ONLY the value re-hash half runs.
-        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        workdir = _make_capsule(tmp_path, runs=1)
         src = workdir / "data" / "clean.csv"
         src.parent.mkdir(parents=True, exist_ok=True)
         src.write_text("m\n0.94\n")
         digest = hashlib.sha256(src.read_bytes()).hexdigest()
         _insert_claim(
-            db_path,
             claim_id="clean1",
             status="verified",
             source_file=str(src.resolve()),
@@ -197,7 +187,7 @@ class TestRunRehashesAtGateTime:
         # is_grounded still passes (the claim's stored hash still matches the
         # manifest's pinned hash), so ONLY a real gate-time re-hash can catch it.
         # This is the crux: before the fix this case wrongly PASSED.
-        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        workdir = _make_capsule(tmp_path, runs=1)
         src = workdir / "data" / "raw.csv"
         src.parent.mkdir(parents=True, exist_ok=True)
         src.write_text("x,y\n1,2\n")
@@ -208,7 +198,6 @@ class TestRunRehashesAtGateTime:
         )
         digest = hashlib.sha256(src.read_bytes()).hexdigest()
         _insert_claim(
-            db_path,
             claim_id="tampered",
             status="verified",
             source_file=str(src.resolve()),
@@ -231,13 +220,12 @@ class TestRunRehashesAtGateTime:
     def test_missing_source_is_rejected(self, tmp_path):
         # Arrange — a 'verified' claim whose source file is then DELETED (no
         # manifest, so the value re-hash half is what must catch it).
-        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        workdir = _make_capsule(tmp_path, runs=1)
         src = workdir / "data" / "gone.csv"
         src.parent.mkdir(parents=True, exist_ok=True)
         src.write_text("m\n0.94\n")
         digest = hashlib.sha256(src.read_bytes()).hexdigest()
         _insert_claim(
-            db_path,
             claim_id="missing",
             status="verified",
             source_file=str(src.resolve()),
@@ -261,7 +249,7 @@ class TestFindingReferencesClaimId:
 
     def test_unsourced_finding_names_the_claim_id(self, tmp_path):
         # Arrange — an ungrounded claim, so exactly one unsourced finding fires.
-        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        workdir = _make_capsule(tmp_path, runs=1)
         registered = workdir / "data" / "registered.csv"
         registered.parent.mkdir(parents=True, exist_ok=True)
         registered.write_text("a\n1\n")
@@ -274,7 +262,6 @@ class TestFindingReferencesClaimId:
         other.parent.mkdir(parents=True, exist_ok=True)
         other.write_text("b\n2\n")
         _insert_claim(
-            db_path,
             claim_id="q_042",
             status="verified",
             source_file=str(other.resolve()),
@@ -287,12 +274,11 @@ class TestFindingReferencesClaimId:
 
     def test_value_failure_finding_names_the_claim_id(self, tmp_path):
         # Arrange — a 'verified' claim whose source is deleted -> value failure.
-        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        workdir = _make_capsule(tmp_path, runs=1)
         src = workdir / "data" / "vanished.csv"
         src.parent.mkdir(parents=True, exist_ok=True)
         src.write_text("m\n0.94\n")
         _insert_claim(
-            db_path,
             claim_id="q_099",
             status="verified",
             source_file=str(src.resolve()),
@@ -306,12 +292,11 @@ class TestFindingReferencesClaimId:
 
     def test_finding_still_carries_the_location_as_a_locator(self, tmp_path):
         # Arrange — identity first, but a human still needs somewhere to go.
-        workdir, db_path = _make_capsule(tmp_path, runs=1)
+        workdir = _make_capsule(tmp_path, runs=1)
         src = workdir / "data" / "vanished2.csv"
         src.parent.mkdir(parents=True, exist_ok=True)
         src.write_text("m\n0.94\n")
         _insert_claim(
-            db_path,
             claim_id="q_100",
             status="verified",
             source_file=str(src.resolve()),

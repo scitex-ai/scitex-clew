@@ -38,8 +38,15 @@ from scitex_clew import VerificationDB
 from scitex_clew._hash import hash_file
 
 
-def _make_db(tmp_path, name="test.db"):
-    return VerificationDB(tmp_path / name)
+def _make_db(tmp_path=None, name=None):
+    """Open a VerificationDB against this test's own store.
+
+    Isolation is the autouse ``isolated_store`` fixture in tests/conftest.py —
+    every test gets a throwaway PostgreSQL schema. There is no database file,
+    so the old ``tmp_path``/``name`` arguments select nothing; they are kept
+    only so each call site still reads as "a fresh db for this test".
+    """
+    return VerificationDB()
 
 
 @pytest.fixture

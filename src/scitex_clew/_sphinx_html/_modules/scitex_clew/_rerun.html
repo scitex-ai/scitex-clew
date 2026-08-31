@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_clew._rerun &mdash; SciTeX Clew v0.2.16</title>
+  <title>scitex_clew._rerun &mdash; SciTeX Clew v0.0.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=e2418eca"></script>
+      <script src="../../_static/documentation_options.js?v=7026087e"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -68,7 +68,16 @@
 <li class="toctree-l2"><a class="reference internal" href="../../concepts.html#three-verification-modes">Three Verification Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../grouping.html">Grouping</a><ul>
@@ -108,11 +117,43 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
@@ -150,7 +191,6 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
-          <li class="breadcrumb-item"><a href="../scitex_clew.html">scitex_clew</a></li>
       <li class="breadcrumb-item active">scitex_clew._rerun</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -162,9 +202,9 @@
              
   <h1>Source code for scitex_clew._rerun</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
-<span class="c1"># Timestamp: &quot;2026-02-01 (ywatanabe)&quot;</span>
-<span class="c1"># File: /home/ywatanabe/proj/scitex-python/src/scitex/verify/_rerun.py</span>
-<span class="sd">&quot;&quot;&quot;Rerun verification - re-execute scripts and compare outputs.&quot;&quot;&quot;</span>
+<span class="c1"># Timestamp: "2026-06-27 (ywatanabe)"</span>
+<span class="c1"># File: src/scitex_clew/_rerun.py</span>
+<span class="sd">"""Rerun verification - re-execute scripts and compare outputs."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -183,14 +223,16 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
 
+<span class="c1"># _chain._freshness and _chain._hash_cache are imported lazily inside rerun_dag</span>
+<span class="c1"># so they do not add to the cold-start cost of `import scitex_clew`.</span>
+
 
 <span class="k">def</span><span class="w"> </span><span class="nf">verify_by_rerun</span><span class="p">(</span>
     <span class="n">target</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
     <span class="n">cleanup</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunVerification</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">RunVerification</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Verify session(s) by re-executing scripts and comparing outputs.</span>
+<span class="w">    </span><span class="sd">"""Verify session(s) by re-executing scripts and comparing outputs.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -202,13 +244,13 @@
 <span class="sd">    timeout : int, optional</span>
 <span class="sd">        Maximum execution time in seconds (default: 300)</span>
 <span class="sd">    cleanup : bool, optional</span>
-<span class="sd">        Whether to remove the new session&#39;s output directory after verification</span>
+<span class="sd">        Whether to remove the new session's output directory after verification</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    RunVerification or list[RunVerification]</span>
 <span class="sd">        Single result if single target, list if multiple targets</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">_verify_single</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">cleanup</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">_verify_single</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">cleanup</span><span class="p">)</span>
@@ -219,7 +261,7 @@
     <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
     <span class="n">cleanup</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunVerification</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify a single target.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Verify a single target."""</span>
     <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
 
     <span class="c1"># Resolve target to session_id</span>
@@ -232,7 +274,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">run_info</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_unknown_result</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
-    <span class="n">script_path</span> <span class="o">=</span> <span class="n">run_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;script_path&quot;</span><span class="p">)</span>
+    <span class="n">script_path</span> <span class="o">=</span> <span class="n">run_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"script_path"</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">script_path</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">script_path</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
         <span class="k">return</span> <span class="n">RunVerification</span><span class="p">(</span>
             <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
@@ -245,7 +287,7 @@
         <span class="p">)</span>
 
     <span class="c1"># Get expected output hashes from original session</span>
-    <span class="n">original_hashes</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get_file_hashes</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">)</span>
+    <span class="n">original_hashes</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get_file_hashes</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">"output"</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">original_hashes</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_unknown_result</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">script_path</span><span class="p">)</span>
 
@@ -259,13 +301,13 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">new_session_id</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_unknown_result</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">script_path</span><span class="p">)</span>
 
-    <span class="c1"># Get new session&#39;s output hashes</span>
-    <span class="n">new_hashes</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get_file_hashes</span><span class="p">(</span><span class="n">new_session_id</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">)</span>
+    <span class="c1"># Get new session's output hashes</span>
+    <span class="n">new_hashes</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get_file_hashes</span><span class="p">(</span><span class="n">new_session_id</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">"output"</span><span class="p">)</span>
 
     <span class="c1"># Compare hashes by filename</span>
     <span class="n">file_verifications</span> <span class="o">=</span> <span class="n">_compare_hashes</span><span class="p">(</span><span class="n">original_hashes</span><span class="p">,</span> <span class="n">new_hashes</span><span class="p">)</span>
 
-    <span class="c1"># Cleanup new session&#39;s output directory if requested</span>
+    <span class="c1"># Cleanup new session's output directory if requested</span>
     <span class="k">if</span> <span class="n">cleanup</span> <span class="ow">and</span> <span class="n">new_sdir_run</span><span class="p">:</span>
         <span class="n">_cleanup_session_dir</span><span class="p">(</span><span class="n">new_sdir_run</span><span class="p">)</span>
 
@@ -284,20 +326,20 @@
         <span class="n">script_path</span><span class="o">=</span><span class="n">script_path</span><span class="p">,</span>
         <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
         <span class="n">files</span><span class="o">=</span><span class="n">file_verifications</span><span class="p">,</span>
-        <span class="n">combined_hash_expected</span><span class="o">=</span><span class="n">run_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;combined_hash&quot;</span><span class="p">),</span>
+        <span class="n">combined_hash_expected</span><span class="o">=</span><span class="n">run_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"combined_hash"</span><span class="p">),</span>
         <span class="n">combined_hash_current</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">level</span><span class="o">=</span><span class="n">VerificationLevel</span><span class="o">.</span><span class="n">RERUN</span><span class="p">,</span>
     <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_to_session_id</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve target to session_id.</span>
+<span class="w">    </span><span class="sd">"""Resolve target to session_id.</span>
 
 <span class="sd">    Accepts:</span>
 <span class="sd">        - run_id: directly use this run</span>
 <span class="sd">        - script path: latest run that executed this script</span>
 <span class="sd">        - artifact path: latest run which produced this file</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># Try as run_id</span>
     <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">target</span>
@@ -307,16 +349,16 @@
 
     <span class="c1"># Try as script path</span>
     <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">list_runs</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;script_path&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">resolved</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">run</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"script_path"</span><span class="p">)</span> <span class="o">==</span> <span class="n">resolved</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">run</span><span class="p">[</span><span class="s2">"session_id"</span><span class="p">]</span>
 
     <span class="c1"># Try as artifact (output) path</span>
-    <span class="n">sessions</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">find_session_by_file</span><span class="p">(</span><span class="n">resolved</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">)</span>
+    <span class="n">sessions</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">find_session_by_file</span><span class="p">(</span><span class="n">resolved</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">"output"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">sessions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">sessions</span> <span class="k">else</span> <span class="kc">None</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_unknown_result</span><span class="p">(</span><span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">script_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunVerification</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an unknown verification result.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Create an unknown verification result."""</span>
     <span class="k">return</span> <span class="n">RunVerification</span><span class="p">(</span>
         <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
         <span class="n">script_path</span><span class="o">=</span><span class="n">script_path</span><span class="p">,</span>
@@ -329,17 +371,17 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_execute_script</span><span class="p">(</span><span class="n">script_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunVerification</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Execute script and return error result if failed, None if success.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Execute script and return error result if failed, None if success."""</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-            <span class="p">[</span><span class="s2">&quot;python&quot;</span><span class="p">,</span> <span class="n">script_path</span><span class="p">],</span>
+            <span class="p">[</span><span class="s2">"python"</span><span class="p">,</span> <span class="n">script_path</span><span class="p">],</span>
             <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
             <span class="n">cwd</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">script_path</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">returncode</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">RunVerification</span><span class="p">(</span>
-                <span class="n">session_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="n">session_id</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
                 <span class="n">script_path</span><span class="o">=</span><span class="n">script_path</span><span class="p">,</span>
                 <span class="n">status</span><span class="o">=</span><span class="n">VerificationStatus</span><span class="o">.</span><span class="n">MISMATCH</span><span class="p">,</span>
                 <span class="n">files</span><span class="o">=</span><span class="p">[],</span>
@@ -349,24 +391,24 @@
             <span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># Success</span>
     <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">TimeoutExpired</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_unknown_result</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">script_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_unknown_result</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="n">script_path</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_unknown_result</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">script_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_unknown_result</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="n">script_path</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_find_new_session</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">script_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">original_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Find the new session created by re-running the script.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Find the new session created by re-running the script."""</span>
     <span class="n">recent_runs</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">list_runs</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">recent_runs</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;script_path&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">script_path</span> <span class="ow">and</span> <span class="n">run</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">original_id</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">run</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">],</span> <span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sdir_run&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"script_path"</span><span class="p">)</span> <span class="o">==</span> <span class="n">script_path</span> <span class="ow">and</span> <span class="n">run</span><span class="p">[</span><span class="s2">"session_id"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">original_id</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">run</span><span class="p">[</span><span class="s2">"session_id"</span><span class="p">],</span> <span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sdir_run"</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_compare_hashes</span><span class="p">(</span>
     <span class="n">original_hashes</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">new_hashes</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compare hashes by filename and return FileVerification list.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Compare hashes by filename and return FileVerification list."""</span>
     <span class="n">original_by_name</span> <span class="o">=</span> <span class="p">{</span><span class="n">Path</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">h</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">original_hashes</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="n">new_by_name</span> <span class="o">=</span> <span class="p">{</span><span class="n">Path</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">h</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">new_hashes</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
@@ -383,7 +425,7 @@
         <span class="n">verifications</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">FileVerification</span><span class="p">(</span>
                 <span class="n">path</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
-                <span class="n">role</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">,</span>
+                <span class="n">role</span><span class="o">=</span><span class="s2">"output"</span><span class="p">,</span>
                 <span class="n">expected_hash</span><span class="o">=</span><span class="n">expected_hash</span><span class="p">,</span>
                 <span class="n">current_hash</span><span class="o">=</span><span class="n">current_hash</span><span class="p">,</span>
                 <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
@@ -393,7 +435,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_cleanup_session_dir</span><span class="p">(</span><span class="n">sdir_run</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove the session&#39;s output directory (best-effort).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Remove the session's output directory (best-effort)."""</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">sdir_run</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
@@ -403,7 +445,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_determine_status</span><span class="p">(</span><span class="n">file_verifications</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VerificationStatus</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Determine overall verification status from file verifications.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Determine overall verification status from file verifications."""</span>
     <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">is_verified</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">file_verifications</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">VerificationStatus</span><span class="o">.</span><span class="n">VERIFIED</span>
     <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">VerificationStatus</span><span class="o">.</span><span class="n">MISMATCH</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">file_verifications</span><span class="p">):</span>
@@ -417,29 +459,38 @@
     <span class="n">targets</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
     <span class="n">cleanup</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">skip_unchanged</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DAGVerification</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rerun-verify an entire DAG in topological order.</span>
+<span class="w">    </span><span class="sd">"""Rerun-verify an entire DAG in topological order.</span>
 
-<span class="sd">    Each session is re-executed in a sandbox against its ORIGINAL stored</span>
-<span class="sd">    inputs (not freshly rerun outputs from upstream), then compared to</span>
-<span class="sd">    the original outputs.</span>
+<span class="sd">    Each session is re-executed against its ORIGINAL stored inputs then</span>
+<span class="sd">    compared to its original outputs.  When ``skip_unchanged=True`` a</span>
+<span class="sd">    freshness check short-circuits the subprocess for unchanged sessions.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    targets : list of str, optional</span>
-<span class="sd">        Target output files whose upstream DAG should be rerun.</span>
-<span class="sd">        If None, all runs in the database are used and their output</span>
-<span class="sd">        files become the targets.</span>
+<span class="sd">        Target output files.  If None all recorded outputs are used.</span>
 <span class="sd">    timeout : int, optional</span>
-<span class="sd">        Maximum execution time per session in seconds (default: 300).</span>
+<span class="sd">        Max execution time per session in seconds (default: 300).</span>
 <span class="sd">    cleanup : bool, optional</span>
-<span class="sd">        Whether to remove sandbox output directories after each rerun.</span>
+<span class="sd">        Remove sandbox output directories after each rerun.</span>
+<span class="sd">    skip_unchanged : bool, optional</span>
+<span class="sd">        OPT-IN incremental skip (default: False).  When True, each session</span>
+<span class="sd">        is tested for freshness BEFORE the expensive subprocess launch.</span>
+<span class="sd">        A session is fresh when: (1) script_hash is recorded; (2) script</span>
+<span class="sd">        file exists and matches script_hash; (3) every recorded INPUT file</span>
+<span class="sd">        exists and its hash matches the recorded value.  Fresh sessions are</span>
+<span class="sd">        marked status=VERIFIED / level=CACHE so ``is_verified_from_scratch``</span>
+<span class="sd">        is False — clearly distinct from an actual re-execution.  Non-fresh</span>
+<span class="sd">        sessions fall through to the normal ``_execute_script`` path.</span>
+<span class="sd">        Default is False: behavior is byte-identical to the original.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    DAGVerification</span>
 <span class="sd">        Unified verification result for the entire DAG.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">._chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">DAGVerification</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">._chain._dag</span><span class="w"> </span><span class="kn">import</span> <span class="n">_topological_sort</span>
 
@@ -449,7 +500,7 @@
     <span class="k">if</span> <span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">targets</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">list_runs</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10000</span><span class="p">):</span>
-            <span class="n">hashes</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get_file_hashes</span><span class="p">(</span><span class="n">run</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">],</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">)</span>
+            <span class="n">hashes</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get_file_hashes</span><span class="p">(</span><span class="n">run</span><span class="p">[</span><span class="s2">"session_id"</span><span class="p">],</span> <span class="n">role</span><span class="o">=</span><span class="s2">"output"</span><span class="p">)</span>
             <span class="n">targets</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">hashes</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
     <span class="c1"># Resolve targets to leaf session IDs</span>
@@ -458,7 +509,7 @@
     <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
         <span class="n">target_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
         <span class="n">resolved_targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target_str</span><span class="p">)</span>
-        <span class="n">sessions</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">find_session_by_file</span><span class="p">(</span><span class="n">target_str</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">)</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">find_session_by_file</span><span class="p">(</span><span class="n">target_str</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">"output"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">sessions</span><span class="p">:</span>
             <span class="n">leaf_sessions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sessions</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
@@ -477,10 +528,26 @@
     <span class="c1"># Topological sort (roots first)</span>
     <span class="n">topo_order</span> <span class="o">=</span> <span class="n">_topological_sort</span><span class="p">(</span><span class="n">adjacency</span><span class="p">)</span>
 
+    <span class="c1"># Lazy-import freshness helpers and hash cache only when opt-in is active</span>
+    <span class="c1"># so they do not add to the cold-start cost of `import scitex_clew`.</span>
+    <span class="k">if</span> <span class="n">skip_unchanged</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._chain._freshness</span><span class="w"> </span><span class="kn">import</span> <span class="n">_is_session_fresh</span><span class="p">,</span> <span class="n">_skipped_result</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._chain._hash_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">new_hash_cache</span>
+
+        <span class="n">hash_cache</span> <span class="o">=</span> <span class="n">new_hash_cache</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">hash_cache</span> <span class="o">=</span> <span class="kc">None</span>
+
     <span class="c1"># Rerun each session in topological order</span>
     <span class="n">verifications</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">topo_order</span><span class="p">:</span>
-        <span class="n">verifications</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">verify_by_rerun</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">cleanup</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">skip_unchanged</span> <span class="ow">and</span> <span class="n">_is_session_fresh</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">hash_cache</span><span class="o">=</span><span class="n">hash_cache</span><span class="p">):</span>
+            <span class="n">run_info</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+            <span class="n">verifications</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">_skipped_result</span><span class="p">(</span>
+                <span class="n">sid</span><span class="p">,</span> <span class="n">run_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"script_path"</span><span class="p">)</span> <span class="k">if</span> <span class="n">run_info</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">verifications</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">verify_by_rerun</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">cleanup</span><span class="p">)</span>
 
     <span class="c1"># Propagate failures forward through the DAG</span>
     <span class="n">failed_sessions</span><span class="p">:</span> <span class="nb">set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -530,10 +597,7 @@
     <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
     <span class="n">cleanup</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DAGVerification</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rerun-verify all sessions that produced files referenced by claims.</span>
-
-<span class="sd">    Collects unique source files from matching claims, then delegates</span>
-<span class="sd">    to ``rerun_dag`` with those files as targets.</span>
+<span class="w">    </span><span class="sd">"""Rerun-verify all sessions that produced files referenced by claims.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -549,9 +613,8 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    DAGVerification</span>
-<span class="sd">        Unified verification result for the upstream DAG of all</span>
-<span class="sd">        source files referenced by the matching claims.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">        Unified verification result for the upstream DAG.</span>
+<span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">._claim</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_claims</span>
 
     <span class="n">claims</span> <span class="o">=</span> <span class="n">list_claims</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span> <span class="n">claim_type</span><span class="o">=</span><span class="n">claim_type</span><span class="p">)</span>

@@ -8,8 +8,9 @@ Strategy
 - The MCP tool functions are registered as closures on a FastMCP instance
   via register_tools(mcp).  We extract them by name from mcp._tool_manager
   (the internal registry FastMCP uses) and invoke them with asyncio.run().
-- Each test creates an isolated temp DB, injects it as the global singleton,
-  and calls the tool function directly to validate JSON output structure.
+- Each test runs against its own throwaway PostgreSQL schema (the autouse
+  ``isolated_store`` fixture in tests/conftest.py) and calls the tool
+  function directly to validate JSON output structure.
 - Error paths (file-not-found, session-not-found) are verified without a
   real server or subprocess.
 """
@@ -21,8 +22,7 @@ import json
 
 import pytest
 
-import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
+from scitex_clew._db import get_db
 
 
 # ---------------------------------------------------------------------------
@@ -46,12 +46,9 @@ def _parse(json_str: str) -> dict:
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    """Inject a fresh temp DB as the global singleton for every test."""
-    db_path = tmp_path / "mcp_test.db"
-    set_db(db_path)
-    yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
+def isolated_db(isolated_store):
+    """Hand every test the store bound to its own throwaway schema."""
+    return get_db()
 
 
 @pytest.fixture
@@ -653,7 +650,7 @@ class TestClewStatsTool:
         # Assert
         assert "success_runs" in result
 
-    def test_has_db_path(self, tool_fn):
+    def test_stats_result_has_store_key(self, tool_fn):
         # Arrange
         # Act
         # Arrange
@@ -661,7 +658,7 @@ class TestClewStatsTool:
         result = _parse(_run(tool_fn()))
         # Assert
         # Assert
-        assert "db_path" in result
+        assert "store" in result
 
     def test_empty_db_total_runs_zero(self, isolated_db):
         # Arrange

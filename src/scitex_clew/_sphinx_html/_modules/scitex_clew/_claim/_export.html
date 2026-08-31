@@ -1,0 +1,618 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scitex_clew._claim._export &mdash; SciTeX Clew v0.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SciTeX Clew
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#basic-installation">Basic Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-cli-support">With CLI Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-mcp-server">With MCP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#all-optional-dependencies">All Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#development-installation">Development Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#cli">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#mcp-server">MCP Server</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#five-node-classes">Five Node Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#three-verification-modes">Three Verification Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#dag-as-research-logic">DAG as Research Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#verification-caching-guarantee">Verification Caching Guarantee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../grouping.html">Grouping</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#built-in-groupers">Built-in groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#spec-schema">Spec schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#custom-groupers">Custom groupers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#merkle-roots">Merkle roots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../grouping.html#grouping-invariants">Grouping invariants</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#core-commands">Core Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#introspection">Introspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#mcp-subcommands">MCP Subcommands</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../mcp.html">MCP Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#starting-the-server">Starting the Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#mcp-client-configuration">MCP Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#available-tools">Available Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#diagnostics">Diagnostics</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/scitex_clew.html">scitex_clew</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.chain"><code class="docutils literal notranslate"><span class="pre">chain()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.dag"><code class="docutils literal notranslate"><span class="pre">dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun"><code class="docutils literal notranslate"><span class="pre">rerun()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_dag"><code class="docutils literal notranslate"><span class="pre">rerun_dag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.hash_directory"><code class="docutils literal notranslate"><span class="pre">hash_directory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.mermaid"><code class="docutils literal notranslate"><span class="pre">mermaid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.init_examples"><code class="docutils literal notranslate"><span class="pre">init_examples()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_start"><code class="docutils literal notranslate"><span class="pre">on_session_start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_clew.html#scitex_clew.on_session_close"><code class="docutils literal notranslate"><span class="pre">on_session_close()</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-1-basic-verification">Example 1: Basic Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-2-chain-verification">Example 2: Chain Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-3-mermaid-diagram">Example 3: Mermaid Diagram</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SciTeX Clew</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">scitex_clew._claim._export</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scitex_clew._claim._export</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""Claim export — enriched claims.json + provenance-chain flag resolution."""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">importlib.metadata</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._model</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_CLAIM_PALETTE</span><span class="p">,</span>
+    <span class="n">_DISPLAY_GROUPS</span><span class="p">,</span>
+    <span class="n">_DISPLAY_PALETTE</span><span class="p">,</span>
+    <span class="n">_PALETTE_FALLBACK</span><span class="p">,</span>
+    <span class="n">_resolve_display_group</span><span class="p">,</span>
+    <span class="n">_resolve_status</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_chain_flags</span><span class="p">(</span><span class="n">claim</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Derive ``chain_has_exception`` and ``chain_has_frozen`` for a claim.</span>
+
+<span class="sd">    Walks the provenance DAG reachable from the claim's ``source_session``</span>
+<span class="sd">    (or the newest producer of ``source_file`` when only that is available)</span>
+<span class="sd">    using the **existing** :func:`scitex_clew._chain._routes.resolve_file_dag`</span>
+<span class="sd">    walk — no custom DAG traversal here.</span>
+
+<span class="sd">    Rules</span>
+<span class="sd">    -----</span>
+<span class="sd">    * ``chain_has_exception``: any run reachable from the starting session has</span>
+<span class="sd">      ``provenance == 'exception'`` in the ``runs`` table.</span>
+<span class="sd">    * ``chain_has_frozen``: any ``file_hashes`` row whose ``session_id`` is in</span>
+<span class="sd">      the resolved session set has ``frozen == 1``.</span>
+<span class="sd">    * If neither ``source_session`` nor ``source_file`` is present (claim has</span>
+<span class="sd">      no computable provenance), both flags default to ``False`` — safe.</span>
+<span class="sd">    * Never re-hashes anything: DB-metadata only, cheap per claim.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple of (bool, bool)</span>
+<span class="sd">        ``(chain_has_exception, chain_has_frozen)``.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._chain._routes</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_file_dag</span>
+
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+
+    <span class="c1"># Determine the leaf session to start the backward DAG walk.</span>
+    <span class="n">session_id</span> <span class="o">=</span> <span class="n">claim</span><span class="o">.</span><span class="n">source_session</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">session_id</span> <span class="ow">and</span> <span class="n">claim</span><span class="o">.</span><span class="n">source_file</span><span class="p">:</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">find_session_by_file</span><span class="p">(</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">claim</span><span class="o">.</span><span class="n">source_file</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()),</span> <span class="n">role</span><span class="o">=</span><span class="s2">"output"</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">sessions</span><span class="p">:</span>
+            <span class="n">session_id</span> <span class="o">=</span> <span class="n">sessions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">session_id</span><span class="p">:</span>
+        <span class="c1"># No provenance link at all — safe defaults.</span>
+        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span>
+
+    <span class="c1"># Walk the provenance DAG from the leaf session backward.</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">all_ids</span> <span class="o">=</span> <span class="n">resolve_file_dag</span><span class="p">([</span><span class="n">session_id</span><span class="p">],</span> <span class="n">db</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">all_ids</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span>
+
+    <span class="c1"># chain_has_exception: any `runs` row in the resolved session set has</span>
+    <span class="c1"># provenance == 'exception'. chain_has_frozen: any `file_hashes` row in</span>
+    <span class="c1"># the resolved session set has frozen == True. Store has no WHERE/JOIN —</span>
+    <span class="c1"># a plain Python scan + membership check over all_ids replaces the two</span>
+    <span class="c1"># SQL queries (see _db/_core.py module docstring for why this reads the</span>
+    <span class="c1"># Store directly instead of the retired legacy mirror).</span>
+    <span class="n">chain_has_exception</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session_id"</span><span class="p">)</span> <span class="ow">in</span> <span class="n">all_ids</span>
+        <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"provenance"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"exception"</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">_runs</span><span class="o">.</span><span class="n">rows</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">chain_has_frozen</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session_id"</span><span class="p">)</span> <span class="ow">in</span> <span class="n">all_ids</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"frozen"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">_file_hashes</span><span class="o">.</span><span class="n">rows</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">chain_has_exception</span><span class="p">,</span> <span class="n">chain_has_frozen</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_exception_reasons</span><span class="p">(</span><span class="n">claim</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return the list of exception nodes in a claim's provenance chain.</span>
+
+<span class="sd">    Walks the SAME provenance DAG that :func:`_resolve_chain_flags` walks,</span>
+<span class="sd">    reusing :func:`scitex_clew._chain._routes.resolve_file_dag` exactly —</span>
+<span class="sd">    no custom traversal.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list of (str, str)</span>
+<span class="sd">        ``[(session_id, reason), ...]`` for every run in the resolved session</span>
+<span class="sd">        set whose ``provenance == 'exception'``. A NULL/empty ``exception_reason``</span>
+<span class="sd">        in the DB is replaced by the string ``"no reason given"``.</span>
+<span class="sd">        Returns an empty list when the claim has no provenance link or there</span>
+<span class="sd">        are no exception nodes in the chain.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._chain._routes</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_file_dag</span>
+
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+
+    <span class="c1"># Determine the leaf session to start the backward DAG walk.</span>
+    <span class="n">session_id</span> <span class="o">=</span> <span class="n">claim</span><span class="o">.</span><span class="n">source_session</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">session_id</span> <span class="ow">and</span> <span class="n">claim</span><span class="o">.</span><span class="n">source_file</span><span class="p">:</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">find_session_by_file</span><span class="p">(</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">claim</span><span class="o">.</span><span class="n">source_file</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()),</span> <span class="n">role</span><span class="o">=</span><span class="s2">"output"</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">sessions</span><span class="p">:</span>
+            <span class="n">session_id</span> <span class="o">=</span> <span class="n">sessions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">session_id</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="c1"># Walk the provenance DAG from the leaf session backward.</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">all_ids</span> <span class="o">=</span> <span class="n">resolve_file_dag</span><span class="p">([</span><span class="n">session_id</span><span class="p">],</span> <span class="n">db</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">all_ids</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="c1"># `runs` rows in the resolved session set with provenance == 'exception',</span>
+    <span class="c1"># sorted by session_id — Store has no WHERE/ORDER-BY, so this is a plain</span>
+    <span class="c1"># Python filter + sort over db._runs.rows() (see _resolve_chain_flags).</span>
+    <span class="n">matches</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">values</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">_runs</span><span class="o">.</span><span class="n">rows</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session_id"</span><span class="p">)</span> <span class="ow">in</span> <span class="n">all_ids</span>
+        <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"provenance"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"exception"</span>
+    <span class="p">]</span>
+    <span class="n">matches</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">values</span><span class="p">:</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session_id"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
+        <span class="n">sid</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session_id"</span><span class="p">)</span>
+        <span class="n">reason</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"exception_reason"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reason</span><span class="p">:</span>
+            <span class="n">reason</span> <span class="o">=</span> <span class="s2">"no reason given"</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">sid</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<div class="viewcode-block" id="export_claims_json">
+<a class="viewcode-back" href="../../../api/scitex_clew.html#scitex_clew.export_claims_json">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">export_claims_json</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">file_path_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">read_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">include_superseded</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Export every registered claim to a canonical JSON artifact.</span>
+
+<span class="sd">    The exported file is the single human-readable + machine-consumable</span>
+<span class="sd">    view of the claims store. The store remains the</span>
+<span class="sd">    source of truth; this JSON is a regenerable artifact.</span>
+
+<span class="sd">    Path resolution (mirrors :func:`scitex_clew._db._core._default_db_path`)::</span>
+
+<span class="sd">        1. Explicit ``path`` argument.</span>
+<span class="sd">        2. ``$SCITEX_CLEW_CLAIMS_JSON`` env var (escape hatch).</span>
+<span class="sd">        3. ``&lt;project_root&gt;/.scitex/clew/runtime/claims.json``</span>
+<span class="sd">           (project root = nearest ancestor dir with ``.git`` or</span>
+<span class="sd">           ``pyproject.toml``; falls back to cwd if none found).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str | Path, optional</span>
+<span class="sd">        Override the resolved path. Useful for tests / one-off dumps.</span>
+<span class="sd">    file_path_filter : str, optional</span>
+<span class="sd">        When set, only claims registered against this manuscript file</span>
+<span class="sd">        path are exported. Default: every claim in the DB.</span>
+<span class="sd">    read_only : bool, optional</span>
+<span class="sd">        After writing, ``chmod 0o444`` the file so accidental edits</span>
+<span class="sd">        fail loudly at the OS layer. Default True (the file IS</span>
+<span class="sd">        derived). Set False for tests that need to mutate the file.</span>
+<span class="sd">    include_superseded : bool, optional</span>
+<span class="sd">        When False (default), superseded claims are excluded from the</span>
+<span class="sd">        exported JSON — consumers should only see active claims.</span>
+<span class="sd">        Pass True to include them (audit/debug use).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Path</span>
+<span class="sd">        The path the artifact was written to (absolute).</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import scitex_clew as clew</span>
+<span class="sd">    &gt;&gt;&gt; clew.add_claim("paper.tex", "value", 42, "0.94", source_file="r.csv")</span>
+<span class="sd">    &gt;&gt;&gt; # claims.json now auto-exported under ./.scitex/clew/runtime/</span>
+<span class="sd">    &gt;&gt;&gt; clew.export_claims_json()  # idempotent — re-emit on demand</span>
+<span class="sd">    PosixPath('.../.scitex/clew/runtime/claims.json')</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._db</span><span class="w"> </span><span class="kn">import</span> <span class="n">_core</span> <span class="k">as</span> <span class="n">_db_core</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._register</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_claims</span>
+
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">env_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"SCITEX_CLEW_CLAIMS_JSON"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">env_path</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">env_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">_db_core</span><span class="o">.</span><span class="n">_default_claims_json_path</span><span class="p">(</span><span class="n">_db_core</span><span class="o">.</span><span class="n">_find_project_root</span><span class="p">())</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">list_claims</span><span class="p">(</span>
+        <span class="n">file_path</span><span class="o">=</span><span class="n">file_path_filter</span><span class="p">,</span>
+        <span class="n">limit</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
+        <span class="n">include_superseded</span><span class="o">=</span><span class="n">include_superseded</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Registered-source gate (opt-in): load the manifest ONCE. Absent -&gt; None</span>
+    <span class="c1"># -&gt; gate inactive (grounded stays None -&gt; zero behavior change). Malformed</span>
+    <span class="c1"># -&gt; ValueError (fail loud).</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.._sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_grounded</span><span class="p">,</span> <span class="n">load_sources_manifest</span>
+
+    <span class="n">_manifest</span> <span class="o">=</span> <span class="n">load_sources_manifest</span><span class="p">()</span>
+    <span class="n">_gate_active</span> <span class="o">=</span> <span class="n">_manifest</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_manifest</span><span class="o">.</span><span class="n">active</span>
+    <span class="n">_gate_db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+
+    <span class="c1"># Build per-claim dicts with v1.1 enrichment fields appended AFTER all</span>
+    <span class="c1"># existing fields so the existing field order (and thus byte-positions for</span>
+    <span class="c1"># streaming parsers) is unchanged.  New fields are purely additive.</span>
+    <span class="n">enriched_claims</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Accumulate all exception nodes across all claims for top-level dedup list.</span>
+    <span class="n">_all_exception_pairs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># session_id -&gt; reason (deduped)</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">claims</span><span class="p">:</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>  <span class="c1"># all existing fields, byte-identical</span>
+        <span class="n">chain_has_exception</span><span class="p">,</span> <span class="n">chain_has_frozen</span> <span class="o">=</span> <span class="n">_resolve_chain_flags</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="c1"># Schema v1.4: registered-source gate. grounded is None when the gate</span>
+        <span class="c1"># is inactive (no manifest) -&gt; identical to v1.3. When active, False</span>
+        <span class="c1"># demotes an otherwise-green claim to "unsourced".</span>
+        <span class="n">grounded</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">_gate_active</span><span class="p">:</span>
+            <span class="n">grounded</span> <span class="o">=</span> <span class="n">is_grounded</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">_manifest</span><span class="p">,</span> <span class="n">_gate_db</span><span class="p">)</span>
+        <span class="c1"># Schema v1.3/1.4: resolved full-8 status via color precedence —</span>
+        <span class="c1"># mismatch/missing &gt; unsourced &gt; [verified claims only: exception &gt;</span>
+        <span class="c1"># frozen] &gt; suspect &gt; verified &gt; registered</span>
+        <span class="n">resolved_status</span> <span class="o">=</span> <span class="n">_resolve_status</span><span class="p">(</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">chain_has_exception</span><span class="p">,</span> <span class="n">chain_has_frozen</span><span class="p">,</span> <span class="n">grounded</span>
+        <span class="p">)</span>
+        <span class="n">base</span><span class="p">[</span><span class="s2">"color"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_CLAIM_PALETTE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">resolved_status</span><span class="p">,</span> <span class="n">_PALETTE_FALLBACK</span><span class="p">)</span>
+        <span class="n">base</span><span class="p">[</span><span class="s2">"resolved_status"</span><span class="p">]</span> <span class="o">=</span> <span class="n">resolved_status</span>
+        <span class="n">base</span><span class="p">[</span><span class="s2">"chain_has_exception"</span><span class="p">]</span> <span class="o">=</span> <span class="n">chain_has_exception</span>
+        <span class="n">base</span><span class="p">[</span><span class="s2">"chain_has_frozen"</span><span class="p">]</span> <span class="o">=</span> <span class="n">chain_has_frozen</span>
+        <span class="c1"># Schema v1.4 additive: per-claim groundedness (None =&gt; gate inactive).</span>
+        <span class="n">base</span><span class="p">[</span><span class="s2">"grounded"</span><span class="p">]</span> <span class="o">=</span> <span class="n">grounded</span>
+        <span class="c1"># Schema v1.3: display group + display color (color-only)</span>
+        <span class="n">display_group</span> <span class="o">=</span> <span class="n">_resolve_display_group</span><span class="p">(</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">chain_has_exception</span><span class="p">,</span> <span class="n">chain_has_frozen</span><span class="p">,</span> <span class="n">grounded</span>
+        <span class="p">)</span>
+        <span class="n">base</span><span class="p">[</span><span class="s2">"display_group"</span><span class="p">]</span> <span class="o">=</span> <span class="n">display_group</span>
+        <span class="n">base</span><span class="p">[</span><span class="s2">"display_color"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_DISPLAY_PALETTE</span><span class="p">[</span><span class="n">display_group</span><span class="p">]</span>
+        <span class="c1"># Schema v1.3 additive: exception_reasons for this claim's chain.</span>
+        <span class="k">if</span> <span class="n">chain_has_exception</span><span class="p">:</span>
+            <span class="n">exc_pairs</span> <span class="o">=</span> <span class="n">_resolve_exception_reasons</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+            <span class="n">base</span><span class="p">[</span><span class="s2">"exception_reasons"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">reason</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">reason</span> <span class="ow">in</span> <span class="n">exc_pairs</span><span class="p">]</span>
+            <span class="c1"># Accumulate into the dedup dict.</span>
+            <span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">reason</span> <span class="ow">in</span> <span class="n">exc_pairs</span><span class="p">:</span>
+                <span class="n">_all_exception_pairs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">base</span><span class="p">[</span><span class="s2">"exception_reasons"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">enriched_claims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+    <span class="c1"># ---------------------------------------------------------------------------</span>
+    <span class="c1"># Schema v1.3: attestation + legend blocks (4-state, no subbadges).</span>
+    <span class="c1"># ---------------------------------------------------------------------------</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">_pkg_version</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">version</span><span class="p">(</span><span class="s2">"scitex-clew"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">importlib</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">PackageNotFoundError</span><span class="p">:</span>
+        <span class="n">_pkg_version</span> <span class="o">=</span> <span class="s2">"0.0.0"</span>
+
+    <span class="n">claims_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">claims</span><span class="p">)</span>
+    <span class="n">verified_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">claims</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"verified"</span><span class="p">)</span>
+    <span class="n">unverified_count</span> <span class="o">=</span> <span class="n">claims_count</span> <span class="o">-</span> <span class="n">verified_count</span>
+    <span class="c1"># Schema v1.4 additive: how many claims the source gate demoted to amber.</span>
+    <span class="n">unsourced_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+        <span class="mi">1</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">enriched_claims</span> <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">"resolved_status"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"unsourced"</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Schema v1.3: 4 display buckets — the reader's legend (color-only, no icons).</span>
+    <span class="n">legend_statuses</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"verified"</span><span class="p">,</span>
+            <span class="s2">"color"</span><span class="p">:</span> <span class="n">_DISPLAY_PALETTE</span><span class="p">[</span><span class="s2">"verified"</span><span class="p">],</span>
+            <span class="s2">"marker"</span><span class="p">:</span> <span class="s2">"wavy-underline"</span><span class="p">,</span>
+            <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"verified — matches its source"</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"suspect"</span><span class="p">,</span>
+            <span class="s2">"color"</span><span class="p">:</span> <span class="n">_DISPLAY_PALETTE</span><span class="p">[</span><span class="s2">"suspect"</span><span class="p">],</span>
+            <span class="s2">"marker"</span><span class="p">:</span> <span class="s2">"wavy-underline"</span><span class="p">,</span>
+            <span class="s2">"label"</span><span class="p">:</span> <span class="p">(</span>
+                <span class="s2">"suspect — not confirmed: upstream unverified, never verified, "</span>
+                <span class="s2">"or reaches no registered source"</span>
+            <span class="p">),</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"failed"</span><span class="p">,</span>
+            <span class="s2">"color"</span><span class="p">:</span> <span class="n">_DISPLAY_PALETTE</span><span class="p">[</span><span class="s2">"failed"</span><span class="p">],</span>
+            <span class="s2">"marker"</span><span class="p">:</span> <span class="s2">"wavy-underline"</span><span class="p">,</span>
+            <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"failed — mismatch or missing against source"</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"exception"</span><span class="p">,</span>
+            <span class="s2">"color"</span><span class="p">:</span> <span class="n">_DISPLAY_PALETTE</span><span class="p">[</span><span class="s2">"exception"</span><span class="p">],</span>
+            <span class="s2">"marker"</span><span class="p">:</span> <span class="s2">"wavy-underline"</span><span class="p">,</span>
+            <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"exception — auto-verification chain does not connect through this declared node (transparently NOT auto-verified)"</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="c1"># Schema v1.4.1 (operator decision): NO separate `unsourced` legend row —</span>
+        <span class="c1"># it folds into the amber `suspect` bucket above (see _DISPLAY_GROUPS).</span>
+    <span class="p">]</span>
+
+    <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"_note"</span><span class="p">:</span> <span class="p">(</span>
+            <span class="s2">"AUTO-GENERATED by scitex_clew.export_claims_json() from "</span>
+            <span class="s2">"the clew store. Do NOT edit by hand — re-emit by calling "</span>
+            <span class="s2">"scitex_clew.export_claims_json() (default-on after every "</span>
+            <span class="s2">"clew.add_claim()) or by re-running your pipeline."</span>
+        <span class="p">),</span>
+        <span class="s2">"schema_version"</span><span class="p">:</span> <span class="s2">"1.4"</span><span class="p">,</span>
+        <span class="s2">"generated_at"</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">),</span>
+        <span class="c1"># Full-8 status palette (author tooling + DAG fidelity).</span>
+        <span class="s2">"palette"</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">_CLAIM_PALETTE</span><span class="p">),</span>
+        <span class="c1"># 4-bucket reader palette (color-only, no icons).</span>
+        <span class="s2">"display_palette"</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">_DISPLAY_PALETTE</span><span class="p">),</span>
+        <span class="c1"># Per-status collapse map: full-7 status -&gt; display bucket.</span>
+        <span class="s2">"display_groups"</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">_DISPLAY_GROUPS</span><span class="p">),</span>
+        <span class="s2">"claims_count"</span><span class="p">:</span> <span class="n">claims_count</span><span class="p">,</span>
+        <span class="s2">"attestation"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"Provenance checked by SciTeX Clew."</span><span class="p">,</span>
+            <span class="s2">"tool"</span><span class="p">:</span> <span class="s2">"scitex-clew"</span><span class="p">,</span>
+            <span class="s2">"version"</span><span class="p">:</span> <span class="n">_pkg_version</span><span class="p">,</span>
+            <span class="s2">"url"</span><span class="p">:</span> <span class="s2">"https://github.com/ywatanabe1989/scitex-clew"</span><span class="p">,</span>
+            <span class="s2">"color"</span><span class="p">:</span> <span class="n">_CLAIM_PALETTE</span><span class="p">[</span><span class="s2">"verified"</span><span class="p">],</span>
+            <span class="s2">"verified_count"</span><span class="p">:</span> <span class="n">verified_count</span><span class="p">,</span>
+            <span class="s2">"unverified_count"</span><span class="p">:</span> <span class="n">unverified_count</span><span class="p">,</span>
+            <span class="c1"># Schema v1.4: source-gate demotions (0 when the gate is inactive).</span>
+            <span class="s2">"unsourced_count"</span><span class="p">:</span> <span class="n">unsourced_count</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s2">"legend"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"statuses"</span><span class="p">:</span> <span class="n">legend_statuses</span><span class="p">,</span>
+            <span class="s2">"badge"</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">"template"</span><span class="p">:</span> <span class="s2">"</span><span class="si">{verified}</span><span class="s2"> verified · </span><span class="si">{unverified}</span><span class="s2"> unverified"</span><span class="p">,</span>
+                <span class="s2">"all_clear"</span><span class="p">:</span> <span class="s2">"Clew Verified — all </span><span class="si">{n}</span><span class="s2"> claims match source"</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+        <span class="c1"># Schema v1.3 additive: deduped exception nodes across all claims.</span>
+        <span class="c1"># Stable sort by session_id for determinism.</span>
+        <span class="s2">"exceptions"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s2">"session_id"</span><span class="p">:</span> <span class="n">sid</span><span class="p">,</span> <span class="s2">"reason"</span><span class="p">:</span> <span class="n">reason</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">reason</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">_all_exception_pairs</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+        <span class="p">],</span>
+        <span class="s2">"claims"</span><span class="p">:</span> <span class="n">enriched_claims</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Clear any pre-existing read-only bit before rewriting.</span>
+    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="mo">0o644</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">read_only</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="mo">0o444</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="c1"># Best-effort — on filesystems that don't support unix</span>
+            <span class="c1"># perms (e.g. some Windows mounts) this is a no-op.</span>
+            <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">path</span></div>
+
+
+
+<span class="c1"># EOF</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

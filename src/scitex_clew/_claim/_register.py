@@ -5,19 +5,21 @@
 from __future__ import annotations
 
 import os
-import sqlite3
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
+from scitex_dev.store import ANY_REVISION
+
 from .._db import get_db
-from .._db._connect import connect as _clew_sqlite_connect
 from ._model import (
     CLAIM_TYPES,
     Claim,
-    _ensure_claims_table,
+    _file_path_matches_prefix,
     _generate_claim_id,
-    _LEGACY_STATUS_MAP,
+    _row_to_claim,
 )
+from ._store import _open_store
 
 
 def add_claim(
@@ -126,36 +128,40 @@ def add_claim(
         source_hash=source_hash,
     )
 
-    # Store in database
+    # Store in database. ANY_REVISION preserves the old ``INSERT OR REPLACE``
+    # idempotent-overwrite semantics — re-registering the same claim_id (same
+    # derived (location, type, value) tuple, or the same explicit id) just
+    # overwrites. ``INSERT OR REPLACE`` is a DELETE+INSERT, so every
+    # re-registration used to also RESET registered_at (to the column's
+    # CURRENT_TIMESTAMP default) and verified_at (to NULL) even though
+    # neither was named in that SQL's column list — a Store.put() is a
+    # PARTIAL update instead (omitted fields are left alone), so both are
+    # passed explicitly here to keep that same reset-on-overwrite behavior.
     db = get_db()
-    _ensure_claims_table(db)
-    conn = _clew_sqlite_connect(str(db.db_path))
+    store = _open_store()
     try:
-        conn.execute(
-            """
-            INSERT OR REPLACE INTO claims
-                (claim_id, file_path, line_number, claim_type, claim_value,
-                 source_session, source_file, source_hash, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'registered')
-            """,
-            (
-                claim.claim_id,
-                claim.file_path,
-                claim.line_number,
-                claim.claim_type,
-                claim.claim_value,
-                claim.source_session,
-                claim.source_file,
-                claim.source_hash,
-            ),
+        store.put(
+            {
+                "claim_id": claim.claim_id,
+                "file_path": claim.file_path,
+                "line_number": claim.line_number,
+                "claim_type": claim.claim_type,
+                "claim_value": claim.claim_value,
+                "source_session": claim.source_session,
+                "source_file": claim.source_file,
+                "source_hash": claim.source_hash,
+                "status": "registered",
+                "registered_at": datetime.now().isoformat(),
+                "verified_at": None,
+            },
+            expected_revision=ANY_REVISION,
         )
-        conn.commit()
     finally:
-        conn.close()
+        store.close()
 
     # Auto-export the canonical claims.json so consumers (verifier,
     # scitex-writer, human eyes) can read a stable artifact without
-    # talking to sqlite. Default ON; opt out with
+    # talking to the store. Default ON; opt out with
     # SCITEX_CLEW_AUTO_EXPORT_CLAIMS=0 if you're streaming thousands of
     # claims and the per-call rewrite cost matters. The cost is O(N×K)
     # where N is total claims in the DB and K is rewrite size — for
@@ -218,62 +224,54 @@ def list_claims(
     -------
     list of Claim
     """
-    db = get_db()
-    _ensure_claims_table(db)
-
-    query = "SELECT * FROM claims WHERE 1=1"
-    params = []
-
-    if file_path:
-        file_path = str(Path(file_path).resolve())
-        query += " AND file_path = ?"
-        params.append(file_path)
+    resolved_file_path = str(Path(file_path).resolve()) if file_path else None
+    resolved_prefix = None
     if file_path_prefix:
         resolved_prefix = str(Path(file_path_prefix).resolve())
         # Ensure the prefix ends with separator so /foo/bar doesn't match /foo/barbaz
         if not resolved_prefix.endswith("/"):
             resolved_prefix = resolved_prefix + "/"
-        query += " AND (file_path LIKE ? OR file_path = ?)"
-        params.append(resolved_prefix + "%")
-        params.append(resolved_prefix.rstrip("/"))
-    if claim_type:
-        query += " AND claim_type = ?"
-        params.append(claim_type)
-    if status:
-        query += " AND status = ?"
-        params.append(status)
-    if not include_superseded:
-        # Exclude superseded rows unless the caller explicitly filters by
-        # status="superseded" (allow explicit status filter to override).
-        if not status:
-            query += " AND status != 'superseded'"
 
-    query += " ORDER BY file_path, line_number LIMIT ?"
-    params.append(limit)
-
-    conn = _clew_sqlite_connect(str(db.db_path), read_only=True)
-    conn.row_factory = sqlite3.Row
+    store = _open_store()
     try:
-        rows = conn.execute(query, params).fetchall()
-        return [
-            Claim(
-                claim_id=row["claim_id"],
-                file_path=row["file_path"],
-                line_number=row["line_number"],
-                claim_type=row["claim_type"],
-                claim_value=row["claim_value"],
-                source_session=row["source_session"],
-                source_file=row["source_file"],
-                source_hash=row["source_hash"],
-                registered_at=row["registered_at"],
-                verified_at=row["verified_at"],
-                # Back-compat: normalize legacy "partial" -> "suspect"
-                status=_LEGACY_STATUS_MAP.get(row["status"], row["status"]),
-            )
-            for row in rows
-        ]
+        rows = store.rows()
     finally:
-        conn.close()
+        store.close()
+
+    # Filter comparisons run against the RAW stored status (never the
+    # legacy-normalized one — the old ``WHERE status = ?`` compared against
+    # the raw column too, so a caller filtering status="suspect" never
+    # matched a legacy "partial" row; normalization only happens when
+    # building the returned Claim, via ``_row_to_claim``).
+    matched = []
+    for row in rows:
+        v = row.values
+        if resolved_file_path is not None and v["file_path"] != resolved_file_path:
+            continue
+        if resolved_prefix is not None and not _file_path_matches_prefix(
+            v["file_path"], resolved_prefix
+        ):
+            continue
+        if claim_type and v["claim_type"] != claim_type:
+            continue
+        row_status = v["status"]
+        if status and row_status != status:
+            continue
+        if not include_superseded and not status and row_status == "superseded":
+            continue
+        matched.append(row)
+
+    # ORDER BY file_path, line_number — NULL line_number sorts first
+    # in ascending order, mirrored here as a (is_not_none, value) key.
+    matched.sort(
+        key=lambda r: (
+            r.values["file_path"] or "",
+            (0, 0)
+            if r.values["line_number"] is None
+            else (1, r.values["line_number"]),
+        )
+    )
+    return [_row_to_claim(r) for r in matched[:limit]]
 
 
 def format_claims(claims: List[Claim], verbose: bool = False) -> str:

@@ -24,7 +24,6 @@ from typing import List, Optional, Union
 def grounded_claim_ids(
     workdir: Optional[Union[str, Path]] = None,
     *,
-    db_path: Optional[Union[str, Path]] = None,
     sources_path: Optional[Union[str, Path]] = None,
 ) -> List[str]:
     """Return the SORTED, de-duplicated claim_ids that are verified AND grounded.
@@ -39,34 +38,31 @@ def grounded_claim_ids(
     Parameters
     ----------
     workdir : str | Path, optional
-        Capsule/project dir. When given (and ``db_path`` is not), the clew DB is
-        located under ``<workdir>/.scitex/clew/**`` and the sources manifest at
-        ``<workdir>/.scitex/clew/sources.json`` (unless ``sources_path`` is set).
-    db_path : str | Path, optional
-        Explicit clew DB path (overrides the workdir DB search).
+        Capsule/project dir. When given, the sources manifest is read from
+        ``<workdir>/.scitex/clew/sources.json`` (unless ``sources_path`` is
+        set). Claims themselves come from the host store, not from
+        ``workdir`` — see the note below.
     sources_path : str | Path, optional
         Explicit sources manifest path.
 
     Returns
     -------
     list of str
-        Sorted unique grounded claim_ids (empty if no DB / no grounded claims).
+        Sorted unique grounded claim_ids (empty if no grounded claims).
+
+    Notes
+    -----
+    There is no ``db_path`` parameter and no per-capsule DB search. Claims
+    are read from THE store this host uses (``host_store()``), so
+    ``workdir`` now scopes only WHICH SOURCES ARE REGISTERED, not which
+    claims exist. Before the Postgres migration, pointing this at another
+    capsule read that capsule's own provenance; it cannot any more.
     """
     from ._claim._register import list_claims
-    from ._db import use_db
-    from ._gate_plugin import _find_clew_db
+    from ._db import get_db
     from ._sources import is_grounded, load_sources_manifest
 
     wd = Path(workdir) if workdir is not None else None
-
-    if db_path is not None:
-        resolved_db: Optional[Path] = Path(db_path)
-    elif wd is not None:
-        resolved_db = _find_clew_db(wd)
-    else:
-        resolved_db = None
-    if resolved_db is None:
-        return []
 
     if sources_path is not None:
         src: Optional[Path] = Path(sources_path)
@@ -76,16 +72,16 @@ def grounded_claim_ids(
         src = None
 
     out = set()
-    with use_db(resolved_db) as db:
-        manifest = load_sources_manifest(src, root=wd)
-        gate_active = manifest is not None and manifest.active
-        for claim in list_claims(limit=100_000):
-            cid = getattr(claim, "claim_id", None)
-            if not cid:
-                continue
-            if claim.status != "verified":
-                continue
-            if gate_active and not is_grounded(claim, manifest, db):
-                continue
-            out.add(str(cid))
+    db = get_db()
+    manifest = load_sources_manifest(src, root=wd)
+    gate_active = manifest is not None and manifest.active
+    for claim in list_claims(limit=100_000):
+        cid = getattr(claim, "claim_id", None)
+        if not cid:
+            continue
+        if claim.status != "verified":
+            continue
+        if gate_active and not is_grounded(claim, manifest, db):
+            continue
+        out.add(str(cid))
     return sorted(out)

@@ -14,8 +14,7 @@ import types
 
 import pytest
 
-import scitex_clew._db as _db_module
-from scitex_clew._db import get_db, set_db
+from scitex_clew._db import get_db
 from scitex_clew._observers import (
     bootstrap_register,
     on_io_load,
@@ -27,10 +26,8 @@ from scitex_clew._tracker import set_tracker
 
 
 @pytest.fixture(autouse=True)
-def isolated_state(tmp_path):
-    """Fresh DB and no active tracker for each test."""
-    db_path = tmp_path / "hooks_test.db"
-    set_db(db_path)
+def isolated_state():
+    """No active tracker and a clean observer registry for each test."""
     set_tracker(None)
     import scitex_clew._observers as _obs
 
@@ -38,7 +35,6 @@ def isolated_state(tmp_path):
     _obs._registered_session_ids.clear()
     _obs._warned_peers.clear()
     yield
-    _db_module._DB_INSTANCE = None
     set_tracker(None)
     _obs._registered_io_ids.clear()
     _obs._registered_session_ids.clear()

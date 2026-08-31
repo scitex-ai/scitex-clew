@@ -139,32 +139,33 @@ Bare 6-hex, no `#`, no light/dark variants:
 > `palette` / `display_palette` / `display_groups` from the exported
 > claims.json.
 
-## 6. DB selection precedence — three tiers
+## 6. Store selection — two steps, one switch
 
-`resolve_db_path()` (`src/scitex_clew/_db/_core.py`):
+`scitex_dev.store.host_store()` answers "which store does this host use":
 
-1. **Explicit `db_path`** — `VerificationDB(db_path=...)`, and (new in
-   0.7.0) `render_dag(..., db_path=...)` in `src/scitex_clew/_viz/_mermaid.py`
-   for rendering a store outside the current tree (fails loud with the
-   resolved tier when the store file is missing).
-2. **`SCITEX_CLEW_DB_PATH`** environment variable.
-3. **Project-root walk from cwd** — nearest ancestor with `.git` or
-   `pyproject.toml` (else cwd) → `<root>/.scitex/clew/runtime/clew.db`
-   (legacy `db.sqlite` — either `runtime/db.sqlite` or the flat
-   `<root>/.scitex/clew/db.sqlite` — auto-migrates to `clew.db` with a
-   deprecation warning; WAL-safe checkpoint-then-rename preserves any
-   uncheckpointed `-wal` data).
+1. **`SCITEX_STORE_DSN`** if set — an explicit override wins outright.
+2. Otherwise the **per-host PostgreSQL** over its UNIX socket.
+
+There is deliberately no third step and no local-file fallback. clew has no
+database file, no `db_path` argument anywhere, and no `SCITEX_CLEW_DB_PATH`
+(retired).
 
 Host-side re-verify recipe (the pattern live-paper needed):
 
 ```python
-# HOST owns git: check out the pinned commit, point clew at the bundle DB.
+# HOST owns git: check out the pinned commit, then re-verify.
 subprocess.run(["git", "-C", bundle_root, "checkout", pinned_commit], check=True)
-os.environ["SCITEX_CLEW_DB_PATH"] = f"{bundle_root}/.scitex/clew/runtime/clew.db"
 result = clew.verify_claim(claim_id)          # re-hashes files as now on disk
 status = result.get("status")                  # only "not_found" appears here
 claim_status = result.get("claim", {}).get("status")  # the real per-claim status
 ```
+
+> **Note — a capability this recipe lost.** Before the Postgres migration a
+> bundle carried its OWN `clew.db`, so a host could re-verify a bundle
+> produced elsewhere by pointing clew at the bundle's file. Provenance now
+> lives in the host store and a bundle carries none, so the claims being
+> re-verified are the ones recorded on the host doing the verifying. The
+> file re-hashing above is unaffected.
 
 ## 7. Keep these vocabularies apart
 

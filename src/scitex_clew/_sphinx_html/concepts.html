@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Concepts &mdash; SciTeX Clew v0.2.16</title>
+  <title>Concepts &mdash; SciTeX Clew v0.0.0</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=e2418eca"></script>
+      <script src="_static/documentation_options.js?v=7026087e"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -22,7 +22,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Grouping" href="grouping.html" />
+    <link rel="next" title="The verify_claim Consumer Contract" href="verify-claim-contract.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
 </head>
 
@@ -71,7 +71,16 @@
 <li class="toctree-l2"><a class="reference internal" href="#three-verification-modes">Three Verification Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#dag-as-research-logic">DAG as Research Logic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#verification-caching-guarantee">Verification Caching Guarantee</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="verify-claim-contract.html">The verify_claim Consumer Contract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#signature-one-positional-no-commit-argument-no-checkout">Signature — one positional, no commit argument, no checkout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#return-shape">Return shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#two-status-vocabularies">Two status vocabularies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#claims-json-v1-3-enrichment-and-precedence">claims.json v1.3 enrichment and precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verify-claim-contract.html#database-selection-precedence">Database selection precedence</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="grouping.html">Grouping</a><ul>
@@ -111,11 +120,43 @@
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.rerun_claims"><code class="docutils literal notranslate"><span class="pre">rerun_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_runs"><code class="docutils literal notranslate"><span class="pre">list_runs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.add_claim"><code class="docutils literal notranslate"><span class="pre">add_claim()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_claims"><code class="docutils literal notranslate"><span class="pre">list_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_claim"><code class="docutils literal notranslate"><span class="pre">verify_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_all_claims"><code class="docutils literal notranslate"><span class="pre">verify_all_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.export_claims_json"><code class="docutils literal notranslate"><span class="pre">export_claims_json()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.export_manuscript_claims"><code class="docutils literal notranslate"><span class="pre">export_manuscript_claims()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.register_intermediate"><code class="docutils literal notranslate"><span class="pre">register_intermediate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.remove_claim"><code class="docutils literal notranslate"><span class="pre">remove_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.supersede_claim"><code class="docutils literal notranslate"><span class="pre">supersede_claim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.add_citation"><code class="docutils literal notranslate"><span class="pre">add_citation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_citations"><code class="docutils literal notranslate"><span class="pre">list_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_citations"><code class="docutils literal notranslate"><span class="pre">verify_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.verify_all_citations"><code class="docutils literal notranslate"><span class="pre">verify_all_citations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.register_source"><code class="docutils literal notranslate"><span class="pre">register_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.unregister_source"><code class="docutils literal notranslate"><span class="pre">unregister_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_sources"><code class="docutils literal notranslate"><span class="pre">list_sources()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.is_grounded"><code class="docutils literal notranslate"><span class="pre">is_grounded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.load_sources_manifest"><code class="docutils literal notranslate"><span class="pre">load_sources_manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.resolve_sources_path"><code class="docutils literal notranslate"><span class="pre">resolve_sources_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest"><code class="docutils literal notranslate"><span class="pre">SourcesManifest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.schema"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.schema</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.root"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.root</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.path"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signature"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signing_enforced"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signing_enforced</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.signature_valid"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.signature_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.valid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.valid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.invalid_entries"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.invalid_entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.trusted"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.trusted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.active"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.anchor_paths"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.anchor_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.pinned_for"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.pinned_for()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.SourcesManifest.__init__"><code class="docutils literal notranslate"><span class="pre">SourcesManifest.__init__()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.stamp"><code class="docutils literal notranslate"><span class="pre">stamp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.list_stamps"><code class="docutils literal notranslate"><span class="pre">list_stamps()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_clew.html#scitex_clew.check_stamp"><code class="docutils literal notranslate"><span class="pre">check_stamp()</span></code></a></li>
@@ -271,8 +312,9 @@ research logic — from raw data through processing to manuscript claims.</span>
 <h2>How It Works<a class="headerlink" href="#how-it-works" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
 <li><p><strong>Recording</strong>: During a session, Clew computes SHA-256 hashes of all input
-and output files, storing them alongside session metadata in a local SQLite
-database.</p></li>
+and output files, storing them alongside session metadata in the store this
+host uses — the per-host PostgreSQL, resolved by
+<code class="docutils literal notranslate"><span class="pre">scitex_dev.store.host_store()</span></code>.</p></li>
 <li><p><strong>Verification</strong>: At any point, you can verify a session by recomputing
 hashes and comparing them to the recorded values. If any file has changed,
 the verification fails.</p></li>
@@ -287,6 +329,35 @@ are linked to the sessions that produced the evidence. Verification ensures the
 claim is still supported by the data.</p></li>
 </ol>
 </section>
+<section id="verification-caching-guarantee">
+<h2>Verification Caching Guarantee<a class="headerlink" href="#verification-caching-guarantee" title="Link to this heading"></a></h2>
+<p>Clew caches for speed but never at the cost of correctness: <strong>every cache is
+keyed by content hash</strong> (SHA-256 of the live file bytes). There is no
+mtime-based logic anywhere in the package (verified at v0.6.0: a grep for
+<code class="docutils literal notranslate"><span class="pre">mtime</span></code> across <code class="docutils literal notranslate"><span class="pre">src/*.py</span></code> returns zero matches). A cache can therefore
+speed up verification but can never return “verified” for content that has
+changed.</p>
+<ul class="simple">
+<li><p><strong>Per-pass hash cache</strong> (<code class="docutils literal notranslate"><span class="pre">src/scitex_clew/_chain/_hash_cache.py</span></code>): each
+top-level verification pass shares one <code class="docutils literal notranslate"><span class="pre">{resolved</span> <span class="pre">path:</span> <span class="pre">hash}</span></code> dict so a
+file referenced by many sessions is hashed once per pass. The dict is
+created fresh at every entry point and never persisted — a file changed
+between two passes is always re-hashed.</p></li>
+<li><p><strong>Freshness-skip</strong> (<code class="docutils literal notranslate"><span class="pre">rerun_dag(skip_unchanged=True)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">src/scitex_clew/_chain/_freshness.py</span></code>): opt-in. Re-hashes the script
+and every recorded <em>input</em> against the recorded values before skipping a
+sandbox re-execution; any mismatch falls through to a real re-run. Skipped
+sessions are marked <code class="docutils literal notranslate"><span class="pre">level=CACHE</span></code> (not <code class="docutils literal notranslate"><span class="pre">RERUN</span></code>). Outputs are not
+re-hashed by this check — pair with an L1 <code class="docutils literal notranslate"><span class="pre">verify_chain()</span></code> pass to catch
+output tampering. Assumes deterministic scripts.</p></li>
+<li><p><strong>No persistent verdict cache</strong> (as of v0.6.0): stored verification
+verdicts (<code class="docutils literal notranslate"><span class="pre">verification_results</span></code>) are an append-only history; they are
+never read back to skip or override live hashing.</p></li>
+</ul>
+<p>See the <code class="docutils literal notranslate"><span class="pre">scitex-clew</span></code> skill (<code class="docutils literal notranslate"><span class="pre">03_python-api.md</span></code>, “Verification caching —
+correctness guarantee”) for the audited per-mechanism statement, including
+the explicit <code class="docutils literal notranslate"><span class="pre">frozen</span></code> hash-trust opt-out.</p>
+</section>
 <section id="architecture">
 <h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading"></a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>┌─────────────────────────────────────────────────┐
@@ -300,15 +371,16 @@ claim is still supported by the data.</p></li>
 │    clew verify ...     │    9 tools              │
 ├─────────────────────────────────────────────────┤
 │  Core Engine                                     │
-│    _hash.py    _chain.py    _dag.py    _claim.py │
-│    _tracker.py _stamp.py   _rerun.py             │
+│    _hash.py    _chain/     _claim/    _attest/   │
+│    _tracker.py _rerun.py   _estimate.py          │
 ├─────────────────────────────────────────────────┤
-│  Storage: SQLite (db.sqlite)                      │
+│  Storage: per-host PostgreSQL (host_store())      │
 │    runs, file_hashes, session_parents, claims    │
 └─────────────────────────────────────────────────┘
 </pre></div>
 </div>
-<p><strong>Zero dependencies</strong> — pure stdlib + sqlite3. Optional extras: <code class="docutils literal notranslate"><span class="pre">click</span></code> (CLI),
+<p>Provenance lives in the per-host PostgreSQL store, reached through
+<code class="docutils literal notranslate"><span class="pre">scitex_dev.store.host_store()</span></code>. Optional extras: <code class="docutils literal notranslate"><span class="pre">click</span></code> (CLI),
 <code class="docutils literal notranslate"><span class="pre">fastmcp</span></code> (MCP server), <code class="docutils literal notranslate"><span class="pre">sphinx</span></code> (docs).</p>
 </section>
 </section>
@@ -318,7 +390,7 @@ claim is still supported by the data.</p></li>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="quickstart.html" class="btn btn-neutral float-left" title="Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="grouping.html" class="btn btn-neutral float-right" title="Grouping" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="verify-claim-contract.html" class="btn btn-neutral float-right" title="The verify_claim Consumer Contract" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

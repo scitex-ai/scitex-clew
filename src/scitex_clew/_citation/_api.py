@@ -4,14 +4,13 @@
 
 from __future__ import annotations
 
-import json
-import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from scitex_dev.store import ANY_REVISION
+
 from .._db import get_db
-from .._db._connect import connect as _clew_sqlite_connect
 from ._heuristics import (
     classify_entry,
     coerce_entries,
@@ -20,6 +19,7 @@ from ._heuristics import (
 )
 from ._model import (
     Citation,
+    citations_store,
     ensure_citations_table,
     lookup_citation,
     row_to_citation,
@@ -98,34 +98,32 @@ def add_citation(
 
     db = get_db()
     ensure_citations_table(db)
-    conn = _clew_sqlite_connect(str(db.db_path))
-    try:
-        conn.execute(
-            """
-            INSERT OR REPLACE INTO citations
-                (cite_key, manuscript_file, line_number, doi, source_id,
-                 resolved, is_stub, status, metadata_json, metadata_hash,
-                 url, verified_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                citation.cite_key,
-                citation.manuscript_file,
-                citation.line_number,
-                citation.doi,
-                citation.source_id,
-                1 if resolved else 0,
-                1 if is_stub else 0,
-                citation.status,
-                json.dumps(metadata, default=str) if metadata else None,
-                citation.metadata_hash,
-                citation.url,
-                citation.verified_at,
-            ),
+
+    # INSERT OR REPLACE never named registered_at in its column list, so on
+    # every (re-)registration the DDL default was filled in
+    # (CURRENT_TIMESTAMP) rather than preserving the prior value — i.e. it
+    # was always reset to "now". Preserve that exact behavior explicitly,
+    # since `store.put` is a partial update (an omitted field is left alone,
+    # not reset).
+    with citations_store() as store:
+        store.put(
+            {
+                "cite_key": citation.cite_key,
+                "manuscript_file": citation.manuscript_file,
+                "line_number": citation.line_number,
+                "doi": citation.doi,
+                "source_id": citation.source_id,
+                "resolved": resolved,
+                "is_stub": is_stub,
+                "status": citation.status,
+                "metadata_json": metadata if metadata else None,
+                "metadata_hash": citation.metadata_hash,
+                "url": citation.url,
+                "registered_at": datetime.now().isoformat(),
+                "verified_at": citation.verified_at,
+            },
+            expected_revision=ANY_REVISION,
         )
-        conn.commit()
-    finally:
-        conn.close()
 
     return citation
 
@@ -139,24 +137,18 @@ def list_citations(
     db = get_db()
     ensure_citations_table(db)
 
-    query = "SELECT * FROM citations WHERE 1=1"
-    params: list = []
-    if manuscript_file:
-        query += " AND manuscript_file = ?"
-        params.append(str(Path(manuscript_file).resolve()))
-    if status:
-        query += " AND status = ?"
-        params.append(status)
-    query += " ORDER BY cite_key LIMIT ?"
-    params.append(limit)
+    with citations_store() as store:
+        rows = store.rows(include_hidden=False)
 
-    conn = _clew_sqlite_connect(str(db.db_path), read_only=True)
-    conn.row_factory = sqlite3.Row
-    try:
-        rows = conn.execute(query, params).fetchall()
-        return [row_to_citation(row) for row in rows]
-    finally:
-        conn.close()
+    if manuscript_file:
+        target = str(Path(manuscript_file).resolve())
+        rows = [r for r in rows if r.values.get("manuscript_file") == target]
+    if status:
+        rows = [r for r in rows if r.values.get("status") == status]
+
+    rows.sort(key=lambda r: r.values.get("cite_key") or "")
+    rows = rows[:limit]
+    return [row_to_citation(row) for row in rows]
 
 
 def verify_citations(entries) -> Dict[str, Dict]:

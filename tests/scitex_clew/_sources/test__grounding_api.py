@@ -19,7 +19,6 @@ import pytest
 
 import scitex_clew._db as _db_module
 from scitex_clew._claim._register import add_claim
-from scitex_clew._db import set_db
 from scitex_clew._sources import GROUNDING_REASONS
 from scitex_clew._sources._gate import is_grounded
 from scitex_clew._sources._grounding_api import is_claim_grounded
@@ -32,26 +31,20 @@ from scitex_clew._sources._manifest import (
 
 @pytest.fixture(autouse=True)
 def isolated_env(tmp_path):
-    """Isolated DB (via ``SCITEX_CLEW_DB_PATH`` — the SAME tier-2 env var
-    ``is_claim_grounded``'s own workdir resolution honors) + an isolated
-    sources manifest resolved naturally from ``workdir=tmp_path`` (tier-3,
-    no env override needed)."""
-    db_path = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
+    """Isolated store (the autouse ``isolated_store`` fixture in
+    tests/conftest.py gives every test its own throwaway PostgreSQL schema)
+    plus an isolated sources manifest resolved naturally from
+    ``workdir=tmp_path`` (tier-3, no env override needed).
+
+    ``is_claim_grounded`` no longer resolves a database from ``workdir`` —
+    clew has no database file; ``workdir`` selects only the manifest."""
     prev_auto = os.environ.get("SCITEX_CLEW_AUTO_EXPORT_CLAIMS")
-    prev_db = os.environ.get("SCITEX_CLEW_DB_PATH")
     os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = "0"
-    os.environ["SCITEX_CLEW_DB_PATH"] = str(db_path)
-    set_db(db_path)
     yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
     if prev_auto is None:
         os.environ.pop("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", None)
     else:
         os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = prev_auto
-    if prev_db is None:
-        os.environ.pop("SCITEX_CLEW_DB_PATH", None)
-    else:
-        os.environ["SCITEX_CLEW_DB_PATH"] = prev_db
 
 
 def _manifest_path(root):

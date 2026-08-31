@@ -20,16 +20,13 @@ import pytest
 
 import scitex_clew as clew
 import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
+def isolated_db():
     prev = os.environ.get("SCITEX_CLEW_AUTO_EXPORT_CLAIMS")
     os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = "0"
-    set_db(tmp_path / "manuscript.db")
     yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
     if prev is None:
         os.environ.pop("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", None)
     else:
@@ -223,13 +220,10 @@ class TestUnifiedAttestationBadge:
 
     def test_badge_state_failing_when_claim_mismatch(self, isolated_db, tmp_path):
         # Arrange — force a claim into 'mismatch' directly in the DB
-        import sqlite3
-        clew.add_claim(file_path=str(tmp_path / "p.tex"), claim_type="value",
+        from scitex_clew._claim._model import _update_claim_status
+        c = clew.add_claim(file_path=str(tmp_path / "p.tex"), claim_type="value",
                        line_number=1, claim_value="0.94")
-        conn = sqlite3.connect(str(isolated_db.db_path))
-        conn.execute("UPDATE claims SET status = 'mismatch' WHERE 1=1")
-        conn.commit()
-        conn.close()
+        _update_claim_status(c.claim_id, "mismatch", isolated_db)
         # Act
         payload = _export(tmp_path)
         # Assert
@@ -258,13 +252,10 @@ class TestUnifiedAttestationBadge:
 
     def test_counts_missing_tracks_raw_claim_status(self, isolated_db, tmp_path):
         # Arrange — force a claim into 'missing' directly in the DB
-        import sqlite3
-        clew.add_claim(file_path=str(tmp_path / "p.tex"), claim_type="value",
+        from scitex_clew._claim._model import _update_claim_status
+        c = clew.add_claim(file_path=str(tmp_path / "p.tex"), claim_type="value",
                        line_number=1, claim_value="0.94")
-        conn = sqlite3.connect(str(isolated_db.db_path))
-        conn.execute("UPDATE claims SET status = 'missing' WHERE 1=1")
-        conn.commit()
-        conn.close()
+        _update_claim_status(c.claim_id, "missing", isolated_db)
         # Act
         counts = _export(tmp_path)["attestation"]["counts"]
         # Assert — raw ledger breakdown distinguishes missing from mismatch
@@ -277,11 +268,8 @@ class TestUnifiedAttestationBadge:
                        line_number=1, claim_value="0.94", claim_id="c_keep")
         clew.add_claim(file_path=str(tmp_path / "p.tex"), claim_type="value",
                        line_number=2, claim_value="0.95", claim_id="c_old")
-        import sqlite3
-        conn = sqlite3.connect(str(isolated_db.db_path))
-        conn.execute("UPDATE claims SET status = 'superseded' WHERE claim_id = 'c_old'")
-        conn.commit()
-        conn.close()
+        from scitex_clew._claim._model import _update_claim_status
+        _update_claim_status("c_old", "superseded", isolated_db)
         # Act
         counts = _export(tmp_path)["attestation"]["counts"]
         # Assert — the superseded row is excluded from every count

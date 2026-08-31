@@ -16,22 +16,21 @@ from __future__ import annotations
 
 import json
 import os
-import sqlite3
 
 import pytest
 
 import scitex_clew as clew
 import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
 
 
 @pytest.fixture(autouse=True)
 def isolated_db(tmp_path):
+    # Store isolation is the session-wide `isolated_store` fixture in
+    # tests/conftest.py — every test gets its own throwaway PostgreSQL
+    # schema. There is no database file to point anywhere.
     prev = os.environ.get("SCITEX_CLEW_AUTO_EXPORT_CLAIMS")
     os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = "0"
-    set_db(tmp_path / "hints.db")
     yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
     if prev is None:
         os.environ.pop("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", None)
     else:
@@ -46,11 +45,12 @@ def _export(tmp_path, path=None):
 
 
 def _force_claim_status(isolated_db, status: str) -> None:
-    """Force the (single) registered claim's raw status via direct sqlite."""
-    conn = sqlite3.connect(str(isolated_db.db_path))
-    conn.execute("UPDATE claims SET status = ? WHERE 1=1", (status,))
-    conn.commit()
-    conn.close()
+    """Force every registered claim's raw status directly in the store."""
+    from scitex_clew._claim._model import _update_claim_status
+    from scitex_clew._claim._register import list_claims
+
+    for claim in list_claims(limit=100_000):
+        _update_claim_status(claim.claim_id, status, isolated_db)
 
 
 class TestHintsSchema:

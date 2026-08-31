@@ -3,10 +3,7 @@
 
 from __future__ import annotations
 
-import pytest
-
 import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
 from scitex_clew._chain import (
     FileVerification,
     VerificationLevel,
@@ -17,15 +14,6 @@ from scitex_clew._rerun import (
     _determine_status,
     verify_by_rerun,
 )
-
-
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    """Inject a fresh temp DB and reset global state after each test."""
-    db_path = tmp_path / "rerun_test.db"
-    set_db(db_path)
-    yield
-    _db_module._DB_INSTANCE = None
 
 
 def _make_file_verification(path, role, expected, current, status):

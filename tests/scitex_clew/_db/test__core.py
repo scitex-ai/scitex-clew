@@ -2,44 +2,40 @@
 # Timestamp: "2026-02-01 (ywatanabe)"
 # File: /home/ywatanabe/proj/scitex-python/tests/scitex/verify/test__db.py
 
-"""Tests for scitex.clew._db module."""
+"""Tests for scitex.clew._db module.
+
+Every test runs against its OWN throwaway PostgreSQL schema, handed to
+clew by the autouse `isolated_store` fixture in tests/conftest.py.
+`VerificationDB()` takes no argument — there is no database file.
+"""
+
+import os
 
 import pytest
+from scitex_dev.store import Backend
 
 from scitex_clew import VerificationDB
+from scitex_clew._attest._stamp import _stamps_store
+from scitex_clew._citation._model import citations_store
+from scitex_clew._claim._store import _open_store
+from scitex_clew._db import get_db
 
 
 class TestVerificationDB:
     """Tests for VerificationDB class."""
 
     @pytest.fixture
-    def db(self, tmp_path):
-        """Create a temporary database for testing."""
-        db_path = tmp_path / "test_verification.db"
-        return VerificationDB(db_path)
+    def db(self):
+        """Real database for testing (own PostgreSQL schema per test)."""
+        return VerificationDB()
 
-    def test_init_creates_database_db_path_exists(self, tmp_path):
+    def test_init_creates_database_db_is_not_none(self):
         # Arrange
         # Arrange
         # Arrange
-        db_path = tmp_path / "test.db"
         # Act
         # Act
-        db = VerificationDB(db_path)
-        # Act
-        # Assert
-        # Assert
-        # Assert
-        assert db_path.exists()
-
-    def test_init_creates_database_db_is_not_none(self, tmp_path):
-        # Arrange
-        # Arrange
-        # Arrange
-        db_path = tmp_path / "test.db"
-        # Act
-        # Act
-        db = VerificationDB(db_path)
+        db = VerificationDB()
         # Act
         # Assert
         # Assert
@@ -48,36 +44,49 @@ class TestVerificationDB:
 
 
     def test_init_creates_runs_table(self, db):
-        """Initialization must create the `runs` table."""
+        """Initialization must create a Store-backed `runs` table.
+
+        RETARGETED (the 2026-08-28 store migration, final cleanup):
+        this used to open the legacy raw-file mirror via `db._connect()`
+        and check the table catalogue for a `runs` table. That mirror is gone;
+        the equivalent Store-side fact is that a row written through the
+        public API round-trips through `self._runs` (the Store instance).
+        """
         # Arrange
         # Act
-        with db._connect() as conn:
-            result = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='runs'"
-            ).fetchone()
+        db.add_run(session_id="init_check_run", script_path="/path/script.py")
+        stored = db._runs.get(("init_check_run",))
         # Assert
-        assert result is not None
+        assert stored is not None
 
     def test_init_creates_file_hashes_table(self, db):
-        """Initialization must create the `file_hashes` table."""
+        """Initialization must create a Store-backed `file_hashes` table.
+
+        RETARGETED (the 2026-08-28 store migration, final cleanup):
+        see `test_init_creates_runs_table` above — same rationale, applied
+        to `self._file_hashes`.
+        """
         # Arrange
+        db.add_run(session_id="init_check_run", script_path="/path/script.py")
         # Act
-        with db._connect() as conn:
-            result = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='file_hashes'"
-            ).fetchone()
+        db.add_file_hash(
+            session_id="init_check_run",
+            file_path="/path/to/data.csv",
+            hash_value="hash123",
+            role="input",
+        )
+        stored = db._file_hashes.rows()
         # Assert
-        assert result is not None
+        assert any(r.values.get("session_id") == "init_check_run" for r in stored)
 
 
 class TestRunOperations:
     """Tests for run-related database operations."""
 
     @pytest.fixture
-    def db(self, tmp_path):
-        """Create a temporary database for testing."""
-        db_path = tmp_path / "test_verification.db"
-        return VerificationDB(db_path)
+    def db(self):
+        """Real database for testing (own PostgreSQL schema per test)."""
+        return VerificationDB()
 
     def test_add_run_run_is_not_none(self, db):
         # Arrange
@@ -262,10 +271,9 @@ class TestFileHashOperations:
     """Tests for file hash-related database operations."""
 
     @pytest.fixture
-    def db(self, tmp_path):
-        """Create a temporary database for testing."""
-        db_path = tmp_path / "test_verification.db"
-        return VerificationDB(db_path)
+    def db(self):
+        """Real database for testing (own PostgreSQL schema per test)."""
+        return VerificationDB()
 
     def test_add_file_hash_path_to_data_csv_in_hashes(self, db):
         # Arrange
@@ -446,10 +454,9 @@ class TestChainOperations:
     """Tests for chain-related database operations."""
 
     @pytest.fixture
-    def db(self, tmp_path):
-        """Create a temporary database for testing."""
-        db_path = tmp_path / "test_verification.db"
-        return VerificationDB(db_path)
+    def db(self):
+        """Real database for testing (own PostgreSQL schema per test)."""
+        return VerificationDB()
 
     def test_get_chain_single(self, db):
         """Test getting chain for a single run."""
@@ -525,10 +532,9 @@ class TestVerificationRecords:
     """Tests for verification record operations."""
 
     @pytest.fixture
-    def db(self, tmp_path):
-        """Create a temporary database for testing."""
-        db_path = tmp_path / "test_verification.db"
-        return VerificationDB(db_path)
+    def db(self):
+        """Real database for testing (own PostgreSQL schema per test)."""
+        return VerificationDB()
 
     def test_record_verification_verification_is_not_none(self, db):
         # Arrange
@@ -612,10 +618,9 @@ class TestDatabaseStats:
     """Tests for database statistics."""
 
     @pytest.fixture
-    def db(self, tmp_path):
-        """Create a temporary database for testing."""
-        db_path = tmp_path / "test_verification.db"
-        return VerificationDB(db_path)
+    def db(self):
+        """Real database for testing (own PostgreSQL schema per test)."""
+        return VerificationDB()
 
     def test_stats_total_runs_in_stats(self, db):
         # Arrange
@@ -662,88 +667,87 @@ class TestDatabaseStats:
 
 
 class TestProvenanceMigration:
-    """Tests for the Phase-3 provenance migration (idempotent ALTER TABLE)."""
+    """Tests for `provenance`/`exception_reason` persistence (Store-backed).
+
+    RETARGETED (the 2026-08-28 store migration, final cleanup): this
+    class originally exercised the legacy raw-file mirror's idempotent
+    `ALTER TABLE runs ADD COLUMN provenance/exception_reason` migration —
+    including a scenario that seeded a hand-rolled pre-migration-shaped store
+    file directly with raw SQL, then read the migrated mirror table
+    back via `db._connect()`. That legacy mirror (and its
+    `_migrate_runs_provenance` helper) is deleted — Store schemas carry
+    `provenance`/`exception_reason` as first-class fields from creation,
+    so there is no additive-ALTER-TABLE step left to test. These tests now
+    assert the equivalent real behavior: `provenance`/`exception_reason`
+    round-trip through the Store, including across a SECOND
+    `VerificationDB()` instance reading the same store (the Store-backed
+    replacement for "migration preserves existing rows / is idempotent").
+    """
 
     @pytest.fixture
-    def db(self, tmp_path):
-        """Create a temporary database for testing."""
-        db_path = tmp_path / "test_provenance.db"
-        return VerificationDB(db_path)
+    def db(self):
+        """Real database for testing (own PostgreSQL schema per test)."""
+        return VerificationDB()
 
-    def test_migration_adds_provenance_column_to_fresh_db(self, db):
+    def test_provenance_present_on_added_run(self, db):
         # Arrange
+        db.add_run("s1", "/path/script.py")
         # Act
-        with db._connect() as conn:
-            cols = {row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()}
-        # Assert
-        assert "provenance" in cols
-
-    def test_migration_adds_exception_reason_column_to_fresh_db(self, db):
-        # Arrange
-        # Act
-        with db._connect() as conn:
-            cols = {row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()}
-        # Assert
-        assert "exception_reason" in cols
-
-    def test_migration_is_idempotent_for_provenance(self, tmp_path):
-        # Arrange
-        db_path = tmp_path / "test_idem.db"
-        db = VerificationDB(db_path)
-        # Act — call migration a second time directly; must not raise
-        db._migrate_runs_provenance()
-        with db._connect() as conn:
-            cols = {row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()}
-        # Assert
-        assert "provenance" in cols
-
-    def test_migration_preserves_existing_rows_as_tracked(self, tmp_path):
-        # Arrange — insert a row WITHOUT provenance (simulate pre-existing DB
-        # by creating the DB, inserting a row via raw SQL without the new cols,
-        # then running the migration manually).
-        import sqlite3
-
-        db_path = tmp_path / "legacy.db"
-        conn = sqlite3.connect(str(db_path))
-        conn.execute(
-            "CREATE TABLE runs (session_id TEXT PRIMARY KEY, script_path TEXT, "
-            "script_hash TEXT, started_at TIMESTAMP, finished_at TIMESTAMP, "
-            "status TEXT, exit_code INTEGER, parent_session TEXT, "
-            "combined_hash TEXT, metadata TEXT)"
-        )
-        conn.execute(
-            "INSERT INTO runs (session_id, script_path, status) "
-            "VALUES ('legacy_001', '/old/script.py', 'success')"
-        )
-        conn.commit()
-        conn.close()
-        db = VerificationDB(db_path)
-        # Act
-        run = db.get_run("legacy_001")
+        run = db.get_run("s1")
         # Assert
         assert run["provenance"] == "tracked"
 
-    def test_migration_preserves_existing_rows_data(self, tmp_path):
-        # Arrange — same legacy DB as above; verify original data is intact.
-        import sqlite3
-
-        db_path = tmp_path / "legacy2.db"
-        conn = sqlite3.connect(str(db_path))
-        conn.execute(
-            "CREATE TABLE runs (session_id TEXT PRIMARY KEY, script_path TEXT, "
-            "script_hash TEXT, started_at TIMESTAMP, finished_at TIMESTAMP, "
-            "status TEXT, exit_code INTEGER, parent_session TEXT, "
-            "combined_hash TEXT, metadata TEXT)"
+    def test_exception_reason_present_on_added_run(self, db):
+        # Arrange
+        db.add_run(
+            "s1", "/path/script.py", provenance="exception", exception_reason="reason"
         )
-        conn.execute(
-            "INSERT INTO runs (session_id, script_path, status) "
-            "VALUES ('legacy_002', '/old/script.py', 'success')"
-        )
-        conn.commit()
-        conn.close()
-        db = VerificationDB(db_path)
         # Act
-        run = db.get_run("legacy_002")
+        run = db.get_run("s1")
+        # Assert
+        assert run["exception_reason"] == "reason"
+
+    def test_reopening_db_is_idempotent_for_provenance(self):
+        # Arrange
+        db = VerificationDB()
+        db.add_run("s1", "/path/script.py")
+        # Act — construct a SECOND VerificationDB against the same store;
+        # must not raise and must still expose provenance on a fresh add_run.
+        db2 = VerificationDB()
+        db2.add_run("s2", "/path/script.py")
+        run = db2.get_run("s2")
+        # Assert
+        assert run["provenance"] == "tracked"
+
+    def test_provenance_visible_across_reopened_db_instances(self):
+        # Arrange — Store-backed replacement for the old
+        # "migration preserves existing rows" premise: confirm a row
+        # written by one VerificationDB instance is visible, with its
+        # provenance intact, from a SECOND instance reading the same
+        # store.
+        db1 = VerificationDB()
+        db1.add_run("legacy_001", "/old/script.py")
+        db1.finish_run("legacy_001", status="success")
+
+        # Act
+        db2 = VerificationDB()
+        run = db2.get_run("legacy_001")
+
+        # Assert
+        assert run["provenance"] == "tracked"
+
+    def test_run_data_preserved_across_reopened_db_instances(self):
+        # Arrange — Store-backed replacement for
+        # "migration preserves legacy mirror row data": confirm the full
+        # row round-trips across a fresh VerificationDB instance reading
+        # the same store.
+        db1 = VerificationDB()
+        db1.add_run("legacy_002", "/old/script.py")
+
+        # Act
+        db2 = VerificationDB()
+        run = db2.get_run("legacy_002")
+
         # Assert
         assert run["session_id"] == "legacy_002"
 
@@ -752,10 +756,9 @@ class TestAddRunProvenance:
     """Tests for provenance + exception_reason in add_run."""
 
     @pytest.fixture
-    def db(self, tmp_path):
-        """Create a temporary database for testing."""
-        db_path = tmp_path / "test_addrun_prov.db"
-        return VerificationDB(db_path)
+    def db(self):
+        """Real database for testing (own PostgreSQL schema per test)."""
+        return VerificationDB()
 
     def test_add_run_defaults_provenance_to_tracked(self, db):
         # Arrange
@@ -816,94 +819,284 @@ class TestAddRunProvenance:
 
 
 class TestFrozenMigration:
-    """Tests for the Phase-4 frozen migration (idempotent ALTER TABLE on file_hashes)."""
+    """Tests for the `frozen` field on file_hashes rows (Store-backed).
 
-    def test_migration_adds_frozen_column_to_fresh_db(self, tmp_path):
+    RETARGETED (the 2026-08-28 store migration, final cleanup): this
+    class originally exercised the legacy raw-file mirror's idempotent
+    `ALTER TABLE file_hashes ADD COLUMN frozen` migration, including a
+    hand-rolled pre-migration-shaped store file. That legacy mirror (and
+    `_migrate_file_hashes_frozen`) is deleted — Store schemas carry
+    `frozen` as a first-class field from creation, so there is no
+    additive-ALTER-TABLE step left to test. These tests now assert the
+    equivalent real Store-backed behavior instead.
+    """
+
+    def test_frozen_defaults_to_false_on_fresh_db(self):
         # Arrange
-        db = VerificationDB(tmp_path / "frozen_fresh.db")
+        db = VerificationDB()
+        db.add_run(session_id="s1", script_path="/path/script.py")
+        db.add_file_hash("s1", "/data/file.csv", "abc123", "input")
         # Act
-        with db._connect() as conn:
-            cols = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()}
+        frozen = db.get_frozen_files("s1")
         # Assert
-        assert "frozen" in cols
+        assert "/data/file.csv" not in frozen
 
-    def _make_legacy_db(self, db_path, include_file_row: bool = False):
-        """Helper: create a legacy DB mirroring the schema from the provenance tests.
+    def test_frozen_true_round_trips(self):
+        # Arrange
+        db = VerificationDB()
+        db.add_run(session_id="s1", script_path="/path/script.py")
+        db.add_file_hash("s1", "/data/file.csv", "abc123", "input", frozen=True)
+        # Act
+        frozen = db.get_frozen_files("s1")
+        # Assert
+        assert "/data/file.csv" in frozen
 
-        Mirrors the column set used in TestProvenanceMigration so that the
-        _init_schema CREATE INDEX statements on runs(status) and
-        runs(parent_session) don't fail against a too-minimal legacy table.
+    def test_frozen_state_visible_across_reopened_db_instances(self):
+        # Arrange — Store-backed replacement for the old
+        # "frozen column added to pre-existing DB" premise: confirm a
+        # frozen row written by one VerificationDB instance is visible,
+        # with `frozen` intact, from a SECOND instance reading the same
+        # store.
+        db1 = VerificationDB()
+        db1.add_run(session_id="s1", script_path="/path/script.py")
+        db1.add_file_hash("s1", "/data/file.csv", "abc123", "input", frozen=True)
+
+        # Act
+        db2 = VerificationDB()
+        frozen = db2.get_frozen_files("s1")
+
+        # Assert
+        assert "/data/file.csv" in frozen
+
+    def test_non_frozen_rows_default_zero_across_reopened_db_instances(self):
+        # Arrange — Store-backed replacement for
+        # "existing rows default frozen zero": confirm a non-frozen row
+        # stays non-frozen across a fresh VerificationDB instance.
+        db1 = VerificationDB()
+        db1.add_run(session_id="s1", script_path="/path/script.py")
+        db1.add_file_hash("s1", "/data/file.csv", "abc123", "input")
+
+        # Act
+        db2 = VerificationDB()
+        frozen = db2.get_frozen_files("s1")
+
+        # Assert
+        assert "/data/file.csv" not in frozen
+
+
+
+# ---------------------------------------------------------------------------
+# Store resolution — the tests that would have caught the Postgres migration
+# going wrong. They live here rather than in their own module because the
+# store construction they exercise is `_core.VerificationDB.__init__`; the
+# claims/citations/stamps openers are pulled in so the assertion covers
+# EVERY store clew opens, not just the four this module builds.
+# ---------------------------------------------------------------------------
+class TestEveryStoreIsPostgresBacked:
+    """No clew store may be file-backed after the migration."""
+
+    def test_runs_store_backend_is_postgres(self):
+        # Arrange
+        db = VerificationDB()
+        # Act
+        backend = db._runs.target.backend
+        # Assert
+        assert backend is Backend.POSTGRES
+
+    def test_file_hashes_store_backend_is_postgres(self):
+        # Arrange
+        db = VerificationDB()
+        # Act
+        backend = db._file_hashes.target.backend
+        # Assert
+        assert backend is Backend.POSTGRES
+
+    def test_verifications_store_backend_is_postgres(self):
+        # Arrange
+        db = VerificationDB()
+        # Act
+        backend = db._verifications.target.backend
+        # Assert
+        assert backend is Backend.POSTGRES
+
+    def test_session_parents_store_backend_is_postgres(self):
+        # Arrange
+        db = VerificationDB()
+        # Act
+        backend = db._session_parents.target.backend
+        # Assert
+        assert backend is Backend.POSTGRES
+
+    def test_claims_store_backend_is_postgres(self):
+        # Arrange
+        store = _open_store()
+        # Act
+        backend = store.target.backend
+        # Assert
+        assert backend is Backend.POSTGRES
+        store.close()
+
+    def test_citations_store_backend_is_postgres(self):
+        # Arrange
+        store = citations_store()
+        # Act
+        backend = store.target.backend
+        # Assert
+        assert backend is Backend.POSTGRES
+        store.close()
+
+    def test_stamps_store_backend_is_postgres(self):
+        # Arrange
+        store = _stamps_store()
+        # Act
+        backend = store.target.backend
+        # Assert
+        assert backend is Backend.POSTGRES
+        store.close()
+
+    def test_no_store_is_file_backed(self):
+        """Every store is on PostgreSQL, so none of them is a file.
+
+        This used to read ``target.is_file_backed``. scitex-dev removed
+        that attribute along with the file-backed backend it described,
+        and a test that raises AttributeError is a broken test, not a
+        kept promise.
+
+        Asking about ``backend`` instead states the same guarantee
+        against an attribute both the old and new primitive expose, so
+        this fails for the right reason — a store on some other engine —
+        under either version, rather than passing because the thing it
+        asked about stopped existing.
         """
-        import sqlite3
-
-        conn = sqlite3.connect(str(db_path))
-        conn.execute(
-            "CREATE TABLE runs ("
-            "session_id TEXT PRIMARY KEY, "
-            "script_path TEXT, "
-            "script_hash TEXT, "
-            "started_at TIMESTAMP, "
-            "finished_at TIMESTAMP, "
-            "status TEXT, "
-            "exit_code INTEGER, "
-            "parent_session TEXT, "
-            "combined_hash TEXT, "
-            "metadata TEXT"
-            ")"
-        )
-        conn.execute(
-            "CREATE TABLE file_hashes ("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            "session_id TEXT NOT NULL, "
-            "file_path TEXT NOT NULL, "
-            "hash TEXT NOT NULL, "
-            "role TEXT NOT NULL, "
-            "size_bytes INTEGER, "
-            "recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-            ")"
-        )
-        if include_file_row:
-            conn.execute(
-                "INSERT INTO file_hashes (session_id, file_path, hash, role) "
-                "VALUES ('s1', '/data/file.csv', 'abc123', 'input')"
-            )
-        conn.commit()
-        conn.close()
-
-    def test_migration_adds_frozen_column_to_pre_existing_db(self, tmp_path):
-        # Arrange — simulate a legacy DB without the frozen column (but with
-        # all columns that _init_schema expects in the runs table for indexing).
-        db_path = tmp_path / "frozen_legacy.db"
-        self._make_legacy_db(db_path)
-        # Act — open through VerificationDB which runs all migrations.
-        db = VerificationDB(db_path)
-        with db._connect() as conn:
-            cols = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()}
-        # Assert
-        assert "frozen" in cols
-
-    def test_migration_existing_rows_default_frozen_zero(self, tmp_path):
-        # Arrange — legacy DB with a pre-existing file_hashes row (no frozen col).
-        db_path = tmp_path / "frozen_legacy2.db"
-        self._make_legacy_db(db_path, include_file_row=True)
-        # Act
-        db = VerificationDB(db_path)
-        with db._connect() as conn:
-            row = conn.execute(
-                "SELECT frozen FROM file_hashes WHERE file_path = '/data/file.csv'"
-            ).fetchone()
-        # Assert
-        assert row["frozen"] == 0
-
-    def test_migration_is_idempotent(self, tmp_path):
         # Arrange
-        db = VerificationDB(tmp_path / "frozen_idem.db")
-        # Act — call migration again; must not raise.
-        db._migrate_file_hashes_frozen()
-        with db._connect() as conn:
-            cols = {row[1] for row in conn.execute("PRAGMA table_info(file_hashes)").fetchall()}
+        db = VerificationDB()
+        stores = [db._runs, db._file_hashes, db._verifications, db._session_parents]
+        # Act
+        off_postgres = [
+            s.target.name for s in stores if s.target.backend is not Backend.POSTGRES
+        ]
         # Assert
-        assert "frozen" in cols
+        assert off_postgres == []
+
+
+class TestTheOneSwitch:
+    """`SCITEX_STORE_DSN` decides which store answers — nothing else does."""
+
+    def test_runs_store_dsn_is_the_env_var_value(self):
+        # Arrange
+        expected = os.environ["SCITEX_STORE_DSN"]
+        # Act
+        dsn = VerificationDB()._runs.target.dsn
+        # Assert
+        assert dsn == expected
+
+    def test_claims_store_dsn_is_the_env_var_value(self):
+        # Arrange
+        expected = os.environ["SCITEX_STORE_DSN"]
+        # Act
+        store = _open_store()
+        dsn = store.target.dsn
+        store.close()
+        # Assert
+        assert dsn == expected
+
+    def test_the_four_stores_differ_only_by_name(self):
+        # Arrange
+        db = VerificationDB()
+        # Act
+        names = sorted(
+            s.target.name
+            for s in (db._runs, db._file_hashes, db._verifications, db._session_parents)
+        )
+        # Assert
+        assert names == [
+            "file_hashes",
+            "runs",
+            "session_parents",
+            "verification_results",
+        ]
+
+    def test_every_store_declares_the_clew_package(self):
+        # Arrange
+        db = VerificationDB()
+        # Act
+        pkgs = {s.target.pkg for s in (db._runs, db._file_hashes)}
+        # Assert
+        assert pkgs == {"scitex_clew"}
+
+
+class TestRoundTripThroughPostgres:
+    """A row written through the public API comes back from the database."""
+
+    def test_added_run_is_readable(self):
+        # Arrange
+        db = get_db()
+        # Act
+        db.add_run(session_id="pg_round_trip", script_path="/path/script.py")
+        stored = db._runs.get(("pg_round_trip",))
+        # Assert
+        assert stored is not None
+
+    def test_added_run_keeps_its_script_path(self):
+        # Arrange
+        db = get_db()
+        # Act
+        db.add_run(session_id="pg_round_trip_2", script_path="/path/script.py")
+        stored = db._runs.get(("pg_round_trip_2",))
+        # Assert
+        assert stored.values["script_path"] == "/path/script.py"
+
+    def test_stats_reports_the_store_not_a_file_path(self):
+        # Arrange
+        db = get_db()
+        # Act
+        result = db.stats()
+        # Assert
+        assert "db_path" not in result
+
+    def test_stats_store_field_names_postgres(self):
+        # Arrange
+        db = get_db()
+        # Act
+        result = db.stats()
+        # Assert
+        assert result["store"].startswith("postgres:")
+
+
+class TestPerTestSchemaIsolation:
+    """The isolation itself is under test — a leak would make everything lie.
+
+    These two tests write the SAME session_id. If the schema were shared,
+    the second would see the first's row and the count would be 2.
+    """
+
+    def test_first_writer_sees_exactly_its_own_row(self):
+        # Arrange
+        db = get_db()
+        # Act
+        db.add_run(session_id="isolation_probe", script_path="/first.py")
+        rows = db._runs.rows()
+        # Assert
+        assert len(rows) == 1
+
+    def test_second_writer_sees_exactly_its_own_row(self):
+        # Arrange
+        db = get_db()
+        # Act
+        db.add_run(session_id="isolation_probe", script_path="/second.py")
+        rows = db._runs.rows()
+        # Assert
+        assert len(rows) == 1
+
+    def test_second_writer_sees_its_own_value_not_the_first(self):
+        # Arrange
+        db = get_db()
+        # Act
+        db.add_run(session_id="isolation_probe", script_path="/second.py")
+        stored = db._runs.get(("isolation_probe",))
+        # Assert
+        assert stored.values["script_path"] == "/second.py"
+
 
 
 # EOF

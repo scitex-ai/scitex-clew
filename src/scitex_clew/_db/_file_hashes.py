@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
-# Timestamp: "2026-06-27 (clew-feature-impl)"
+# Timestamp: "2026-08-29 (clew-postgres-store-migration)"
 # File: src/scitex_clew/_db/_file_hashes.py
-"""File-hash record operations for VerificationDB (Phase 2: adds size_bytes)."""
+"""File-hash record operations for VerificationDB (Store-backed).
+
+Every read is ``self._file_hashes.rows()`` (a ``scitex_dev.store.Store``
+built in ``_core.py``) filtered/sorted in Python — Store has no
+WHERE/JOIN/ORDER-BY. This is an accepted O(n)-scan trade-off for what is
+normally a small store (see the PR body). No raw DB driver import here
+(the legacy raw
+`file_hashes` mirror and its `_mirror_file_hash` helper are gone).
+"""
 
 from __future__ import annotations
 
@@ -10,22 +18,7 @@ import socket
 from pathlib import Path
 from typing import Dict, List, Optional
 
-
-def _resolve_abspath(file_path: str) -> str:
-    """Normalize a query path to the SAME absolute form used at record time.
-
-    Every file path is stored resolved-absolute (``str(Path(p).resolve())``,
-    see ``Tracker.record_input``/``record_output``), and ``verify_chain``
-    resolves its own ``target`` argument the identical way before querying.
-    Query-side lookups here must use the same resolution or a relative-path
-    query silently (no error, no log) matches nothing even though the
-    absolute equivalent matches fine — the
-    clew-fix-path-normalization-find-session bug. ``Path.resolve()`` does
-    not require the path to exist, so this is safe for a query about a
-    session/file combination the caller doesn't have on the local
-    filesystem right now.
-    """
-    return str(Path(file_path).resolve())
+from scitex_dev.store import ANY_REVISION
 
 
 def _resolve_host() -> Optional[str]:
@@ -48,79 +41,28 @@ def _resolve_host() -> Optional[str]:
         return None
 
 
+def _resolve_abspath(file_path: str) -> str:
+    """Normalize a query path to the SAME absolute form used at record time.
+
+    Every file path is stored resolved-absolute (``str(Path(p).resolve())``,
+    see ``Tracker.record_input``/``record_output``), and ``verify_chain``
+    resolves its own ``target`` argument the identical way before querying.
+    Query-side lookups here must use the same resolution or a relative-path
+    query silently (no error, no log) matches nothing even though the
+    absolute equivalent matches fine — the
+    clew-fix-path-normalization-find-session bug. ``Path.resolve()`` does
+    not require the path to exist, so this is safe for a query about a
+    session/file combination the caller doesn't have on the local
+    filesystem right now.
+    """
+    return str(Path(file_path).resolve())
+
+
 class FileHashMixin:
     """Mixin providing file-hash CRUD operations.
 
-    Requires ``_connect()`` context manager from VerificationDB.
-
-    Phase 2 adds ``size_bytes`` (nullable INTEGER) to every insert so the
-    estimate engine can predict output data volume.
+    Requires ``self._file_hashes`` (a Store instance) from VerificationDB.
     """
-
-    # -------------------------------------------------------------------------
-    # Migration helper — called from _core.py _init_schema
-    # -------------------------------------------------------------------------
-
-    def _migrate_file_hashes_size_bytes(self) -> None:
-        """Add size_bytes column to pre-existing file_hashes tables (idempotent).
-
-        Safe to call even when the column already exists: the PRAGMA check
-        guards the ALTER TABLE so no exception is raised on repeated runs.
-        """
-        with self._connect() as conn:
-            columns = {
-                row[1]
-                for row in conn.execute(
-                    "PRAGMA table_info(file_hashes)"
-                ).fetchall()
-            }
-            if "size_bytes" not in columns:
-                conn.execute(
-                    "ALTER TABLE file_hashes ADD COLUMN size_bytes INTEGER"
-                )
-
-    def _migrate_file_hashes_frozen(self) -> None:
-        """Add frozen column to pre-existing file_hashes tables (idempotent).
-
-        Phase 4: frozen INTEGER DEFAULT 0 — trusts the recorded hash without
-        re-reading the file during verification. Safe to call even when the
-        column already exists: the PRAGMA check guards the ALTER TABLE so no
-        exception is raised on repeated runs. Existing rows receive 0
-        (not frozen) automatically.
-        """
-        with self._connect() as conn:
-            columns = {
-                row[1]
-                for row in conn.execute(
-                    "PRAGMA table_info(file_hashes)"
-                ).fetchall()
-            }
-            if "frozen" not in columns:
-                conn.execute(
-                    "ALTER TABLE file_hashes ADD COLUMN frozen INTEGER DEFAULT 0"
-                )
-
-    def _migrate_file_hashes_host(self) -> None:
-        """Add host column to pre-existing file_hashes tables (idempotent).
-
-        Phase 5: host TEXT (nullable) — records which host produced each
-        artifact so provenance can be reasoned about across machines/nodes.
-        Safe to call even when the column already exists: the PRAGMA check
-        guards the ALTER TABLE so no exception is raised on repeated runs.
-        Existing rows receive NULL (unknown host) automatically, keeping every
-        existing verify path behavior-identical.
-        """
-        with self._connect() as conn:
-            columns = {
-                row[1]
-                for row in conn.execute(
-                    "PRAGMA table_info(file_hashes)"
-                ).fetchall()
-            }
-            if "host" not in columns:
-                conn.execute(
-                    "ALTER TABLE file_hashes ADD COLUMN host TEXT"
-                )
 
     # -------------------------------------------------------------------------
     # Insert
@@ -163,23 +105,20 @@ class FileHashMixin:
             (frozen means "trust the hash without re-reading", not "ignore
             missing files").
         """
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO file_hashes
-                (session_id, file_path, hash, role, size_bytes, frozen, host)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    session_id,
-                    file_path,
-                    hash_value,
-                    role,
-                    size_bytes,
-                    int(frozen),
-                    _resolve_host(),
-                ),
-            )
+        host = _resolve_host()
+        self._file_hashes.put(
+            {
+                "session_id": session_id,
+                "file_path": file_path,
+                "role": role,
+                "hash": hash_value,
+                "size_bytes": size_bytes,
+                "frozen": frozen,
+                "host": host,
+                "recorded_at": _now_iso(),
+            },
+            expected_revision=ANY_REVISION,
+        )
 
     def add_file_hashes(
         self,
@@ -196,17 +135,22 @@ class FileHashMixin:
         hashes : dict
             Mapping of file paths to hashes.
         role : str
-            Role of the files (input, script, output).
+            Role of the files (input, output).
         """
         host = _resolve_host()
-        with self._connect() as conn:
-            conn.executemany(
-                """
-                INSERT OR REPLACE INTO file_hashes
-                (session_id, file_path, hash, role, host)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                [(session_id, path, h, role, host) for path, h in hashes.items()],
+        for path, hash_value in hashes.items():
+            self._file_hashes.put(
+                {
+                    "session_id": session_id,
+                    "file_path": path,
+                    "role": role,
+                    "hash": hash_value,
+                    "size_bytes": None,
+                    "frozen": False,
+                    "host": host,
+                    "recorded_at": _now_iso(),
+                },
+                expected_revision=ANY_REVISION,
             )
 
     # -------------------------------------------------------------------------
@@ -232,24 +176,8 @@ class FileHashMixin:
         dict
             Mapping of file paths to hashes.
         """
-        with self._connect() as conn:
-            if role:
-                rows = conn.execute(
-                    """
-                    SELECT file_path, hash FROM file_hashes
-                    WHERE session_id = ? AND role = ?
-                    """,
-                    (session_id, role),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    """
-                    SELECT file_path, hash FROM file_hashes
-                    WHERE session_id = ?
-                    """,
-                    (session_id,),
-                ).fetchall()
-            return {row["file_path"]: row["hash"] for row in rows}
+        rows = self._rows_for_session(session_id, role)
+        return {r.values.get("file_path"): r.values.get("hash") for r in rows}
 
     def get_frozen_files(
         self,
@@ -273,24 +201,16 @@ class FileHashMixin:
         set of str
             File paths whose ``frozen`` flag is 1 in the DB for this session.
         """
-        with self._connect() as conn:
-            if role:
-                rows = conn.execute(
-                    """
-                    SELECT file_path FROM file_hashes
-                    WHERE session_id = ? AND role = ? AND frozen = 1
-                    """,
-                    (session_id, role),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    """
-                    SELECT file_path FROM file_hashes
-                    WHERE session_id = ? AND frozen = 1
-                    """,
-                    (session_id,),
-                ).fetchall()
-            return {row["file_path"] for row in rows}
+        rows = self._rows_for_session(session_id, role)
+        return {r.values.get("file_path") for r in rows if r.values.get("frozen")}
+
+    def _rows_for_session(self, session_id: str, role: Optional[str]):
+        return [
+            r
+            for r in self._file_hashes.rows()
+            if r.values.get("session_id") == session_id
+            and (role is None or r.values.get("role") == role)
+        ]
 
     def find_session_by_file(
         self,
@@ -316,42 +236,21 @@ class FileHashMixin:
             List of session IDs.
         """
         file_path = _resolve_abspath(file_path)
-        with self._connect() as conn:
-            if role:
-                rows = conn.execute(
-                    """
-                    SELECT DISTINCT session_id FROM file_hashes
-                    WHERE file_path = ? AND role = ?
-                    ORDER BY recorded_at DESC
-                    """,
-                    (file_path, role),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    """
-                    SELECT DISTINCT session_id FROM file_hashes
-                    WHERE file_path = ?
-                    ORDER BY recorded_at DESC
-                    """,
-                    (file_path,),
-                ).fetchall()
-            return [row["session_id"] for row in rows]
+        rows = [
+            r
+            for r in self._file_hashes.rows()
+            if r.values.get("file_path") == file_path
+            and (role is None or r.values.get("role") == role)
+        ]
+        rows.sort(key=lambda r: r.values.get("recorded_at") or "", reverse=True)
+        return _dedup([r.values.get("session_id") for r in rows])
 
     def find_sessions_by_files(
         self,
         file_paths: List[str],
         role: str,
     ) -> Dict[str, List[str]]:
-        """Batch lookup: producers of multiple files in a single SQL query.
-
-        Replaces the per-file loop in ``_parents_via_files`` (the N+1 pattern)
-        with one ``WHERE file_path IN (...) AND role=?`` query, grouped by
-        file_path.  The ``idx_file_path`` index already covers this.
-
-        Note: a single session's input count is typically small (well under
-        SQLite's ~999-variable SQLITE_MAX_VARIABLE_NUMBER limit), so no
-        chunking is needed here.  If callers ever pass very large lists they
-        should chunk externally.
+        """Batch lookup: producers of multiple files, grouped by file_path.
 
         Parameters
         ----------
@@ -367,7 +266,7 @@ class FileHashMixin:
         -------
         dict[str, list[str]]
             ``{file_path: [session_id, ...]}`` — producers per file, ordered
-            newest-first (``recorded_at DESC``), matching the order that
+            newest-first (``recorded_at`` desc), matching the order that
             ``find_session_by_file`` returns.  Files with no producers are
             absent from the dict (not present with an empty list). Keyed by
             the ORIGINAL (caller-supplied) path spelling, not the resolved
@@ -377,37 +276,28 @@ class FileHashMixin:
         """
         if not file_paths:
             return {}
-
-        # Map resolved-form -> original spelling(s) so the returned dict can
-        # be keyed by what the caller passed in, even though the query must
-        # use the resolved form to match what's actually stored.
+        # Map resolved-form -> original spelling so the returned dict is keyed
+        # by what the caller passed in, even though the match must use the
+        # resolved form to find what is actually stored.
         resolved_to_original: Dict[str, str] = {}
-        resolved_paths = []
         for original in file_paths:
-            resolved = _resolve_abspath(original)
-            resolved_to_original.setdefault(resolved, original)
-            resolved_paths.append(resolved)
+            resolved_to_original.setdefault(_resolve_abspath(original), original)
 
-        placeholders = ", ".join("?" * len(resolved_paths))
-        params = resolved_paths + [role]
-        with self._connect() as conn:
-            rows = conn.execute(
-                f"""
-                SELECT file_path, session_id, MAX(recorded_at) AS latest_at
-                FROM file_hashes
-                WHERE file_path IN ({placeholders}) AND role = ?
-                GROUP BY file_path, session_id
-                ORDER BY file_path, latest_at DESC
-                """,
-                params,
-            ).fetchall()
-
+        rows = [
+            r
+            for r in self._file_hashes.rows()
+            if r.values.get("role") == role
+            and r.values.get("file_path") in resolved_to_original
+        ]
+        rows.sort(key=lambda r: r.values.get("recorded_at") or "", reverse=True)
         result: Dict[str, List[str]] = {}
-        for row in rows:
-            fp = resolved_to_original.get(row["file_path"], row["file_path"])
-            if fp not in result:
-                result[fp] = []
-            result[fp].append(row["session_id"])
+        for r in rows:
+            stored = r.values.get("file_path")
+            fp = resolved_to_original.get(stored, stored)
+            session_id = r.values.get("session_id")
+            bucket = result.setdefault(fp, [])
+            if session_id not in bucket:
+                bucket.append(session_id)
         return result
 
     def find_sessions_by_hash(
@@ -439,28 +329,16 @@ class FileHashMixin:
         -------
         list of str
             Session IDs that recorded the content, newest-first
-            (``recorded_at DESC``). Empty when the content is unknown.
+            (``recorded_at`` desc). Empty when the content is unknown.
         """
-        with self._connect() as conn:
-            if role:
-                rows = conn.execute(
-                    """
-                    SELECT DISTINCT session_id FROM file_hashes
-                    WHERE hash = ? AND role = ?
-                    ORDER BY recorded_at DESC
-                    """,
-                    (content_hash, role),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    """
-                    SELECT DISTINCT session_id FROM file_hashes
-                    WHERE hash = ?
-                    ORDER BY recorded_at DESC
-                    """,
-                    (content_hash,),
-                ).fetchall()
-            return [row["session_id"] for row in rows]
+        rows = [
+            r
+            for r in self._file_hashes.rows()
+            if r.values.get("hash") == content_hash
+            and (role is None or r.values.get("role") == role)
+        ]
+        rows.sort(key=lambda r: r.values.get("recorded_at") or "", reverse=True)
+        return _dedup([r.values.get("session_id") for r in rows])
 
     def hosts_for_hash(self, content_hash: str) -> List[str]:
         """Return the distinct known hosts that recorded a given content hash.
@@ -479,16 +357,29 @@ class FileHashMixin:
         list of str
             Distinct non-null host names, ordered alphabetically.
         """
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT DISTINCT host FROM file_hashes
-                WHERE hash = ? AND host IS NOT NULL
-                ORDER BY host
-                """,
-                (content_hash,),
-            ).fetchall()
-            return [row["host"] for row in rows]
+        hosts = {
+            r.values.get("host")
+            for r in self._file_hashes.rows()
+            if r.values.get("hash") == content_hash and r.values.get("host") is not None
+        }
+        return sorted(hosts)
+
+
+def _dedup(items: List[str]) -> List[str]:
+    """First-occurrence-preserving dedup (mirrors SQL SELECT DISTINCT)."""
+    seen: set = set()
+    result: List[str] = []
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            result.append(item)
+    return result
+
+
+def _now_iso() -> str:
+    from datetime import datetime
+
+    return datetime.now().isoformat()
 
 
 def _stat_size(path: str) -> Optional[int]:

@@ -7,6 +7,79 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-08-31
+
+### Added — carried forward from `main`
+- **0.20.0 is the first PyPI release to contain everything below.** `main`
+  had drifted ahead of `develop`: 0.18.0, 0.19.0 and 0.19.1 were tagged and
+  published from `main` while the store migration was being built on
+  `develop`, and 0.19.2 was version-bumped on `main` but never tagged or
+  published at all. `main` was back-merged into `develop` for this release,
+  so `export_manuscript_hints()`, `is_claim_grounded()`, the full-length
+  sha256 fix and the stable-`claim_id` gate findings are all present here
+  alongside the store migration — a release cut from the pre-merge
+  `develop` would have silently DELETED them from the published package.
+  Two `main`-only fixes were re-implemented against the store-backed
+  code rather than merged verbatim, because the SQL they were written
+  against no longer exists: the query-path normalization in
+  `find_session_by_file()` / `find_sessions_by_files()`, and the stable
+  `claim_id` reference in gate findings.
+
+### Changed
+- **clew's four stores moved off the retired embedded file engine onto
+  the per-host PostgreSQL.**
+  `_attest/_stamp.py` (`stamps`), `_db/_core.py` (`runs`, `file_hashes`,
+  `verification_results`, `session_parents`), `_citation/_model.py`
+  (`citations`) and `_claim/_store.py` (`claims`) now resolve their target
+  through `scitex_dev.store.host_store(pkg="scitex_clew", name=...)`.
+  Required by scitex-dev #762, which deletes the file-backed `StoreTarget`
+  constructor, its `Backend` member, its path type and `DB_SUFFIX`;
+  scitex-clew was the fleet's only production caller. No DSN is written
+  in source: the one switch is `SCITEX_STORE_DSN`, owned by
+  `host_store()`.
+
+### Removed — BREAKING
+- **clew has no database file.** `VerificationDB(db_path)` takes no
+  arguments and has no `.db_path`; `set_db()`, `use_db()`,
+  `get_active_db_path()` and `resolve_db_path()` are gone (`reset_db()`
+  replaces them as a cache invalidator, not a store selector); the
+  `SCITEX_CLEW_DB_PATH` environment variable is retired;
+  `render_dag(db_path=)`, `clew print-mermaid --db` and
+  `clew gate-completeness --db-path` are removed; `stats()` reports
+  `"store"` instead of `"db_path"`. The legacy default-store auto-rename
+  (`_db/_migrate_rename.py`) is deleted with the file notion it served.
+
+### Capabilities lost by the above, recorded rather than papered over
+- **Reading a foreign capsule's provenance.** The submission gate globbed
+  `<workdir>/.scitex/clew/**/*.db` and judged a capsule on the provenance
+  it carried. A capsule carries none now, so the run/claim half of the
+  gate is answered by the store of the host running it. The manifest half
+  is still read per-capsule from `<workdir>/.scitex/clew/sources.json`.
+- **The chain being readable as a plain file by scitex-io.** Gone with the
+  file. `claims.json` remains the file-shaped export.
+Per-project key namespacing is NOT among them — see below.
+
+### Preserved: per-project record scoping
+- **Every store's identity gains a leading `project` field.** The
+  per-project database file used to keep two manuscripts' author-chosen
+  keys apart; one host database would have collapsed them, with
+  `MergeRule.LAST_WRITER_WINS` silently picking a winner — data loss in
+  the one system where it is least acceptable. Identities are now
+  `(project, claim_id)`, `(project, cite_key)`, `(project, session_id)`,
+  `(project, session_id, file_path, role)`, `(project, session_id,
+  parent_session)`, `(project, verification_id)` and `(project,
+  stamp_id)`.
+
+  The scope is resolved in ONE place — `_db/_scope.py`'s
+  `resolve_project_scope()` — and applied to reads and writes alike by
+  `ProjectScopedStore`, so a lookup cannot miss a row it just wrote and no
+  call site has to remember the scope. `SCITEX_CLEW_PROJECT` overrides it;
+  unset, it is the absolute project-root path, which is what the old file
+  location keyed on.
+
+  Caveat: a project MOVED to a new path gets a new scope, where the old
+  file travelled with the directory. Pin it with `SCITEX_CLEW_PROJECT`.
+
 ## [0.19.2] — 2026-07-18
 
 ### Changed
@@ -129,7 +202,7 @@ versions follow [Semantic Versioning](https://semver.org/).
   `OSError`, which propagated and crashed `import scitex_clew` entirely.
   The fallback now tolerates any failure of the optional path, preserving
   the stdlib-logging fallback and clew's zero-dependency import.
-- **WAL + `busy_timeout` on clew's sqlite connections (#123).** All
+- **WAL + `busy_timeout` on clew's store connections (#123).** All
   connections now open with `journal_mode=WAL` + `synchronous=NORMAL`
   (writable opens, best-effort) + `busy_timeout=300000` (always) via a
   single stdlib-only connect helper, mirroring scitex-db's proven PRAGMA
@@ -137,15 +210,16 @@ versions follow [Semantic Versioning](https://semver.org/).
   immediate "database is locked" failure under concurrent writers.
 
 ### Changed
-- **Default DB renamed `db.sqlite` → `clew.db` (#124).** The default store
+- **Default DB renamed to `clew.db` (#124).** The default store
   is now `<project_root>/.scitex/clew/runtime/clew.db` (reference
   implementation of the fleet `.scitex/<pkg>/runtime/<pkg>.db` convention;
   `.db` is also `stx.io.load`-recognized). A transparent, WAL-safe
-  auto-migration renames an existing `runtime/db.sqlite` (or legacy flat
-  `db.sqlite`) on first open: it `wal_checkpoint(TRUNCATE)`s to fold the
-  `-wal` back into the main file, then atomically `os.replace`s it — no
-  data loss, even for multi-GB WAL DBs. The gate name-match accepts
-  `clew.db` (falling back to `db.sqlite`).
+  auto-migration renames the legacy store file — the one under
+  `runtime/`, or the older flat one beside it — on first open: it
+  `wal_checkpoint(TRUNCATE)`s to fold the `-wal` back into the main file,
+  then atomically `os.replace`s it — no data loss, even for multi-GB WAL
+  DBs. The gate name-match accepts `clew.db` (falling back to the legacy
+  name).
 
 ### Docs
 - **`verify_claim` consumer contract** documented (new skill leaf
@@ -457,7 +531,7 @@ versions follow [Semantic Versioning](https://semver.org/).
 - **Root-layout refactor (PS-108b headroom) — no behavior change, public API identical** (`scitex_clew.__all__` unchanged: all 34 names and every lazy attribute resolve exactly as before). Flat root files went 15 → 9: `_stamp.py` + `_registry.py` moved into a new `_attest/` subpackage (external attestation: temporal stamping + remote Clew Registry; `scitex_clew._attest` re-exports both surfaces); `_public_api.py` (the `_LAZY_ATTRS` registry) moved to `_core/_public_api.py`; the pure re-export shims `_dag.py` (→ `_chain`) and `_visualize.py` (→ `_viz`) were removed with all internal importers rewired to the real modules; the dead legacy `_chain.py` (shadowed by the `_chain/` package since the split, never importable) was deleted. Test mirrors moved accordingly (`tests/scitex_clew/_attest/`; `test__chain.py` → `_chain/test__types.py`). Internal-only import paths `scitex_clew._stamp` / `._registry` / `._dag` / `._visualize` / `._public_api` no longer exist — use `scitex_clew._attest._stamp` / `._attest._registry` / `._chain` / `._viz` / `._core._public_api` (private modules; the supported surface is the top-level `scitex_clew.*` names, which are untouched).
 
 ### Added
-- **Explicit-store rendering: `render_dag(..., db_path=...)`** (clew-feat-render-dag-explicit-store). `render_dag` gains a `db_path` keyword so host-side/post-run callers can target a store outside the current tree (e.g. `<runs>/<capsule>/.scitex/clew/runtime/db.sqlite`) without chdir. Resolution precedence matches `VerificationDB`: (1) explicit `db_path`, (2) `SCITEX_CLEW_DB_PATH`, (3) project-root walk from cwd; the store is activated only for the duration of the call (a `set_db()`-configured global instance is untouched and is restored afterwards). Fail-loud, no silent no-op renders: a missing store raises `FileNotFoundError` naming the path tried and the three-tier precedence, and a store that exists but yields an EMPTY view (`claims=True` with zero claims, or session/target filters matching nothing) raises `ValueError` instead of returning without writing the requested file. New internals `scitex_clew._db.resolve_db_path()` / `use_db()` / `get_active_db_path()`. CLI: `clew print-mermaid --db PATH` pins the store explicitly (fail-loud when missing).
+- **Explicit-store rendering: `render_dag(..., db_path=...)`** (clew-feat-render-dag-explicit-store). `render_dag` gains a `db_path` keyword so host-side/post-run callers can target a store outside the current tree (e.g. the store under `<runs>/<capsule>/.scitex/clew/runtime/`) without chdir. Resolution precedence matches `VerificationDB`: (1) explicit `db_path`, (2) `SCITEX_CLEW_DB_PATH`, (3) project-root walk from cwd; the store is activated only for the duration of the call (a `set_db()`-configured global instance is untouched and is restored afterwards). Fail-loud, no silent no-op renders: a missing store raises `FileNotFoundError` naming the path tried and the three-tier precedence, and a store that exists but yields an EMPTY view (`claims=True` with zero claims, or session/target filters matching nothing) raises `ValueError` instead of returning without writing the requested file. New internals `scitex_clew._db.resolve_db_path()` / `use_db()` / `get_active_db_path()`. CLI: `clew print-mermaid --db PATH` pins the store explicitly (fail-loud when missing).
 
 ### Docs
 - **Verification caching guarantee** documented across the skill
@@ -488,7 +562,7 @@ versions follow [Semantic Versioning](https://semver.org/).
 - **Unified manuscript-claims render feed.** `scitex_clew.export_manuscript_claims()` / `clew export-claims --unified` — the compile-time bridge scitex-writer's "Clew Render" pre-flight calls. Reads BOTH clew ledgers (value/figure claims + citation nodes) and emits ONE inline `claims` list in writer's frozen render schema: per-entry `{claim_id, claim_type (value|citation|figure), status (4-state verified|suspect|unverified|exception), claim_value, display_color, link, + provenance}` plus top-level `palette` + `attestation{total, verified_count, unverified_count}`. Citation `status`→4-state: verified→verified, stub→unverified (red), unverified→suspect (amber). Writes the canonical `.scitex/clew/runtime/claims.json` (`path=` overrides); the compile calls it last (last-write-wins) so render_clew reads the complete unified shape. New MCP tool `clew_export_manuscript_claims`.
 
 ### Fixed
-- `render_dag(output_path=…)` now raises a targeted error when handed the clew STORE path (`.sqlite`/`.db`) as the render OUTPUT target — "that's the clew store, not a render target; pass `.png`/`.svg`/`.html`/`.json`/`.mmd`" — instead of the generic "Unsupported format". (render_dag reads the DAG from the store internally and infers the output format from the output-path suffix; the store is never a render target.)
+- `render_dag(output_path=…)` now raises a targeted error when handed the clew STORE path (a store suffix such as `.db`) as the render OUTPUT target — "that's the clew store, not a render target; pass `.png`/`.svg`/`.html`/`.json`/`.mmd`" — instead of the generic "Unsupported format". (render_dag reads the DAG from the store internally and infers the output format from the output-path suffix; the store is never a render target.)
 
 ## [0.3.0]
 
@@ -524,7 +598,7 @@ Concrete failure 2026-06-19: a blocked solver hand-coded "estimated" metrics int
 - Auto-export hook in `add_claim()`: after every successful `clew.add_claim(...)` the canonical JSON is re-emitted in the background. Default ON; opt-out via `SCITEX_CLEW_AUTO_EXPORT_CLAIMS=0` for high-rate streaming workloads. The hook never raises — if the runtime dir is read-only, it emits a `RuntimeWarning` and `add_claim` continues normally.
 
 ### Why
-Operator directive 2026-06-01 (paper-scitex-clew rollout): clew should be self-contained — the canonical claims JSON should live under `.scitex/clew/runtime/` per the ecosystem local-state-directories convention, with the DB as source of truth and the JSON as a derived read-only artifact. Downstream consumers (verifier, scitex-writer) can now point at one canonical path without touching sqlite.
+Operator directive 2026-06-01 (paper-scitex-clew rollout): clew should be self-contained — the canonical claims JSON should live under `.scitex/clew/runtime/` per the ecosystem local-state-directories convention, with the DB as source of truth and the JSON as a derived read-only artifact. Downstream consumers (verifier, scitex-writer) can now point at one canonical path without touching the database directly.
 
 ## [0.2.13]
 

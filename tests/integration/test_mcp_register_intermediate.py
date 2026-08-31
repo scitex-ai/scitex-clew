@@ -10,8 +10,7 @@ import os
 
 import pytest
 
-import scitex_clew._db as _db_module
-from scitex_clew._db import set_db
+from scitex_clew._db import get_db
 
 _FAKE_SESSION = "2026Y-05M-27D-00h00m00s_Test-main"
 
@@ -30,10 +29,8 @@ def _get_tools(mcp):
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
-    set_db(tmp_path / "mcp_register_intermediate.db")
-    yield _db_module.get_db()
-    _db_module._DB_INSTANCE = None
+def isolated_db(isolated_store):
+    return get_db()
 
 
 @pytest.fixture

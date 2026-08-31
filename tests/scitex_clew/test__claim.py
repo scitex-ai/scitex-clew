@@ -36,9 +36,30 @@ import scitex_clew as clew
 from scitex_clew._db import _core as _db_core
 
 
+def _force_claims_status(db, status):
+    """Force EVERY existing claim's status directly in the store (test-only).
+
+    Mirrors the pre-migration raw ``UPDATE claims SET status = ? WHERE 1=1``
+    used throughout this file to force a claim into a specific status for
+    export/color/display-group tests, now that claims live in a
+    :class:`scitex_dev.store.Store` (oplog + hide/unhide) rather than a bare
+    per-file ``claims`` table — see ``scitex_clew._claim._model``.
+    """
+    from scitex_clew._claim._model import _update_claim_status
+    from scitex_clew._claim._store import _open_store
+
+    store = _open_store()
+    try:
+        claim_ids = [row.values["claim_id"] for row in store.rows()]
+    finally:
+        store.close()
+    for claim_id in claim_ids:
+        _update_claim_status(claim_id, status, db)
+
+
 # ---------------------------------------------------------------------------
-# Real-state save/restore helpers (NOT mocks — they touch os.environ /
-# os.getcwd / clew.set_db on the live process and unwind on teardown).
+# Real-state save/restore helpers (NOT mocks — they touch os.environ and
+# os.getcwd on the live process and unwind on teardown).
 # PA-306 forbids ``monkeypatch``; this fixture is the explicit equivalent.
 # ---------------------------------------------------------------------------
 
@@ -53,7 +74,6 @@ def env_sandbox():
     snapshot_env = {
         k: os.environ.get(k)
         for k in (
-            "SCITEX_CLEW_DB_PATH",
             "SCITEX_CLEW_CLAIMS_JSON",
             "SCITEX_CLEW_AUTO_EXPORT_CLAIMS",
         )
@@ -79,15 +99,16 @@ def env_sandbox():
         else:
             os.environ[k] = v
     os.chdir(snapshot_cwd)
-    clew.set_db(None)
 
 
 def _fresh_db(tmp_path: Path, sandbox) -> Path:
-    """Wire scitex_clew at a fresh per-test DB under tmp_path."""
-    db_path = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    sandbox.set_env("SCITEX_CLEW_DB_PATH", str(db_path))
-    clew.set_db(None)
+    """Return the per-test workdir with its clew runtime directory in place.
+
+    The store itself needs no wiring: the autouse ``isolated_store`` fixture
+    in tests/conftest.py already puts every test in its own throwaway
+    PostgreSQL schema, so there is no per-test database file to point at.
+    """
+    (tmp_path / ".scitex" / "clew" / "runtime").mkdir(parents=True, exist_ok=True)
     return tmp_path
 
 
@@ -751,14 +772,8 @@ def test_v11_color_verified_claim_gets_green(tmp_path, env_sandbox):
         source_file=str(src),
     )
     # Force status to 'verified' directly in the DB
-    import sqlite3
     db = clew.get_db()
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'verified' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "verified")
     out = workdir / "claims_v11.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -784,14 +799,8 @@ def test_v11_color_mismatch_claim_gets_red(tmp_path, env_sandbox):
         claim_value="0.94",
         source_file=str(src),
     )
-    import sqlite3
     db = clew.get_db()
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'mismatch' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "mismatch")
     out = workdir / "claims_v11.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -817,14 +826,8 @@ def test_v11_color_unknown_status_gets_grey(tmp_path, env_sandbox):
         claim_value="0.94",
         source_file=str(src),
     )
-    import sqlite3
     db = clew.get_db()
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'future_unknown_status' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "future_unknown_status")
     out = workdir / "claims_v11.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -1685,14 +1688,8 @@ def test_v13_suspect_status_display_group_is_suspect(tmp_path, env_sandbox):
         claim_value="0.94",
         source_file=str(src),
     )
-    import sqlite3
     db = clew.get_db()
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'suspect' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "suspect")
     out = workdir / "claims_v13.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -1718,14 +1715,8 @@ def test_v13_mismatch_status_display_group_is_failed(tmp_path, env_sandbox):
         claim_value="0.94",
         source_file=str(src),
     )
-    import sqlite3
     db = clew.get_db()
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'mismatch' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "mismatch")
     out = workdir / "claims_v13.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -1749,14 +1740,8 @@ def test_v13_missing_status_display_group_is_failed(tmp_path, env_sandbox):
         line_number=1,
         claim_value="0.94",
     )
-    import sqlite3
     db = clew.get_db()
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'missing' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "missing")
     out = workdir / "claims_v13.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -1814,13 +1799,7 @@ def test_v13_verified_with_exception_chain_display_group_is_exception(tmp_path, 
         source_file=str(out_file),
         source_session=session_id,
     )
-    import sqlite3
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'verified' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "verified")
     out = workdir / "claims_v13_exc.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -1854,13 +1833,7 @@ def test_v13_verified_with_exception_chain_display_color_is_violet(tmp_path, env
         source_file=str(out_file),
         source_session=session_id,
     )
-    import sqlite3
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'verified' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "verified")
     out = workdir / "claims_v13_exc2.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -1894,13 +1867,7 @@ def test_v13_verified_with_frozen_chain_display_group_is_verified(tmp_path, env_
         source_file=str(out_file),
         source_session=session_id,
     )
-    import sqlite3
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'verified' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "verified")
     out = workdir / "claims_v13_froz.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -1934,13 +1901,7 @@ def test_v13_verified_with_frozen_chain_resolved_status_is_frozen(tmp_path, env_
         source_file=str(out_file),
         source_session=session_id,
     )
-    import sqlite3
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'verified' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "verified")
     out = workdir / "claims_v13_froz2.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -1974,13 +1935,7 @@ def test_v13_suspect_with_exception_chain_stays_suspect(tmp_path, env_sandbox):
         source_file=str(out_file),
         source_session=session_id,
     )
-    import sqlite3
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'suspect' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "suspect")
     out = workdir / "claims_v13_exc5.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -2052,13 +2007,7 @@ def test_v13_mismatch_with_exception_chain_stays_failed(tmp_path, env_sandbox):
         source_file=str(out_file),
         source_session=session_id,
     )
-    import sqlite3
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'mismatch' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "mismatch")
     out = workdir / "claims_v13_exc6.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -2082,14 +2031,8 @@ def test_v13_missing_claim_color_is_distinct_dark_red(tmp_path, env_sandbox):
         line_number=1,
         claim_value="0.94",
     )
-    import sqlite3
     db = clew.get_db()
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'missing' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "missing")
     out = workdir / "claims_v13_missing.json"
     # Act
     clew.export_claims_json(path=out, read_only=False)
@@ -2185,14 +2128,8 @@ def test_v13_back_compat_partial_stored_status_surfaces_as_suspect(tmp_path, env
         claim_value="0.94",
     )
     # Simulate a legacy DB row with old "partial" status
-    import sqlite3
     db = clew.get_db()
-    conn = sqlite3.connect(str(db.db_path))
-    try:
-        conn.execute("UPDATE claims SET status = 'partial' WHERE 1=1")
-        conn.commit()
-    finally:
-        conn.close()
+    _force_claims_status(db, "partial")
     # Act — list_claims must normalize "partial" -> "suspect"
     claims = clew.list_claims()
     # Assert

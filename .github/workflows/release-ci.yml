@@ -43,9 +43,66 @@ concurrency:
 
 jobs:
   pytest-matrix:
-    # New required-status-check context: "pytest-matrix / pytest-matrix-on-ubuntu-py<X.YY>"
-    uses: scitex-ai/.github/.github/workflows/pytest-matrix.yml@main
-    secrets: inherit
+    # BROUGHT BACK LOCAL from the org-level reusable workflow, for the same
+    # reason `audit` below was never converted: a real behavioral deviation,
+    # not a clean mechanical match, and the migration brief says do not force
+    # a mismatch.
+    #
+    # The deviation: clew's stores are Postgres-backed and its tests run
+    # against a REAL database. tests/conftest.py defaults to the fleet primary
+    # (`scitex-primary:55432`) and FAILS rather than skips when it cannot reach
+    # a writable cluster — deliberately, since a skipped store suite is
+    # indistinguishable from a passing one. `scitex-ai/.github`'s generic
+    # pytest-matrix.yml declares no `services:` and no `SCITEX_CLEW_TEST_DSN`,
+    # and a GitHub-hosted runner cannot resolve an overlay-only name, so every
+    # leg of this job failed on `develop` and `main` from the migration merge
+    # onward ("could not reach postgresql://scitex-primary:55432/scitex:
+    # failed to resolve host"). This job body is pr-ci.yml's `tests` job, which
+    # passes green against a service container.
+    name: pytest-matrix-on-ubuntu-py${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: scitex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+      - name: Set up Python ${{ matrix.python-version }} (uv-managed)
+        run: uv python install ${{ matrix.python-version }}
+      - name: Create uv venv on this matrix Python
+        run: uv venv --python ${{ matrix.python-version }} .venv
+      - name: Install dependencies
+        run: |
+          uv pip install --python .venv/bin/python -e ".[all,dev]" \
+            || uv pip install --python .venv/bin/python -e ".[dev]" \
+            || uv pip install --python .venv/bin/python -e .
+      - name: Confirm the driver is installed
+        run: .venv/bin/python -c "import psycopg; print('psycopg', psycopg.__version__)"
+      - name: Run tests against the service database
+        env:
+          SCITEX_CLEW_TEST_DSN: postgresql://postgres:postgres@127.0.0.1:5432/scitex
+        run: |
+          export PATH="$PWD/.venv/bin:$PATH"
+          .venv/bin/pytest tests/
 
   import-smoke:
     # New required-status-check context: "import-smoke / import-smoke-on-ubuntu-py3-12"

@@ -1,17 +1,35 @@
 #!/usr/bin/env python3
-# Timestamp: "2026-03-04 (ywatanabe)"
-# File: /home/ywatanabe/proj/scitex-python/src/scitex/clew/_db_queries.py
-"""Verification recording, history, and statistics queries for VerificationDB."""
+# Timestamp: "2026-08-29 (clew-postgres-store-migration)"
+# File: src/scitex_clew/_db/_queries.py
+"""Verification recording, history, and statistics queries (Store-backed).
+
+Every read is ``self._verifications.rows()`` / ``self._runs.rows()`` /
+``self._file_hashes.rows()`` (``scitex_dev.store.Store`` instances built in
+``_core.py``) filtered/sorted/counted in Python — Store has no
+WHERE/JOIN/ORDER-BY/COUNT.
+
+``verification_results`` uses a synthetic uuid4 IDENTITY (``verification_id``)
+rather than a composite of (session_id, level, verified_at): the original
+AUTOINCREMENT PK guaranteed every ``record_verification()`` call created a
+NEW row even when (session_id, level, verified_at) repeats (e.g. two calls
+in the same microsecond), and a composite business key cannot give that
+guarantee. See ``_schema.py`` and the PR body.
+"""
 
 from __future__ import annotations
 
+import uuid
+from datetime import datetime
 from typing import Any, Dict, List, Optional
+
+from scitex_dev.store import NEW_RECORD
 
 
 class VerificationQueryMixin:
     """Mixin providing verification recording and statistics methods.
 
-    Requires _connect() context manager from VerificationDB.
+    Requires ``self._verifications``, ``self._runs`` and
+    ``self._file_hashes`` (Store instances) from VerificationDB.
     """
 
     def record_verification(
@@ -31,15 +49,16 @@ class VerificationQueryMixin:
         status : str
             Verification status (verified, mismatch, missing, unknown)
         """
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT INTO verification_results
-                (session_id, level, status)
-                VALUES (?, ?, ?)
-                """,
-                (session_id, level, status),
-            )
+        self._verifications.put(
+            {
+                "verification_id": uuid.uuid4().hex,
+                "session_id": session_id,
+                "level": level,
+                "status": status,
+                "verified_at": datetime.now().isoformat(),
+            },
+            expected_revision=NEW_RECORD,
+        )
 
     def get_latest_verification(
         self,
@@ -57,18 +76,8 @@ class VerificationQueryMixin:
         dict or None
             Latest verification result with level, status, and timestamp
         """
-        with self._connect() as conn:
-            row = conn.execute(
-                """
-                SELECT level, status, verified_at
-                FROM verification_results
-                WHERE session_id = ?
-                ORDER BY verified_at DESC
-                LIMIT 1
-                """,
-                (session_id,),
-            ).fetchone()
-            return dict(row) if row else None
+        history = self.get_verification_history(session_id, limit=1)
+        return history[0] if history else None
 
     def get_verification_history(
         self,
@@ -89,42 +98,35 @@ class VerificationQueryMixin:
         list of dict
             Verification results ordered by timestamp (newest first)
         """
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT level, status, verified_at
-                FROM verification_results
-                WHERE session_id = ?
-                ORDER BY verified_at DESC
-                LIMIT ?
-                """,
-                (session_id, limit),
-            ).fetchall()
-            return [dict(row) for row in rows]
+        rows = [
+            r for r in self._verifications.rows() if r.values.get("session_id") == session_id
+        ]
+        rows.sort(key=lambda r: r.values.get("verified_at") or "", reverse=True)
+        return [
+            {
+                "level": r.values.get("level"),
+                "status": r.values.get("status"),
+                "verified_at": r.values.get("verified_at"),
+            }
+            for r in rows[:limit]
+        ]
 
     def stats(self) -> Dict[str, Any]:
         """Get database statistics."""
-        with self._connect() as conn:
-            total_runs = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
-            success_runs = conn.execute(
-                "SELECT COUNT(*) FROM runs WHERE status = 'success'"
-            ).fetchone()[0]
-            failed_runs = conn.execute(
-                "SELECT COUNT(*) FROM runs WHERE status = 'failed'"
-            ).fetchone()[0]
-            total_files = conn.execute("SELECT COUNT(*) FROM file_hashes").fetchone()[0]
-            unique_files = conn.execute(
-                "SELECT COUNT(DISTINCT file_path) FROM file_hashes"
-            ).fetchone()[0]
-
-            return {
-                "total_runs": total_runs,
-                "success_runs": success_runs,
-                "failed_runs": failed_runs,
-                "total_file_records": total_files,
-                "unique_files": unique_files,
-                "db_path": str(self.db_path),
-            }
+        runs = self._runs.rows()
+        file_hashes = self._file_hashes.rows()
+        return {
+            "total_runs": len(runs),
+            "success_runs": sum(1 for r in runs if r.values.get("status") == "success"),
+            "failed_runs": sum(1 for r in runs if r.values.get("status") == "failed"),
+            "total_file_records": len(file_hashes),
+            "unique_files": len({r.values.get("file_path") for r in file_hashes}),
+            # Was ``"db_path": str(self.db_path)``. There is no database file;
+            # ``describe()`` is the store primitive's own credential-free
+            # one-liner, so this reports WHICH store answered without ever
+            # printing a DSN password into stdout or an MCP tool result.
+            "store": self._runs.target.describe(),
+        }
 
 
 # EOF
