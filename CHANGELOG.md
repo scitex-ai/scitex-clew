@@ -7,6 +7,31 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.20.1] — 2026-08-31
+
+### Fixed
+- **The declared `scitex-dev` floor was too low to install a working clew.**
+  0.20.0 shipped `scitex-dev>=0.17.8` while every store resolves through
+  `scitex_dev.store.host_store()`. A consumer holding an older scitex-dev
+  therefore RESOLVED CLEANLY and then failed at use — measured on
+  scitex-python, which pins `scitex-dev==0.28.0`: `uv pip install`
+  succeeded, then `ModuleNotFoundError: No module named 'scitex_dev.store'`
+  and three clew integration tests failed on all three Python legs. The
+  floor is now `scitex-dev>=0.49.2` in both the runtime and `dev`
+  dependency sets, so the bad combination is refused at resolve time
+  instead of failing silently later.
+
+  The number is measured, and IMPORTING IS NOT THE TEST: 0.43.1 is the
+  first release carrying the module and `host_store`, and it imports every
+  symbol clew imports — yet a real write-then-read raises
+  `TypeError: tuple indices must be integers or slices, not str` inside
+  `Store.rows()`. Running an actual record-and-read-back against
+  PostgreSQL with the published 0.20.0 wheel: 0.28.0 FAIL (no module),
+  0.43.1 FAIL, 0.46.0 FAIL, 0.48.0 FAIL, 0.49.0 FAIL, **0.49.2 OK**,
+  0.49.3 OK, 0.50.0 OK, 0.57.0 OK.
+
+  No code change: 0.20.1 is 0.20.0 with honest metadata.
+
 ## [0.20.0] — 2026-08-31
 
 ### Added — carried forward from `main`
