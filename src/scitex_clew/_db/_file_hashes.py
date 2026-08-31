@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import socket
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from scitex_dev.store import ANY_REVISION
@@ -38,6 +39,23 @@ def _resolve_host() -> Optional[str]:
         return name or None
     except OSError:
         return None
+
+
+def _resolve_abspath(file_path: str) -> str:
+    """Normalize a query path to the SAME absolute form used at record time.
+
+    Every file path is stored resolved-absolute (``str(Path(p).resolve())``,
+    see ``Tracker.record_input``/``record_output``), and ``verify_chain``
+    resolves its own ``target`` argument the identical way before querying.
+    Query-side lookups here must use the same resolution or a relative-path
+    query silently (no error, no log) matches nothing even though the
+    absolute equivalent matches fine — the
+    clew-fix-path-normalization-find-session bug. ``Path.resolve()`` does
+    not require the path to exist, so this is safe for a query about a
+    session/file combination the caller doesn't have on the local
+    filesystem right now.
+    """
+    return str(Path(file_path).resolve())
 
 
 class FileHashMixin:
@@ -204,7 +222,11 @@ class FileHashMixin:
         Parameters
         ----------
         file_path : str
-            Path to the file.
+            Path to the file. May be relative or absolute — normalized to
+            the same resolved-absolute form ``verify_chain`` uses and every
+            file path is recorded under, so a relative path and its
+            absolute equivalent return the SAME result
+            (clew-fix-path-normalization-find-session).
         role : str, optional
             Filter by role (input, output).
 
@@ -213,6 +235,7 @@ class FileHashMixin:
         list of str
             List of session IDs.
         """
+        file_path = _resolve_abspath(file_path)
         rows = [
             r
             for r in self._file_hashes.rows()
@@ -232,7 +255,10 @@ class FileHashMixin:
         Parameters
         ----------
         file_paths : list of str
-            File paths to look up producers for.
+            File paths to look up producers for. Each may be relative or
+            absolute — normalized the same way as :meth:`find_session_by_file`
+            (clew-fix-path-normalization-find-session) so lookups are
+            consistent regardless of how the path was spelled.
         role : str
             Role to filter by (``"output"`` for producer lookup).
 
@@ -242,21 +268,36 @@ class FileHashMixin:
             ``{file_path: [session_id, ...]}`` — producers per file, ordered
             newest-first (``recorded_at`` desc), matching the order that
             ``find_session_by_file`` returns.  Files with no producers are
-            absent from the dict (not present with an empty list).
+            absent from the dict (not present with an empty list). Keyed by
+            the ORIGINAL (caller-supplied) path spelling, not the resolved
+            form, so ``result[p]`` works for whatever ``p`` the caller passed
+            in ``file_paths`` — internal callers (e.g. ``_parents_via_files``)
+            already pass already-resolved paths, so this is a no-op for them.
         """
         if not file_paths:
             return {}
-        wanted = set(file_paths)
+        # Map resolved-form -> original spelling so the returned dict is keyed
+        # by what the caller passed in, even though the match must use the
+        # resolved form to find what is actually stored.
+        resolved_to_original: Dict[str, str] = {}
+        for original in file_paths:
+            resolved_to_original.setdefault(_resolve_abspath(original), original)
+
         rows = [
             r
             for r in self._file_hashes.rows()
-            if r.values.get("role") == role and r.values.get("file_path") in wanted
+            if r.values.get("role") == role
+            and r.values.get("file_path") in resolved_to_original
         ]
         rows.sort(key=lambda r: r.values.get("recorded_at") or "", reverse=True)
         result: Dict[str, List[str]] = {}
         for r in rows:
-            fp = r.values.get("file_path")
-            result.setdefault(fp, []).append(r.values.get("session_id"))
+            stored = r.values.get("file_path")
+            fp = resolved_to_original.get(stored, stored)
+            session_id = r.values.get("session_id")
+            bucket = result.setdefault(fp, [])
+            if session_id not in bucket:
+                bucket.append(session_id)
         return result
 
     def find_sessions_by_hash(
@@ -265,6 +306,17 @@ class FileHashMixin:
         role: Optional[str] = None,
     ) -> List[str]:
         """Find sessions that recorded a file with a given CONTENT hash.
+
+        Content-addressed counterpart to :meth:`find_session_by_file` (which
+        keys on ``file_path``). A match here proves the exact bytes exist
+        somewhere in the ledger regardless of path or host — the primitive a
+        multi-host / path-tolerant verify builds on. Uses ``idx_hash``.
+
+        NOTE: existence of matching content is NOT the same as path/host
+        provenance; callers that verify MUST still gate the result by trust
+        level (path/host agreement) before treating it as fully verified. This
+        method only answers "who recorded these bytes?", never "is this the
+        right file?".
 
         Parameters
         ----------
@@ -290,6 +342,10 @@ class FileHashMixin:
 
     def hosts_for_hash(self, content_hash: str) -> List[str]:
         """Return the distinct known hosts that recorded a given content hash.
+
+        A NULL host (recorded before Phase 5, or when host resolution failed)
+        is omitted. Useful for surfacing "this exact artifact was produced on
+        hosts X and Y" in multi-host provenance views. Uses ``idx_hash``.
 
         Parameters
         ----------

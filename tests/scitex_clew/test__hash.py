@@ -4,6 +4,8 @@
 
 """Tests for scitex.clew._hash module."""
 
+import hashlib
+
 import pytest
 
 from scitex_clew import (
@@ -34,7 +36,7 @@ class TestHashFile:
         # Assert
         assert isinstance(result, str)
 
-    def test_hash_file_basic_len_result_is_32(self, tmp_path):
+    def test_hash_file_basic_len_result_is_64(self, tmp_path):
         # Arrange
         # Arrange
         # Arrange
@@ -48,7 +50,30 @@ class TestHashFile:
         # Assert
         # Assert
         # Assert
-        assert len(result) == 32
+        # sha256 hex digest is 64 chars — the full digest, not the pre-fix
+        # 32-char truncation (clew-fix-truncated-hash-comparison).
+        assert len(result) == 64
+
+    def test_hash_file_matches_full_hashlib_sha256_digest(self, tmp_path):
+        """Regression test for clew-fix-truncated-hash-comparison.
+
+        Before the fix, ``hash_file`` truncated the digest to the first 32
+        of 64 hex chars, so the "obvious" comparison against an
+        independently-computed ``hashlib.sha256(...).hexdigest()`` was
+        ALWAYS False — silently and permanently — even though the file was
+        byte-identical. This asserts the full 64-char digest is returned and
+        matches bit-for-bit, not merely "starts with".
+        """
+        # Arrange
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(b"some real file content \x00\xff for hashing")
+
+        # Act
+        result = hash_file(test_file)
+        expected = hashlib.sha256(test_file.read_bytes()).hexdigest()
+
+        # Assert
+        assert len(expected) == 64 and result == expected
 
     def test_hash_file_basic_all_c_in_0123456789abcdef_for_c_in_result(self, tmp_path):
         # Arrange
@@ -118,7 +143,7 @@ class TestHashFile:
         # Assert
         assert isinstance(result, str)
 
-    def test_hash_file_binary_len_result_is_32(self, tmp_path):
+    def test_hash_file_binary_len_result_is_64(self, tmp_path):
         # Arrange
         # Arrange
         # Arrange
@@ -131,7 +156,7 @@ class TestHashFile:
         # Assert
         # Assert
         # Assert
-        assert len(result) == 32
+        assert len(result) == 64
 
 
     def test_hash_file_empty_result_is_str(self, tmp_path):
@@ -149,7 +174,7 @@ class TestHashFile:
         # Assert
         assert isinstance(result, str)
 
-    def test_hash_file_empty_len_result_is_32(self, tmp_path):
+    def test_hash_file_empty_len_result_is_64(self, tmp_path):
         # Arrange
         # Arrange
         # Arrange
@@ -162,7 +187,7 @@ class TestHashFile:
         # Assert
         # Assert
         # Assert
-        assert len(result) == 32
+        assert len(result) == 64
 
 
     def test_hash_file_path_types(self, tmp_path):
@@ -512,7 +537,7 @@ class TestCombineHashes:
         # Assert
         assert isinstance(result, str)
 
-    def test_combine_hashes_basic_len_result_is_32(self):
+    def test_combine_hashes_basic_len_result_is_64(self):
         # Arrange
         # Arrange
         # Arrange
@@ -524,7 +549,7 @@ class TestCombineHashes:
         # Assert
         # Assert
         # Assert
-        assert len(result) == 32
+        assert len(result) == 64
 
 
     def test_combine_hashes_deterministic(self):
@@ -578,7 +603,7 @@ class TestCombineHashes:
         # Assert
         assert isinstance(result, str)
 
-    def test_combine_hashes_empty_len_result_is_32(self):
+    def test_combine_hashes_empty_len_result_is_64(self):
         # Arrange
         # Arrange
         # Act
@@ -589,7 +614,7 @@ class TestCombineHashes:
         # Assert
         # Assert
         # Assert
-        assert len(result) == 32
+        assert len(result) == 64
 
 
 

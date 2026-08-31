@@ -6,7 +6,8 @@
 A session is considered fresh (skippable) when:
 - ``script_hash`` is recorded (non-NULL) in the ``runs`` table.
 - The script file at ``script_path`` still exists and its current SHA-256
-  (first-32-hex, same truncation as ``hash_file``) matches ``script_hash``.
+  (full digest, comparable prefix-tolerantly against ``script_hash`` — see
+  ``_hashes_match``) matches ``script_hash``.
 - Every file recorded with ``role='input'`` for the session still exists on
   disk and its current hash matches the recorded value.
 
@@ -25,6 +26,21 @@ from ._hash_cache import new_hash_cache
 from ._types import RunVerification, VerificationLevel, VerificationStatus
 
 
+def _hashes_match(current: str, recorded: str) -> bool:
+    """Prefix-tolerant hash equality (same convention as ``verify_file``).
+
+    ``hash_file`` now returns the full sha256 digest, but a ``runs``/
+    ``file_hashes`` row recorded before clew-fix-truncated-hash-comparison
+    may still hold the old 32-char truncated value. Compare over the
+    shorter length so freshness detection keeps working for both old and
+    new rows instead of degrading to "always stale" for a pre-existing DB.
+    """
+    if not current or not recorded:
+        return False
+    n = min(len(current), len(recorded))
+    return current[:n] == recorded[:n]
+
+
 def _is_session_fresh(
     session_id: str,
     hash_cache: Optional[Dict[str, str]] = None,
@@ -35,7 +51,7 @@ def _is_session_fresh(
 
     1. ``script_hash`` stored in the ``runs`` table is non-NULL.
     2. The script file at ``script_path`` exists and its current SHA-256
-       hash (first 32 hex chars) matches ``script_hash``.
+       hash matches ``script_hash`` (prefix-tolerant, see ``_hashes_match``).
     3. Every file recorded with ``role='input'`` for *session_id* still
        exists on disk and its current hash matches the recorded value.
 
@@ -80,7 +96,7 @@ def _is_session_fresh(
     except FileNotFoundError:
         return False
 
-    if current_script_hash != recorded_script_hash:
+    if not _hashes_match(current_script_hash, recorded_script_hash):
         return False
 
     # Every recorded INPUT file must be present and unchanged
@@ -92,7 +108,7 @@ def _is_session_fresh(
             current_hash = hash_file(file_path, hash_cache=hash_cache)
         except FileNotFoundError:
             return False
-        if current_hash != recorded_hash:
+        if not _hashes_match(current_hash, recorded_hash):
             return False
 
     return True
