@@ -56,7 +56,38 @@ env:
 
 jobs:
   test:
-    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '["self-hosted","Linux","X64","scitex-ci"]') }}
+    # ubuntu-latest + a postgres SERVICE, NOT the self-hosted SIF.
+    #
+    # This job used to run `.github/ci/run-in-sif.sh` on the Spartan
+    # `scitex-ci` runners. That stopped being able to gate anything the moment
+    # clew's stores moved off the embedded file engine: the suite now needs a
+    # WRITABLE PostgreSQL, tests/conftest.py defaults to the fleet primary
+    # (`scitex-primary:55432`, an overlay-only name), and it FAILS rather than
+    # skips when it cannot reach one — deliberately, because a skipped store
+    # suite is indistinguishable from a passing one. The SIF path supplies no
+    # database and no DSN, and nothing establishes that a Spartan node is on
+    # the fleet overlay, so the release pipeline would have halted here.
+    #
+    # pr-ci.yml's `tests` job already runs this exact matrix, green, against a
+    # `postgres:16` service on ubuntu-latest. This mirrors it, so the tag
+    # pipeline is gated by the same real-database run that gates every PR.
+    # build/publish stay on the SIF — those need no database, and publish still
+    # cannot use the Docker-based pypa action on the compute nodes.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: scitex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     strategy:
       fail-fast: false
       matrix:
@@ -75,14 +106,31 @@ jobs:
         with:
           ref: ${{ steps.ver.outputs.version }}
           fetch-depth: 0
-      # SIF-based self-hosted test run — mirrors pytest-matrix exactly. No
-      # setup-python (the bare Spartan node has no Python tool cache; that step
-      # failed "version not found for this OS"); no apt fd-install (fd is baked
-      # in the SIF). exec-in-sif.sh apptainer-execs the reused ci-cpu.sif and
-      # run-in-sif.sh layers THIS (tagged) checkout + [all,dev] into a writable
-      # target, then runs pytest. fail-loud on a missing SIF/shim.
-      - name: Run tests in the reused CI SIF (apptainer exec — deps layered, not on the bare runner)
-        run: bash .github/ci/exec-in-sif.sh run-in-sif.sh ${{ matrix.python-version }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+      - name: Set up Python ${{ matrix.python-version }} (uv-managed)
+        run: uv python install ${{ matrix.python-version }}
+      - name: Create uv venv on this matrix Python
+        run: uv venv --python ${{ matrix.python-version }} .venv
+      - name: Install dependencies
+        run: |
+          uv pip install --python .venv/bin/python -e ".[all,dev]" \
+            || uv pip install --python .venv/bin/python -e ".[dev]" \
+            || uv pip install --python .venv/bin/python -e .
+      - name: Confirm the driver is installed
+        # conftest SKIPS when psycopg is missing (a property of the
+        # interpreter, not of the code). A skip here would hide the entire
+        # store suite from the release gate, so fail the job instead.
+        run: .venv/bin/python -c "import psycopg; print('psycopg', psycopg.__version__)"
+      - name: Run tests against the service database
+        env:
+          SCITEX_CLEW_TEST_DSN: postgresql://postgres:postgres@127.0.0.1:5432/scitex
+        run: |
+          export PATH="$PWD/.venv/bin:$PATH"
+          .venv/bin/pytest tests/
 
   build:
     needs: test
