@@ -10,5 +10,4 @@ INFO:   2026Y-05M-07D-11h59m55s_ESmW: /home/ywatanabe/proj/scitex-clew/examples/
 INFO: === Database Statistics ===
 INFO: Total sessions: 1
 INFO: Total files: 0
-INFO: Database location: /home/ywatanabe/proj/scitex-clew/.scitex/clew/db.sqlite
 INFO: Report saved to: /home/ywatanabe/proj/scitex-clew/examples/01_basic_verification_out/status_report.txt
