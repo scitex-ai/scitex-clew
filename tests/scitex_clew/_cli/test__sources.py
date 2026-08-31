@@ -15,6 +15,7 @@ import os
 
 from click.testing import CliRunner
 
+from scitex_clew._claim._register import add_claim
 from scitex_clew._cli._main import main
 from scitex_clew._cli._sources import register_source_cmd
 
