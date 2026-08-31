@@ -57,34 +57,33 @@ def test_no_files_and_no_list_fails_loud(tmp_path):
 
 
 class TestGroundingCli:
-    def _set_clew_env(self, db_path):
-        """Manually set + return the previous env values (no-mocks: this
+    def _set_clew_env(self):
+        """Manually set + return the previous env value (no-mocks: this
         repo forbids the ``monkeypatch`` fixture — restore happens via
-        ``self._restore_clew_env`` in a ``finally`` block)."""
-        prev_db = os.environ.get("SCITEX_CLEW_DB_PATH")
-        prev_auto = os.environ.get("SCITEX_CLEW_AUTO_EXPORT_CLAIMS")
-        os.environ["SCITEX_CLEW_DB_PATH"] = str(db_path)
-        os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = "0"
-        return prev_db, prev_auto
+        ``self._restore_clew_env`` in a ``finally`` block).
 
-    def _restore_clew_env(self, prev_db, prev_auto):
-        if prev_db is None:
-            os.environ.pop("SCITEX_CLEW_DB_PATH", None)
-        else:
-            os.environ["SCITEX_CLEW_DB_PATH"] = prev_db
+        There is no store to select here. clew has no database file, and
+        ``is_claim_grounded`` reads THE store this host uses; test isolation
+        is the autouse ``isolated_store`` fixture in tests/conftest.py, which
+        gives every test its own throwaway PostgreSQL schema. Only the
+        auto-export switch still needs setting.
+        """
+        prev_auto = os.environ.get("SCITEX_CLEW_AUTO_EXPORT_CLAIMS")
+        os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = "0"
+        return prev_auto
+
+    def _restore_clew_env(self, prev_auto):
         if prev_auto is None:
             os.environ.pop("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", None)
         else:
             os.environ["SCITEX_CLEW_AUTO_EXPORT_CLAIMS"] = prev_auto
 
     def test_grounded_claim_reports_grounded_json(self, tmp_path):
-        # Arrange — is_claim_grounded resolves its OWN DB via
-        # SCITEX_CLEW_DB_PATH (not the CLI's global use_db()), so it must be
-        # set explicitly to match the seeded claim's store.
-        db_path = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
-        prev_env = self._set_clew_env(db_path)
+        # Arrange — the claim is seeded into this test's own store, which is
+        # also the store `clew grounding` reads. `--workdir` still selects
+        # the per-capsule sources manifest.
+        prev_env = self._set_clew_env()
         try:
-            set_db(db_path)
             src = tmp_path / "raw.csv"
             src.write_text("x\n")
             manifest_path = tmp_path / ".scitex" / "clew" / "signed" / "sources.json"
@@ -114,12 +113,11 @@ class TestGroundingCli:
                 and payload["reason"] == "grounded"
             )
         finally:
-            self._restore_clew_env(*prev_env)
+            self._restore_clew_env(prev_env)
 
     def test_unknown_claim_reports_claim_not_found_human_output(self, tmp_path):
         # Arrange
-        db_path = tmp_path / ".scitex" / "clew" / "runtime" / "clew.db"
-        prev_env = self._set_clew_env(db_path)
+        prev_env = self._set_clew_env()
         try:
             runner = CliRunner()
             # Act
@@ -129,4 +127,4 @@ class TestGroundingCli:
             # Assert
             assert result.exit_code == 0 and "NOT GROUNDED" in result.output
         finally:
-            self._restore_clew_env(*prev_env)
+            self._restore_clew_env(prev_env)
