@@ -24,6 +24,7 @@ resolving unchanged.
 from __future__ import annotations
 
 from ._export import export_claims_json
+from ._hints import export_manuscript_hints
 from ._manuscript import export_manuscript_claims
 from ._model import (
     CLAIM_TYPES,
@@ -51,6 +52,7 @@ __all__ = [
     "format_claims",
     "export_claims_json",
     "export_manuscript_claims",
+    "export_manuscript_hints",
     "verify_claim",
     "verify_all_claims",
     "verify_claims_dag",

@@ -196,4 +196,59 @@ def unregister_source_cmd(
     click.echo(f"[OK] unregistered {len(files)} source(s) -> {path}")
 
 
+@click.command(
+    "grounding",
+    epilog=(
+        "Example:\n"
+        "  $ scitex-clew grounding claim_abc123\n"
+        "  $ scitex-clew grounding paper.tex:L42 --workdir ./paper --json"
+    ),
+)
+@click.argument("claim_location")
+@click.option(
+    "--workdir",
+    "workdir",
+    default=".",
+    show_default=True,
+    help="Directory the clew DB + sources manifest are resolved under.",
+)
+@click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")
+@click.pass_context
+def grounding_cmd(ctx: click.Context, claim_location: str, workdir: str, as_json: bool):
+    """Per-claim grounding verdict for CLAIM_LOCATION (claim_id or file.tex:L42).
+
+    Thin CLI wrapper around ``scitex_clew.is_claim_grounded`` — richer than a
+    bare pass/fail bit: reports WHY (``reason``), the matched registered
+    source (if any), and an actionable ``fix_hint``. This is the primitive a
+    live inline editor (e.g. scitex-writer's SSOT paper editor) polls per
+    claim.
+    """
+    from .._sources import is_claim_grounded
+
+    verdict = is_claim_grounded(claim_location, workdir=workdir)
+
+    if as_json:
+        ctx.obj = ctx.obj or {}
+        ctx.obj["json"] = True
+    if _json_mode(ctx):
+        click.echo(json.dumps(verdict, indent=2))
+        return
+
+    color = "green" if verdict["grounded"] else "red"
+    if verdict["reason"] == "no_manifest":
+        color = "yellow"
+    click.secho(
+        f"[{'GROUNDED' if verdict['grounded'] else 'NOT GROUNDED'}] "
+        f"{verdict['claim_id']} — {verdict['reason']}",
+        fg=color,
+    )
+    if verdict["matched_source"]:
+        click.echo(
+            f"  matched: {verdict['matched_source']['path']}  "
+            f"{verdict['matched_source']['sha256'][:12]}..."
+        )
+    if verdict["fix_hint"]:
+        click.echo(f"  fix: {verdict['fix_hint']}")
+
+
 # EOF

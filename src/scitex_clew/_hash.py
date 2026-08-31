@@ -37,12 +37,24 @@ def hash_file(
     Returns
     -------
     str
-        Hexadecimal hash string (first 32 characters)
+        Full hexadecimal hash digest (64 characters for sha256)
 
     Examples
     --------
     >>> hash_file("data.csv")
     'a1b2c3d4e5f6...'
+
+    Notes
+    -----
+    Prior to this fix, the result was truncated to the first 32 hex
+    characters (128 bits) of the digest. That truncation made the "obvious"
+    external check ``get_file_hashes(session)[path] ==
+    hashlib.sha256(open(path, "rb").read()).hexdigest()`` silently and
+    permanently False for every tracked file — a confident-wrong-answer bug
+    (clew-fix-truncated-hash-comparison). The full digest is now returned;
+    every internal comparison site already compares over
+    ``min(len(a), len(b))`` (prefix-tolerant), so this is backward
+    compatible with any pre-existing truncated hash rows.
     """
     path = Path(path)
 
@@ -62,7 +74,7 @@ def hash_file(
         while chunk := f.read(chunk_size):
             hasher.update(chunk)
 
-    result = hasher.hexdigest()[:32]
+    result = hasher.hexdigest()
 
     if hash_cache is not None:
         hash_cache[cache_key] = result
@@ -176,13 +188,22 @@ def combine_hashes(hashes: Dict[str, str], algorithm: str = "sha256") -> str:
     Returns
     -------
     str
-        Combined hash (first 32 characters)
+        Combined hash (full hexadecimal digest)
 
     Examples
     --------
     >>> hashes = {'input.csv': 'a1b2...', 'script.py': 'c3d4...'}
     >>> combine_hashes(hashes)
     'e5f6g7h8...'
+
+    Notes
+    -----
+    Previously truncated to the first 32 hex characters — the same
+    write-time truncation bug as :func:`hash_file` (see
+    clew-fix-truncated-hash-comparison). This feeds the session
+    ``combined_hash`` fingerprint, which in turn feeds the attestation
+    root-hash computation in ``_attest/_stamp.py``, so the truncation also
+    weakened that chain's collision resistance from 256 to 128 bits.
     """
     hasher = hashlib.new(algorithm)
 
@@ -190,7 +211,7 @@ def combine_hashes(hashes: Dict[str, str], algorithm: str = "sha256") -> str:
     for key in sorted(hashes.keys()):
         hasher.update(f"{key}:{hashes[key]}".encode())
 
-    return hasher.hexdigest()[:32]
+    return hasher.hexdigest()
 
 
 def verify_hash(

@@ -7,6 +7,24 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-08-31
+
+### Added — carried forward from `main`
+- **0.20.0 is the first PyPI release to contain everything below.** `main`
+  had drifted ahead of `develop`: 0.18.0, 0.19.0 and 0.19.1 were tagged and
+  published from `main` while the store migration was being built on
+  `develop`, and 0.19.2 was version-bumped on `main` but never tagged or
+  published at all. `main` was back-merged into `develop` for this release,
+  so `export_manuscript_hints()`, `is_claim_grounded()`, the full-length
+  sha256 fix and the stable-`claim_id` gate findings are all present here
+  alongside the store migration — a release cut from the pre-merge
+  `develop` would have silently DELETED them from the published package.
+  Two `main`-only fixes were re-implemented against the store-backed
+  code rather than merged verbatim, because the SQL they were written
+  against no longer exists: the query-path normalization in
+  `find_session_by_file()` / `find_sessions_by_files()`, and the stable
+  `claim_id` reference in gate findings.
+
 ### Changed
 - **clew's four stores moved off the retired embedded file engine onto
   the per-host PostgreSQL.**
@@ -61,6 +79,102 @@ Per-project key namespacing is NOT among them — see below.
 
   Caveat: a project MOVED to a new path gets a new scope, where the old
   file travelled with the directory. Pin it with `SCITEX_CLEW_PROJECT`.
+
+## [0.19.2] — 2026-07-18
+
+### Changed
+- **Pre-submission gate findings now reference a claim by its stable
+  `claim_id`, not by `file:L42` alone** (scitex-todo card
+  `clew-feat-gate-question-id-completeness`, part (a)). A finding read
+  `claim paper.tex:L42 reaches no registered source (unsourced)`; the
+  location shifts on every manuscript re-write (insert one paragraph and
+  every downstream line number moves), so nothing could correlate findings
+  across gate runs, or join them back to a submission keyed by
+  `claim_id`/`question_id`. Findings now read
+  `claim <claim_id> (<location>)` — clew's actual primary key first, with
+  the location retained as a parenthesised locator so a human still has
+  somewhere to go. Message text only; no change to which claims fail or to
+  the gate's pass/fail verdict.
+
+## [0.19.1] — 2026-07-14
+
+### Fixed
+- **Truncated sha256 hash silently broke every hash comparison
+  (clew-fix-truncated-hash-comparison).** `hash_file()` / `combine_hashes()`
+  (and the archive-hashing equivalents in `_chain/_archive_lookup.py`)
+  truncated the sha256 hex digest to the first 32 of 64 characters at WRITE
+  time, so the natural external check `get_file_hashes(session)[path] ==
+  hashlib.sha256(open(path, "rb").read()).hexdigest()` was ALWAYS False —
+  a confident-wrong-answer bug reporting "this session did not produce
+  this file" when it did. Found by paper-scitex-clew dogfooding: their own
+  registrar concluded 49 claims had zero session lineage when the lineage
+  was there the whole time. Fix: return the full 64-char digest everywhere
+  hashes are computed; every existing DB-record comparison site already
+  compared prefix-tolerantly (or was made to, see below) for backward
+  compatibility with pre-existing truncated rows.
+- **`_chain/_freshness.py`'s skip-rerun check used exact hash equality**,
+  which would have silently regressed to "always stale" for any
+  pre-existing DB once truncation was removed (new full hashes never
+  equal old truncated ones under `==`). Added a prefix-tolerant
+  `_hashes_match` helper, matching the convention already used in
+  `_sources/_gate.py`.
+- **Inconsistent path normalization silently broke relative-path lookups
+  (clew-fix-path-normalization-find-session).** `find_session_by_file()` /
+  `find_sessions_by_files()` did not normalize the query path the way
+  `verify_chain()` normalizes its own `target` argument
+  (`str(Path(x).resolve())`), so a RELATIVE query path silently matched
+  NOTHING even though the equivalent absolute path matched fine — same
+  file, same DB, two different answers, no error. Fix: both functions now
+  resolve the query path the same way `verify_chain` does before querying;
+  `find_sessions_by_files` returns results keyed by the caller's original
+  (un-resolved) spelling so existing callers see no shape change.
+
+## [0.19.0] — 2026-07-14
+
+### Added
+- **`is_claim_grounded(claim_location, *, workdir=".")` — per-claim grounding
+  verdict for a live inline editor.** Thin public wrapper around the pure
+  `is_grounded` chain-walk gate, returning a richer `GroundingVerdict`
+  instead of a bare bool: `{"grounded", "claim_id", "matched_source",
+  "reason", "fix_hint"}`. `reason` distinguishes "nothing registered yet"
+  (`no_manifest`, amber, fine) from "a manifest exists and this claim fails
+  it" (`no_chain_match` / `manifest_untrusted`, red) — collapsing those into
+  the same `False` would misreport a claim's actual provenance status.
+  `grounded` is guaranteed to never disagree with `is_grounded` /
+  `verify_all_claims` on the same claim (including the defensive-True
+  no-valid-anchors edge case). Adds `claim_not_found` as a new reason for an
+  unresolvable `claim_location`. Owns opening the sources manifest + DB
+  internally via `workdir` — callers never construct a `SourcesManifest` or
+  DB handle. New CLI `clew grounding <claim-location> [--workdir] [--json]`
+  and MCP tool `clew_is_claim_grounded`. The reason set is exported as the
+  stable constant `scitex_clew.GROUNDING_REASONS`. Implements
+  scitex-writer's ADR 0001 §4 "Inline engine" (scitex-todo card
+  `clew-per-claim-grounding-api`).
+
+## [0.18.0] — 2026-07-14
+
+### Added
+- **Manuscript-hints producer: `export_manuscript_hints()` (scitex-todo
+  card `clew-feat-manuscript-findings-producer`).** A NEW, SEPARATE export
+  from `export_manuscript_claims()` — clew is the single producer of
+  citation + claim + source-gate HINTS (prose-level "things wrong with
+  this manuscript") into scitex-writer's `manuscript-hints/1` feed at
+  `.scitex/writer/hints.json` (confirmed by contract with scitex-writer,
+  2026-07-14). Each hint: `{id, kind, severity, message,
+  location: {file, line, page}, claim_id, source: "scitex-clew"}`, `id`
+  deterministic (`hint_<sha256(claim_id:kind)[:12]>` — same precedent as
+  `_generate_claim_id`). Reads clew's claim ledger (full-8 resolved status)
+  and clew's INGESTED citation ledger (populated from scholar's
+  `citation_status`-schema artifact via the existing io-observer seam) —
+  never scholar's raw artifact directly. Severity: claim
+  mismatch/missing→error, suspect/registered→warning,
+  unsourced/exception→advice, verified/frozen→silent (omitted); citation
+  stub/unverified→warning, unknown→advice, verified→silent, any
+  unrecognized future status→advice (forward-compatible with scholar's
+  not-yet-shipped `semantic_mismatch`). MERGE-BY-SOURCE: rewrites only
+  `source == "scitex-clew"` entries in `hints.json`, never touches entries
+  from other producers (e.g. figrecipe, writer's own hints). New CLI verb
+  `clew export-hints` and MCP tool `clew_export_manuscript_hints`.
 
 ## [0.17.0] — 2026-07-06
 

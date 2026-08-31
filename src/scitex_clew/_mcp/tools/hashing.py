@@ -22,7 +22,7 @@ def register_tools(mcp: FastMCP) -> None:
         algorithm: str = "sha256",
         chunk_size: int = 8192,
     ) -> str:
-        """Compute the SHA-256 (first 32 chars) of a file.
+        """Compute the full SHA-256 hex digest of a file.
 
         Mirrors ``scitex_clew.hash_file``.
         """

@@ -45,7 +45,11 @@ from scitex_dev.store import ANY_REVISION, Store, StoreTarget, WriterPolicy, hos
 from ._chain import ChainMixin
 from ._file_hashes import FileHashMixin
 #: Re-exported: several modules import these from ``._db._core``.
-from ._paths import _default_claims_json_path, _find_project_root  # noqa: F401
+from ._paths import (  # noqa: F401
+    _default_claims_json_path,
+    _default_hints_json_path,
+    _find_project_root,
+)
 from ._scope import ProjectScopedStore
 from ._queries import VerificationQueryMixin
 from ._schema import (

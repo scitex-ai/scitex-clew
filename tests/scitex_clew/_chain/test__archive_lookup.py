@@ -38,8 +38,10 @@ _FILES = {
 }
 
 
-def _sha32(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()[:32]
+def _sha_full(data: bytes) -> str:
+    """Full sha256 hex digest — matches what hash_file/hash_archived_file
+    now return (see clew-fix-truncated-hash-comparison)."""
+    return hashlib.sha256(data).hexdigest()
 
 
 def _write_session_archive(src_dir: Path) -> Path:
@@ -149,7 +151,7 @@ def test_hash_archived_file_matches_original_hash(archived_session):
     # Act
     got = hash_archived_file(recorded)
     # Assert
-    assert got == _sha32(_FILES["result.csv"])
+    assert got == _sha_full(_FILES["result.csv"])
 
 
 def test_hash_archived_file_absent_returns_none(tmp_path):
@@ -168,7 +170,7 @@ def test_verify_file_archived_file_with_correct_hash_is_verified(archived_sessio
     # Arrange
     recorded = archived_session / "result.csv"
     # Act
-    fv = verify_file(recorded, _sha32(_FILES["result.csv"]), role="output")
+    fv = verify_file(recorded, _sha_full(_FILES["result.csv"]), role="output")
     # Assert
     assert fv.status == VerificationStatus.VERIFIED
 
@@ -196,7 +198,7 @@ def test_verify_file_loose_file_present_is_verified(tmp_path):
     p = tmp_path / "live.csv"
     p.write_bytes(b"hello")
     # Act
-    fv = verify_file(p, _sha32(b"hello"), role="output")
+    fv = verify_file(p, _sha_full(b"hello"), role="output")
     # Assert
     assert fv.status == VerificationStatus.VERIFIED
 
@@ -210,7 +212,7 @@ def test_hash_directory_on_targz_returns_stripped_relpaths(archived_session):
     # Act
     result = hash_directory(archive)
     # Assert
-    assert result["sub/signal.npy"] == _sha32(_FILES["sub/signal.npy"])
+    assert result["sub/signal.npy"] == _sha_full(_FILES["sub/signal.npy"])
 
 
 def test_hash_directory_on_removed_dir_uses_sibling_archive(archived_session):
@@ -219,7 +221,7 @@ def test_hash_directory_on_removed_dir_uses_sibling_archive(archived_session):
     # Act
     result = hash_directory(removed_dir)
     # Assert
-    assert result["result.csv"] == _sha32(_FILES["result.csv"])
+    assert result["result.csv"] == _sha_full(_FILES["result.csv"])
 
 
 def test_hash_directory_missing_dir_without_archive_raises(tmp_path):
@@ -238,7 +240,7 @@ def test_hash_directory_loose_dir_hashes_members(loose_session_dir):
     # Act
     result = hash_directory(d)
     # Assert
-    assert result["result.csv"] == _sha32(_FILES["result.csv"])
+    assert result["result.csv"] == _sha_full(_FILES["result.csv"])
 
 
 # ── resolve_directory_archive ──

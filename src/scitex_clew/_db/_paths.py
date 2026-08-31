@@ -7,16 +7,20 @@ clew no longer has a database FILE. Its four stores resolve through
 there is nothing here that resolves "where the database lives"; that
 question has exactly one answer and the primitive owns it.
 
-What remains is the project-root walk, which is still needed for the one
-thing clew genuinely writes to disk: the regenerable ``claims.json``
-export artifact.
+What remains is the project-root walk, which is still needed for the two
+things clew genuinely writes to disk: the regenerable ``claims.json``
+export artifact, and the manuscript-hints feed clew merges into.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-__all__ = ["_default_claims_json_path", "_find_project_root"]
+__all__ = [
+    "_default_claims_json_path",
+    "_default_hints_json_path",
+    "_find_project_root",
+]
 
 
 def _find_project_root() -> Path:
@@ -41,6 +45,21 @@ def _default_claims_json_path(project_root: Path) -> Path:
     to it.
     """
     return project_root / ".scitex" / "clew" / "runtime" / "claims.json"
+
+
+def _default_hints_json_path(project_root: Path) -> Path:
+    """Resolve the default canonical manuscript-hints artifact path.
+
+    Returns ``<project_root>/.scitex/writer/hints.json`` — this is
+    scitex-writer's namespace (NOT ``.scitex/clew/``), because the artifact
+    is writer's manuscript-hints FEED (schema ``manuscript-hints/1``); clew
+    is one of several producers that MERGE-BY-SOURCE into it. See
+    :func:`scitex_clew._claim._hints.export_manuscript_hints`.
+
+    The resolved path is **just the path** — this function does not write or
+    read the file.
+    """
+    return project_root / ".scitex" / "writer" / "hints.json"
 
 
 # EOF

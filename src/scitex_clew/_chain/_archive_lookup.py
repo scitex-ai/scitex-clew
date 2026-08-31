@@ -164,7 +164,7 @@ def hash_archive_members(
             with extracted:
                 while chunk := extracted.read(chunk_size):
                     hasher.update(chunk)
-            out[rel] = hasher.hexdigest()[:32]
+            out[rel] = hasher.hexdigest()
     return out
 
 
@@ -186,9 +186,9 @@ def hash_archived_file(
 ) -> Optional[str]:
     """Hash a recorded file by reading it from an ancestor ``.tar.gz`` member.
 
-    Streams the member (no full extraction) and returns the same truncated
-    digest shape as :func:`scitex_clew._hash.hash_file` (first 32 hex chars),
-    so a value produced here is directly comparable to a stored hash.
+    Streams the member (no full extraction) and returns the same full-digest
+    shape as :func:`scitex_clew._hash.hash_file`, so a value produced here is
+    directly comparable to a stored hash.
 
     Returns
     -------
@@ -237,7 +237,7 @@ def _hash_member(
             with extracted:
                 while chunk := extracted.read(chunk_size):
                     hasher.update(chunk)
-            return hasher.hexdigest()[:32]
+            return hasher.hexdigest()
     except (tarfile.TarError, OSError):
         return None
 
