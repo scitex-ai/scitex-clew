@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-clew"
-version = "0.20.0"
+version = "0.20.1"
 description = "Verifiable knowledge graph for scientific experiments"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -33,7 +33,21 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "scitex-dev>=0.17.8",
+    # Every store resolves through `scitex_dev.store.host_store()`, so the
+    # floor must be a scitex-dev that actually HAS a working store. 0.17.8
+    # does not, and the old floor let a stale consumer install cleanly and
+    # then fail at use — scitex-python pinned `scitex-dev==0.28.0`, resolved
+    # happily, and got `ModuleNotFoundError: No module named
+    # 'scitex_dev.store'` at import.
+    #
+    # 0.49.2 is measured, not guessed, and importing is NOT the test: 0.43.1
+    # is the first release with the module and `host_store`, yet a real
+    # write-then-read raises `TypeError: tuple indices must be integers or
+    # slices, not str` inside `Store.rows()`. Running a real record+read
+    # against PostgreSQL with the published clew wheel: 0.43.1 FAIL, 0.46.0
+    # FAIL, 0.48.0 FAIL, 0.49.0 FAIL, 0.49.2 OK, 0.49.3 OK, 0.50.0 OK,
+    # 0.57.0 OK.
+    "scitex-dev>=0.49.2",
     "click>=8.1",
 ]
 [project.optional-dependencies]
@@ -50,7 +64,9 @@ dev = [
     "pytest-cov>=4.0.0",
     # pytest-timeout — CI runs pytest with --timeout=120 (test.yml).
     "pytest-timeout>=2.0",
-    "scitex-dev>=0.11.7",
+    # Same floor as the runtime dependency above — a dev install that cannot
+    # open a store cannot run the suite either.
+    "scitex-dev>=0.49.2",
     "cryptography>=41.0",
     # clew's stores are Postgres-backed and its tests run against a REAL
     # database (tests/conftest.py gives each test its own schema). Declared
