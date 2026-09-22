@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any, Dict, List
 
 from .._chain import VerificationStatus, verify_run
@@ -30,27 +31,31 @@ def print_verification_summary(
     mismatched = 0
     missing = 0
 
-    print(f"\n{Colors.BOLD}Verification Summary{Colors.RESET}")
-    print("=" * 50)
+    # PS-220: library code must not use print() — this summary is the
+    # function's stdout data contract (tested via capsys), so it stays on
+    # stdout through sys.stdout.write (the serializer-free data-transport
+    # surface the auditor recognizes), byte-identical to before.
+    sys.stdout.write(f"\n{Colors.BOLD}Verification Summary{Colors.RESET}\n")
+    sys.stdout.write("=" * 50 + "\n")
 
     for run in runs:
         v = verify_run(run["session_id"])
         if v.status == VerificationStatus.VERIFIED:
             verified += 1
             if show_all:
-                print(format_run_detailed(v))
+                sys.stdout.write(format_run_detailed(v) + "\n")
         elif v.status == VerificationStatus.MISMATCH:
             mismatched += 1
-            print(format_run_detailed(v))
+            sys.stdout.write(format_run_detailed(v) + "\n")
         else:
             missing += 1
-            print(format_run_detailed(v))
+            sys.stdout.write(format_run_detailed(v) + "\n")
 
-    print()
-    print(f"{Colors.GREEN}●{Colors.RESET} Verified:  {verified}")
-    print(f"{Colors.RED}●{Colors.RESET} Mismatch:  {mismatched}")
-    print(f"{Colors.YELLOW}○{Colors.RESET} Missing:   {missing}")
-    print()
+    sys.stdout.write("\n")
+    sys.stdout.write(f"{Colors.GREEN}●{Colors.RESET} Verified:  {verified}\n")
+    sys.stdout.write(f"{Colors.RED}●{Colors.RESET} Mismatch:  {mismatched}\n")
+    sys.stdout.write(f"{Colors.YELLOW}○{Colors.RESET} Missing:   {missing}\n")
+    sys.stdout.write("\n")
 
 
 # EOF

@@ -21,6 +21,7 @@
   <a href="https://pypi.org/project/scitex-clew/"><img src="https://img.shields.io/pypi/v/scitex-clew?label=pypi" alt="pypi"></a>
   <a href="https://pypi.org/project/scitex-clew/"><img src="https://img.shields.io/pypi/pyversions/scitex-clew?label=python" alt="python"></a>
   <a href="https://github.com/ywatanabe1989/scitex-clew/actions/workflows/rtd-sphinx-build-on-ubuntu-latest.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-clew/rtd-sphinx-build-on-ubuntu-latest.yml?branch=develop&label=docs" alt="docs"></a>
+  <a href="https://scitex-clew.readthedocs.io/en/latest/"><img src="https://img.shields.io/readthedocs/scitex-clew?label=docs" alt="Read the Docs"></a>
 </p>
 <p align="center">
   <a href="https://github.com/ywatanabe1989/scitex-clew/actions/workflows/pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-clew/pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml?branch=develop&label=tests" alt="tests"></a>
@@ -30,26 +31,15 @@
 
 ---
 
-## Problem
+## Problem and Solution
 
-Scientific publications are growing exponentially — accelerated by LLM-assisted writing — yet peer review remains a manual bottleneck. 70% of researchers report failed replication attempts, and only 11-36% of high-profile findings are successfully reproduced. Existing tools (pre-registration, containerization, workflow managers) address whether research *could be* reproduced, but not whether it *has been*.
+| # | Problem | Solution |
+|---|---------|----------|
+| 1 | **Replication crisis** — 70% report failed replications; 11–36% of high-profile findings reproduce, while LLM-assisted writing outpaces manual peer review. | **Verifiable knowledge graph** — Clew records every research artifact into a **hash-linked DAG** humans and AI agents can inspect and verify. |
+| 2 | ***Could be* vs *has been* reproduced** — pre-registration and containers address whether research *could be* reproduced, not whether it *has been*. | **Verification over recording** — verify hashes, trace provenance, re-execute in a sandbox, link claims to evidence. |
+| 3 | **Research logic is opaque** — from raw data through analysis to manuscript claims, the structural skeleton of a project is hard to navigate or review. | **Navigable comprehension** — **visualize** the project as a DAG and walk it backward from claims to sources, verifying every hash along the way. |
 
-## Solution
-
-SciTeX Clew records every artifact produced during research — code, data, figures, statistics — into a **hash-linked DAG (directed acyclic graph)**. This creates a **verifiable knowledge graph** of scientific experiments, which can be explored by humans or AI agents.
-
-Named after the thread Ariadne gave Theseus to trace his path through the labyrinth, Clew serves two purposes:
-
-1. **Reproducibility verification** — confirm that outputs remain unchanged and that every step in the pipeline is intact.
-2. **Research logic comprehension** — visualize and navigate the structural skeleton of a research project, from raw data through analysis to manuscript claims.
-
-The DAG is a structured, machine-readable representation of an entire research project — enabling both human reviewers and AI agents to inspect, verify, and understand the logic programmatically. It lets you:
-
-- **Verify** that outputs remain consistent with recorded hashes
-- **Trace** provenance chains from any file back to its source
-- **Visualize** the structural logic of a research project as a navigable graph
-- **Re-execute** scripts in a sandbox to confirm reproducibility
-- **Link** manuscript claims to the computational sessions that produced them
+Named after the thread Ariadne gave Theseus to trace his path through the labyrinth, Clew serves reproducibility verification (confirm outputs are unchanged and every pipeline step is intact) and research-logic comprehension (navigate the structural skeleton from raw data to manuscript claims).
 
 ### Case Study: The Broken Twin
 
@@ -117,14 +107,65 @@ grouper:
 
 The same JSON/dict schema works across Python, CLI (`--grouper`), MCP (`{"grouper": {...}}`), and the YAML config file. See the [grouping skill](src/scitex_clew/_skills/scitex-clew/grouping.md).
 
+## Quickstart
+
+```python
+import scitex_clew as clew
+
+# Git-status-like overview
+clew.status()
+
+# Verify a run (hash check)
+result = clew.run("session_20250301_143022")
+
+# Trace a file's provenance chain
+chain = clew.chain("output/figure.png")
+
+# Verify the full DAG
+dag_result = clew.dag(["output/figure.png"])
+
+# Re-execute in sandbox and compare
+rerun_result = clew.rerun("session_20250301_143022")
+```
+
+<p align="center">
+  <img src="src/scitex_clew/dag.png" alt="DAG verification example" width="80%"/>
+</p>
+<p align="center"><sub><b>Figure 1.</b> Example DAG visualization. Green nodes indicate verified sessions; red nodes indicate hash mismatches. Clew traces the dependency graph backward from target files to raw data sources.</sub></p>
+
+## Demo
+
+<p align="center">
+  <img src="src/scitex_clew/dag.png" alt="DAG verification example" width="80%"/>
+</p>
+<p align="center"><sub><b>Figure 2.</b> Live DAG verification. Green nodes are sessions whose recorded hashes still match disk; red nodes flag a drift. <code>clew dag --strict</code> walks claims back to raw data and prints the first failure.</sub></p>
+
 ## Installation
+
+```bash
+uv pip install "scitex-clew[all]"
+```
 
 Requires Python >= 3.10. Provenance is recorded in the per-host PostgreSQL
 store, reached through `scitex_dev.store.host_store()`.
 
+<details>
+<summary><b>Per-module extras</b></summary>
+
+<br>
+
+| Extra | Pulls in |
+|---|---|
+| `all` | click, fastmcp (MCP server), matplotlib (DAG rendering), cryptography (signing) — recommended |
+| `dev` | pytest, pytest-cov, pytest-timeout, psycopg (PostgreSQL driver) + every optional dep so the test suite runs |
+| `docs` | Sphinx + RTD theme + myst-parser (docs build only) |
+
 ```bash
-pip install scitex-clew
+uv pip install "scitex-clew[all]"   # batteries-included (recommended)
+uv pip install -e ".[dev]"          # editable install for contributors
 ```
+
+</details>
 
 ## Architecture
 
@@ -145,6 +186,8 @@ graph LR
     class O out
     class C cl
 ```
+
+<p align="center"><sub><b>Figure 3.</b> Source → Input → Processing → Output → Claim flow. Every edge is a hash-linked provenance step recorded in the DAG store.</sub></p>
 
 ```
 scitex-clew/
@@ -183,32 +226,6 @@ scitex-clew/
 │   └── _skills/scitex-clew/     # Workflow skill pages
 └── tests/
 ```
-
-## Quickstart
-
-```python
-import scitex_clew as clew
-
-# Git-status-like overview
-clew.status()
-
-# Verify a run (hash check)
-result = clew.run("session_20250301_143022")
-
-# Trace a file's provenance chain
-chain = clew.chain("output/figure.png")
-
-# Verify the full DAG
-dag_result = clew.dag(["output/figure.png"])
-
-# Re-execute in sandbox and compare
-rerun_result = clew.rerun("session_20250301_143022")
-```
-
-<p align="center">
-  <img src="src/scitex_clew/dag.png" alt="DAG verification example" width="80%"/>
-</p>
-<p align="center"><sub><b>Figure 1.</b> Example DAG visualization. Green nodes indicate verified sessions; red nodes indicate hash mismatches. Clew traces the dependency graph backward from target files to raw data sources.</sub></p>
 
 ## Four Interfaces
 
@@ -324,13 +341,6 @@ scitex-dev skills export --package scitex-clew  # Export to Claude Code
 | `common-workflows` | Claims, DAG patterns, stamps, reproducibility |
 
 </details>
-
-## Demo
-
-<p align="center">
-  <img src="src/scitex_clew/dag.png" alt="DAG verification example" width="80%"/>
-</p>
-<p align="center"><sub><b>Figure 2.</b> Live DAG verification. Green nodes are sessions whose recorded hashes still match disk; red nodes flag a drift. <code>clew dag --strict</code> walks claims back to raw data and prints the first failure.</sub></p>
 
 ## Part of SciTeX
 

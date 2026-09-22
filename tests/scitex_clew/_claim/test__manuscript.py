@@ -276,4 +276,21 @@ class TestUnifiedAttestationBadge:
         assert counts["total"] == 1
 
 
+def test_self_verify_lists_registered_claim(tmp_path):
+    """PS-CLEW-001 self-verify: a claim registered here is listed back."""
+    # Arrange
+    paper = tmp_path / "paper.tex"
+    paper.write_text("avg=2.0\n")
+    clew.add_claim(
+        file_path=str(paper),
+        claim_type="value",
+        line_number=1,
+        claim_value="avg=2.0",
+    )
+    # Act
+    claims = clew.list_claims()
+    # Assert
+    assert len(claims) == 1
+
+
 # EOF

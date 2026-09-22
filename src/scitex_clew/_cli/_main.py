@@ -280,10 +280,13 @@ from scitex_dev.cli import docs_click_group, skills_click_group
 main.add_command(docs_click_group(package="scitex-clew"))
 main.add_command(skills_click_group(package="scitex-clew"))
 
-# §1a: install-shell-completion + print-shell-completion (canonical leaves)
-from scitex_dev._cli._completion import attach_shell_completion
+# §1a: install-shell-completion + print-shell-completion (canonical leaves).
+# Guarded peer-private reach lives in ._ports (PS-183): the CLI boots
+# without completion if scitex-dev ever moves it.
+from ._ports import attach_shell_completion
 
-attach_shell_completion(main, prog_name="scitex-clew")
+if attach_shell_completion is not None:
+    attach_shell_completion(main, prog_name="scitex-clew")
 
 
 # audit §4 — inject version into root --help

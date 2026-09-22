@@ -151,3 +151,18 @@ class TestVerificationResult:
         result = clew.verify_all_claims()
         # Assert
         assert result.ok is True and result.verified == 1
+
+    def test_self_verify_lists_registered_claim(self, tmp_path):
+        # Arrange
+        paper = tmp_path / "paper.tex"
+        paper.write_text("avg=2.0\n")
+        clew.add_claim(
+            file_path=str(paper),
+            claim_type="value",
+            line_number=1,
+            claim_value="avg=2.0",
+        )
+        # Act
+        claims = clew.list_claims()
+        # Assert
+        assert len(claims) == 1
