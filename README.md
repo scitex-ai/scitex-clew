@@ -328,6 +328,13 @@ scitex-dev skills export --package scitex-clew  # Export to Claude Code
 ## Demo
 
 <p align="center">
+  <a href="https://scitex.ai/demos/watch/clew-concept-clip/">
+    <img src="https://scitex.ai/static/public_app/clew/short-clip-poster.jpg" alt="Clew concept clip — a thread of evidence (click to watch)" width="80%"/>
+  </a>
+</p>
+<p align="center"><sub>▶️ <b>Watch:</b> <a href="https://scitex.ai/demos/watch/clew-concept-clip/">Clew — a thread of evidence (concept clip, narrated)</a> — every claim linked back to its source.</sub></p>
+
+<p align="center">
   <img src="src/scitex_clew/dag.png" alt="DAG verification example" width="80%"/>
 </p>
 <p align="center"><sub><b>Figure 2.</b> Live DAG verification. Green nodes are sessions whose recorded hashes still match disk; red nodes flag a drift. <code>clew dag --strict</code> walks claims back to raw data and prints the first failure.</sub></p>
