@@ -36,4 +36,11 @@ Check standalone and prefixed mounts, templates, wheel assets, desktop and
 mobile interactions, project identity, cross-user/readonly/CSRF/path denial,
 unavailable states and concurrency. Then separately validate the actual
 Cloud PostgreSQL version/pool, filesystem sandbox and scientific workflow.
-The companion SDK/App/scitex-dev changes are currently local and unpublished.
+The canonical App/UI owner is `scitex-sdk` (`scitex_sdk.app` and
+`scitex_sdk.ui`), with resource prefixes `scitex_sdk/app` and `scitex_sdk/ui`.
+Keep persisted compatibility labels and the `scitex_app_content` block.
+SDK 0.3.0 remains unpublished; install its reviewed wheel or checkout until
+publication. Tenant `TenantScope`/`inspect_tenant_store` APIs are a separate
+unpublished scitex-dev prerequisite. Published Dev 0.61.0 does not supply
+them, so private provenance must remain unavailable (503) there. Shell and
+project preview do not require tenant provisioning.

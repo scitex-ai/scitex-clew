@@ -18,6 +18,15 @@ no global-store or SQLite fallback is used. Requested/recorded file paths
 must stay within the selected project. GET requests never rerun scripts.
 
 Project previews and example scaffolding consume SDK read/write capabilities.
+Preview reads open the SDK-normalized canonical path through directory
+descriptors and refuse symlink components during the open. Legitimate aliases
+such as `paper -> .scitex/writer` remain readable when their normalized target
+is inside the authorized project. Only regular files are accepted. UTF-8 text
+keeps its 4 MiB limit; image responses retain the existing streaming behavior
+and formats. This reader requires POSIX descriptor-relative opens and Linux
+no-follow flags; unsupported platforms return unavailable rather than falling
+back to pathname reads. Provenance worker reads still need separate integration
+with a rooted reader; the worker's containment checks are not an OS sandbox.
 Session writes require CSRF. Public registry proofs remain anonymized; badges
 claim registration only. A timestamp does not prove successful reproduction
 or scientific correctness.
@@ -33,6 +42,10 @@ Build the assets from `frontend/package.json` and package every JS chunk.
 Frontend tests cover root/custom mounts, project identity and safe rendering.
 The Hub integration suite uses synthetic projects in disposable PostgreSQL,
 including real browser checks for standalone and plugin modes. This local
-candidate needs unpublished SDK 0.3.0, App 0.26.2 and scitex-dev tenant APIs.
+candidate uses the physical `scitex_sdk.app` and `scitex_sdk.ui` packages in
+the unpublished SDK 0.3.0 wheel. Its tenant APIs (`TenantScope` and
+`inspect_tenant_store`) are a separate unpublished scitex-dev prerequisite;
+published Dev 0.61.0 does not supply them. Shell and project preview work
+without that prerequisite; private provenance APIs return unavailable (503).
 Full deployed middleware, PostgreSQL 18/PgBouncer, filesystem isolation,
 shared-project access and the paper's scientific chain remain separate gates.

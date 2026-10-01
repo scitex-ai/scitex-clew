@@ -1,4 +1,4 @@
-{% extends "scitex_app/app_shell.html" %}
+{% extends "scitex_sdk/app/app_shell.html" %}
 
 {% load static scitex_project_picker %}
 
@@ -7,7 +7,7 @@
     {% if current_project %}- {{ current_project.name }}{% endif %}
 {% endblock %}
 {% block extra_css %}
-    <!-- Shell CSS: now loaded globally via scitex-ui Vite imports -->
+    <!-- Shared shell assets are owned by scitex_sdk.ui -->
     <!-- Clew specific styles -->
     <link rel="stylesheet" href="{% static 'clew_app/css/clew.css' %}" />
 {% endblock %}

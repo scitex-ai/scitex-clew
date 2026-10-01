@@ -116,6 +116,8 @@ data/*
 **/*.gif
 **/*.bmp
 **/*.svg
+# Leaf GUI icons are package assets, not generated scientific outputs.
+!src/scitex_clew/_django/static/**/*.svg
 **/*.psd
 **/*.tif
 **/*.raw

@@ -177,8 +177,8 @@ def project_file(request):
         if not value:
             raise ClewRequestError("Missing required parameter: path")
         path = project.path(value)
-        if not path.is_file():
-            raise ClewRequestError("File not found", 404)
+        from ..services.project_files import open_project_file, read_project_text
+
         if request.GET.get("raw") == "true":
             kinds = {
                 ".png": "image/png",
@@ -186,13 +186,18 @@ def project_file(request):
                 ".jpeg": "image/jpeg",
                 ".webp": "image/webp",
             }
-            kind = kinds.get(path.suffix.lower())
-            if not kind:
-                raise ClewRequestError("Unsupported image format")
-            return FileResponse(path.open("rb"), content_type=kind)
-        if path.stat().st_size > 4 * 1024 * 1024:
-            raise ClewRequestError("File is too large to preview", 413)
-        return JsonResponse({"success": True, "content": path.read_text("utf-8")})
+            image = open_project_file(project.root, path)
+            try:
+                kind = kinds.get(path.suffix.lower())
+                if not kind:
+                    raise ClewRequestError("Unsupported image format")
+                return FileResponse(image, content_type=kind)
+            except BaseException:
+                image.close()
+                raise
+        return JsonResponse(
+            {"success": True, "content": read_project_text(project.root, path)}
+        )
     except ClewRequestError as exc:
         return JsonResponse({"success": False, "error": str(exc)}, status=exc.status)
     except ClewUnavailable as exc:

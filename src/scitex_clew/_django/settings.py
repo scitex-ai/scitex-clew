@@ -20,8 +20,8 @@ INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.staticfiles",
-    "scitex_app",
-    "scitex_ui",
+    "scitex_sdk.app",
+    "scitex_sdk.ui",
     "scitex_clew._django.apps.ClewAppConfig",
 ]
 MIDDLEWARE = ["django.middleware.csrf.CsrfViewMiddleware"]
