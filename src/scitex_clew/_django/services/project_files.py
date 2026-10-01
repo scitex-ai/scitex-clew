@@ -13,7 +13,12 @@ import stat
 from pathlib import Path
 from typing import BinaryIO
 
-from scitex_sdk.host import AccessError, CapabilityUnavailable
+try:
+    from scitex_sdk.host import AccessError, CapabilityUnavailable
+except ModuleNotFoundError as exc:
+    from scitex_clew._django._optional import gui_dependency_error
+
+    gui_dependency_error(exc)
 
 MAX_TEXT_BYTES = 4 * 1024 * 1024
 

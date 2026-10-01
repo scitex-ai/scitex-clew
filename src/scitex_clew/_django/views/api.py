@@ -4,10 +4,15 @@ from __future__ import annotations
 
 from functools import wraps
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_http_methods
-from scitex_logging import getLogger
+try:
+    from django.http import JsonResponse
+    from django.views.decorators.csrf import csrf_protect
+    from django.views.decorators.http import require_http_methods
+    from scitex_logging import getLogger
+except ModuleNotFoundError as exc:
+    from scitex_clew._django._optional import gui_dependency_error
+
+    gui_dependency_error(exc)
 
 from ..services.project_store import (
     ClewRequestError,
@@ -144,7 +149,12 @@ def list_claims_view(request, context):
 @require_http_methods(["POST"])
 def add_examples(request):
     """Only an editor may scaffold examples in the authorized owner's root."""
-    from scitex_sdk.host import project_access
+    try:
+        from scitex_sdk.host import project_access
+    except ModuleNotFoundError as exc:
+        from scitex_clew._django._optional import gui_dependency_error
+
+        gui_dependency_error(exc)
 
     try:
         project = project_access(request, write=True)
@@ -168,8 +178,13 @@ def add_examples(request):
 @require_http_methods(["GET"])
 def project_file(request):
     """Project file preview through the SDK's authorized storage capability."""
-    from django.http import FileResponse
-    from scitex_sdk.host import project_access
+    try:
+        from django.http import FileResponse
+        from scitex_sdk.host import project_access
+    except ModuleNotFoundError as exc:
+        from scitex_clew._django._optional import gui_dependency_error
+
+        gui_dependency_error(exc)
 
     try:
         project = project_access(request)

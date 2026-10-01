@@ -4,8 +4,13 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from django.conf import settings
-from django.db import models
+try:
+    from django.conf import settings
+    from django.db import models
+except ModuleNotFoundError as exc:
+    from scitex_clew._django._optional import gui_dependency_error
+
+    gui_dependency_error(exc)
 
 
 class HashRegistration(models.Model):

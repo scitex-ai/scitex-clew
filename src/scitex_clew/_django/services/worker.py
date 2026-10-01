@@ -33,7 +33,12 @@ def _json_default(value):
 
 
 def execute(payload: dict):
-    import psycopg
+    try:
+        import psycopg
+    except ModuleNotFoundError as exc:
+        from scitex_clew._django._optional import gui_dependency_error
+
+        gui_dependency_error(exc)
     from scitex_dev.store import TenantScope, inspect_tenant_store
 
     os.environ["SCITEX_STORE_DSN"] = payload["dsn"]

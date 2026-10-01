@@ -110,13 +110,10 @@ jobs:
       - name: Create uv venv on this matrix Python
         run: uv venv --python ${{ matrix.python-version }} .venv
       - name: Install dependencies
-        # Fallback chain: prefer [all,dev] so optional-dep code paths
-        # get exercised. Falls back to [dev] then plain editable so a
-        # packaging hiccup doesn't strand CI.
+        # Every package-owned feature must resolve before the suite runs.
+        # Do not fall back to an incomplete environment on resolver failure.
         run: |
-          uv pip install --python .venv/bin/python -e ".[all,dev]" \
-            || uv pip install --python .venv/bin/python -e ".[dev]" \
-            || uv pip install --python .venv/bin/python -e .
+          uv pip install --python .venv/bin/python -e ".[all,dev]"
       - name: Confirm the driver is installed
         # conftest SKIPS when psycopg is missing (a property of the
         # interpreter, not of the code). In CI a skip here would hide the

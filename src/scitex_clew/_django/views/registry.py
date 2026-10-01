@@ -5,12 +5,17 @@ from __future__ import annotations
 import json
 import re
 
-from django.conf import settings
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt, csrf_protect
-from django.views.decorators.http import require_http_methods
-from scitex_logging import getLogger
-from scitex_sdk.host import authenticated_user
+try:
+    from django.conf import settings
+    from django.http import JsonResponse
+    from django.views.decorators.csrf import csrf_exempt, csrf_protect
+    from django.views.decorators.http import require_http_methods
+    from scitex_logging import getLogger
+    from scitex_sdk.host import authenticated_user
+except ModuleNotFoundError as exc:
+    from scitex_clew._django._optional import gui_dependency_error
+
+    gui_dependency_error(exc)
 
 from ..models import HashRegistration
 
@@ -199,7 +204,12 @@ def badge(request, hash_value):
     A timestamp proves registration only. Query parameters cannot assert
     successful hash verification or reproducibility.
     """
-    from django.http import HttpResponse
+    try:
+        from django.http import HttpResponse
+    except ModuleNotFoundError as exc:
+        from scitex_clew._django._optional import gui_dependency_error
+
+        gui_dependency_error(exc)
 
     if not settings.DATABASES:
         return HttpResponse("Hash registry is not configured", status=503)

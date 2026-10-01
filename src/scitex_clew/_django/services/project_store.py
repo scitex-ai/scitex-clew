@@ -8,17 +8,22 @@ import subprocess
 import sys
 from pathlib import Path
 
-from scitex_sdk.host import (
-    AccessError as ClewRequestError,
-)
-from scitex_sdk.host import (
-    CapabilityUnavailable as ClewUnavailable,
-)
-from scitex_sdk.host import (
-    ProjectAccess,
-    project_access,
-    store_access,
-)
+try:
+    from scitex_sdk.host import (
+        AccessError as ClewRequestError,
+    )
+    from scitex_sdk.host import (
+        CapabilityUnavailable as ClewUnavailable,
+    )
+    from scitex_sdk.host import (
+        ProjectAccess,
+        project_access,
+        store_access,
+    )
+except ModuleNotFoundError as exc:
+    from scitex_clew._django._optional import gui_dependency_error
+
+    gui_dependency_error(exc)
 
 
 def project_context(request) -> dict:

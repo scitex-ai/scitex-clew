@@ -92,9 +92,7 @@ jobs:
         run: uv venv --python ${{ matrix.python-version }} .venv
       - name: Install dependencies
         run: |
-          uv pip install --python .venv/bin/python -e ".[all,dev]" \
-            || uv pip install --python .venv/bin/python -e ".[dev]" \
-            || uv pip install --python .venv/bin/python -e .
+          uv pip install --python .venv/bin/python -e ".[all,dev]"
       - name: Confirm the driver is installed
         run: .venv/bin/python -c "import psycopg; print('psycopg', psycopg.__version__)"
       - name: Run tests against the service database

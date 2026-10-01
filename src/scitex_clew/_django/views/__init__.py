@@ -1,9 +1,14 @@
 """Clew UI and workspace context are owned by the leaf package."""
 
-from django.shortcuts import render
-from scitex_sdk.app import embed
-from scitex_sdk.host import AccessError, CapabilityUnavailable, project_access
-from scitex_sdk.ui import branding, mount
+try:
+    from django.shortcuts import render
+    from scitex_sdk.app import embed
+    from scitex_sdk.host import AccessError, CapabilityUnavailable, project_access
+    from scitex_sdk.ui import branding, mount
+except ModuleNotFoundError as exc:
+    from scitex_clew._django._optional import gui_dependency_error
+
+    gui_dependency_error(exc)
 
 from . import api, registry
 

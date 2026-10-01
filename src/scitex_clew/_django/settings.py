@@ -10,7 +10,12 @@ import os
 import secrets
 from pathlib import Path
 
-from django.core.exceptions import ImproperlyConfigured
+try:
+    from django.core.exceptions import ImproperlyConfigured
+except ModuleNotFoundError as exc:
+    from scitex_clew._django._optional import gui_dependency_error
+
+    gui_dependency_error(exc)
 
 DEBUG = True
 SECRET_KEY = secrets.token_urlsafe(48)

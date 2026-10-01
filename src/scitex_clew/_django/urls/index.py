@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from django.urls import path
+try:
+    from django.urls import path
+except ModuleNotFoundError as exc:
+    from scitex_clew._django._optional import gui_dependency_error
+
+    gui_dependency_error(exc)
 
 from .. import views
 from ..views import registry

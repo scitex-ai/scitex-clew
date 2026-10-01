@@ -10,10 +10,20 @@ def main():
     parser.add_argument("--no-browser", action="store_true")
     args = parser.parse_args()
     os.environ["DJANGO_SETTINGS_MODULE"] = "scitex_clew._django.settings"
-    import django
+    try:
+        import django
+    except ModuleNotFoundError as exc:
+        from scitex_clew._django._optional import gui_dependency_error
+
+        gui_dependency_error(exc)
 
     django.setup()
-    from scitex_sdk.app import embed
+    try:
+        from scitex_sdk.app import embed
+    except ModuleNotFoundError as exc:
+        from scitex_clew._django._optional import gui_dependency_error
+
+        gui_dependency_error(exc)
 
     embed.run_standalone(
         app_module="scitex_clew._django",
