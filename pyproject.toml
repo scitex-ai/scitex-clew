@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-clew"
-version = "0.20.1"
+version = "0.21.0"
 description = "Verifiable knowledge graph for scientific experiments"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -51,7 +51,9 @@ dependencies = [
     "click>=8.1",
 ]
 [project.optional-dependencies]
+gui = ["scitex-sdk>=0.3.0", "django>=5.2", "scitex-logging>=0.2.1", "psycopg[binary]>=3.1"]
 all = [
+    "scitex-clew[gui]",
     "click>=8.0.0",
     "fastmcp>=2.0.0",
     "matplotlib",
@@ -86,6 +88,9 @@ docs = [
 [project.scripts]
 clew = "scitex_clew._cli._main:main"
 scitex-clew = "scitex_clew._cli._main:main"
+[project.entry-points."scitex.apps"]
+clew = "scitex_clew._django.apps:ClewAppConfig"
+
 [project.entry-points."scitex_dev.docs"]
 scitex-clew = "scitex_clew"
 [project.entry-points."scitex_dev.skills"]

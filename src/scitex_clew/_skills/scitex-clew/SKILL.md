@@ -3,7 +3,7 @@ name: scitex-clew
 description: |
   [WHAT] Hash-based reproducibility verification for scientific pipelines — SHA-256 fingerprints every input/output file, builds a provenance DAG, and rechecks hashes on demand (git-status-like).
   [WHEN] Use whenever the user asks to "verify a run", "check if results are reproducible", "did this pipeline change?", "trace where this figure came from", "audit the DAG", "rerun the whole pipeline and compare", "register a manuscript claim", "link a figure to its source session", "stamp a file's provenance", or "show the Mermaid DAG of my experiments".
-  [HOW] Drop-in replacement for ad-hoc `md5sum` logs, `dvc status`, Snakemake hash tracking, and manual "did I rerun this?" checks. Zero-dependency pure-stdlib; auto-integrates with `@stx.session` and `stx.io.save/load`.
+  [HOW] Drop-in replacement for ad-hoc `md5sum` logs, `dvc status`, Snakemake hash tracking, and manual "did I rerun this?" checks. Uses SciTeX's PostgreSQL store; auto-integrates with `@stx.session` and `stx.io.save/load`.
 tags: [scitex-clew]
 allowed-tools: mcp__scitex__clew_*
 primary_interface: cli
@@ -103,3 +103,5 @@ no claims (`20`). Per-pattern severity
 ## Environment
 
 See [20_env-vars.md](20_env-vars.md) — SCITEX_* env vars read by scitex-clew at runtime.
+
+- [GUI plugin workflow](40_gui-plugin.md) — leaf-owned standalone and hosted interfaces.

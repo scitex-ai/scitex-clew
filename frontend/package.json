@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild ../src/scitex_clew/_django/static/clew_app/ts/clew-init.ts --bundle --splitting --format=esm --minify --target=es2020 --outdir=../src/scitex_clew/_django/static/clew_app/js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "mermaid": "11.16.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4",
+    "jsdom": "26.1.0"
+  }
+}
