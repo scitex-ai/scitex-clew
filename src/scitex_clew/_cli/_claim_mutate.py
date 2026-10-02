@@ -21,6 +21,9 @@ import json as _json
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 
 def _json_mode(ctx: click.Context) -> bool:
     """Return True if the user requested JSON output."""
@@ -44,16 +47,7 @@ def _emit(ctx: click.Context, payload, human_text: str) -> None:
 def register_mutate_commands(claim_group) -> None:
     """Attach ``remove`` and ``supersede`` onto *claim_group*."""
 
-    @claim_group.command(
-        "remove",
-        epilog=(
-            "Example:\n"
-            "  $ clew claim remove claim_abc123 -y\n"
-            "  $ clew claim remove paper.tex:L42 -y\n"
-            "  $ clew claim remove --file-path-prefix /old/papers/ -y\n"
-            "  $ clew claim remove claim_abc123 --dry-run"
-        ),
-    )
+    @claim_group.command("remove", cls=SpecCommand, help_spec=CLI_HELP['claim_remove'])
     @click.argument("claim_id_or_location", required=False, default=None)
     @click.option(
         "--file-path-prefix",
@@ -175,15 +169,7 @@ def register_mutate_commands(claim_group) -> None:
         if not found:
             ctx.exit(1)
 
-    @claim_group.command(
-        "supersede",
-        epilog=(
-            "Example:\n"
-            "  $ clew claim supersede claim_abc123\n"
-            "  $ clew claim supersede paper.tex:L42\n"
-            "  $ clew claim supersede --file-path-prefix /old/papers/ -y"
-        ),
-    )
+    @claim_group.command("supersede", cls=SpecCommand, help_spec=CLI_HELP['claim_supersede'])
     @click.argument("claim_id_or_location", required=False, default=None)
     @click.option(
         "--file-path-prefix",

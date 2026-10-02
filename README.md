@@ -382,3 +382,5 @@ The SciTeX system follows the Four Freedoms for Research below, inspired by [the
 </p>
 
 <!-- EOF -->
+
+GUI development follows the [leaf plugin workflow](src/scitex_clew/_skills/scitex-clew/40_gui-plugin.md). The new GUI and SDK capabilities are an unpublished local migration candidate.

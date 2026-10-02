@@ -7,6 +7,25 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.21.0] — pending release
+
+### Added
+
+- Leaf-owned GUI at `scitex_clew._django`, using the canonical SDK App/UI
+  packages and the same standalone and plugin interfaces. Preserve the
+  `clew_app` model label, registry table and initial migration.
+- Project-scoped previews with descriptor-relative reads and symlink denial;
+  frontend assertions cover project identity, custom mounts and safe rendering.
+
+### Changed
+
+- GUI and development installs require genuine `scitex-sdk>=0.3.0`. Release
+  test gates must install all declared dependencies without falling back to
+  a reduced environment. Normal GUI installation requires published SDK 0.3.0.
+- Private provenance stays unavailable (503) with public Dev 0.62.0 and
+  0.62.1, which lack tenant store APIs. No shared-store fallback
+  or multiuser RLS qualification is claimed.
+
 ## [0.20.1] — 2026-08-31
 
 ### Fixed

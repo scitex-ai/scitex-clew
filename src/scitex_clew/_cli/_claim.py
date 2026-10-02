@@ -16,6 +16,9 @@ import json as _json
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -48,19 +51,12 @@ def _emit(ctx: click.Context, payload, human_text: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-@click.group("claim")
+@click.group("claim", cls=SpecGroup, help_spec=CLI_HELP['claim'])
 def claim() -> None:
     """Manuscript-claim operations (add / list / verify / remove / supersede)."""
 
 
-@claim.command(
-    "add",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew claim add --file-path paper.tex --type statistic --value 'p=0.003'\n"
-        "  $ scitex-clew claim add --file-path paper.tex --type figure --line-number 42 --dry-run"
-    ),
-)
+@claim.command("add", cls=SpecCommand, help_spec=CLI_HELP['claim_add'])
 @click.option(
     "--file-path",
     "file_path",
@@ -185,15 +181,7 @@ def claim_add(
     _emit(ctx, payload, human)
 
 
-@claim.command(
-    "list",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew claim list\n"
-        "  $ scitex-clew claim list --file-path paper.tex --type statistic --json\n"
-        "  $ scitex-clew claim list --file-path-prefix /old/manuscripts/"
-    ),
-)
+@claim.command("list", cls=SpecCommand, help_spec=CLI_HELP['claim_list'])
 @click.option(
     "--file-path", "file_path", default=None, help="Filter by manuscript path (exact)."
 )
@@ -265,14 +253,7 @@ def claim_list(
     _emit(ctx, payload, human)
 
 
-@claim.command(
-    "verify",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew claim verify <claim_id>\n"
-        "  $ scitex-clew claim verify paper.tex:L42 --json"
-    ),
-)
+@claim.command("verify", cls=SpecCommand, help_spec=CLI_HELP['claim_verify'])
 @click.argument("claim_id_or_location")
 @click.pass_context
 def claim_verify(ctx: click.Context, claim_id_or_location: str) -> None:
@@ -300,14 +281,7 @@ def claim_verify(ctx: click.Context, claim_id_or_location: str) -> None:
             click.echo(f"  - {d}")
 
 
-@claim.command(
-    "register-intermediate",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew claim register-intermediate --name n_sig_pathways \\\n"
-        "        --value 42 --supports chronic_r2_min_pvals --supports reactome_v2024"
-    ),
-)
+@claim.command("register-intermediate", cls=SpecCommand, help_spec=CLI_HELP['claim_register_intermediate'])
 @click.option(
     "--name",
     required=True,

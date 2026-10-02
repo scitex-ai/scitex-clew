@@ -31,16 +31,10 @@ import pytest
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # ---------------------------------------------------------------------------
-# The cluster these tests write to.
-#
-# NOT the per-host loopback. Every `127.0.0.1:55432` in this fleet is a
-# READ-ONLY STANDBY (`pg_is_in_recovery()` is true) where `CREATE SCHEMA`
-# raises. A suite that defaulted there would SKIP, and a skipped suite
-# reports the same green as one that actually checked.
+# The explicitly selected disposable cluster these tests write to. Never
+# infer a cluster from the developer's environment or a managed fleet default.
 # ---------------------------------------------------------------------------
-WRITABLE_DSN = os.environ.get(
-    "SCITEX_CLEW_TEST_DSN", "postgresql://scitex-primary:55432/scitex"
-)
+WRITABLE_DSN = os.environ.get("SCITEX_CLEW_TEST_DSN")
 
 
 def _connect():
@@ -54,12 +48,28 @@ def _connect():
     psycopg = pytest.importorskip(
         "psycopg", reason="psycopg is not installed in this interpreter"
     )
+    if not WRITABLE_DSN:
+        pytest.fail("Set SCITEX_CLEW_TEST_DSN explicitly to a disposable PostgreSQL cluster", pytrace=False)
+    try:
+        target = psycopg.conninfo.conninfo_to_dict(WRITABLE_DSN)
+        ports = target.get("port", "").split(",")
+        if not all(port.isdecimal() and 0 < int(port) < 65536 for port in ports):
+            raise ValueError("an explicit port is required")
+        if any(int(port) in {55432, 55433, 61503} for port in ports):
+            raise ValueError("managed and SAC database endpoints are forbidden")
+        hosts = target.get("host", "").split(",")
+        if not all(host in {"127.0.0.1", "localhost", "::1"} or host.startswith("/") for host in hosts):
+            raise ValueError("an explicit loopback or Unix-socket host is required")
+        if target.get("hostaddr") and not all(address in {"127.0.0.1", "::1"} for address in target["hostaddr"].split(",")):
+            raise ValueError("non-loopback hostaddr is forbidden")
+    except (ValueError, psycopg.ProgrammingError):
+        pytest.fail("SCITEX_CLEW_TEST_DSN must name an explicit disposable local endpoint; managed/SAC endpoints are forbidden", pytrace=False)
     try:
         return psycopg.connect(WRITABLE_DSN, connect_timeout=10, autocommit=True)
     except Exception as exc:  # noqa: BLE001 - re-raised as an explicit failure
         pytest.fail(
             f"clew's tests need a WRITABLE PostgreSQL cluster and could not "
-            f"reach {WRITABLE_DSN}: {type(exc).__name__}: {exc}\n"
+            f"connect to the explicit test endpoint: {type(exc).__name__}\n"
             "This is a FAILURE, not a skip — a skipped store suite is "
             "indistinguishable from a passing one. Override the target with "
             "SCITEX_CLEW_TEST_DSN.",
@@ -76,7 +86,7 @@ def _writable_cluster():
             (in_recovery,) = cur.fetchone()
     if in_recovery:
         pytest.fail(
-            f"{WRITABLE_DSN} is a READ-ONLY STANDBY (pg_is_in_recovery() is "
+            "The explicit test endpoint is a READ-ONLY STANDBY (pg_is_in_recovery() is "
             "true). CREATE SCHEMA raises there, so every store test would "
             "error or skip. Point SCITEX_CLEW_TEST_DSN at the primary.",
             pytrace=False,
@@ -138,9 +148,7 @@ def _ensure_subprocess_coverage_shim() -> None:
     purelib = Path(sysconfig.get_paths()["purelib"])
     pth = purelib / "_scitex_clew_subprocess_coverage.pth"
     shim = (
-        "import os, coverage\n"
-        "if os.environ.get('COVERAGE_PROCESS_START'):\n"
-        "    coverage.process_startup()\n"
+        "import os, coverage; coverage.process_startup() if os.environ.get('COVERAGE_PROCESS_START') else None\n"
     )
     try:
         if not pth.exists() or pth.read_text() != shim:

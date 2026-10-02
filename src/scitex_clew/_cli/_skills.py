@@ -11,6 +11,9 @@ from pathlib import Path
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 PKG = "scitex-clew"
 
 
@@ -29,7 +32,7 @@ def _list_skill_files(root: Path) -> list[Path]:
     return sorted(p for p in root.rglob("*.md") if p.is_file() and p.name != "SKILL.md")
 
 
-@click.group(name="skills", invoke_without_command=True)
+@click.group(name="skills", invoke_without_command=True, cls=SpecGroup, help_spec=CLI_HELP['skills_group'])
 @click.pass_context
 def skills_group(ctx) -> None:
     """Agent-facing skills bundled with scitex-clew.
@@ -45,7 +48,7 @@ def skills_group(ctx) -> None:
         click.echo(ctx.get_help())
 
 
-@skills_group.command(name="list")
+@skills_group.command(name="list", cls=SpecCommand, help_spec=CLI_HELP['skills_list'])
 @click.option("--json", "as_json", is_flag=True, help="Emit machine-readable JSON.")
 def skills_list(as_json: bool) -> None:
     """List skill files bundled with this package.
@@ -75,7 +78,7 @@ def skills_list(as_json: bool) -> None:
         click.echo(f"{p.stem:36s}  {rel}")
 
 
-@skills_group.command(name="get")
+@skills_group.command(name="get", cls=SpecCommand, help_spec=CLI_HELP['skills_get'])
 @click.argument("name")
 @click.option("--json", "as_json", is_flag=True, help="Emit machine-readable JSON.")
 def skills_get(name: str, as_json: bool) -> None:
@@ -111,7 +114,7 @@ def skills_get(name: str, as_json: bool) -> None:
     click.echo(match.read_text(encoding="utf-8"))
 
 
-@skills_group.command(name="install")
+@skills_group.command(name="install", cls=SpecCommand, help_spec=CLI_HELP['skills_install'])
 @click.option(
     "--dest",
     type=click.Path(),

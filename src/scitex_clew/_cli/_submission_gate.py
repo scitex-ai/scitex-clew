@@ -14,20 +14,13 @@ import json
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 from ._claim import _json_mode
 
 
-@click.command(
-    "gate-completeness",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew gate-completeness --submission answers.json\n"
-        "  $ scitex-clew gate-completeness --submission answers.json --json\n"
-        "\n"
-        "answers.json is a mapping of question_id -> claim_id, e.g.\n"
-        '  {"q1": "claim_a", "q2": "claim_b"}'
-    ),
-)
+@click.command("gate-completeness", cls=SpecCommand, help_spec=CLI_HELP['gate_completeness_cmd'])
 @click.option(
     "--submission",
     "submission_path",

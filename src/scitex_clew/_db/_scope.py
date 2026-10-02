@@ -68,7 +68,7 @@ of silent.
 
 from __future__ import annotations
 
-import logging
+from .._core._logging import getLogger
 import os
 import uuid
 from pathlib import Path
@@ -76,7 +76,7 @@ from typing import Any, Mapping, Sequence
 
 from ._paths import _find_project_root
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 __all__ = [
     "PROJECT_FIELD",

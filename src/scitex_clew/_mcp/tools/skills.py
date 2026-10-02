@@ -9,7 +9,14 @@ scitex-dev's in-flight 0.11.0 layout refactor.
 import json
 from pathlib import Path
 
-from fastmcp import FastMCP
+try:
+    from fastmcp import FastMCP
+except ImportError as exc:
+    if exc.name != "fastmcp":
+        raise
+    raise ImportError(
+        "fastmcp is required for MCP support; install with: pip install 'scitex-clew[all]'"
+    ) from exc
 
 _SKILLS_DIR = Path(__file__).resolve().parents[2] / "_skills" / "scitex-clew"
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Logging with optional scitex.logging enhancement.
+"""Canonical scitex-logging with a tolerant stdlib fallback.
 
-When scitex is installed, uses scitex.logging (richer formatting).
-Otherwise, falls back to stdlib logging.
+The package declares scitex-logging as a dependency. If its initialization
+fails, package imports retain the existing stdlib logging fallback.
 
 Set SCITEX_CLEW_DEBUG_MODE=1 to enable DEBUG-level logging.
 """
@@ -10,11 +10,11 @@ Set SCITEX_CLEW_DEBUG_MODE=1 to enable DEBUG-level logging.
 import os
 
 try:
-    # Optional enhancement. scitex_logging does filesystem work at import
-    # time (it sets up file handlers under ~/.scitex/logs), so its import can
-    # fail with more than ImportError — e.g. OSError when that directory is
-    # over its inode/space quota. clew is zero-dependency and the stdlib
-    # fallback below is complete, so ANY failure of this optional path must
+    # scitex_logging may initialize file handlers under the canonical
+    # $SCITEX_DIR/logging/runtime path (default ~/.scitex/logging/runtime).
+    # Its import can fail with more than ImportError — e.g. OSError if it is
+    # over its inode/space quota. The existing stdlib fallback below is
+    # complete, so a failure during canonical logger initialization must
     # fall back cleanly rather than crash clew's package import.
     import scitex_logging as _logging
 

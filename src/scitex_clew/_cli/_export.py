@@ -13,16 +13,11 @@ import json as _json
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
 
-@click.command(
-    "export-claims",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew export-claims\n"
-        "  $ scitex-clew export-claims --unified\n"
-        "  $ scitex-clew export-claims --unified --path build/claims.json --json"
-    ),
-)
+
+@click.command("export-claims", cls=SpecCommand, help_spec=CLI_HELP['export_claims'])
 @click.option(
     "--unified",
     is_flag=True,

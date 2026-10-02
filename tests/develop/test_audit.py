@@ -11,15 +11,14 @@ without the audit corpus available locally. CI for release
 branches MUST NOT set this — drift goes silent.
 """
 
+from pathlib import Path
+
 import shutil
 
 import pytest
 
 
 def test_audit_all_clean():
-    # Arrange
-    # Act
-    # Assert
     # Arrange
     # Act
     # Assert
@@ -36,4 +35,4 @@ def test_audit_all_clean():
     # 31 Python APIs missing a matching MCP tool wrapper) is an
     # architectural follow-up tracked in a separate issue; it is NOT
     # masked here per the operator hard rule against `skip_rules` masking.
-    audit_all_for_package('scitex-clew', skip_rules=())
+    audit_all_for_package('scitex-clew', path=Path(__file__).resolve().parents[2], skip_rules=())

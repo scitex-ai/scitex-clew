@@ -337,9 +337,9 @@ def _bootstrap_pkg_hooks(module_name: str, register_attr: str) -> None:
 
             register = getattr(_observers, register_attr)
         except Exception as exc:  # never fatal to ``import scitex_clew``
-            import logging
+            from ._core._logging import getLogger
 
-            logging.getLogger("scitex_clew").warning(
+            getLogger("scitex_clew").warning(
                 "clew could not load observer registrar %s (%s) — "
                 "auto-provenance disabled",
                 register_attr,

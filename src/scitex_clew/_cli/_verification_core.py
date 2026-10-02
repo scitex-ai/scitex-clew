@@ -11,6 +11,9 @@ import json
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 from ._claim import _json_mode
 
 
@@ -55,9 +58,7 @@ def _echo_verify_all_human(result) -> None:
         click.echo(f"  [{cicon}] {c.outcome:<14} {c.location}{val}{tag}")
 
 
-@click.command(
-    epilog="Example:\n  $ scitex-clew status\n  $ scitex-clew status --json",
-)
+@click.command(cls=SpecCommand, help_spec=CLI_HELP['status'])
 @click.option(
     "--json",
     "as_json",
@@ -82,14 +83,7 @@ def status(ctx: click.Context, as_json: bool):
         click.echo(json.dumps(result, indent=2, default=str))
 
 
-@click.command(
-    "list-runs",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew list-runs\n"
-        "  $ scitex-clew list-runs --status success --limit 10 --json"
-    ),
-)
+@click.command("list-runs", cls=SpecCommand, help_spec=CLI_HELP['list_runs'])
 @click.option("--limit", type=int, default=50, help="Maximum number of runs.")
 @click.option(
     "--status",
@@ -121,15 +115,7 @@ def list_runs(ctx: click.Context, limit: int, status_filter, as_json: bool):
         click.echo(f"  {run_status:<8} {sid}  {script}")
 
 
-@click.command(
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew verify                # verify ALL registered claims\n"
-        "  $ scitex-clew verify --strict       # also require @stx.session lineage\n"
-        "  $ scitex-clew verify <session_id>   # verify one run, fail loud\n"
-        "  $ scitex-clew verify --json"
-    ),
-)
+@click.command(cls=SpecCommand, help_spec=CLI_HELP['verify'])
 @click.argument("session_id", required=False, default=None)
 @click.option(
     "--strict",
@@ -229,10 +215,7 @@ def verify(ctx: click.Context, session_id, strict: bool, config, as_json: bool):
     ctx.exit(code)
 
 
-@click.command(
-    "show-stats",
-    epilog=("Example:\n  $ scitex-clew show-stats\n  $ scitex-clew show-stats --json"),
-)
+@click.command("show-stats", cls=SpecCommand, help_spec=CLI_HELP['stats'])
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")
 @click.pass_context
 def stats(ctx: click.Context, as_json: bool):

@@ -11,6 +11,9 @@ import json
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 from ._claim import _json_mode
 
 # Valid grouper names from scitex_clew._groupers._spec._REGISTRY.
@@ -25,19 +28,7 @@ _GROUPER_REGISTRY_NAMES = [
 ]
 
 
-@click.command(
-    "print-mermaid",
-    epilog=(
-        "Examples:\n"
-        "  $ scitex-clew print-mermaid > dag.mmd\n"
-        "  $ scitex-clew print-mermaid --claims --json\n"
-        "  $ scitex-clew print-mermaid --target results/foo.csv\n"
-        "  $ scitex-clew print-mermaid --grouper directory --no-files\n"
-        "  $ scitex-clew print-mermaid --max-depth 3\n"
-        "  $ scitex-clew print-mermaid --format png --output dag.png\n"
-        "  $ scitex-clew print-mermaid --format svg"
-    ),
-)
+@click.command("print-mermaid", cls=SpecCommand, help_spec=CLI_HELP['mermaid'])
 @click.option("--claims", is_flag=True, help="Build DAG from registered claims.")
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")
 @click.option(

@@ -15,15 +15,11 @@ import json as _json
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
 
-@click.command(
-    "export-hints",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew export-hints\n"
-        "  $ scitex-clew export-hints --path build/hints.json --json"
-    ),
-)
+
+@click.command("export-hints", cls=SpecCommand, help_spec=CLI_HELP['export_hints'])
 @click.option(
     "--path",
     "path",
