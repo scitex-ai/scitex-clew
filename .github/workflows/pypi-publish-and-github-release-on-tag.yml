@@ -64,25 +64,24 @@ jobs:
           enable-cache: true
           cache-dependency-glob: pyproject.toml
       - name: Set up Python ${{ matrix.python-version }} (uv-managed)
-        run: uv python install ${{ matrix.python-version }}
+        run: .github/ci/native-job.sh uv python install ${{ matrix.python-version }}
       - name: Create uv venv on this matrix Python
-        run: uv venv --python ${{ matrix.python-version }} .venv
+        run: .github/ci/native-job.sh uv venv --python ${{ matrix.python-version }} .venv
       - name: Install dependencies
         run: |
-          uv pip install --python .venv/bin/python -e ".[all,dev]"
+          .github/ci/native-job.sh uv pip install --python .venv/bin/python -e ".[all,dev]"
       - name: Confirm the driver is installed
         # conftest SKIPS when psycopg is missing (a property of the
         # interpreter, not of the code). A skip here would hide the entire
         # store suite from the release gate, so fail the job instead.
-        run: .venv/bin/python -c "import psycopg; print('psycopg', psycopg.__version__)"
+        run: .github/ci/native-job.sh .venv/bin/python -c "import psycopg; print('psycopg', psycopg.__version__)"
       - name: Run tests against the service database
         env:
           RUN_E2E: '1'
           SCITEX_CLEW_TEST_DSN: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/scitex
         run: |
-          source .github/ci/service-test-state.sh
           export PATH="$PWD/.venv/bin:$PATH"
-          .venv/bin/pytest tests/
+          .github/ci/native-job.sh --service-tests .venv/bin/pytest tests/
 
   build:
     needs: test

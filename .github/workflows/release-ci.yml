@@ -45,22 +45,21 @@ jobs:
           enable-cache: true
           cache-dependency-glob: pyproject.toml
       - name: Set up Python ${{ matrix.python-version }} (uv-managed)
-        run: uv python install ${{ matrix.python-version }}
+        run: .github/ci/native-job.sh uv python install ${{ matrix.python-version }}
       - name: Create uv venv on this matrix Python
-        run: uv venv --python ${{ matrix.python-version }} .venv
+        run: .github/ci/native-job.sh uv venv --python ${{ matrix.python-version }} .venv
       - name: Install dependencies
         run: |
-          uv pip install --python .venv/bin/python -e ".[all,dev]"
+          .github/ci/native-job.sh uv pip install --python .venv/bin/python -e ".[all,dev]"
       - name: Confirm the driver is installed
-        run: .venv/bin/python -c "import psycopg; print('psycopg', psycopg.__version__)"
+        run: .github/ci/native-job.sh .venv/bin/python -c "import psycopg; print('psycopg', psycopg.__version__)"
       - name: Run tests against the service database
         env:
           RUN_E2E: '1'
           SCITEX_CLEW_TEST_DSN: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/scitex
         run: |
-          source .github/ci/service-test-state.sh
           export PATH="$PWD/.venv/bin:$PATH"
-          .venv/bin/pytest tests/
+          .github/ci/native-job.sh --service-tests .venv/bin/pytest tests/
 
   import-smoke:
     # New required-status-check context: "import-smoke / import-smoke-on-ubuntu-py3-12"
@@ -79,13 +78,13 @@ jobs:
           enable-cache: true
           cache-dependency-glob: pyproject.toml
       - name: Set up Python 3.12 (uv-managed)
-        run: uv python install 3.12
+        run: .github/ci/native-job.sh uv python install 3.12
       - name: Install package + audit tooling
         run: |
-          uv venv --python 3.12 .venv
-          uv pip install --python .venv/bin/python -e ".[dev]"
-          uv pip install --python .venv/bin/python "scitex-dev[cli-audit]"
+          .github/ci/native-job.sh uv venv --python 3.12 .venv
+          .github/ci/native-job.sh uv pip install --python .venv/bin/python -e ".[dev]"
+          .github/ci/native-job.sh uv pip install --python .venv/bin/python "scitex-dev[cli-audit]"
       - name: Run scitex-dev ecosystem audit-all
         run: |
           export PATH="$PWD/.venv/bin:$PATH"
-          scitex-dev ecosystem audit-all scitex-clew --no-version-check
+          .github/ci/native-job.sh .venv/bin/scitex-dev ecosystem audit-all scitex-clew --no-version-check
