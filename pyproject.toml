@@ -47,8 +47,8 @@ dependencies = [
     # against PostgreSQL with the published clew wheel: 0.43.1 FAIL, 0.46.0
     # FAIL, 0.48.0 FAIL, 0.49.0 FAIL, 0.49.2 OK, 0.49.3 OK, 0.50.0 OK,
     # 0.57.0 OK.
-    # Structured CLI help and pure-forward aliases use the verified public0.62.1 protocol.
-    "scitex-dev>=0.62.1",
+    # Structured help, mounted-owner vocabulary and runner seeds require public 0.62.2.
+    "scitex-dev>=0.62.2",
     "click>=8.1",
     "scitex-logging>=0.2.2",
 ]
@@ -75,7 +75,7 @@ dev = [
     "pytest-timeout>=2.0",
     # Same floor as the runtime dependency above — a dev install that cannot
     # open a store cannot run the suite either.
-    "scitex-dev>=0.62.1",
+    "scitex-dev>=0.62.2",
     "cryptography>=41.0",
     # clew's stores are Postgres-backed and its tests run against a REAL
     # database (tests/conftest.py gives each test its own schema). Declared
