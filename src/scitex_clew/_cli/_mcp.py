@@ -4,8 +4,11 @@
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
 
-@click.group(invoke_without_command=True)
+
+@click.group(invoke_without_command=True, cls=SpecGroup, help_spec=CLI_HELP['mcp'])
 @click.option("--help-recursive", is_flag=True, help="Show help for all subcommands.")
 @click.pass_context
 def mcp(ctx, help_recursive):
@@ -86,15 +89,7 @@ def _format_tool_signature(tool, multiline: bool = False, indent: str = "  ") ->
     return f"{indent}{name_s}({', '.join(params)}){ret_type}"
 
 
-@mcp.command(
-    "list-tools",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew mcp list-tools\n"
-        "  $ scitex-clew mcp list-tools -vv\n"
-        "  $ scitex-clew mcp list-tools --json"
-    ),
-)
+@mcp.command("list-tools", cls=SpecCommand, help_spec=CLI_HELP['list_tools'])
 @click.option(
     "-v", "--verbose", count=True, help="Verbosity: -v sig, -vv +desc1, -vvv full."
 )
@@ -163,10 +158,7 @@ def list_tools(verbose: int, compact: bool, as_json: bool) -> None:
             click.echo()
 
 
-@mcp.command(
-    "start",
-    epilog=("Example:\n  $ scitex-clew mcp start\n  $ scitex-clew mcp start --dry-run"),
-)
+@mcp.command("start", cls=SpecCommand, help_spec=CLI_HELP['start_server'])
 @click.option(
     "--dry-run",
     is_flag=True,
@@ -217,12 +209,7 @@ def installation_deprecated(ctx) -> None:
     ctx.exit(2)
 
 
-@mcp.command(
-    "install",
-    epilog=(
-        "Example:\n  $ scitex-clew mcp install\n  $ scitex-clew mcp install --dry-run"
-    ),
-)
+@mcp.command("install", cls=SpecCommand, help_spec=CLI_HELP['install'])
 @click.option(
     "--dry-run",
     is_flag=True,
@@ -257,10 +244,7 @@ def install(dry_run, yes) -> None:
     click.echo("  clew mcp list-tools")
 
 
-@mcp.command(
-    "doctor",
-    epilog=("Example:\n  $ scitex-clew mcp doctor"),
-)
+@mcp.command("doctor", cls=SpecCommand, help_spec=CLI_HELP['doctor'])
 def doctor() -> None:
     """Check MCP server dependencies and configuration."""
     click.echo("Checking MCP dependencies...")

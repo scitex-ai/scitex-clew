@@ -12,13 +12,13 @@ Configuration (environment variables):
 
 from __future__ import annotations
 
-import logging
+from .._core._logging import getLogger
 import os
 from typing import Any, Dict, List, Optional
 
 from .._db import get_db
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 DEFAULT_REGISTRY_URL = "https://scitex.ai"
 

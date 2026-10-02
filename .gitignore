@@ -2,6 +2,7 @@
 ### Source: /home/ywatanabe/.git-templates/.gitignore-templates/Custom/Specific.gitignore ###
 # Please add files here
 logs/
+node_modules/
 
 # Ecosystem local-state-directories convention (§4b): runtime/ contents
 # are regenerable and must never be committed. Only .gitkeep and
@@ -116,6 +117,8 @@ data/*
 **/*.gif
 **/*.bmp
 **/*.svg
+# Leaf GUI icons are package assets, not generated scientific outputs.
+!src/scitex_clew/_django/static/**/*.svg
 **/*.psd
 **/*.tif
 **/*.raw

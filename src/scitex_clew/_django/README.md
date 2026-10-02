@@ -1,0 +1,56 @@
+# Clew GUI
+
+The GUI is owned by `scitex_clew._django` and consumes `scitex-sdk` for the
+shared shell and authorized host capabilities. Read the
+[GUI workflow](../_skills/scitex-clew/40_gui-plugin.md) before changing it.
+
+The same relative urlconf, templates and built assets run at the standalone
+root and at a Hub/custom plugin mount. The `scitex.apps` entry point discovers
+its AppConfig. The leaf manifest also supplies workspace content and agent
+skill metadata. Label `clew_app`, table `clew_app_hashregistration` and the
+initial migration remain unchanged from the former Hub app.
+
+The private API declares runs, stats, claims, hash verification and DAG views.
+It authenticates hosted requests, resolves an explicit authorized project,
+and isolates Clew state in a fresh process. Store reads require tenant APIs
+that are absent from public Dev 0.62.0 and 0.62.1; the
+worker refuses before connecting or reading records. Unavailable stores return 503;
+no global-store or SQLite fallback is used. Requested/recorded file paths
+must stay within the selected project. GET requests never rerun scripts.
+
+Project previews and example scaffolding consume SDK read/write capabilities.
+Preview reads open the SDK-normalized canonical path through directory
+descriptors and refuse symlink components during the open. Legitimate aliases
+such as `paper -> .scitex/writer` remain readable when their normalized target
+is inside the authorized project. Only regular files are accepted. UTF-8 text
+keeps its 4 MiB limit; image responses retain the existing streaming behavior
+and formats. This reader requires POSIX descriptor-relative opens and Linux
+no-follow flags; unsupported platforms return unavailable rather than falling
+back to pathname reads. Provenance worker reads still need separate integration
+with a rooted reader; the worker's containment checks are not an OS sandbox.
+Session writes require CSRF. Public registry proofs remain anonymized; badges
+claim registration only. A timestamp does not prove successful reproduction
+or scientific correctness.
+
+The standalone launcher binds loopback. `SCITEX_CLEW_GUI_CONFIG` may name a
+private JSON file containing `project_root` and `project_stores`; each store
+entry supplies `tenant_id`, `dsn`, `project_scope` and `owner_role`. Missing
+stores are displayed as unavailable. This initial GUI requires explicitly
+configured tenant stores and does not provision accounts or migrate archives.
+The standalone providers support a single local user, not a shared server.
+
+Build the assets from `.dev/frontend/package.json` and package every JS chunk.
+Frontend tests cover root/custom mounts, project identity and safe rendering.
+The leaf tests exercise the standalone Django shell, installed resources and
+synthetic file previews. They do not establish deployed Hub or browser coverage.
+The canonical shell uses `scitex_sdk.app` and `scitex_sdk.ui` from SDK 0.3.0.
+Normal GUI dependency resolution requires published SDK 0.3.0 or later;
+a genuine source-built SDK wheel can separately qualify the source candidate.
+Neither public Dev 0.62.0 nor 0.62.1 implements `TenantScope`
+or `inspect_tenant_store`. No tenant provisioning or multiuser RLS support is
+established here. Shell and project preview work independently; private
+provenance APIs must remain unavailable (503) with these Dev versions.
+Full deployed middleware, PostgreSQL 18/PgBouncer, filesystem isolation,
+shared-project access and the paper's scientific chain remain separate gates.
+
+Private-store workers require an explicit absolute `SCITEX_DIR` for disposable request runtime state. Missing, invalid or unwritable runtime state returns HTTP 503 without writing to the selected project. Public Dev 0.62.2 supplies owning audit support; its store API does not supply the tenant operations used by this worker, so private-store endpoints remain unavailable until those operations are genuinely provided. Preview and standalone file access retain their existing behavior.

@@ -20,6 +20,9 @@ from pathlib import Path
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 from .._db._core import _find_project_root
 
 
@@ -42,14 +45,7 @@ def _resolve_manifest(manifest) -> Path:
     return Path(resolve_sources_path()[0])
 
 
-@click.command(
-    "keygen",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew keygen\n"
-        "  $ scitex-clew keygen --key ~/.keys/clew-signing.key"
-    ),
-)
+@click.command("keygen", cls=SpecCommand, help_spec=CLI_HELP['keygen_cmd'])
 @click.option("--key", type=click.Path(), help="Private key output path (default ~/.scitex/clew/signing.key).")
 @click.option("--pub", type=click.Path(), help="Public key output path (default <root>/.scitex/clew/signed/signing.pub).")
 @click.option(
@@ -89,14 +85,7 @@ def keygen_cmd(key, pub, force):
     click.secho("Next: `clew sign` your sources.json, then commit signing.pub.", fg="cyan")
 
 
-@click.command(
-    "sign",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew sign\n"
-        "  $ scitex-clew sign .scitex/clew/sources.json"
-    ),
-)
+@click.command("sign", cls=SpecCommand, help_spec=CLI_HELP['sign_cmd'])
 @click.argument("manifest", required=False, type=click.Path())
 @click.option("--key", type=click.Path(exists=True), help="Private key (default ~/.scitex/clew/signing.key or $SCITEX_CLEW_SIGNING_KEY).")
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")
@@ -138,14 +127,7 @@ def sign_cmd(manifest, key, as_json):
     click.secho(f"[OK] signed {mpath} (ed25519). Commit it alongside signing.pub.", fg="green")
 
 
-@click.command(
-    "verify-signatures",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew verify-signatures\n"
-        "  $ scitex-clew verify-signatures --json"
-    ),
-)
+@click.command("verify-signatures", cls=SpecCommand, help_spec=CLI_HELP['verify_signatures_cmd'])
 @click.argument("manifest", required=False, type=click.Path())
 @click.option("--pub", type=click.Path(exists=True), help="Public key (default <root>/.scitex/clew/signed/signing.pub).")
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")

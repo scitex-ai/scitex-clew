@@ -20,6 +20,9 @@ import sys
 
 import click
 
+from scitex_dev.ecosystem import CliHelp, Example, SpecCommand, SpecGroup, deprecated_alias
+from ._help_specs import CLI_HELP
+
 from ._citation import citation, verify_citations_cmd
 from ._claim import claim
 from ._estimate import estimate
@@ -86,7 +89,7 @@ COMMAND_CATEGORIES = [
 ]
 
 
-class CategorizedGroup(click.Group):
+class CategorizedGroup(SpecGroup):
     """Custom Click group that displays commands organized by category."""
 
     def format_commands(self, ctx, formatter):
@@ -162,11 +165,7 @@ def _get_version() -> str:
         return "0.0.0-unknown"
 
 
-@click.group(
-    cls=CategorizedGroup,
-    invoke_without_command=True,
-    context_settings=CONTEXT_SETTINGS,
-)
+@click.group(invoke_without_command=True, context_settings=CONTEXT_SETTINGS, cls=CategorizedGroup, help_spec=CLI_HELP['main'])
 @click.option("--version", "-V", is_flag=True, help="Show version and exit.")
 @click.option("--help-recursive", is_flag=True, help="Show help for all commands.")
 @click.option(
@@ -286,18 +285,21 @@ from scitex_dev._cli._completion import attach_shell_completion
 attach_shell_completion(main, prog_name="scitex-clew")
 
 
-# audit §4 — inject version into root --help
-try:
-    from importlib.metadata import version as _v
-
-    main.help = f"scitex-clew (v{_v('scitex-clew')}) — " + (main.help or "").lstrip()
-except Exception:
-    pass
-
 # audit-cli §1a — packages with _skills/ MUST expose
 # `<cli> skills {list,get,install}`.
 from ._skills import skills_group as _skills_group
 
-main.add_command(_skills_group, name="skills")
+@main.group(name="dev", cls=SpecGroup, help_spec=CliHelp(
+    summary="Development and maintenance commands.",
+    examples=(Example("{prog} dev skills list"),),
+))
+def dev_group():
+    """Development and maintenance commands."""
+
+
+dev_group.add_command(_skills_group, name="skills")
+# The legacy skills group is a pure forward; the target retains every option.
+deprecated_alias(main, "skills", target=_skills_group, target_name="dev skills",
+                 phase="warn", remove_in="0.22.0")
 
 # EOF

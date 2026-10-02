@@ -12,17 +12,13 @@ import json
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 from ._claim import _json_mode
 
 
-@click.command(
-    "register-source",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew register-source data/raw.csv\n"
-        "  $ scitex-clew register-source a.csv b.csv --json"
-    ),
-)
+@click.command("register-source", cls=SpecCommand, help_spec=CLI_HELP['register_source_cmd'])
 @click.argument("files", nargs=-1, required=False, type=click.Path(exists=True))
 @click.option(
     "--from-list",
@@ -119,10 +115,7 @@ def register_source_cmd(
         click.echo(f"  {e['reason']:<9} {e['path']}  {e['sha256'][:12]}...")
 
 
-@click.command(
-    "list-sources",
-    epilog="Example:\n  $ scitex-clew list-sources\n  $ scitex-clew list-sources --json",
-)
+@click.command("list-sources", cls=SpecCommand, help_spec=CLI_HELP['list_sources_cmd'])
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")
 @click.pass_context
 def list_sources_cmd(ctx: click.Context, as_json: bool):
@@ -144,10 +137,7 @@ def list_sources_cmd(ctx: click.Context, as_json: bool):
         click.echo(f"  {e['reason']:<9} {e['path']}  {e['sha256'][:12]}...")
 
 
-@click.command(
-    "unregister-source",
-    epilog="Example:\n  $ scitex-clew unregister-source data/raw.csv",
-)
+@click.command("unregister-source", cls=SpecCommand, help_spec=CLI_HELP['unregister_source_cmd'])
 @click.argument("files", nargs=-1, required=True)
 @click.option(
     "--dry-run",
@@ -196,14 +186,7 @@ def unregister_source_cmd(
     click.echo(f"[OK] unregistered {len(files)} source(s) -> {path}")
 
 
-@click.command(
-    "grounding",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew grounding claim_abc123\n"
-        "  $ scitex-clew grounding paper.tex:L42 --workdir ./paper --json"
-    ),
-)
+@click.command("grounding", cls=SpecCommand, help_spec=CLI_HELP['grounding_cmd'])
 @click.argument("claim_location")
 @click.option(
     "--workdir",

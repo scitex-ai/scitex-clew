@@ -4,7 +4,14 @@
 Run with: fastmcp run scitex_clew._mcp.server:mcp
 """
 
-from fastmcp import FastMCP
+try:
+    from fastmcp import FastMCP
+except ImportError as exc:
+    if exc.name != "fastmcp":
+        raise
+    raise ImportError(
+        "fastmcp is required for MCP support; install with: pip install 'scitex-clew[all]'"
+    ) from exc
 
 from .tools import register_all_tools
 
