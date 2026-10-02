@@ -52,3 +52,5 @@ established here. Shell and project preview work independently; private
 provenance APIs must remain unavailable (503) with these Dev versions.
 Full deployed middleware, PostgreSQL 18/PgBouncer, filesystem isolation,
 shared-project access and the paper's scientific chain remain separate gates.
+
+Private-store workers require an explicit absolute `SCITEX_DIR` for disposable request runtime state. Missing, invalid or unwritable runtime state returns HTTP 503 without writing to the selected project. Public Dev 0.62.2 supplies owning audit support; its store API does not supply the tenant operations used by this worker, so private-store endpoints remain unavailable until those operations are genuinely provided. Preview and standalone file access retain their existing behavior.
