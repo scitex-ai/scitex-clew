@@ -12,7 +12,14 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from fastmcp import FastMCP
+try:
+    from fastmcp import FastMCP
+except ImportError as exc:
+    if exc.name != "fastmcp":
+        raise
+    raise ImportError(
+        "fastmcp is required for MCP support; install with: pip install 'scitex-clew[all]'"
+    ) from exc
 
 
 def _json(data) -> str:

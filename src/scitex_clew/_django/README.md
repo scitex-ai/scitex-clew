@@ -10,10 +10,11 @@ its AppConfig. The leaf manifest also supplies workspace content and agent
 skill metadata. Label `clew_app`, table `clew_app_hashregistration` and the
 initial migration remain unchanged from the former Hub app.
 
-The private API provides runs, stats, claims, hash verification and DAG views.
+The private API declares runs, stats, claims, hash verification and DAG views.
 It authenticates hosted requests, resolves an explicit authorized project,
-checks all twenty current provenance tables for the expected tenant policies,
-and isolates Clew state in a fresh process. Unavailable stores return 503;
+and isolates Clew state in a fresh process. Store reads require tenant APIs
+that are absent from public Dev 0.62.0 and 0.62.1; the
+worker refuses before connecting or reading records. Unavailable stores return 503;
 no global-store or SQLite fallback is used. Requested/recorded file paths
 must stay within the selected project. GET requests never rerun scripts.
 
@@ -38,14 +39,16 @@ stores are displayed as unavailable. This initial GUI requires explicitly
 configured tenant stores and does not provision accounts or migrate archives.
 The standalone providers support a single local user, not a shared server.
 
-Build the assets from `frontend/package.json` and package every JS chunk.
+Build the assets from `.dev/frontend/package.json` and package every JS chunk.
 Frontend tests cover root/custom mounts, project identity and safe rendering.
-The Hub integration suite uses synthetic projects in disposable PostgreSQL,
-including real browser checks for standalone and plugin modes. This local
-candidate uses the physical `scitex_sdk.app` and `scitex_sdk.ui` packages in
-the unpublished SDK 0.3.0 wheel. Its tenant APIs (`TenantScope` and
-`inspect_tenant_store`) are a separate unpublished scitex-dev prerequisite;
-published Dev 0.61.0 does not supply them. Shell and project preview work
-without that prerequisite; private provenance APIs return unavailable (503).
+The leaf tests exercise the standalone Django shell, installed resources and
+synthetic file previews. They do not establish deployed Hub or browser coverage.
+The canonical shell uses `scitex_sdk.app` and `scitex_sdk.ui` from SDK 0.3.0.
+Normal GUI dependency resolution requires published SDK 0.3.0 or later;
+a genuine source-built SDK wheel can separately qualify the source candidate.
+Neither public Dev 0.62.0 nor 0.62.1 implements `TenantScope`
+or `inspect_tenant_store`. No tenant provisioning or multiuser RLS support is
+established here. Shell and project preview work independently; private
+provenance APIs must remain unavailable (503) with these Dev versions.
 Full deployed middleware, PostgreSQL 18/PgBouncer, filesystem isolation,
 shared-project access and the paper's scientific chain remain separate gates.

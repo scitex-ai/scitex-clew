@@ -18,6 +18,9 @@ from typing import Dict, List, Optional
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 
 def _json_mode(ctx: click.Context) -> bool:
     if ctx.obj and ctx.obj.get("json"):
@@ -81,14 +84,7 @@ def _build_entries(
     raise click.ClickException("provide --bib and/or --keys")
 
 
-@click.command(
-    "verify-citations",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew verify-citations --bib merged.bib --json\n"
-        "  $ scitex-clew verify-citations --bib merged.bib --keys Berens2009,Foo2020"
-    ),
-)
+@click.command("verify-citations", cls=SpecCommand, help_spec=CLI_HELP['verify_citations_cmd'])
 @click.option("--bib", "bib", default=None, help="Path to a merged .bib file.")
 @click.option(
     "--keys",
@@ -143,19 +139,12 @@ def verify_citations_cmd(
     ctx.exit(result.exit_code)
 
 
-@click.group("citation")
+@click.group("citation", cls=SpecGroup, help_spec=CLI_HELP['citation'])
 def citation() -> None:
     """Citation-node operations (list / verify \\cite -> scholar source)."""
 
 
-@citation.command(
-    "list",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew citation list\n"
-        "  $ scitex-clew citation list --status stub --json"
-    ),
-)
+@citation.command("list", cls=SpecCommand, help_spec=CLI_HELP['citation_list'])
 @click.option(
     "--manuscript", "manuscript", default=None, help="Filter by manuscript file."
 )

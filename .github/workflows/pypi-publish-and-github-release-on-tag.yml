@@ -1,44 +1,8 @@
 name: release
 
-# Tag-driven release pipeline — SELF-HOSTED (Spartan CPU) via the scitex-ci SIF.
-#
-# The intended operator flow is:
-#
-#     git tag vX.Y.Z && git push origin vX.Y.Z
-#
-# Everything else fires automatically:
-#
-#   1. test          — matrix pytest INSIDE the SIF. Must pass or the pipeline
-#                      halts; nothing is published until tests are green on the
-#                      tagged commit.
-#   2. build         — wheel + sdist built INSIDE the SIF, uploaded as artifact.
-#   3. publish       — PyPI via MANUAL OIDC trusted publishing INSIDE the SIF.
-#   4. release       — GitHub Release with CHANGELOG notes + artifacts.
-#
-# develop→main promotion is a DELIBERATE, separate PR (operator policy);
-# this pipeline never auto-syncs main.
-#
-# WHY the SIF (operator standardization 2026-06-18, fleet canary 2026-06-21):
-# the Spartan compute runners have NO Python on the bare node, so the old
-# `actions/setup-python@v5` step failed at init ("version 3.x not found for
-# this OS"). The working pytest-matrix CI runs INSIDE the pre-built, reused
-# scitex-ci SIF (`apptainer exec ci-cpu.sif`), which bakes python 3.11/3.12/
-# 3.13 + pip + uv + fd at /opt/venv-<ver>. This release pipeline mirrors that:
-#   - test/build run `bash .github/ci/exec-in-sif.sh <inner>.sh <pyver>`.
-#   - publish CANNOT use pypa/gh-action-pypi-publish (a Docker action; the
-#     compute nodes have no Docker), so it does MANUAL OIDC trusted publishing
-#     inside the SIF (.github/ci/publish-in-sif.sh): GitHub OIDC JWT →
-#     PyPI mint-token → twine upload. Trust config on PyPI is unchanged.
-#   - actions/checkout, upload/download-artifact, codecov are JS actions and
-#     run fine on the self-hosted runner.
-# fail-loud: a missing SIF/shim/interpreter is a HARD error, never a
-# bare-runner fallback.
-#
-# runs-on driven by repo Actions Variable CI_RUNS_ON; SIF + apptainer paths
-# come from SCITEX_CI_SIF / SCITEX_CI_APPTAINER (same as pytest-matrix).
-#
-# Manual re-run: the workflow also accepts a `version` input via
-# workflow_dispatch so you can re-publish without re-tagging.
+# Tag tests: Docker runner, Python 3.11/3.12/3.13 and private ephemeral PG16.
+# Build/publish: digest-verified SIF on scitex-org-cpu, with job-owned state.
+# Tests gate build, OIDC publish and release. No automatic branch promotion.
 
 on:
   push:
@@ -50,39 +14,27 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 env:
   SCITEX_CI_APPTAINER: ${{ vars.SCITEX_CI_APPTAINER }}
   SCITEX_CI_SIF: ${{ vars.SCITEX_CI_SIF }}
+  SCITEX_CI_SIF_SHA256: aa5836a6c317640d7e20f01eb79aa7385b3dca2f369b595065c50ba3dd34a7d5
 
 jobs:
   test:
-    # ubuntu-latest + a postgres SERVICE, NOT the self-hosted SIF.
-    #
-    # This job used to run `.github/ci/run-in-sif.sh` on the Spartan
-    # `scitex-ci` runners. That stopped being able to gate anything the moment
-    # clew's stores moved off the embedded file engine: the suite now needs a
-    # WRITABLE PostgreSQL, tests/conftest.py defaults to the fleet primary
-    # (`scitex-primary:55432`, an overlay-only name), and it FAILS rather than
-    # skips when it cannot reach one — deliberately, because a skipped store
-    # suite is indistinguishable from a passing one. The SIF path supplies no
-    # database and no DSN, and nothing establishes that a Spartan node is on
-    # the fleet overlay, so the release pipeline would have halted here.
-    #
-    # pr-ci.yml's `tests` job already runs this exact matrix, green, against a
-    # `postgres:16` service on ubuntu-latest. This mirrors it, so the tag
-    # pipeline is gated by the same real-database run that gates every PR.
-    # build/publish stay on the SIF — those need no database, and publish still
-    # cannot use the Docker-based pypa action on the compute nodes.
-    runs-on: ubuntu-latest
+    # Disposable PostgreSQL on the Docker runner; no managed store fallback.
+    runs-on: [self-hosted, Linux, X64, scitex-docker]
     services:
       postgres:
-        image: postgres:16
+        image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: scitex
         ports:
-          - 5432:5432
+          - '127.0.0.1::5432'
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -117,9 +69,7 @@ jobs:
         run: uv venv --python ${{ matrix.python-version }} .venv
       - name: Install dependencies
         run: |
-          uv pip install --python .venv/bin/python -e ".[all,dev]" \
-            || uv pip install --python .venv/bin/python -e ".[dev]" \
-            || uv pip install --python .venv/bin/python -e .
+          uv pip install --python .venv/bin/python -e ".[all,dev]"
       - name: Confirm the driver is installed
         # conftest SKIPS when psycopg is missing (a property of the
         # interpreter, not of the code). A skip here would hide the entire
@@ -127,14 +77,16 @@ jobs:
         run: .venv/bin/python -c "import psycopg; print('psycopg', psycopg.__version__)"
       - name: Run tests against the service database
         env:
-          SCITEX_CLEW_TEST_DSN: postgresql://postgres:postgres@127.0.0.1:5432/scitex
+          RUN_E2E: '1'
+          SCITEX_CLEW_TEST_DSN: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/scitex
         run: |
+          source .github/ci/service-test-state.sh
           export PATH="$PWD/.venv/bin:$PATH"
           .venv/bin/pytest tests/
 
   build:
     needs: test
-    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '["self-hosted","Linux","X64","scitex-ci"]') }}
+    runs-on: [self-hosted, Linux, X64, scitex-org-cpu]
     outputs:
       version: ${{ steps.ver.outputs.version }}
     steps:
@@ -164,18 +116,22 @@ jobs:
 
   publish:
     needs: build
-    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '["self-hosted","Linux","X64","scitex-ci"]') }}
+    runs-on: [self-hosted, Linux, X64, scitex-org-cpu]
     environment:
       name: pypi
       url: https://pypi.org/p/scitex-clew
     # id-token: write is what populates ACTIONS_ID_TOKEN_REQUEST_{TOKEN,URL},
     # which publish-in-sif.sh uses to mint the OIDC JWT. Keep it.
     permissions:
+      contents: read
       id-token: write
     steps:
       # Need the repo checked out so .github/ci/exec-in-sif.sh +
       # publish-in-sif.sh are on disk (the build job uploaded only dist/).
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.version }}
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           name: dist
@@ -183,14 +139,14 @@ jobs:
       # Manual OIDC trusted publishing INSIDE the SIF — pypa/gh-action-pypi-
       # publish is a Docker action and the Spartan compute nodes have no Docker.
       # publish-in-sif.sh: GitHub OIDC JWT (audience=pypi) → PyPI mint-token →
-      # twine upload dist/*. apptainer exec (no --cleanenv) passes the
-      # ACTIONS_ID_TOKEN_REQUEST_* env vars into the SIF. fail-loud at each step.
+      # twine upload the checked wheel/sdist. The clean SIF wrapper forwards
+      # only the publish job's short-lived OIDC request variables.
       - name: Publish to PyPI via manual OIDC trusted publishing in the SIF
         run: bash .github/ci/exec-in-sif.sh publish-in-sif.sh 3.12
 
   release:
     needs: [build, publish]
-    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '["self-hosted","Linux","X64","scitex-ci"]') }}
+    runs-on: [self-hosted, Linux, X64, scitex-org-cpu]
     permissions:
       contents: write
     steps:

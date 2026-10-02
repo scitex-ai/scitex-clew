@@ -16,10 +16,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from scitex_dev.store import ANY_REVISION
-
-from .._db._core import VerificationDB
-
 # Canonical node classes
 NODE_CLASSES = ("source", "input", "processing", "output", "claim")
 
@@ -105,6 +101,8 @@ def migrate_add_node_class() -> None:
     retroactively gain the column. Worth knowing if a schema field is ever
     added to an already-deployed Store schema.
     """
+    from .._db._core import VerificationDB
+
     VerificationDB()
 
 
@@ -137,6 +135,10 @@ def set_node_class(
         raise ValueError(
             f"Invalid node_class '{node_class}'. Must be one of: {NODE_CLASSES}"
         )
+    from scitex_dev.store import ANY_REVISION
+
+    from .._db._core import VerificationDB
+
     db = VerificationDB()
     matches = [
         row
@@ -164,6 +166,10 @@ def auto_classify() -> int:
     int
         Number of records updated.
     """
+    from scitex_dev.store import ANY_REVISION
+
+    from .._db._core import VerificationDB
+
     db = VerificationDB()
     updated = 0
     for row in db._file_hashes.rows():

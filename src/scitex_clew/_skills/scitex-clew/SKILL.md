@@ -35,9 +35,8 @@ is mandatory for every manuscript value.
 
 ## Installation & import
 
-`pip install scitex-clew` exposes `import scitex_clew`. To also reach
-`import scitex.clew`, additionally `pip install scitex` (umbrella).
-Both forms call the same module. See `../../general/02_interface-python-api.md`.
+`pip install scitex-clew` provides `import scitex_clew`; installing `scitex`
+provides `scitex.clew`. Both use the same module.
 
 ```python
 import scitex_clew                  # standalone

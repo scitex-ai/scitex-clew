@@ -47,11 +47,13 @@ dependencies = [
     # against PostgreSQL with the published clew wheel: 0.43.1 FAIL, 0.46.0
     # FAIL, 0.48.0 FAIL, 0.49.0 FAIL, 0.49.2 OK, 0.49.3 OK, 0.50.0 OK,
     # 0.57.0 OK.
-    "scitex-dev>=0.49.2",
+    # Structured CLI help and pure-forward aliases use the verified public0.62.1 protocol.
+    "scitex-dev>=0.62.1",
     "click>=8.1",
+    "scitex-logging>=0.2.2",
 ]
 [project.optional-dependencies]
-gui = ["scitex-sdk>=0.3.0", "django>=5.2", "scitex-logging>=0.2.1", "psycopg[binary]>=3.1"]
+gui = ["scitex-sdk>=0.3.0", "django>=5.2", "scitex-logging>=0.2.2", "psycopg[binary]>=3.1"]
 all = [
     "scitex-clew[gui]",
     "click>=8.0.0",
@@ -63,7 +65,7 @@ dev = [
     # The leaf GUI is part of this package's own suite; run it unconditionally.
     "scitex-sdk>=0.3.0",
     "django>=5.2",
-    "scitex-logging>=0.2.1",
+    "scitex-logging>=0.2.2",
     "Pillow>=10.0",
     "fastmcp",
     "click>=8.0.0",
@@ -73,7 +75,7 @@ dev = [
     "pytest-timeout>=2.0",
     # Same floor as the runtime dependency above — a dev install that cannot
     # open a store cannot run the suite either.
-    "scitex-dev>=0.49.2",
+    "scitex-dev>=0.62.1",
     "cryptography>=41.0",
     # clew's stores are Postgres-backed and its tests run against a REAL
     # database (tests/conftest.py gives each test its own schema). Declared
@@ -125,6 +127,14 @@ Repository = "https://github.com/ywatanabe1989/scitex-clew"
 Documentation = "https://scitex-clew.readthedocs.io"
 [tool.hatch.build.targets.wheel]
 packages = ["src/scitex_clew"]
+[tool.hatch.build.targets.wheel.force-include]
+"src/scitex_clew/_cli_audit_dict.yaml" = "scitex_clew/_cli_audit_dict.yaml"
+[tool.hatch.build.targets.sdist.force-include]
+".dev/frontend/package.json" = ".dev/frontend/package.json"
+".dev/frontend/package-lock.json" = ".dev/frontend/package-lock.json"
+".dev/frontend/build.mjs" = ".dev/frontend/build.mjs"
+".dev/frontend/vitest.config.ts" = ".dev/frontend/vitest.config.ts"
+"src/scitex_clew/_cli_audit_dict.yaml" = "src/scitex_clew/_cli_audit_dict.yaml"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 

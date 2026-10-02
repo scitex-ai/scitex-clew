@@ -26,31 +26,34 @@ def print_verification_summary(
     show_all : bool
         Show all runs (not just problematic ones)
     """
+    from scitex_logging import getPlainConsole
+
+    plain = getPlainConsole(__name__)
     verified = 0
     mismatched = 0
     missing = 0
 
-    print(f"\n{Colors.BOLD}Verification Summary{Colors.RESET}")
-    print("=" * 50)
+    plain.emit(f"\n{Colors.BOLD}Verification Summary{Colors.RESET}")
+    plain.emit("=" * 50)
 
     for run in runs:
         v = verify_run(run["session_id"])
         if v.status == VerificationStatus.VERIFIED:
             verified += 1
             if show_all:
-                print(format_run_detailed(v))
+                plain.emit(format_run_detailed(v))
         elif v.status == VerificationStatus.MISMATCH:
             mismatched += 1
-            print(format_run_detailed(v))
+            plain.emit(format_run_detailed(v))
         else:
             missing += 1
-            print(format_run_detailed(v))
+            plain.emit(format_run_detailed(v))
 
-    print()
-    print(f"{Colors.GREEN}●{Colors.RESET} Verified:  {verified}")
-    print(f"{Colors.RED}●{Colors.RESET} Mismatch:  {mismatched}")
-    print(f"{Colors.YELLOW}○{Colors.RESET} Missing:   {missing}")
-    print()
+    plain.emit("")
+    plain.emit(f"{Colors.GREEN}●{Colors.RESET} Verified:  {verified}")
+    plain.emit(f"{Colors.RED}●{Colors.RESET} Mismatch:  {mismatched}")
+    plain.emit(f"{Colors.YELLOW}○{Colors.RESET} Missing:   {missing}")
+    plain.emit("")
 
 
 # EOF

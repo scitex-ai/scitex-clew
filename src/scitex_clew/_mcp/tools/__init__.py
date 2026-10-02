@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """MCP tool registration for scitex-clew."""
 
-from fastmcp import FastMCP
+try:
+    from fastmcp import FastMCP
+except ImportError as exc:
+    if exc.name != "fastmcp":
+        raise
+    raise ImportError(
+        "fastmcp is required for MCP support; install with: pip install 'scitex-clew[all]'"
+    ) from exc
 
 
 def register_all_tools(mcp: FastMCP) -> None:

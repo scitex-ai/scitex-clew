@@ -73,8 +73,9 @@ jobs:
         run: .venv/bin/python -c "import scitex_clew; print(scitex_clew.__name__)"
 
   tests:
+    # Disposable PostgreSQL on the Docker runner; no managed store fallback.
     name: pytest-matrix-on-ubuntu-py${{ matrix.python-version }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, scitex-docker]
     # clew's stores are Postgres-backed and its tests run against a REAL
     # database — no mocks, no in-memory stand-in. tests/conftest.py gives
     # each test its own throwaway schema on this service and treats an
@@ -82,13 +83,13 @@ jobs:
     # store suite is indistinguishable from a passing one.
     services:
       postgres:
-        image: postgres:16
+        image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: scitex
         ports:
-          - 5432:5432
+          - '127.0.0.1::5432'
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -123,8 +124,10 @@ jobs:
         # PATH prepend so any test that subprocess-calls a console script
         # finds it in .venv/bin/.
         env:
-          SCITEX_CLEW_TEST_DSN: postgresql://postgres:postgres@127.0.0.1:5432/scitex
+          RUN_E2E: '1'
+          SCITEX_CLEW_TEST_DSN: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/scitex
         run: |
+          source .github/ci/service-test-state.sh
           export PATH="$PWD/.venv/bin:$PATH"
           .venv/bin/pytest tests/ --cov=src/scitex_clew --cov-report=xml --cov-report=term
       - name: Upload coverage to Codecov

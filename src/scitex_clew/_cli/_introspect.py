@@ -4,6 +4,9 @@
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 # Color mapping for object types
 TYPE_COLORS = {"M": "blue", "C": "yellow", "F": "green", "V": "magenta"}
 
@@ -123,7 +126,7 @@ def _get_api_tree(module, max_depth: int = 5, docstring: bool = False):
     return results
 
 
-@click.command("list-python-apis")
+@click.command("list-python-apis", cls=SpecCommand, help_spec=CLI_HELP['list_python_apis'])
 @click.option(
     "-v", "--verbose", count=True, help="Verbosity: -v sig+doc1, -vv full doc."
 )

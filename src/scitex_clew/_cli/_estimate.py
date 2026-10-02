@@ -11,18 +11,13 @@ import json
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 from ._claim import _json_mode
 
 
-@click.command(
-    "estimate",
-    epilog=(
-        "Examples:\n"
-        "  $ clew estimate scripts/train.py\n"
-        "  $ clew estimate results/fig1.png\n"
-        "  $ clew estimate scripts/train.py --json"
-    ),
-)
+@click.command("estimate", cls=SpecCommand, help_spec=CLI_HELP['estimate'])
 @click.argument("script_or_target")
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")
 @click.pass_context

@@ -11,6 +11,9 @@ import json
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 from ._claim import _json_mode
 
 
@@ -68,7 +71,7 @@ def _echo_dag_human(result, label: str = "DAG") -> None:
 # ---------------------------------------------------------------------------
 
 
-@click.command()
+@click.command(cls=SpecCommand, help_spec=CLI_HELP['dag'])
 @click.option(
     "--target",
     "targets",
@@ -134,13 +137,7 @@ def dag(
     _echo_dag_human(result, label="DAG")
 
 
-@click.command(
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew chain results/fig1.png\n"
-        "  $ scitex-clew chain results/fig1.png --json"
-    ),
-)
+@click.command(cls=SpecCommand, help_spec=CLI_HELP['chain'])
 @click.argument("target_file")
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")
 @click.pass_context
@@ -215,14 +212,7 @@ def chain(ctx: click.Context, target_file: str, as_json: bool):
                 )
 
 
-@click.command(
-    "rerun-dag",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew rerun-dag\n"
-        "  $ scitex-clew rerun-dag --target results/fig1.png --timeout 600 --json"
-    ),
-)
+@click.command("rerun-dag", cls=SpecCommand, help_spec=CLI_HELP['rerun_dag'])
 @click.option(
     "--target",
     "targets",
@@ -258,14 +248,7 @@ def rerun_dag(ctx: click.Context, targets, timeout: int, as_json: bool):
     _echo_dag_human(result, label="rerun-dag")
 
 
-@click.command(
-    "rerun-claims",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew rerun-claims\n"
-        "  $ scitex-clew rerun-claims --type statistic --json"
-    ),
-)
+@click.command("rerun-claims", cls=SpecCommand, help_spec=CLI_HELP['rerun_claims'])
 @click.option(
     "--file-path", "file_path", default=None, help="Filter claims by manuscript path."
 )

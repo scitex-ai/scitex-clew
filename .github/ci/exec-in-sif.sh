@@ -1,51 +1,42 @@
 #!/usr/bin/env bash
-# Outer apptainer-exec wrapper for scitex-tex's self-hosted (Spartan) CI.
-#
-# Runs ON THE RUNNER (outside the SIF). Resolves the apptainer shim + SIF image
-# from the repo Actions Variables, then `apptainer exec`s the SIF and hands off
-# to an INNER script (run inside the container). Keeps every workflow job's YAML
-# down to one line — `bash .github/ci/exec-in-sif.sh <inner-script> [args...]` —
-# and concentrates all the HPC/SIF plumbing (shim PATH, ~-expansion, scratch,
-# binds) in one version-controlled place.
-#
-# Required env (set by the workflow from repo Actions Variables):
-#   SCITEX_CI_APPTAINER   path to the apptainer shim   (e.g. ~/.env-3.11/bin/apptainer)
-#   SCITEX_CI_SIF         path to the CI SIF image     (e.g. ~/.scitex/dev/containers/ci-cpu.sif)
-#
-# Usage:
-#   bash .github/ci/exec-in-sif.sh run-in-sif.sh 3.12
-#
-# Fail-loud (operator directive): a missing shim or SIF is a HARD error — never
-# a silent fallback to a bare-runner install.
+# Outer wrapper: verify the approved SIF digest, isolate state and bind only the job.
 set -euo pipefail
-
-INNER="${1:?inner script name required (relative to .github/ci/)}"
-shift || true
-
-# The runner's job shell is --noprofile --norc (no Lmod), so the apptainer shim
-# must be put on PATH explicitly; it execs the real Apptainer binary directly.
-# ~-expand the Actions-Variable paths: a quoted "~/…" is NOT tilde-expanded by
-# the shell, so substitute a leading ~ with $HOME ourselves.
-APPTAINER="${SCITEX_CI_APPTAINER:?SCITEX_CI_APPTAINER not set (repo Actions Variable)}"
-SIF="${SCITEX_CI_SIF:?SCITEX_CI_SIF not set (repo Actions Variable)}"
-APPTAINER="${APPTAINER/#\~/$HOME}"
-SIF="${SIF/#\~/$HOME}"
-export PATH="$HOME/.env-3.11/bin:$PATH"
-
-[ -x "$APPTAINER" ] || {
-    echo "::error::apptainer shim not executable at $APPTAINER"
-    exit 1
+INNER="${1:?inner script required}"
+shift
+case "$INNER" in build-in-sif.sh|publish-in-sif.sh|run-in-sif.sh) ;; *) echo '::error::unknown inner script'; exit 1;; esac
+APPTAINER="${SCITEX_CI_APPTAINER:?approved absolute Apptainer path required}"
+SIF="${SCITEX_CI_SIF:?approved absolute SIF path required}"
+EXPECTED="${SCITEX_CI_SIF_SHA256:?approved SIF SHA256 required}"
+[[ "$APPTAINER" = /* && "$SIF" = /* && "$EXPECTED" =~ ^[a-fA-F0-9]{64}$ ]] || { echo '::error::absolute paths and a SHA256 are required'; exit 1; }
+[[ "$EXPECTED" == "aa5836a6c317640d7e20f01eb79aa7385b3dca2f369b595065c50ba3dd34a7d5" ]] || { echo '::error::SIF digest is not the approved CI image'; exit 1; }
+[ -x "$APPTAINER" ] && [ -f "$SIF" ]
+printf '%s  %s\n' "$EXPECTED" "$SIF" | sha256sum --check --status
+: "${RUNNER_TEMP:?job-owned runner temporary directory required}"
+STATE="$(mktemp -d "$RUNNER_TEMP/clew-${GITHUB_JOB:?}-${GITHUB_RUN_ID:?}-${GITHUB_RUN_ATTEMPT:?}.XXXXXX")"
+mkdir -p "$STATE/apptainer-config" "$STATE/apptainer-tmp"
+# execve receives the whitelist directly; ephemeral OIDC values stay out of argv.
+exec /usr/bin/python3 -I -S - "$APPTAINER" "$SIF" "$STATE" "$INNER" "$@" <<'PY_EXEC'
+import os
+import sys
+from pathlib import Path
+apptainer, image, state, inner, *arguments = sys.argv[1:]
+checkout = str(Path.cwd())
+environment = {
+    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "APPTAINER_CONFIGDIR": state + "/apptainer-config",
+    "APPTAINER_TMPDIR": state + "/apptainer-tmp",
+    "APPTAINERENV_CLEW_CI_STATE": state,
+    "APPTAINERENV_GITHUB_REF": os.environ["GITHUB_REF"],
 }
-[ -f "$SIF" ] || {
-    echo "::error::CI SIF missing at $SIF — rebuild it: scitex-container apptainer build ci-cpu"
-    exit 1
-}
-
-# apptainer scratch on the shared FS — keeps HOME clean.
-export APPTAINER_TMPDIR="/data/gpfs/projects/punim0264/ywatanabe/ci/apptainer-tmp"
-mkdir -p "$APPTAINER_TMPDIR"
-
-# --bind punim0264: $HOME/.scitex is a symlink into punim0264; bind it so the
-# symlink resolves inside the container. --pwd "$PWD" keeps the checkout as cwd.
-exec "$APPTAINER" exec --pwd "$PWD" --bind /data/gpfs/projects/punim0264 \
-    "$SIF" bash ".github/ci/$INNER" "$@"
+if os.environ.get("SCITEX_CLEW_TEST_DSN"):
+    environment["APPTAINERENV_SCITEX_CLEW_TEST_DSN"] = os.environ["SCITEX_CLEW_TEST_DSN"]
+if inner == "publish-in-sif.sh":
+    for name in ("ACTIONS_ID_TOKEN_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_URL"):
+        if not os.environ.get(name):
+            raise SystemExit("Publish job requires its ephemeral OIDC context")
+        environment["APPTAINERENV_" + name] = os.environ[name]
+command = [apptainer, "exec", "--cleanenv", "--no-home", "--containall",
+           "--pwd", checkout, "--bind", checkout + ":" + checkout,
+           "--bind", state + ":" + state, image, "bash", ".github/ci/" + inner, *arguments]
+os.execve(apptainer, command, environment)
+PY_EXEC

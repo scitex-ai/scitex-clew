@@ -1,3 +1,10 @@
+---
+description: |
+  [TOPIC] GUI plugin
+  [DETAILS] Validate the SDK-owned Clew GUI, access controls and packaged assets.
+tags: [scitex-clew-gui-plugin]
+---
+
 # Clew GUI plugin workflow
 
 Read the SDK GUI ownership skill first. Clew owns `src/scitex_clew/_django`;
@@ -39,8 +46,9 @@ Cloud PostgreSQL version/pool, filesystem sandbox and scientific workflow.
 The canonical App/UI owner is `scitex-sdk` (`scitex_sdk.app` and
 `scitex_sdk.ui`), with resource prefixes `scitex_sdk/app` and `scitex_sdk/ui`.
 Keep persisted compatibility labels and the `scitex_app_content` block.
-SDK 0.3.0 remains unpublished; install its reviewed wheel or checkout until
-publication. Tenant `TenantScope`/`inspect_tenant_store` APIs are a separate
-unpublished scitex-dev prerequisite. Published Dev 0.61.0 does not supply
-them, so private provenance must remain unavailable (503) there. Shell and
-project preview do not require tenant provisioning.
+GUI installs require published SDK 0.3.0 or later; a genuine source-built wheel
+may separately qualify source with its exact origin disclosed. Neither
+public Dev 0.62.0 nor 0.62.1 implements `TenantScope` or
+`inspect_tenant_store`. Do not claim these APIs or multiuser RLS are available;
+private provenance must remain unavailable (503). Shell and project preview
+do not require tenant provisioning.

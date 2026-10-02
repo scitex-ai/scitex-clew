@@ -11,17 +11,13 @@ import json as _json
 
 import click
 
+from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from ._help_specs import CLI_HELP
+
 from ._claim import _emit, _json_mode
 
 
-@click.command(
-    "hash-file",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew hash-file results/data.csv\n"
-        "  $ scitex-clew hash-file results/data.csv --json"
-    ),
-)
+@click.command("hash-file", cls=SpecCommand, help_spec=CLI_HELP['hash_file'])
 @click.argument("path", type=click.Path(exists=False, dir_okay=False))
 @click.option(
     "--algorithm", default="sha256", show_default=True, help="Hash algorithm."
@@ -52,14 +48,7 @@ def hash_file(ctx: click.Context, path: str, algorithm: str, chunk_size: int) ->
     _emit(ctx, payload, h)
 
 
-@click.command(
-    "hash-directory",
-    epilog=(
-        "Example:\n"
-        "  $ scitex-clew hash-directory results/\n"
-        "  $ scitex-clew hash-directory results/ --pattern '*.csv' --json"
-    ),
-)
+@click.command("hash-directory", cls=SpecCommand, help_spec=CLI_HELP['hash_directory'])
 @click.argument("path", type=click.Path(exists=False, file_okay=False))
 @click.option("--pattern", default="*", show_default=True, help="Glob pattern.")
 @click.option(
