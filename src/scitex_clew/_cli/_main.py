@@ -209,10 +209,11 @@ def main(
         click.echo(ctx.get_help())
 
 
-# §1a: install-shell-completion + print-shell-completion are registered
-# via scitex_dev._cli._completion.attach_shell_completion(...) at the
-# bottom of this module. The legacy `completion <SHELL>` positional
-# form is preserved here as a hidden deprecated redirect.
+# Fleet standard completion drop-in v1 (`completion install` / `status`,
+# plus `install-shell-completion` / `print-shell-completion` shims) lives in
+# `_completion.py`. It never touches `~/.bashrc` / `~/.zshrc`. The legacy
+# `completion <SHELL>` positional form is preserved here as a hidden
+# deprecated redirect.
 @main.command(
     "completion-legacy",
     hidden=True,
@@ -220,11 +221,12 @@ def main(
 )
 @click.pass_context
 def completion_legacy(ctx):
-    """(deprecated) Use `install-shell-completion` or `print-shell-completion`."""
+    """(deprecated) Use `completion install`."""
     click.echo(
-        "error: `clew completion <SHELL>` was split into:\n"
-        "  clew install-shell-completion --shell <bash|zsh|fish>\n"
-        "  clew print-shell-completion   --shell <bash|zsh|fish>",
+        "error: `clew completion <SHELL>` was replaced by:\n"
+        "  clew completion install --shell <bash|zsh|fish>\n"
+        "  clew completion status\n"
+        "  clew print-shell-completion --shell <bash|zsh|fish>",
         err=True,
     )
     ctx.exit(2)
@@ -279,10 +281,14 @@ from scitex_dev.cli import docs_click_group, skills_click_group
 main.add_command(docs_click_group(package="scitex-clew"))
 main.add_command(skills_click_group(package="scitex-clew"))
 
-# §1a: install-shell-completion + print-shell-completion (canonical leaves)
-from scitex_dev._cli._completion import attach_shell_completion
+# Fleet standard completion drop-in v1 (`completion install` / `status`,
+# plus `install-shell-completion` / `print-shell-completion` shims) — see
+# `_completion.py`. Owns the `completion` name, so scitex-dev's rc-appending
+# variant must NOT be attached (it would collide on that name and reintroduce
+# the rc-edit path this contract deletes).
+from ._completion import register_completion_commands
 
-attach_shell_completion(main, prog_name="scitex-clew")
+register_completion_commands(main)
 
 
 # audit-cli §1a — packages with _skills/ MUST expose
