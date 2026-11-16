@@ -7,6 +7,14 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- `record_output`: recording the same bytes of a path twice in one run no
+  longer erases a `derived_from` declaration. figrecipe records a figure's
+  image declared, then the `stx.io.save` that called it fires the io hook
+  for the same file undeclared; last-writer-wins dropped the declaration
+  and level 2 silently fell back to level 1. An undeclared re-record now
+  keeps it, a second declaration is unioned, and new bytes replace it.
+
 ## [0.22.0] — 2026-11-16
 
 Minor release: new exit codes `STALE_LINEAGE` (18), `VERIFY_ERROR` (19),

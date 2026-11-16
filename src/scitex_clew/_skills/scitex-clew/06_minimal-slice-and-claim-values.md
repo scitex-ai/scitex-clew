@@ -24,6 +24,16 @@ verify_dag(targets, minimal=True, level=2)
 Level 0 = run-level closure; 1 = path-pruned (keeps every input of a kept
 run); 2 = honours per-output `derived_from` (`tracker.record_output(path,
 derived_from=[inp])`), falling back to level 1 per undeclared run.
+
+Declarations arrive without clew calls: `stx.io.save(obj, path,
+derived_from=[path_or_loaded_obj])` hands them to `on_io_save`
+(`kwargs["derived_from"]`), and figrecipe declares a figure rebuilt by
+`fr.reproduce(recipe)` and saved unchanged as derived from the recipe and
+its data files. Nothing is inferred: without a declaration level 2 equals
+level 1. Recording the same bytes of a path twice in one run (figrecipe
+records its image, then the `stx.io.save` that called it fires its hook)
+keeps the declaration — an undeclared re-record does not erase it, a second
+declaration is unioned; new bytes replace it.
 `generate_dag_json` / `generate_mermaid_dag` take the same
 `minimal=`/`level=`. Claim verification always uses the level-1 slice.
 
