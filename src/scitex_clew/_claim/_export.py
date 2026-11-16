@@ -45,18 +45,17 @@ def _resolve_chain_flags(claim) -> tuple:
     tuple of (bool, bool)
         ``(chain_has_exception, chain_has_frozen)``.
     """
-    from .._chain._routes import resolve_file_dag
+    from .._chain._routes import resolve_file_dag, resolve_producer
 
     db = get_db()
 
     # Determine the leaf session to start the backward DAG walk.
     session_id = claim.source_session
     if not session_id and claim.source_file:
-        sessions = db.find_session_by_file(
-            str(Path(claim.source_file).resolve()), role="output"
+        # Producer of the bytes the claim was registered against.
+        session_id = resolve_producer(
+            db, str(Path(claim.source_file).resolve()), claim.source_hash
         )
-        if sessions:
-            session_id = sessions[0]
 
     if not session_id:
         # No provenance link at all — safe defaults.
@@ -103,18 +102,17 @@ def _resolve_exception_reasons(claim) -> List[tuple]:
         Returns an empty list when the claim has no provenance link or there
         are no exception nodes in the chain.
     """
-    from .._chain._routes import resolve_file_dag
+    from .._chain._routes import resolve_file_dag, resolve_producer
 
     db = get_db()
 
     # Determine the leaf session to start the backward DAG walk.
     session_id = claim.source_session
     if not session_id and claim.source_file:
-        sessions = db.find_session_by_file(
-            str(Path(claim.source_file).resolve()), role="output"
+        # Producer of the bytes the claim was registered against.
+        session_id = resolve_producer(
+            db, str(Path(claim.source_file).resolve()), claim.source_hash
         )
-        if sessions:
-            session_id = sessions[0]
 
     if not session_id:
         return []

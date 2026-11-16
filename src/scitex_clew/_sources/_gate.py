@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Chain-walk source gate — the reusable, pure groundedness check.
 
 ``is_grounded`` walks a claim's provenance chain to its root(s) and returns
@@ -19,24 +18,22 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Tuple
 
-from .._chain._routes import resolve_file_dag
+from .._chain._routes import resolve_file_dag, resolve_producer
 from ._manifest import SourcesManifest
 
 
 def _hash_consistent(recorded: str, pinned: str) -> bool:
-    """Prefix-tolerant hash equality.
+    """Hash equality via :func:`scitex_clew._hash.hashes_match`.
 
     DB / claim records recorded before clew-fix-truncated-hash-comparison
     store a truncated (32-char) sha256; records recorded after that fix
-    store the full 64-char digest, matching what the manifest pins. Compare
-    over the shorter length — a truncated digest is a strict prefix of the
-    full one for an untampered file, so this stays correct across the
-    truncated/full mix in older DBs. Empty hashes never match.
+    store the full 64-char digest, matching what the manifest pins. A
+    truncated digest is a strict prefix of the full one; ``hashes_match`` tolerates exactly that legacy 32-char width
+    (no other prefix). Empty hashes never match.
     """
-    if not recorded or not pinned:
-        return False
-    n = min(len(recorded), len(pinned))
-    return recorded[:n].lower() == pinned[:n].lower()
+    from .._hash import hashes_match
+
+    return hashes_match(recorded, pinned)
 
 
 def _resolve_abspath(file_path: str) -> str:
@@ -47,7 +44,7 @@ def _resolve_abspath(file_path: str) -> str:
         return file_path
 
 
-def collect_chain_files(claim, db) -> List[Tuple[str, str]]:
+def collect_chain_files(claim, db) -> list[tuple[str, str]]:
     """Collect ``(abspath, hash)`` candidates from a claim and its chain.
 
     Candidates are:
@@ -62,7 +59,7 @@ def collect_chain_files(claim, db) -> List[Tuple[str, str]]:
     Reuses the EXISTING file-mediated walk
     (:func:`scitex_clew._chain._routes.resolve_file_dag`) — no custom traversal.
     """
-    candidates: List[Tuple[str, str]] = []
+    candidates: list[tuple[str, str]] = []
 
     if claim.source_file:
         candidates.append(
@@ -71,11 +68,10 @@ def collect_chain_files(claim, db) -> List[Tuple[str, str]]:
 
     session_id = claim.source_session
     if not session_id and claim.source_file:
-        producers = db.find_session_by_file(
-            _resolve_abspath(claim.source_file), role="output"
+        # Producer of the bytes the claim was registered against.
+        session_id = resolve_producer(
+            db, _resolve_abspath(claim.source_file), claim.source_hash
         )
-        if producers:
-            session_id = producers[0]
 
     if session_id:
         _adjacency, all_ids = resolve_file_dag([session_id], db=db)

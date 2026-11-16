@@ -835,10 +835,8 @@ class TestGenerateDagJsonEmptyChain:
         from scitex_clew._viz._json import generate_dag_json
         # Act
         # Act
-        from scitex_clew import _db as _db_mod
-        fake_db = _FakeDB()
-        with _swap_attr(_db_mod, "get_db", lambda: fake_db):
-            result = generate_dag_json(session_id="nonexistent_sess")
+        # Real (isolated, empty) store: an unknown session has no lineage.
+        result = generate_dag_json(session_id="nonexistent_sess")
         # Act
         # Assert
         # Assert
@@ -852,10 +850,8 @@ class TestGenerateDagJsonEmptyChain:
         from scitex_clew._viz._json import generate_dag_json
         # Act
         # Act
-        from scitex_clew import _db as _db_mod
-        fake_db = _FakeDB()
-        with _swap_attr(_db_mod, "get_db", lambda: fake_db):
-            result = generate_dag_json(session_id="nonexistent_sess")
+        # Real (isolated, empty) store: an unknown session has no lineage.
+        result = generate_dag_json(session_id="nonexistent_sess")
         # Act
         # Assert
         # Assert
@@ -870,11 +866,8 @@ class TestGenerateDagJsonEmptyChain:
 
         # Act
         # Act
-        from scitex_clew import _db as _db_mod
-        fake_db = _FakeDB()
-        with _swap_attr(_db_mod, "get_db", lambda: fake_db):
-
-            result = generate_dag_json(session_id="nonexistent_sess")
+        # Real (isolated, empty) store: an unknown session has no lineage.
+        result = generate_dag_json(session_id="nonexistent_sess")
 
         # Assert
         # Assert
@@ -887,11 +880,8 @@ class TestGenerateDagJsonEmptyChain:
 
         # Act
         # Act
-        from scitex_clew import _db as _db_mod
-        fake_db = _FakeDB()
-        with _swap_attr(_db_mod, "get_db", lambda: fake_db):
-
-            result = generate_dag_json(session_id="nonexistent_sess")
+        # Real (isolated, empty) store: an unknown session has no lineage.
+        result = generate_dag_json(session_id="nonexistent_sess")
 
         # Assert
         # Assert

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """The claims :class:`~scitex_dev.store.Store` — schema + open helper.
 
 Split out of ``_model.py`` (which was about to cross the repo's 512-line
@@ -144,6 +143,24 @@ _CLAIMS_SCHEMA = Schema.build(
             merge=MergeRule.LAST_WRITER_WINS,
             indexed=False,
         ),
+        # Native structured claim data (nullable, additive; each JSON text).
+        # ``claim_value`` stays the human display string; these carry what a
+        # caller (e.g. scitex-writer) used to pack into it:
+        #   value       — structured claimed value (scalar or {field: value})
+        #   source_keys — {field | ".": locator} into source_file
+        #   tolerance   — claim-level {"abs_tol", "rel_tol"}
+        #   metadata    — free-form caller data, stored verbatim
+        # See ``_claim/_locator.py`` for the locator/tolerance rules.
+        **{
+            name: FieldPolicy(
+                kind=FieldKind.TEXT,
+                role=FieldRole.DATA,
+                required=False,
+                merge=MergeRule.LAST_WRITER_WINS,
+                indexed=False,
+            )
+            for name in ("value", "source_keys", "tolerance", "metadata")
+        },
         "registered_at": FieldPolicy(
             kind=FieldKind.TEXT,
             role=FieldRole.DATA,
@@ -196,5 +213,6 @@ def _open_store() -> Store:
             writer_policy=WriterPolicy.MULTI_WRITER,
         )
     )
+
 
 # EOF

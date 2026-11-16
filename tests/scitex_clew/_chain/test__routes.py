@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Unit tests for file-mediated route resolution (``_chain/_routes.py``).
 
 The resolver walks file save->load handshakes instead of the legacy
@@ -45,12 +44,27 @@ class FakeDB:
         """Batch variant: return {file_path: [session_id, ...]} newest-first."""
         result = {}
         for fp in file_paths:
-            producers = [
-                sid for sid, files in self._outputs.items() if fp in files
-            ]
+            producers = [sid for sid, files in self._outputs.items() if fp in files]
             if producers:
                 result[fp] = list(reversed(producers))
         return result
+
+    def get_file_records(self, session_id, role=None):
+        """Rows with hash; no record time (the resolver then skips the time gate)."""
+        return [
+            {"file_path": path, "hash": h, "recorded_at": None}
+            for path, h in self.get_file_hashes(session_id, role=role).items()
+        ]
+
+    def find_producer_records(self, file_paths):
+        """Output records per path, newest-first, same content hash as inputs."""
+        return {
+            fp: [
+                {"session_id": sid, "hash": "hash-of-" + fp, "recorded_at": None}
+                for sid in sids
+            ]
+            for fp, sids in self.find_sessions_by_files(file_paths).items()
+        }
 
 
 # ---------------------------------------------------------------------------

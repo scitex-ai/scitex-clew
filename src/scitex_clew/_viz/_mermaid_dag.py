@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from .._chain import VerificationLevel, verify_run
+from .._chain import VerificationLevel, VerificationStatus, verify_run
 from .._db import get_db
 from .._groupers._base import FileEntry
 from .._groupers._spec import resolve_spec
@@ -22,12 +22,16 @@ from ._mermaid_nodes import (
 PathMode = Literal["name", "relative", "absolute"]
 
 
-def collect_runs_data(chain_ids: list, db) -> list:
-    """Collect run data for all sessions in chain."""
+def collect_runs_data(chain_ids: list, db, slice_=None) -> list:
+    """Collect run data for all sessions in chain (restricted to ``slice_``)."""
+    from ._json import restrict_to_slice
+
     runs_data = []
     for sid in chain_ids:
         run = db.get_run(sid)
-        verification = verify_run(sid)
+        verification = verify_run(
+            sid, slice_files=slice_.run_files(sid) if slice_ else None
+        )
 
         latest_verification = db.get_latest_verification(sid)
         if (
@@ -37,8 +41,12 @@ def collect_runs_data(chain_ids: list, db) -> list:
         ):
             verification.level = VerificationLevel.RERUN
 
-        inputs = db.get_file_hashes(sid, role="input")
-        outputs = db.get_file_hashes(sid, role="output")
+        inputs = restrict_to_slice(
+            db.get_file_hashes(sid, role="input"), slice_, sid, "input"
+        )
+        outputs = restrict_to_slice(
+            db.get_file_hashes(sid, role="output"), slice_, sid, "output"
+        )
         frozen_inputs = db.get_frozen_files(sid, role="input")
         frozen_outputs = db.get_frozen_files(sid, role="output")
         runs_data.append(
@@ -123,6 +131,12 @@ def generate_detailed_dag(
             if not verify_file_hash(fpath, stored_hash):
                 failed_files.add(fpath)
 
+    # A run whose execution FAILED produced no evidence: its outputs are drawn
+    # failed (and so taint their consumers) even when their hashes match.
+    for data in runs_data:
+        if data["verification"].status == VerificationStatus.FAILED:
+            failed_files.update(data["outputs"].keys())
+
     for data in runs_data:
         inputs = data["inputs"]
         has_failed_input = any(fpath in failed_files for fpath in inputs.keys())
@@ -148,23 +162,59 @@ def generate_detailed_dag(
 
         if group_fn is None:
             add_file_nodes(
-                lines, script_id, inputs, node_ids, show_hashes, path_mode,
-                "input", False, failed_files, None, frozen_files,
+                lines,
+                script_id,
+                inputs,
+                node_ids,
+                show_hashes,
+                path_mode,
+                "input",
+                False,
+                failed_files,
+                None,
+                frozen_files,
             )
             add_file_nodes(
-                lines, script_id, outputs, node_ids, show_hashes, path_mode,
-                "output", is_rerun, failed_files, None, frozen_files,
+                lines,
+                script_id,
+                outputs,
+                node_ids,
+                show_hashes,
+                path_mode,
+                "output",
+                is_rerun,
+                failed_files,
+                None,
+                frozen_files,
             )
         else:
             in_entries = _files_dict_to_entries(inputs, "input", sid)
             out_entries = _files_dict_to_entries(outputs, "output", sid)
             add_grouped_nodes(
-                lines, script_id, group_fn(in_entries), node_ids, show_hashes,
-                path_mode, "input", False, failed_files, None, frozen_files,
+                lines,
+                script_id,
+                group_fn(in_entries),
+                node_ids,
+                show_hashes,
+                path_mode,
+                "input",
+                False,
+                failed_files,
+                None,
+                frozen_files,
             )
             add_grouped_nodes(
-                lines, script_id, group_fn(out_entries), node_ids, show_hashes,
-                path_mode, "output", is_rerun, failed_files, None, frozen_files,
+                lines,
+                script_id,
+                group_fn(out_entries),
+                node_ids,
+                show_hashes,
+                path_mode,
+                "output",
+                is_rerun,
+                failed_files,
+                None,
+                frozen_files,
             )
 
 
@@ -175,18 +225,22 @@ def generate_multi_target_dag(
     show_hashes: bool = False,
     path_mode: PathMode = "name",
     grouper: Any | None = None,
+    minimal: bool = False,
+    level: int = 1,
 ) -> str:
     """Generate Mermaid diagram for a multi-target DAG."""
+    from ._json import restrict_to_slice
+
     lines = ["graph TD"]
 
     if claims:
         from .._claim import verify_claims_dag
 
-        dag = verify_claims_dag()
+        dag = verify_claims_dag(minimal=minimal, level=level)
     elif target_files:
         from .._chain import verify_dag
 
-        dag = verify_dag(target_files)
+        dag = verify_dag(target_files, minimal=minimal, level=level)
     else:
         lines.append('    empty["No targets specified"]')
         return "\n".join(lines)
@@ -204,8 +258,12 @@ def generate_multi_target_dag(
         verification = verifications.get(sid)
         if not verification:
             continue
-        inputs = db.get_file_hashes(sid, role="input")
-        outputs = db.get_file_hashes(sid, role="output")
+        inputs = restrict_to_slice(
+            db.get_file_hashes(sid, role="input"), dag.slice, sid, "input"
+        )
+        outputs = restrict_to_slice(
+            db.get_file_hashes(sid, role="output"), dag.slice, sid, "output"
+        )
         frozen_inputs = db.get_frozen_files(sid, role="input")
         frozen_outputs = db.get_frozen_files(sid, role="output")
         runs_data.append(

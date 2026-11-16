@@ -7,6 +7,107 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-11-16
+
+Minor release: new exit codes `STALE_LINEAGE` (18), `VERIFY_ERROR` (19),
+`VALUE_MISMATCH` (21), the `FAILED` run status, the `clew.slice` / `clew slice`
+minimal-provenance API, and additive claim-store columns. (0.21.1 was never
+published; its changes ship here.)
+
+### Added — file-level minimal provenance slice
+
+- **`clew.slice(target_or_claim, level=1)`** / `clew slice TARGET [--level]
+  [--compare] [--json]` returns only the runs and files on paths that end at
+  the target (`scitex_clew._chain._slice.ProvenanceSlice`: `.runs`, `.files`,
+  `.edges`, `.counts()`, dropped/fallback diagnostics). Levels:
+  0 = run-level closure (every input/output of every ancestor run, the
+  historical view); 1 = path-pruned (default; drops sibling outputs, their
+  consumers and anything on no path to the target — but keeps ALL inputs of a
+  kept run, since Clew cannot see inside a run); 2 = additionally honours
+  per-output `derived_from` declarations (`record_output(path,
+  derived_from=[...])`, and `stx.io.save(..., derived_from=[...])` via the
+  io hook once scitex-io forwards it), falling back to level 1 per undeclared
+  run. `compare_levels()` reports node/edge counts per level.
+- `verify_chain` / `verify_dag` / `verify_claims_dag` / `clew.chain` /
+  `clew.dag` / `generate_dag_json` / `generate_mermaid_dag` take
+  `minimal=True, level=...`; CLI `chain`/`dag`/`print-mermaid --minimal`.
+  `verify_run(..., slice_files=...)` checks only the slice's files.
+- **Claim verification checks only the claim's level-1 slice**: a changed
+  sibling output elsewhere in a run no longer stales a claim.
+- New nullable `file_hashes.derived_from` column (additive store migration).
+
+### Added — claim value vs source, native claim fields
+
+- Claims gain native `value`, `source_keys`, `tolerance`, `metadata` columns
+  (additive store migration); `claim_value` stays the display string.
+  `source_keys` uses scitex-writer's shape (RFC 6901 `pointer` for
+  json/yaml; `row` index or `{column: value}` selector + `column` for
+  csv/tsv; per-locator or claim-level `abs_tol`/`rel_tol`, else tolerance
+  implied by the written precision). Verification compares claimed vs source
+  value: new exit codes `VALUE_MISMATCH` (21) and `VERIFY_ERROR` (19).
+  CLI: `clew claim add --source-keys/--tolerance/--structured-value/--metadata
+  /--project-root` (JSON values) and `clew claim verify --project-root`.
+- `project_root=` on `add_claim`, `list_claims`, `verify_claim`,
+  `verify_all_claims`, `verify_claims_dag`, `remove_claim(s_by_prefix)`,
+  `supersede_claim(s_by_prefix)` (and `scitex_clew._db._paths.project_root()`
+  context manager): scope calls to a project without `chdir`.
+
+### Fixed — session hooks, rerun, claim verify
+
+- Session hooks were registered twice (the scitex_session module id was
+  never remembered), so every start/close fired twice.
+- `on_session_start` / `on_session_close` no longer swallow errors unless
+  `verbose`: failures are warned, recorded (`HOOK_FAILURES`, run
+  `metadata.hook_failures`) and re-raised for the session manager to record.
+  Start-payload `capture_errors` are warned. The close hook accepts an
+  optional `metadata` payload, merged into the run record.
+- The "unrecorded outputs" warning now fires: it reads `sdir_out` from the
+  scitex-session start payload, counts files newer than `started_at`, skips
+  `RUNNING/` and `FINISHED*/`, and reports each unrecorded path.
+- `rerun` replays the recorded `argv` from the recorded `cwd` (recorded
+  python when present) into a SANDBOX copy (originals are never overwritten;
+  runs with outputs outside `<script>_out/` are refused), compares outputs by
+  full relative path + full hash, finds the replay by its unique sandbox
+  script path (not "newest of the last 5 runs"), and cleans up (sandbox
+  removed, replay records hidden). A failing replay is `FAILED`.
+- A claim whose lineage walk raised was reported OK in non-strict mode; it is
+  now `VERIFY_ERROR`.
+- Re-adding a claim id after `remove_claim` left it hidden; it is visible
+  again.
+
+### Fixed — back-trace correctness (claim -> minimal, correct DAG)
+
+- **Parents are bound by content hash, not path.** An input is linked to the
+  producer that recorded the SAME hash for that path no later than the input
+  was loaded (`_chain._routes.resolve_lineage` / `bind_input`). A later run
+  overwriting a file no longer re-parents an earlier consumer; a
+  byte-identical re-run after the load is not its parent either. Inputs whose
+  bytes match no recorded output are reported as unbound (`external` /
+  `unmatched`) instead of being guessed. `SessionTracker.record_input` now
+  records only that hash-bound parent (not every producer of the path).
+- **One resolver.** `rerun_dag`, `verify_dag_strict` claim invalidation,
+  `generate_dag_json(session_id=...)` and `mermaid(session_id=...)` now walk
+  the same hash-bound resolver as `verify_chain` / `verify_dag`, instead of
+  the legacy `session_parents` table or `get_chain`. Leaf producers of a
+  target/claim are chosen by content hash (`resolve_producer`).
+- **A failed run is never verified.** New `VerificationStatus.FAILED` for runs
+  whose recorded status is `failed`/`error`; consumers of their outputs are
+  `SUSPECT`; `clew.status()` adds `failed_count` / `failed` (additive keys);
+  Mermaid draws such runs and their outputs `failed`.
+- **Full hash equality.** `scitex_clew._hash.hashes_match` replaces every
+  prefix comparison; only the legacy 32-char truncated sha256 is tolerated.
+
+### Changed
+
+- **Stale lineage fails default claim verification.** New exit code
+  `18 STALE_LINEAGE` (config key `stale_lineage`, default `error`): a claim
+  whose source hashes fine but whose recorded lineage no longer verifies (an
+  upstream input/output/script changed, or a run in it failed) is not
+  verified, in default AND `--strict` mode. Previously default mode passed
+  it (`OK`) and `--strict` mislabelled it `NO_LINEAGE`. Existing code names
+  and integers are unchanged; `NO_LINEAGE` now means only "no lineage at
+  all". Severity ranks above `UNVERIFIED`, below `SOURCE_MISSING`.
+
 ## [0.21.0] — pending release
 
 ### Added

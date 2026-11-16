@@ -149,6 +149,8 @@ def verify(ctx: click.Context, session_id, strict: bool, config, as_json: bool):
       13  NO_LINEAGE      --strict: source has no @stx.session lineage
       17  UNSOURCED       link-verified but ungrounded (no registered source);
                           only when the source gate is active (a manifest exists)
+      18  STALE_LINEAGE   recorded lineage no longer holds (upstream input
+                          changed / a run in it failed) — default and --strict
       20  NO_CLAIMS       no claims registered — nothing to verify
 
     A solver MUST run ``clew verify [--strict]`` before signalling DONE.

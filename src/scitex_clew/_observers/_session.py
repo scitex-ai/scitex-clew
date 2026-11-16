@@ -6,6 +6,26 @@ session manager) at the start and end of a run. They delegate to the
 ``scitex_clew._tracker`` machinery so that a run record is opened on start
 and finalized (with a combined hash) on close.
 
+Failure policy
+--------------
+A provenance hook that fails is NEVER swallowed. It is logged as a WARNING,
+recorded (in :data:`HOOK_FAILURES` for this process and, when the run record
+exists, in the run's ``metadata["hook_failures"]``), and re-raised so the
+session manager can record it too (scitex-session isolates a raising hook and
+stores it in ``CONFIGS/CONFIG.yaml::_HOOK_FAILURES``). An incomplete
+provenance record is therefore always visible, never silent.
+
+Payload (scitex-session >= the capture-completeness release)
+------------------------------------------------------------
+The start hook's ``metadata`` carries ``argv``, ``args``, ``seed``, ``cwd``,
+``python``, ``git``, ``packages``, ``local_modules``, ``sdir_run``,
+``sdir_out``, ``started_at`` and ``capture_errors``. It is stored verbatim as
+the run's metadata; :mod:`scitex_clew._rerun` replays ``argv`` from ``cwd``
+and the close-time completeness check reads ``sdir_out``. A non-empty
+``capture_errors`` is surfaced as a WARNING at start. The close hook accepts
+an optional ``metadata`` dict (e.g. ``{"hook_failures": [...]}``) that is
+merged into the run record.
+
 They import only scitex-clew internals; no scitex-io dependency is needed.
 """
 
@@ -13,21 +33,54 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 
 from .._core import getLogger
 from .._tracker import get_tracker, start_tracking, stop_tracking
 
 logger = getLogger(__name__)
 
+#: Every clew session-hook failure in this process:
+#: ``{"phase", "session_id", "error"}``. Never cleared by clew itself.
+HOOK_FAILURES: list[dict[str, str]] = []
+
+
+def _record_hook_failure(phase: str, session_id: str | None, exc: BaseException):
+    failure = {
+        "phase": phase,
+        "session_id": session_id or "",
+        "error": f"{type(exc).__name__}: {exc}",
+    }
+    HOOK_FAILURES.append(failure)
+    logger.warning(
+        "clew: session-%s hook failed for %s (%s) — provenance for this "
+        "session is INCOMPLETE",
+        phase,
+        session_id or "<unknown session>",
+        failure["error"],
+    )
+    if session_id:
+        try:
+            from .._db import get_db
+
+            get_db().merge_run_metadata(session_id, {"hook_failures": [failure]})
+        except Exception as record_exc:  # the warning above already fired
+            logger.warning(
+                "clew: could not attach the hook failure to run %s (%s)",
+                session_id,
+                record_exc,
+            )
+    return failure
+
 
 def on_session_start(
     session_id: str,
-    script_path: Optional[str] = None,
-    parent_session: Optional[str] = None,
+    script_path: str | None = None,
+    parent_session: str | None = None,
     verbose: bool = False,
-    metadata: Optional[dict] = None,
+    metadata: dict | None = None,
 ) -> None:
     """
     Hook called when a session starts.
@@ -41,9 +94,15 @@ def on_session_start(
     parent_session : str, optional
         Parent session ID for chain tracking
     verbose : bool, optional
-        Whether to log status messages
+        Kept for signature compatibility; failures are warned regardless.
     metadata : dict, optional
-        Additional metadata (e.g. notebook_path, cell_index)
+        Re-run metadata from the session manager (see module docstring).
+
+    Raises
+    ------
+    Exception
+        Whatever opening the run record raised — after it was warned and
+        recorded (see module docstring).
     """
     try:
         start_tracking(
@@ -53,15 +112,27 @@ def on_session_start(
             metadata=metadata,
         )
     except Exception as e:
-        if verbose:
-            logger.warning(f"Could not start verification tracking: {e}")
+        _record_hook_failure("start", session_id, e)
+        raise
+    capture_errors = (
+        (metadata or {}).get("capture_errors") if isinstance(metadata, dict) else None
+    )
+    if capture_errors:
+        logger.warning(
+            "clew: session %s started with %d provenance capture error(s) "
+            "(re-run context is incomplete): %s",
+            session_id,
+            len(capture_errors),
+            capture_errors,
+        )
 
 
 def on_session_close(
     status: str = "success",
     exit_code: int = 0,
     verbose: bool = False,
-    register: Optional[bool] = None,
+    register: bool | None = None,
+    metadata: dict | None = None,
 ) -> None:
     """
     Hook called when a session closes.
@@ -73,96 +144,137 @@ def on_session_close(
     exit_code : int, optional
         Exit code of the script
     verbose : bool, optional
-        Whether to log status messages
+        Kept for signature compatibility; failures are warned regardless.
     register : bool, optional
         If True, register session hashes with remote Clew Registry.
         If None, checks SCITEX_AUTO_REGISTER environment variable.
+    metadata : dict, optional
+        Close-time payload (e.g. ``{"hook_failures": [...]}`` /
+        ``{"capture_errors": [...]}``) merged into the run's metadata.
+
+    Raises
+    ------
+    Exception
+        Whatever finalizing the run raised — after it was warned and recorded.
     """
+    tracker = get_tracker()
+    session_id = tracker.session_id if tracker is not None else None
     try:
-        tracker = get_tracker()
+        if metadata and session_id:
+            tracker._db.merge_run_metadata(session_id, dict(metadata))
+            failures = metadata.get("hook_failures") or []
+            if failures:
+                logger.warning(
+                    "clew: session %s closed with %d provenance hook failure(s): %s",
+                    session_id,
+                    len(failures),
+                    failures,
+                )
         if status == "success":
-            # Provenance-completeness check (#45): a succeeded session that wrote
-            # outputs but recorded ZERO provenance is the #44-class gap. A failed
-            # session's incomplete recording is expected, so only check success.
+            # Provenance-completeness check (#45): a succeeded session whose
+            # output root holds files it never recorded. A failed session's
+            # incomplete recording is expected, so only check success.
             _warn_if_unrecorded_outputs(tracker)
         stop_tracking(status=status, exit_code=exit_code)
-        if _should_auto_register(register) and tracker is not None:
-            _auto_register_session(tracker.session_id)
     except Exception as e:
-        if verbose:
-            logger.warning(f"Could not stop verification tracking: {e}")
+        _record_hook_failure("close", session_id, e)
+        raise
+    if _should_auto_register(register) and session_id is not None:
+        _auto_register_session(session_id)
 
 
-def _warn_if_unrecorded_outputs(tracker) -> None:
-    """WARN if the session wrote outputs but recorded ZERO output provenance.
+#: Session-manager trees under ``sdir_out`` that hold logs/configs, not outputs.
+_SESSION_TREES = ("RUNNING",)
+_SESSION_TREE_PREFIX = "FINISHED"
 
-    The provenance-completeness citizen (#45). The INDEPENDENT saves signal is
-    the session OUTPUT DIR (passed via ``metadata["output_dir"]`` and populated
-    by the save itself) — so it fires precisely when clew's ``on_io_save`` did
-    NOT record (the #44 gap: ``@stx.session`` + ``stx.io.save`` but empty
-    file_hashes), which an on_io_save-derived counter is blind to. Predicate:
 
-        output_dir has >=1 file  AND  tracker recorded 0 outputs  ->  WARN
+def _is_session_tree(rel_parts) -> bool:
+    if not rel_parts:
+        return False
+    head = rel_parts[0]
+    return head in _SESSION_TREES or head.startswith(_SESSION_TREE_PREFIX)
 
-    False-positive-free: a read-only / zero-output session has an empty/absent
-    output dir and stays silent. DEFENSIVE: silently skips when ``output_dir`` is
-    absent from metadata (a pre-enabler scitex-session, or any caller that does
-    not send it), so it is inert-safe until that signal exists and lights up the
-    moment it does. Never raises.
+
+def unrecorded_outputs(
+    sdir_out: str | Path,
+    started_at: str | None,
+    recorded: set,
+) -> list[str]:
+    """Files under ``sdir_out`` written since ``started_at`` and not recorded.
+
+    ``RUNNING/`` and ``FINISHED*/`` (the session manager's log/config trees)
+    are skipped; only files whose mtime is at or after ``started_at`` count,
+    so earlier runs' outputs in the shared ``<script>_out/`` are ignored.
     """
-    try:
-        if tracker is None:
-            return
-        if len(getattr(tracker, "_outputs", {}) or {}) > 0:
-            return  # provenance WAS recorded -> no gap
-        run = tracker._db.get_run(tracker.session_id)
-        if not run:
-            return
-        meta = run.get("metadata")
-        if isinstance(meta, str):
-            meta = json.loads(meta) if meta else {}
-        output_dir = (meta or {}).get("output_dir")
-        if not output_dir:
-            return  # no independent saves signal yet -> skip
-        out = Path(output_dir)
-        if out.is_dir():
-            dirs = [out]
-        else:
-            # The RUNNING output dir may have MOVED to <base>/<final-status>/<id>
-            # by the time this close-hook fires (the RUNNING->FINISHED rename);
-            # resolve by globbing sibling status subdirs for the same session-id
-            # leaf. Best-effort + inert-safe (no match -> skip), so the check is
-            # robust regardless of close-hook-vs-move ordering.
-            base = out.parent.parent
-            dirs = (
-                [d for d in base.glob(f"*/{out.name}") if d.is_dir()]
-                if base.is_dir()
-                else []
-            )
-        if not dirs:
-            return
-        file_count = sum(
-            1 for d in dirs for p in d.rglob("*") if p.is_file()
-        )
-        if file_count == 0:
-            return  # session wrote nothing -> no gap
+    root = Path(sdir_out)
+    if not root.is_dir():
+        return []
+    since = None
+    if started_at:
+        try:
+            since = datetime.fromisoformat(started_at).timestamp()
+        except ValueError:
+            since = None
+    found: list[str] = []
+    for path in root.rglob("*"):
+        try:
+            rel = path.relative_to(root).parts
+        except ValueError:
+            continue
+        if _is_session_tree(rel) or not path.is_file():
+            continue
+        if since is not None and path.stat().st_mtime < since:
+            continue
+        resolved = str(path.resolve())
+        if resolved not in recorded:
+            found.append(resolved)
+    return sorted(found)
+
+
+def _warn_if_unrecorded_outputs(tracker) -> list[str]:
+    """WARN when the session wrote outputs that clew never recorded.
+
+    The INDEPENDENT signal is the session's output root ``sdir_out`` (sent in
+    the start metadata by scitex-session): every file written there since
+    ``started_at`` — outside the ``RUNNING/`` / ``FINISHED*/`` log trees —
+    that is not among the tracker's recorded outputs is an unrecorded output
+    (the #44 gap: a save that bypassed ``on_io_save``). Silently inert when the
+    metadata has no ``sdir_out`` (an older session manager). Returns the
+    unrecorded paths.
+    """
+    if tracker is None:
+        return []
+    run = tracker._db.get_run(tracker.session_id)
+    if not run:
+        return []
+    meta = run.get("metadata")
+    if isinstance(meta, str):
+        meta = json.loads(meta) if meta else {}
+    meta = meta or {}
+    sdir_out = meta.get("sdir_out")
+    if not sdir_out:
+        return []
+    started_at = meta.get("started_at") or run.get("started_at")
+    missing = unrecorded_outputs(
+        sdir_out, started_at, set(getattr(tracker, "_outputs", {}) or {})
+    )
+    if missing:
         logger.warning(
-            "clew: session %s wrote %d output file(s) under %s but recorded ZERO "
-            "provenance — outputs were saved outside a live @stx.session tracker "
-            "(wrap saves in @stx.session, or check the scitex-io observer wiring). "
-            "The submission gate will treat these outputs as UNSOURCED.",
+            "clew: session %s wrote %d output file(s) under %s that were NOT "
+            "recorded as provenance (saved outside a live tracker / not via "
+            "stx.io.save): %s. The submission gate will treat them as UNSOURCED.",
             tracker.session_id,
-            file_count,
-            output_dir,
+            len(missing),
+            sdir_out,
+            missing[:10],
         )
-    except Exception as e:  # completeness is a nicety — never break close
-        logger.debug("clew: session-close completeness check skipped: %s", e)
+    return missing
 
 
 # ── Registry helpers ──
 
 
-def _should_auto_register(register: Optional[bool]) -> bool:
+def _should_auto_register(register: bool | None) -> bool:
     """Check whether auto-registration is enabled."""
     if register is not None:
         return register
@@ -181,7 +293,11 @@ def _auto_register_session(session_id: str) -> None:
 
         get_registry().register_session(session_id)
     except Exception as e:
-        logger.debug("clew: failed to auto-register session %s: %s", session_id, e)
+        logger.warning(
+            "clew: failed to auto-register session %s with the registry: %s",
+            session_id,
+            e,
+        )
 
 
 # EOF

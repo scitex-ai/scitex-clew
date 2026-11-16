@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Main CLI entry point for scitex-clew.
 
 Universal output mode
@@ -19,9 +18,13 @@ import json
 import sys
 
 import click
-
-from scitex_dev.ecosystem import CliHelp, Example, SpecCommand, SpecGroup, deprecated_alias
-from ._help_specs import CLI_HELP
+from scitex_dev.ecosystem import (
+    CliHelp,
+    Example,
+    SpecCommand,
+    SpecGroup,
+    deprecated_alias,
+)
 
 from ._citation import citation, verify_citations_cmd
 from ._claim import claim
@@ -29,6 +32,7 @@ from ._estimate import estimate
 from ._export import export_claims as export_claims_cmd
 from ._export_hints import export_hints as export_hints_cmd
 from ._hash import hash_directory, hash_file
+from ._help_specs import CLI_HELP
 from ._introspect import list_python_apis
 from ._mcp import mcp
 from ._signing import keygen_cmd, sign_cmd, verify_signatures_cmd
@@ -47,6 +51,7 @@ from ._verification import (
     mermaid,
     rerun_claims,
     rerun_dag,
+    slice_cmd,
     stats,
     status,
     verify,
@@ -64,6 +69,7 @@ COMMAND_CATEGORIES = [
             "show-stats",
             "dag",
             "chain",
+            "slice",
             "rerun-dag",
             "rerun-claims",
             "estimate",
@@ -165,7 +171,12 @@ def _get_version() -> str:
         return "0.0.0-unknown"
 
 
-@click.group(invoke_without_command=True, context_settings=CONTEXT_SETTINGS, cls=CategorizedGroup, help_spec=CLI_HELP['main'])
+@click.group(
+    invoke_without_command=True,
+    context_settings=CONTEXT_SETTINGS,
+    cls=CategorizedGroup,
+    help_spec=CLI_HELP["main"],
+)
 @click.option("--version", "-V", is_flag=True, help="Show version and exit.")
 @click.option("--help-recursive", is_flag=True, help="Show help for all commands.")
 @click.option(
@@ -209,10 +220,11 @@ def main(
         click.echo(ctx.get_help())
 
 
-# §1a: install-shell-completion + print-shell-completion are registered
-# via scitex_dev._cli._completion.attach_shell_completion(...) at the
-# bottom of this module. The legacy `completion <SHELL>` positional
-# form is preserved here as a hidden deprecated redirect.
+# Fleet standard completion drop-in v1 (`completion install` / `status`,
+# plus `install-shell-completion` / `print-shell-completion` shims) lives in
+# `_completion.py`. It never touches `~/.bashrc` / `~/.zshrc`. The legacy
+# `completion <SHELL>` positional form is preserved here as a hidden
+# deprecated redirect.
 @main.command(
     "completion-legacy",
     hidden=True,
@@ -220,11 +232,12 @@ def main(
 )
 @click.pass_context
 def completion_legacy(ctx):
-    """(deprecated) Use `install-shell-completion` or `print-shell-completion`."""
+    """(deprecated) Use `completion install`."""
     click.echo(
-        "error: `clew completion <SHELL>` was split into:\n"
-        "  clew install-shell-completion --shell <bash|zsh|fish>\n"
-        "  clew print-shell-completion   --shell <bash|zsh|fish>",
+        "error: `clew completion <SHELL>` was replaced by:\n"
+        "  clew completion install --shell <bash|zsh|fish>\n"
+        "  clew completion status\n"
+        "  clew print-shell-completion --shell <bash|zsh|fish>",
         err=True,
     )
     ctx.exit(2)
@@ -243,6 +256,7 @@ main.add_command(stats)
 main.add_command(mermaid)
 main.add_command(dag)
 main.add_command(chain)
+main.add_command(slice_cmd)
 main.add_command(rerun_dag)
 main.add_command(rerun_claims)
 
@@ -279,27 +293,42 @@ from scitex_dev.cli import docs_click_group, skills_click_group
 main.add_command(docs_click_group(package="scitex-clew"))
 main.add_command(skills_click_group(package="scitex-clew"))
 
-# §1a: install-shell-completion + print-shell-completion (canonical leaves)
-from scitex_dev._cli._completion import attach_shell_completion
+# Fleet standard completion drop-in v1 (`completion install` / `status`,
+# plus `install-shell-completion` / `print-shell-completion` shims) — see
+# `_completion.py`. Owns the `completion` name, so scitex-dev's rc-appending
+# variant must NOT be attached (it would collide on that name and reintroduce
+# the rc-edit path this contract deletes).
+from ._completion import register_completion_commands
 
-attach_shell_completion(main, prog_name="scitex-clew")
+register_completion_commands(main)
 
 
 # audit-cli §1a — packages with _skills/ MUST expose
 # `<cli> skills {list,get,install}`.
 from ._skills import skills_group as _skills_group
 
-@main.group(name="dev", cls=SpecGroup, help_spec=CliHelp(
-    summary="Development and maintenance commands.",
-    examples=(Example("{prog} dev skills list"),),
-))
+
+@main.group(
+    name="dev",
+    cls=SpecGroup,
+    help_spec=CliHelp(
+        summary="Development and maintenance commands.",
+        examples=(Example("{prog} dev skills list"),),
+    ),
+)
 def dev_group():
     """Development and maintenance commands."""
 
 
 dev_group.add_command(_skills_group, name="skills")
 # The legacy skills group is a pure forward; the target retains every option.
-deprecated_alias(main, "skills", target=_skills_group, target_name="dev skills",
-                 phase="warn", remove_in="0.22.0")
+deprecated_alias(
+    main,
+    "skills",
+    target=_skills_group,
+    target_name="dev skills",
+    phase="warn",
+    remove_in="0.22.0",
+)
 
 # EOF

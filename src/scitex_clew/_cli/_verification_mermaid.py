@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Mermaid CLI subcommand: print-mermaid with DAG-slicing options.
 
 Extracted from ``_verification.py`` to keep each module under 512 lines.
@@ -10,11 +9,10 @@ from __future__ import annotations
 import json
 
 import click
-
 from scitex_dev.ecosystem import SpecCommand, SpecGroup
-from ._help_specs import CLI_HELP
 
 from ._claim import _json_mode
+from ._help_specs import CLI_HELP
 
 # Valid grouper names from scitex_clew._groupers._spec._REGISTRY.
 # Keep in sync with that registry if new groupers are added.
@@ -28,7 +26,7 @@ _GROUPER_REGISTRY_NAMES = [
 ]
 
 
-@click.command("print-mermaid", cls=SpecCommand, help_spec=CLI_HELP['mermaid'])
+@click.command("print-mermaid", cls=SpecCommand, help_spec=CLI_HELP["mermaid"])
 @click.option("--claims", is_flag=True, help="Build DAG from registered claims.")
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")
 @click.option(
@@ -91,6 +89,21 @@ _GROUPER_REGISTRY_NAMES = [
         "Defaults to ./clew_dag.<fmt> when omitted."
     ),
 )
+@click.option(
+    "--minimal",
+    is_flag=True,
+    help=(
+        "Draw only the file-level minimal slice of the --target(s)/claims: "
+        "runs and files on a path to the target (see `clew slice`)."
+    ),
+)
+@click.option(
+    "--level",
+    default=1,
+    show_default=True,
+    type=click.IntRange(1, 2),
+    help="Slice level with --minimal (1 path-pruned, 2 declared deps).",
+)
 @click.pass_context
 def mermaid(
     ctx: click.Context,
@@ -102,6 +115,8 @@ def mermaid(
     max_depth: int,
     fmt: str,
     output_path: str | None,
+    minimal: bool,
+    level: int,
 ):
     """Generate Mermaid DAG diagram or static image.
 
@@ -172,6 +187,8 @@ def mermaid(
         max_depth=max_depth,
         show_files=show_files,
         grouper=grouper,
+        minimal=minimal,
+        level=level,
     )
 
     if _json_mode(ctx):
@@ -184,6 +201,8 @@ def mermaid(
                     "grouper": grouper_name,
                     "show_files": show_files,
                     "max_depth": max_depth,
+                    "minimal": minimal,
+                    "level": level if minimal else 0,
                 },
                 default=str,
             )

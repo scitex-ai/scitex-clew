@@ -228,11 +228,10 @@ def _cached_intermediate_hints(
             except Exception:
                 continue
 
-            # Compare truncated hashes (hash_file returns first 32 chars of
-            # sha256 hex; the DB may store the same or a full hex — align by
-            # comparing the shorter prefix of each).
-            min_len = min(len(recorded_hash), len(current_hash))
-            if recorded_hash[:min_len] != current_hash[:min_len]:
+            # Full equality (legacy 32-char rows tolerated, see hashes_match).
+            from ._hash import hashes_match
+
+            if not hashes_match(recorded_hash, current_hash):
                 # Artifact has changed on disk since the producer session —
                 # do NOT suggest reuse of a stale intermediate.
                 continue

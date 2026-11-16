@@ -14,6 +14,7 @@ Public API::
     clew.status()                      # git-status-like overview
     clew.run(session_id)               # verify one run (hash check)
     clew.chain(target_file)            # trace file → source chain
+    clew.slice(target_or_claim)        # minimal file-level provenance slice
     clew.dag(targets)                  # verify full DAG
     clew.rerun(target)                 # re-execute & compare (sandbox)
     clew.rerun_dag(targets)            # rerun full DAG in topo order
@@ -87,7 +88,7 @@ except ImportError:  # pragma: no cover — only on ancient Pythons
 # ``__all__`` itself is declared as a literal below (PA-101 requires it
 # in __init__.py).
 # ---------------------------------------------------------------------------
-from ._core._public_api import _LAZY_ATTRS  # noqa: E402, F401
+from ._core._public_api import _LAZY_ATTRS
 
 # Public API — only these names show in dir() and tab-completion. Result
 # dataclasses (e.g. EstimateResult) stay lazy-only via _LAZY_ATTRS, matching
@@ -98,6 +99,7 @@ __all__ = [
     "status",
     "run",
     "chain",
+    "slice",
     "dag",
     "rerun",
     "rerun_dag",
@@ -153,10 +155,17 @@ __all__ = [
 # __all__ entry to be imported/defined in __init__.py). These run only under
 # type-checking, so they add zero cold-start cost; runtime resolution still
 # goes through __getattr__ + _LAZY_ATTRS below.
-from typing import TYPE_CHECKING  # noqa: E402
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from . import groupers  # noqa: F401
+    from . import groupers
+    from ._attest._registry import ClewRegistry, get_registry  # noqa: F401
+    from ._attest._stamp import (  # noqa: F401
+        Stamp,
+        check_stamp,
+        list_stamps,
+        stamp,
+    )
     from ._chain import (  # noqa: F401
         ChainVerification,
         DAGVerification,
@@ -170,6 +179,14 @@ if TYPE_CHECKING:
         verify_dag_strict,
         verify_file,
         verify_run,
+    )
+    from ._citation import (  # noqa: F401
+        Citation,
+        add_citation,
+        format_citations,
+        list_citations,
+        verify_all_citations,
+        verify_citations,
     )
     from ._claim import (  # noqa: F401
         Claim,
@@ -189,21 +206,25 @@ if TYPE_CHECKING:
         verify_claim,
         verify_claims_dag,
     )
-    from ._citation import (  # noqa: F401
-        Citation,
-        add_citation,
-        format_citations,
-        list_citations,
-        verify_all_citations,
-        verify_citations,
+    from ._cli._exit_codes import Severity  # noqa: F401
+    from ._db import VerificationDB, get_db, reset_db  # noqa: F401
+    from ._estimate import (  # noqa: F401
+        HEAVY_THRESHOLD_SECONDS,
+        EstimateResult,
+        estimate,
     )
+    from ._examples import init_examples
     from ._grounded import grounded_claim_ids  # noqa: F401
-    from ._submission_gate import (  # noqa: F401
-        SubmissionCompletenessError,
-        SubmissionCompletenessResult,
-        assert_submission_complete,
-        check_submission_completeness,
+    from ._hash import (  # noqa: F401
+        combine_hashes,
+        hash_directory,
+        hash_file,
+        hash_files,
+        verify_hash,
     )
+    from ._observers import on_session_close, on_session_start
+    from ._register_intermediate import register_intermediate
+    from ._rerun import rerun_claims, rerun_dag, verify_by_rerun  # noqa: F401
     from ._sources import (  # noqa: F401
         GROUNDING_REASONS,
         SourcesManifest,
@@ -215,31 +236,12 @@ if TYPE_CHECKING:
         resolve_sources_path,
         unregister_source,
     )
-    from ._attest._registry import ClewRegistry, get_registry  # noqa: F401
-    from ._attest._stamp import (  # noqa: F401
-        Stamp,
-        check_stamp,
-        list_stamps,
-        stamp,
+    from ._submission_gate import (  # noqa: F401
+        SubmissionCompletenessError,
+        SubmissionCompletenessResult,
+        assert_submission_complete,
+        check_submission_completeness,
     )
-    from ._cli._exit_codes import Severity  # noqa: F401
-    from ._db import VerificationDB, get_db, reset_db  # noqa: F401
-    from ._estimate import (  # noqa: F401
-        HEAVY_THRESHOLD_SECONDS,
-        EstimateResult,
-        estimate,
-    )
-    from ._examples import init_examples  # noqa: F401
-    from ._hash import (  # noqa: F401
-        combine_hashes,
-        hash_directory,
-        hash_file,
-        hash_files,
-        verify_hash,
-    )
-    from ._observers import on_session_close, on_session_start  # noqa: F401
-    from ._register_intermediate import register_intermediate  # noqa: F401
-    from ._rerun import rerun_claims, rerun_dag, verify_by_rerun  # noqa: F401
     from ._tracker import (  # noqa: F401
         SessionTracker,
         get_tracker,
@@ -291,7 +293,7 @@ def __getattr__(name: str):
     return value
 
 
-def __dir__() -> "list[str]":
+def __dir__() -> list[str]:
     return sorted({*globals().keys(), *_LAZY_ATTRS.keys()})
 
 
@@ -305,7 +307,7 @@ def __dir__() -> "list[str]":
 # functions. Re-binding them here preserves the public API and PA-102 static
 # binding.
 # ---------------------------------------------------------------------------
-from ._core._convenience import (  # noqa: E402
+from ._core._convenience import (
     chain,
     dag,
     estimate,
@@ -313,9 +315,11 @@ from ._core._convenience import (  # noqa: E402
     mermaid,
     rerun,
     run,
+    slice,
     stats,
     status,
 )
+
 
 # ---------------------------------------------------------------------------
 # SOC R6: self-register clew's observer hooks with peer packages (scitex-io

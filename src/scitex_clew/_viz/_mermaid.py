@@ -34,6 +34,8 @@ def generate_mermaid_dag(
     show_hashes: bool = False,
     path_mode: PathMode = "name",
     grouper=None,
+    minimal: bool = False,
+    level: int = 1,
 ) -> str:
     """
     Generate Mermaid diagram for verification DAG.
@@ -56,6 +58,11 @@ def generate_mermaid_dag(
         Whether to show truncated file hashes (default: False)
     path_mode : str, optional
         How to display file paths: "name", "relative", or "absolute"
+    minimal : bool, optional
+        Draw only the file-level minimal slice of the target(s) (see
+        ``scitex_clew.slice``). Ignored in session / all-runs mode.
+    level : int, optional
+        Slice level when ``minimal``.
 
     Returns
     -------
@@ -76,16 +83,26 @@ def generate_mermaid_dag(
             show_hashes=show_hashes,
             path_mode=path_mode,
             grouper=grouper,
+            minimal=minimal,
+            level=level,
         )
 
     db = get_db()
     lines = ["graph TD"]
 
+    # chain_ids is leaf-first (the generators reverse it to draw sources
+    # first); both branches come from the ONE lineage resolver.
+    slice_ = None
     if target_file:
-        chain = verify_chain(target_file)
-        chain_ids = [run.session_id for run in chain.runs]
+        chain = verify_chain(target_file, minimal=minimal, level=level)
+        slice_ = chain.slice
+        chain_ids = [run.session_id for run in reversed(chain.runs)]
+    elif session_id and db.get_run(session_id) is None:
+        chain_ids = []  # unknown session: nothing to draw
     elif session_id:
-        chain_ids = db.get_chain(session_id)
+        from .._chain._routes import resolve_lineage
+
+        chain_ids = list(reversed(resolve_lineage([session_id], db=db).roots_first()))
     else:
         all_runs = db.list_runs(limit=500)
         chain_ids = [r["session_id"] for r in all_runs]
@@ -94,7 +111,7 @@ def generate_mermaid_dag(
         lines.append('    empty["No runs found"]')
         return "\n".join(lines)
 
-    runs_data = collect_runs_data(chain_ids, db)
+    runs_data = collect_runs_data(chain_ids, db, slice_=slice_)
 
     if show_files:
         generate_detailed_dag(lines, runs_data, show_hashes, path_mode, grouper=grouper)
@@ -272,9 +289,7 @@ def render_dag(
         import subprocess
         import tempfile
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".mmd", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
             f.write(mermaid)
             mmd_path = f.name
 

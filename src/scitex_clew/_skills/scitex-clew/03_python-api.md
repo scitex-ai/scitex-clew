@@ -22,8 +22,9 @@ import scitex.clew
 | `status()`                      | Git-status-like dict of verification state                |
 | `list_runs(limit=100, status=None)` | List tracked runs                                     |
 | `run(session_id, from_scratch=False)` | Verify one session by re-hashing every file         |
-| `chain(target)`                 | Trace the provenance chain for a file                     |
-| `dag(targets=None, claims=False)` | Verify the full DAG (or claims-DAG)                     |
+| `chain(target, minimal=False, level=1)` | Trace the provenance chain for a file (`minimal=True`: only its slice) |
+| `slice(target_or_claim, level=1)` | Minimal provenance slice: only runs/files on a path to the target; levels, claim `source_keys`, `project_root=`: [06](06_minimal-slice-and-claim-values.md) |
+| `dag(targets=None, claims=False, minimal=False, level=1)` | Verify the full DAG (or claims-DAG)        |
 | `rerun(target, timeout=300, cleanup=True)` | Re-execute and compare outputs                 |
 | `mermaid(...)`                  | Render Mermaid diagram for the DAG                        |
 | `verify_all_claims(strict=False, config=None)` | Verify every claim; returns a `VerificationResult` (fail-loud `exit_code`/`ok`; the `clew verify` DONE gate) |
@@ -45,8 +46,7 @@ ok = verify_file("results/figure_3.png")
 summary = verify_all_claims(strict=True)   # optional config="path/to/.scitex/clew"
 if not summary.ok:                         # summary.exit_code == 0; see _cli._exit_codes
     abstain(reason=summary.reason)         # never claim success on nonzero
-# summary.errors / summary.warnings list fired patterns by name; per-pattern
-# severity (error vs warning) is tunable in .scitex/clew/config.yaml.
+# summary.errors / summary.warnings list fired patterns by name; per-pattern severity (error vs warning) is tunable in .scitex/clew/config.yaml.
 ```
 
 ## Tracking primitives
@@ -59,8 +59,7 @@ from scitex_clew import (
 )
 ```
 
-`start_tracking()` is invoked automatically by `@stx.session`; you only need
-it when integrating clew into a non-scitex pipeline.
+`start_tracking()` is invoked automatically by `@stx.session`; you only need it when integrating clew into a non-scitex pipeline.
 
 ## Formatting helpers
 

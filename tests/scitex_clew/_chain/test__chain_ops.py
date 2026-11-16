@@ -76,6 +76,24 @@ class _FakeDB:
             return {f: "h" for f in self._inputs_of.get(session_id, [])}
         return {}
 
+    def get_file_records(self, session_id: str, role: str | None = None) -> list:
+        return [
+            {"file_path": f, "hash": h, "recorded_at": None}
+            for f, h in self.get_file_hashes(session_id, role=role).items()
+        ]
+
+    def find_producer_records(self, file_paths: list[str]) -> dict:
+        """Producer records (same "h" content hash) for edge files / targets."""
+        result: dict = {}
+        for fp in file_paths:
+            producers = self.find_session_by_file(fp, role="output")
+            if producers:
+                result[fp] = [
+                    {"session_id": sid, "hash": "h", "recorded_at": None}
+                    for sid in producers
+                ]
+        return result
+
     def get_chain(self, session_id: str) -> list[str]:
         return list(self._chain)
 
@@ -327,8 +345,10 @@ def test_get_status_handles_empty_db():
         "verified_count": 0,
         "mismatch_count": 0,
         "missing_count": 0,
+        "failed_count": 0,
         "mismatched": [],
         "missing": [],
+        "failed": [],
     }
 
 

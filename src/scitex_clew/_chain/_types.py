@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 
 class VerificationStatus(Enum):
@@ -24,11 +24,17 @@ class VerificationStatus(Enum):
     failures the same as local failures) opt back in via the
     ``collapse_suspect`` knob on the helpers that emit this enum — the
     default emits SUSPECT.
+
+    FAILED marks a run whose recorded execution status is ``failed`` /
+    ``error``: whatever files it left behind are not evidence, so it is never
+    VERIFIED regardless of how its file hashes compare. Downstream consumers
+    of a FAILED run's outputs are SUSPECT.
     """
 
     VERIFIED = "verified"
     MISMATCH = "mismatch"
     SUSPECT = "suspect"
+    FAILED = "failed"
     MISSING = "missing"
     UNKNOWN = "unknown"
 
@@ -53,7 +59,7 @@ class FileVerification:
     path: str
     role: str
     expected_hash: str
-    current_hash: Optional[str]
+    current_hash: str | None
     status: VerificationStatus
     frozen: bool = False
     """True when verification trusted the recorded hash without re-reading the file.
@@ -74,14 +80,14 @@ class RunVerification:
     """Verification result for a session run."""
 
     session_id: str
-    script_path: Optional[str]
+    script_path: str | None
     status: VerificationStatus
-    files: List[FileVerification]
-    combined_hash_expected: Optional[str]
-    combined_hash_current: Optional[str]
+    files: list[FileVerification]
+    combined_hash_expected: str | None
+    combined_hash_current: str | None
     level: VerificationLevel = VerificationLevel.CACHE
     provenance: str = "tracked"
-    exception_reason: Optional[str] = None
+    exception_reason: str | None = None
 
     @property
     def is_verified(self) -> bool:
@@ -92,19 +98,19 @@ class RunVerification:
         return self.is_verified and self.level == VerificationLevel.RERUN
 
     @property
-    def inputs(self) -> List[FileVerification]:
+    def inputs(self) -> list[FileVerification]:
         return [f for f in self.files if f.role == "input"]
 
     @property
-    def outputs(self) -> List[FileVerification]:
+    def outputs(self) -> list[FileVerification]:
         return [f for f in self.files if f.role == "output"]
 
     @property
-    def mismatched_files(self) -> List[FileVerification]:
+    def mismatched_files(self) -> list[FileVerification]:
         return [f for f in self.files if f.status == VerificationStatus.MISMATCH]
 
     @property
-    def missing_files(self) -> List[FileVerification]:
+    def missing_files(self) -> list[FileVerification]:
         return [f for f in self.files if f.status == VerificationStatus.MISSING]
 
 
@@ -113,15 +119,18 @@ class ChainVerification:
     """Verification result for a dependency chain."""
 
     target_file: str
-    runs: List[RunVerification]
+    runs: list[RunVerification]
     status: VerificationStatus
+    #: The minimal slice the chain was verified over (``minimal=True``);
+    #: ``None`` for the run-level closure.
+    slice: Any = None
 
     @property
     def is_verified(self) -> bool:
         return self.status == VerificationStatus.VERIFIED
 
     @property
-    def failed_runs(self) -> List[RunVerification]:
+    def failed_runs(self) -> list[RunVerification]:
         return [r for r in self.runs if not r.is_verified]
 
 
@@ -129,18 +138,20 @@ class ChainVerification:
 class DAGVerification:
     """Verification result for a multi-target DAG."""
 
-    target_files: List[str]
-    runs: List[RunVerification]
-    edges: List[Tuple[str, str]]  # (parent_sid, child_sid)
+    target_files: list[str]
+    runs: list[RunVerification]
+    edges: list[tuple[str, str]]  # (parent_sid, child_sid)
     status: VerificationStatus
-    topological_order: List[str]
+    topological_order: list[str]
+    #: The minimal slice the DAG was verified over (``minimal=True``).
+    slice: Any = None
 
     @property
     def is_verified(self) -> bool:
         return self.status == VerificationStatus.VERIFIED
 
     @property
-    def failed_runs(self) -> List[RunVerification]:
+    def failed_runs(self) -> list[RunVerification]:
         return [r for r in self.runs if not r.is_verified]
 
 

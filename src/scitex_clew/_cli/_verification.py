@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Verification CLI subcommands — thin orchestrator.
 
 Commands are implemented in focused sub-modules:
@@ -28,6 +27,7 @@ from ._verification_dag import (
     dag,
     rerun_claims,
     rerun_dag,
+    slice_cmd,
 )
 from ._verification_mermaid import (
     _GROUPER_REGISTRY_NAMES,
@@ -43,6 +43,7 @@ __all__ = [
     # dag
     "dag",
     "chain",
+    "slice_cmd",
     "rerun_dag",
     "rerun_claims",
     # mermaid

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Eager public convenience wrappers for scitex_clew.
 
 Extracted from ``__init__.py`` to keep that file under the 512-line limit, and
@@ -15,6 +14,7 @@ module itself therefore adds no measurable cold-start cost (audit §10).
 """
 
 from __future__ import annotations
+
 
 # ---------------------------------------------------------------------------
 # Lazy decorator from scitex-dev (audit §10 cold-start)
@@ -97,11 +97,48 @@ def run(session_id: str, from_scratch: bool = False):
 
 
 @_supports_return_as
-def chain(target: str):
-    """Verify the dependency chain for a target file."""
+def chain(target: str, minimal: bool = False, level: int = 1):
+    """Verify the dependency chain for a target file.
+
+    ``minimal=True`` verifies only the file-level minimal slice (see
+    :func:`slice`) at ``level``.
+    """
     from .._chain import verify_chain
 
-    return verify_chain(target)
+    return verify_chain(target, minimal=minimal, level=level)
+
+
+@_supports_return_as
+def slice(target, level: int = 1):
+    """File-level minimal provenance slice of a target file or claim.
+
+    Returns only the file nodes and runs on paths that end at the target.
+
+    Parameters
+    ----------
+    target : str, Path, or list of them
+        Target file(s), claim id(s), or ``paper.tex:L42`` claim locations.
+    level : int, optional
+        0 = run-level closure (every input/output of every ancestor run);
+        1 = path-pruned (default): drop runs/files not on any path to the
+        target, sibling outputs and their consumers; 2 = additionally use
+        per-output ``derived_from`` declarations where a tool recorded them
+        (falls back to level 1 per run otherwise).
+
+    Returns
+    -------
+    ProvenanceSlice
+        ``.runs``, ``.files``, ``.edges``, ``.counts()`` and the dropped /
+        fallback diagnostics; ``.to_dict()`` for JSON.
+    """
+    from pathlib import Path
+
+    from .._chain._slice import build_slice
+
+    targets = list(target) if isinstance(target, (list, tuple)) else [target]
+    return build_slice(
+        [str(t) if isinstance(t, Path) else t for t in targets], level=level
+    )
 
 
 @_supports_return_as
@@ -114,7 +151,7 @@ def stats():
 
 
 @_supports_return_as
-def dag(targets=None, claims=False, strict=False):
+def dag(targets=None, claims=False, strict=False, minimal=False, level=1):
     """Verify the DAG for multiple targets or all claims.
 
     Parameters
@@ -127,6 +164,10 @@ def dag(targets=None, claims=False, strict=False):
         If True (F2), return a failure-attribution dict with
         ``failed_node`` / ``root_cause`` / ``invalidated_claims`` /
         ``still_valid_claims`` instead of a ``DAGVerification``.
+    minimal : bool, optional
+        Verify only the file-level minimal slice (see :func:`slice`).
+    level : int, optional
+        Slice level when ``minimal``.
     """
     if strict:
         from .._chain import verify_dag_strict
@@ -135,10 +176,10 @@ def dag(targets=None, claims=False, strict=False):
     if claims:
         from .._claim import verify_claims_dag
 
-        return verify_claims_dag()
+        return verify_claims_dag(minimal=minimal, level=level)
     from .._chain import verify_dag
 
-    return verify_dag(targets or [])
+    return verify_dag(targets or [], minimal=minimal, level=level)
 
 
 @_supports_return_as
@@ -220,7 +261,8 @@ def estimate(script_or_target: str, *, heavy_threshold: int = None):
         Estimation result with match_tier, p50/p90 runtime, success rate,
         typical #outputs, heavy flag, and hint text.
     """
-    from .._estimate import HEAVY_THRESHOLD_SECONDS, estimate as _estimate
+    from .._estimate import HEAVY_THRESHOLD_SECONDS
+    from .._estimate import estimate as _estimate
 
     kwargs = {}
     if heavy_threshold is not None:
@@ -231,15 +273,16 @@ def estimate(script_or_target: str, *, heavy_threshold: int = None):
 
 
 __all__ = [
-    "list_runs",
-    "status",
-    "run",
     "chain",
-    "stats",
     "dag",
-    "rerun",
-    "mermaid",
     "estimate",
+    "list_runs",
+    "mermaid",
+    "rerun",
+    "run",
+    "slice",
+    "stats",
+    "status",
 ]
 
 # EOF

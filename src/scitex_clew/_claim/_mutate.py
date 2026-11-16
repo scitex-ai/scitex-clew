@@ -11,6 +11,7 @@ from pathlib import Path
 from scitex_dev.store import ANY_REVISION
 
 from .._db import get_db
+from .._db._paths import with_project_root
 from ._model import _file_path_matches_prefix, _resolve_claim
 from ._store import _open_store
 
@@ -33,6 +34,7 @@ def _auto_export(context: str) -> None:
         )
 
 
+@with_project_root
 def remove_claim(claim_id_or_location: str) -> bool:
     """Hard-delete a claim from the database.
 
@@ -77,6 +79,7 @@ def remove_claim(claim_id_or_location: str) -> bool:
     return True
 
 
+@with_project_root
 def remove_claims_by_prefix(file_path_prefix: str) -> int:
     """Hard-delete all claims whose file_path starts with ``file_path_prefix``.
 
@@ -110,6 +113,7 @@ def remove_claims_by_prefix(file_path_prefix: str) -> int:
     return deleted
 
 
+@with_project_root
 def supersede_claim(claim_id_or_location: str) -> bool:
     """Soft-retire a claim by setting its status to ``"superseded"``.
 
@@ -155,6 +159,7 @@ def supersede_claim(claim_id_or_location: str) -> bool:
     return True
 
 
+@with_project_root
 def supersede_claims_by_prefix(file_path_prefix: str) -> int:
     """Soft-retire all claims whose file_path starts with ``file_path_prefix``.
 

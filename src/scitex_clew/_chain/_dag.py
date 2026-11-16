@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from .._db import get_db
 from ._hash_cache import new_hash_cache
+from ._routes import current_hash_or_none, resolve_file_dag, resolve_producer
 from ._types import (
     DAGVerification,
     FileVerification,
@@ -22,7 +23,7 @@ from ._types import (
 from ._verify_ops import verify_run
 
 
-def _topological_sort(adjacency: Dict[str, List[str]]) -> List[str]:
+def _topological_sort(adjacency: dict[str, list[str]]) -> list[str]:
     """Topological sort of DAG using Kahn's algorithm.
 
     Parameters
@@ -42,8 +43,8 @@ def _topological_sort(adjacency: Dict[str, List[str]]) -> List[str]:
     """
     # Build in-degree and forward adjacency (parent -> children)
     all_nodes = set()
-    forward: Dict[str, List[str]] = defaultdict(list)
-    in_degree: Dict[str, int] = {}
+    forward: dict[str, list[str]] = defaultdict(list)
+    in_degree: dict[str, int] = {}
 
     for child, parents in adjacency.items():
         all_nodes.add(child)
@@ -72,7 +73,10 @@ def _topological_sort(adjacency: Dict[str, List[str]]) -> List[str]:
 
 
 def verify_dag(
-    targets: List[Union[str, Path]],
+    targets: list[str | Path],
+    *,
+    minimal: bool = False,
+    level: int = 1,
 ) -> DAGVerification:
     """Verify the full DAG for one or more target files.
 
@@ -83,6 +87,11 @@ def verify_dag(
     ----------
     targets : list of str or Path
         Target files to trace back to sources
+    minimal : bool, optional
+        Verify only the file-level minimal slice of the targets (see
+        :mod:`scitex_clew._chain._slice`). Default False: run-level closure.
+    level : int, optional
+        Slice level when ``minimal`` (1 path-pruned, 2 declared deps).
 
     Returns
     -------
@@ -97,9 +106,9 @@ def verify_dag(
     for target in targets:
         target_str = str(Path(target).resolve())
         resolved_targets.append(target_str)
-        sessions = db.find_session_by_file(target_str, role="output")
-        if sessions:
-            leaf_sessions.append(sessions[0])
+        leaf = resolve_producer(db, target_str, current_hash_or_none(target_str))
+        if leaf is not None and leaf not in leaf_sessions:
+            leaf_sessions.append(leaf)
 
     if not leaf_sessions:
         return DAGVerification(
@@ -110,13 +119,16 @@ def verify_dag(
             topological_order=[],
         )
 
-    # Resolve the DAG via file save->load handshakes (bounded + deduped),
-    # NOT the legacy session_parents junction (which accreted every historical
-    # producer of every shared/config input -> dense, unreadable, slow). See
-    # ._routes for the model.
-    from ._routes import resolve_file_dag
+    # Resolve the DAG with the ONE lineage resolver (hash-bound save->load
+    # handshakes, bounded + deduped). See ._routes for the model.
+    slice_ = None
+    if minimal:
+        from ._slice import build_slice
 
-    adjacency, all_ids = resolve_file_dag(leaf_sessions, db=db)
+        slice_ = build_slice(resolved_targets, level=level, db=db)
+        adjacency = {sid: list(slice_.parents.get(sid, [])) for sid in slice_.runs}
+    else:
+        adjacency, all_ids = resolve_file_dag(leaf_sessions, db=db)
 
     # Topological sort (roots first)
     topo_order = _topological_sort(adjacency)
@@ -125,9 +137,14 @@ def verify_dag(
     # all sessions in this pass so a file referenced by multiple sessions is
     # hashed from disk only once.
     hash_cache = new_hash_cache()
-    verifications: Dict[str, RunVerification] = {}
+    verifications: dict[str, RunVerification] = {}
     for sid in topo_order:
-        verifications[sid] = verify_run(sid, propagate=False, hash_cache=hash_cache)
+        verifications[sid] = verify_run(
+            sid,
+            propagate=False,
+            hash_cache=hash_cache,
+            slice_files=slice_.run_files(sid) if slice_ else None,
+        )
 
     # Propagate failures forward through the DAG
     failed_sessions: set = set()
@@ -160,6 +177,10 @@ def verify_dag(
     ):
         status = VerificationStatus.MISSING
     elif any(
+        verifications[sid].status == VerificationStatus.FAILED for sid in topo_order
+    ):
+        status = VerificationStatus.FAILED
+    elif any(
         verifications[sid].status == VerificationStatus.SUSPECT for sid in topo_order
     ):
         status = VerificationStatus.SUSPECT
@@ -172,6 +193,7 @@ def verify_dag(
         edges=edges,
         status=status,
         topological_order=topo_order,
+        slice=slice_,
     )
 
 
@@ -180,7 +202,7 @@ def verify_dag(
 # ---------------------------------------------------------------------------
 
 
-def _file_to_node(fv: FileVerification, sid: str) -> Dict[str, Any]:
+def _file_to_node(fv: FileVerification, sid: str) -> dict[str, Any]:
     """Convert a FileVerification + owning session to the F2 'node' dict."""
     return {
         "session_id": sid,
@@ -192,7 +214,7 @@ def _file_to_node(fv: FileVerification, sid: str) -> Dict[str, Any]:
     }
 
 
-def _root_cause_file(failed_files: List[FileVerification]) -> FileVerification:
+def _root_cause_file(failed_files: list[FileVerification]) -> FileVerification:
     """For the upstream-most failed session, prefer the input file that diverged."""
     inputs = [f for f in failed_files if f.role == "input"]
     if inputs:
@@ -200,7 +222,7 @@ def _root_cause_file(failed_files: List[FileVerification]) -> FileVerification:
     return failed_files[0]
 
 
-def _failed_node_file(failed_files: List[FileVerification]) -> FileVerification:
+def _failed_node_file(failed_files: list[FileVerification]) -> FileVerification:
     """For the downstream-most failed session, prefer the output (the artifact)."""
     outputs = [f for f in failed_files if f.role == "output"]
     if outputs:
@@ -208,21 +230,20 @@ def _failed_node_file(failed_files: List[FileVerification]) -> FileVerification:
     return failed_files[0]
 
 
-def _resolve_claim_session(claim, db) -> Optional[str]:
+def _resolve_claim_session(claim, db) -> str | None:
     """Best-effort resolve a claim to its source session id."""
     if claim.source_session:
         return claim.source_session
     if claim.source_file:
-        sids = db.find_session_by_file(claim.source_file, role="output")
-        if sids:
-            return sids[0]
+        # The producer of the bytes the claim was registered against.
+        return resolve_producer(db, claim.source_file, claim.source_hash)
     return None
 
 
 def verify_dag_strict(
-    targets: Optional[List[Union[str, Path]]] = None,
+    targets: list[str | Path] | None = None,
     claims: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Verify a DAG and attribute the failure (F2).
 
     Parameters
@@ -257,10 +278,10 @@ def verify_dag_strict(
         result = verify_dag([str(t) for t in (targets or [])])
 
     # Map session_id → RunVerification.
-    by_sid: Dict[str, RunVerification] = {r.session_id: r for r in result.runs}
+    by_sid: dict[str, RunVerification] = {r.session_id: r for r in result.runs}
 
     # Sessions whose own file hashes failed (not just propagated upstream failure).
-    own_failures: "dict[str, list[FileVerification]]" = {}
+    own_failures: dict[str, list[FileVerification]] = {}
     for sid in result.topological_order:
         run = by_sid.get(sid)
         if run is None:
@@ -272,9 +293,12 @@ def verify_dag_strict(
         ]
         if files_failed:
             own_failures[sid] = files_failed
+        elif run.status == VerificationStatus.FAILED:
+            # Execution failed with intact files: the run itself is the fault.
+            own_failures[sid] = list(run.outputs) or list(run.files)
 
     db = get_db()
-    all_claims = list_claims(limit=10000)
+    all_claims = list_claims(limit=10_000)
 
     if result.is_verified:
         return {
@@ -290,7 +314,7 @@ def verify_dag_strict(
 
     # FAIL path -----------------------------------------------------------
     # Compute blast radius: failed sessions ∪ everything downstream.
-    forward: Dict[str, List[str]] = defaultdict(list)
+    forward: dict[str, list[str]] = defaultdict(list)
     for parent, child in result.edges:
         forward[parent].append(child)
 
@@ -332,15 +356,16 @@ def verify_dag_strict(
     )
 
     # Resolve claims against the invalidated session set.
-    invalidated_claim_ids: List[str] = []
-    still_valid_claim_ids: List[str] = []
+    invalidated_claim_ids: list[str] = []
+    still_valid_claim_ids: list[str] = []
     for c in all_claims:
         cs = _resolve_claim_session(c, db)
         if cs is None:
             still_valid_claim_ids.append(c.claim_id)
             continue
-        chain = db.get_chain(cs)
-        if any(s in invalidated_sessions for s in chain):
+        # Same resolver as every other view: the claim's hash-bound lineage.
+        _adj, lineage_ids = resolve_file_dag([cs], db=db)
+        if any(s in invalidated_sessions for s in lineage_ids):
             invalidated_claim_ids.append(c.claim_id)
         else:
             still_valid_claim_ids.append(c.claim_id)
