@@ -15,7 +15,25 @@ versions follow [Semantic Versioning](https://semver.org/).
   and level 2 silently fell back to level 1. An undeclared re-record now
   keeps it, a second declaration is unioned, and new bytes replace it.
 
-## [0.22.0] — 2026-11-16
+## [0.22.1] — 2026-11-17
+
+Packaging-fix release. **0.22.0 was tagged (`v0.22.0`) but never published to
+PyPI**: its tag build stopped at the distribution check, so 0.22.1 is the
+first published release carrying the 0.22.0 features — see the 0.22.0
+notes below for the full list (minimal provenance
+slice `clew.slice` / `clew slice`, claim value-vs-source `VALUE_MISMATCH`
+(21), `STALE_LINEAGE` (18), `VERIFY_ERROR` (19), the `FAILED` run status,
+additive claim-store columns).
+
+### Fixed
+
+- Packaged CLI-audit dictionary `src/scitex_clew/_cli_audit_dict.yaml` synced
+  with its source `.scitex/dev/cli-audit-dict.yaml` (it lacked the `slice`
+  verb), which had failed the release build's byte-identity check.
+- New test `tests/develop/test_packaged_cli_audit_dict.py` asserts the two
+  stay byte-identical, so PR CI catches this drift before tag time.
+
+## [0.22.0] — 2026-11-16 (tagged, never published to PyPI)
 
 Minor release: new exit codes `STALE_LINEAGE` (18), `VERIFY_ERROR` (19),
 `VALUE_MISMATCH` (21), the `FAILED` run status, the `clew.slice` / `clew slice`
