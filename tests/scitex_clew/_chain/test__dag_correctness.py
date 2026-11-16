@@ -355,6 +355,25 @@ class TestStaleLineageClaim:
         # Assert
         assert result.exit_name == "STALE_LINEAGE"
 
+    def test_verify_claim_reports_stale_chain_status(self, tmp_path):
+        # Arrange
+        raw = _two_step_pipeline_with_symlinked_claim(tmp_path)
+        raw.write_text("a,b\n9,9\n")
+        (claim,) = clew.list_claims()
+        # Act
+        result = clew.verify_claim(claim.claim_id)
+        # Assert
+        assert result["chain_status"] == VerificationStatus.SUSPECT.value
+
+    def test_verify_claim_intact_lineage_is_verified(self, tmp_path):
+        # Arrange
+        _two_step_pipeline_with_symlinked_claim(tmp_path)
+        (claim,) = clew.list_claims()
+        # Act
+        result = clew.verify_claim(claim.claim_id)
+        # Assert
+        assert result["claim"]["status"] == "verified"
+
     def test_hand_written_leaf_still_no_lineage_in_strict(self, tmp_path):
         # Arrange
         src = tmp_path / "results.json"
