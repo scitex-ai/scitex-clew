@@ -39,6 +39,12 @@ clew verify <SESSION_ID>
 # Trace + verify the full provenance chain that produced a file
 clew chain results/fig1.png
 clew chain results/fig1.png --json
+clew chain results/fig1.png --minimal    # only the file-level minimal slice
+
+# Minimal provenance slice: only runs/files on a path to the target
+clew slice results/fig1.png              # level 1 (path-pruned, default)
+clew slice results/fig1.png --compare    # node/edge counts at levels 0/1/2
+clew slice <claim_id> --level 2 --json   # level 2 honours derived_from
 
 # Verify the DAG for explicit targets, or every claim (hash-only)
 clew dag --target results/fig1.png --target results/table1.csv
@@ -51,7 +57,12 @@ clew show-stats
 ## Re-execution commands (slow, gold-standard reproducibility)
 
 These actually re-run scripts in a sandbox and compare outputs; originals are
-never overwritten. Use when hash-only checks aren't enough.
+never overwritten. Use when hash-only checks aren't enough. A replay runs the
+recorded `argv` from the recorded `cwd` against a sandbox copy of the script
+(outputs land in the sandbox's `<script>_out/`; runs whose outputs live
+elsewhere are refused), compares outputs by relative path + full hash, then
+removes the sandbox and hides the replay's records. A failing replay is
+`FAILED`.
 
 ```bash
 # Re-run the whole DAG (or just the upstream of given targets) in topo order
@@ -71,6 +82,7 @@ clew print-mermaid
 
 # Generate Mermaid DAG from registered claims
 clew print-mermaid --claims
+clew print-mermaid --claims --minimal    # only the claims' minimal slice
 
 # Target a store outside the current tree (host-side / post-run)
 clew print-mermaid --claims
@@ -81,7 +93,10 @@ clew print-mermaid --claims
 ```bash
 clew claim add --file-path paper.tex --type statistic --value 'p=0.003'
 clew claim list --file-path paper.tex --type statistic
-clew claim verify <claim_id>
+clew claim verify <claim_id> --project-root /abs/path/to/paper
+# Locate the value inside its source; verify re-reads and compares it
+clew claim add --file-path paper.tex --type value --value 0.91 \
+    --source-file results.json --source-keys '{"pointer": "/test/auc"}'
 
 # Register a computed intermediate value (with upstream support) as a claim
 clew claim register-intermediate --name n_sig_pathways --value 42 \

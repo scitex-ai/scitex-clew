@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Nuanced, fail-loud exit codes for ``clew verify`` (claim-set mode).
 
 Motivation
@@ -67,6 +66,13 @@ STALE_LINEAGE 18     A claim's source hashes fine and HAS recorded
                      claimed value may no longer follow from its inputs.
                      Fires in BOTH default and ``--strict`` mode (a
                      stale claim is never reported verified).
+VERIFY_ERROR  19     Verification of a claim could not complete (the
+                     lineage walk raised, or a declared source locator
+                     could not be read). Never reported OK: an unchecked
+                     claim is not a verified claim.
+VALUE_MISMATCH 21    The claim carries ``source_keys`` and a value
+                     read from the source at that locator disagrees with
+                     ``claim_value`` beyond the declared tolerance.
 CITATION_UNLINKED 16  At least one ``\\cite{}`` key present in the
                      manuscript has no clew citation node at all — never
                      registered by scholar and nothing to judge it against
@@ -83,9 +89,10 @@ which outranks the empty set.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 # --- The documented contract ------------------------------------------------
 OK: int = 0
@@ -111,10 +118,14 @@ UNSOURCED: int = 17
 # A claim's recorded lineage exists but no longer verifies (changed upstream
 # input / failed run). Distinct from NO_LINEAGE (no lineage at all).
 STALE_LINEAGE: int = 18
+# Verification itself failed (e.g. the lineage walk raised): never OK.
+VERIFY_ERROR: int = 19
 NO_CLAIMS: int = 20
+# The claimed value disagrees with the value read at one of its source_keys.
+VALUE_MISMATCH: int = 21
 
 # Human-readable name per code (for summaries / JSON payloads).
-NAMES: Dict[int, str] = {
+NAMES: dict[int, str] = {
     OK: "OK",
     UNVERIFIED: "UNVERIFIED",
     SOURCE_MISSING: "SOURCE_MISSING",
@@ -125,11 +136,13 @@ NAMES: Dict[int, str] = {
     CITATION_UNLINKED: "CITATION_UNLINKED",
     UNSOURCED: "UNSOURCED",
     STALE_LINEAGE: "STALE_LINEAGE",
+    VERIFY_ERROR: "VERIFY_ERROR",
     NO_CLAIMS: "NO_CLAIMS",
+    VALUE_MISMATCH: "VALUE_MISMATCH",
 }
 
 # One-line reason per code (printed in the human summary; embedded in JSON).
-REASONS: Dict[int, str] = {
+REASONS: dict[int, str] = {
     OK: "all registered claims are source-verified",
     UNVERIFIED: (
         "claims registered but not verified (verified_at is null / no "
@@ -150,8 +163,7 @@ REASONS: Dict[int, str] = {
         "(registered but not resolved to a DOI-bearing source)"
     ),
     CITATION_UNLINKED: (
-        "a cited key has no clew citation node at all "
-        "(never registered by scholar)"
+        "a cited key has no clew citation node at all (never registered by scholar)"
     ),
     UNSOURCED: (
         "a claim is link-hash-verified but its provenance chain reaches no "
@@ -162,6 +174,14 @@ REASONS: Dict[int, str] = {
         "a claim's recorded lineage no longer holds (an upstream input, "
         "output or script changed, or a run in it failed) — re-run the "
         "pipeline"
+    ),
+    VERIFY_ERROR: (
+        "a claim's verification could not complete (lineage walk or source "
+        "locator read raised) — it is NOT verified"
+    ),
+    VALUE_MISMATCH: (
+        "a claim's value disagrees with the value read from its source at the "
+        "declared locator (beyond tolerance)"
     ),
     NO_CLAIMS: "no claims registered — nothing to verify",
 }
@@ -174,18 +194,20 @@ REASONS: Dict[int, str] = {
 # failures: a hash-failing OR never-verified claim reports its stronger code,
 # never the amber source-gate one. This mirrors the status-colour precedence
 # (mismatch/missing outrank unsourced).
-SEVERITY: Dict[int, int] = {
+SEVERITY: dict[int, int] = {
     OK: 0,
     NO_CLAIMS: 1,
     NO_LINEAGE: 2,
     UNSOURCED: 3,
     UNVERIFIED: 4,
     STALE_LINEAGE: 5,
-    SOURCE_MISSING: 6,
-    HASH_MISMATCH: 7,
-    CITATION_UNLINKED: 8,
-    CITATION_UNRESOLVED: 9,
-    CITATION_STUB: 10,
+    VERIFY_ERROR: 6,
+    VALUE_MISMATCH: 7,
+    SOURCE_MISSING: 8,
+    HASH_MISMATCH: 9,
+    CITATION_UNLINKED: 10,
+    CITATION_UNRESOLVED: 11,
+    CITATION_STUB: 12,
 }
 
 
@@ -223,7 +245,7 @@ class Severity(Enum):
 
 
 # Stable lowercase config keys <-> exit codes (the verify.severity schema).
-KEY_BY_CODE: Dict[int, str] = {
+KEY_BY_CODE: dict[int, str] = {
     UNVERIFIED: "unverified",
     SOURCE_MISSING: "source_missing",
     HASH_MISMATCH: "hash_mismatch",
@@ -233,16 +255,18 @@ KEY_BY_CODE: Dict[int, str] = {
     CITATION_UNLINKED: "citation_unlinked",
     UNSOURCED: "unsourced",
     STALE_LINEAGE: "stale_lineage",
+    VERIFY_ERROR: "verify_error",
+    VALUE_MISMATCH: "value_mismatch",
     NO_CLAIMS: "no_claims",
 }
-CODE_BY_KEY: Dict[str, int] = {key: code for code, key in KEY_BY_CODE.items()}
+CODE_BY_KEY: dict[str, int] = {key: code for code, key in KEY_BY_CODE.items()}
 
 # Default posture: fail-loud on every integrity/fabrication pattern. NO_LINEAGE
 # defaults to WARNING because it only fires under --strict, which itself
 # promotes it to ERROR (the flag means "require real computation, fatally").
 # All citation patterns default ERROR: a hallucinated / unresolved / unlinked
 # citation must block a research-project compile ("一発アウト").
-DEFAULT_SEVERITY: Dict[int, Severity] = {
+DEFAULT_SEVERITY: dict[int, Severity] = {
     UNVERIFIED: Severity.ERROR,
     SOURCE_MISSING: Severity.ERROR,
     HASH_MISMATCH: Severity.ERROR,
@@ -254,6 +278,9 @@ DEFAULT_SEVERITY: Dict[int, Severity] = {
     UNSOURCED: Severity.ERROR,
     # A stale lineage is an integrity failure: fail by default, both modes.
     STALE_LINEAGE: Severity.ERROR,
+    # An unverifiable claim and a value that contradicts its source both fail.
+    VERIFY_ERROR: Severity.ERROR,
+    VALUE_MISMATCH: Severity.ERROR,
     NO_CLAIMS: Severity.ERROR,
 }
 
@@ -272,11 +299,11 @@ def _coerce_severity(value: object, *, key: str, source: str) -> Severity:
 
 
 def _apply_overrides(
-    sev: Dict[int, Severity],
+    sev: dict[int, Severity],
     raw: Mapping[str, object],
     *,
     source: str,
-) -> Dict[int, Severity]:
+) -> dict[int, Severity]:
     """Overlay a ``{pattern_key: severity}`` mapping (fail-loud on bad keys)."""
     for key, value in dict(raw).items():
         code = CODE_BY_KEY.get(str(key).strip().lower())
@@ -291,17 +318,17 @@ def _apply_overrides(
 
 def resolve_severity(
     *,
-    overrides: Optional[Mapping[str, object]] = None,
-    start: Optional[Path] = None,
-    explicit: Optional[Union[str, Path]] = None,
+    overrides: Mapping[str, object] | None = None,
+    start: Path | None = None,
+    explicit: str | Path | None = None,
     strict: bool = False,
-) -> Dict[int, Severity]:
+) -> dict[int, Severity]:
     """Resolve per-pattern severity: defaults < ``.scitex/clew`` config < overrides.
 
     ``--strict`` promotes :data:`NO_LINEAGE` to ERROR regardless of config.
     Raises on an unknown pattern key or an invalid severity value.
     """
-    sev: Dict[int, Severity] = dict(DEFAULT_SEVERITY)
+    sev: dict[int, Severity] = dict(DEFAULT_SEVERITY)
 
     from .._core import load_config  # lazy: avoid an import cycle at load time
 
@@ -319,7 +346,7 @@ def resolve_severity(
 def classify_exit(
     fired_codes: Iterable[int],
     severities: Mapping[int, Severity],
-) -> Tuple[int, List[str], List[str]]:
+) -> tuple[int, list[str], list[str]]:
     """Reduce fired pattern codes to ``(exit_code, error_names, warning_names)``.
 
     A pattern contributes to the exit code only if its resolved severity is
@@ -327,8 +354,8 @@ def classify_exit(
     :func:`worst_code`). WARNING patterns are surfaced but never fail the run;
     IGNORE patterns are dropped. Returns ``OK`` when no ERROR pattern fired.
     """
-    errors: List[int] = []
-    warnings: List[int] = []
+    errors: list[int] = []
+    warnings: list[int] = []
     for code in fired_codes:
         if code == OK:
             continue
@@ -343,29 +370,31 @@ def classify_exit(
 
 
 __all__ = [
-    "OK",
-    "UNVERIFIED",
-    "SOURCE_MISSING",
-    "HASH_MISMATCH",
-    "NO_LINEAGE",
     "CITATION_STUB",
-    "CITATION_UNRESOLVED",
     "CITATION_UNLINKED",
-    "UNSOURCED",
-    "STALE_LINEAGE",
-    "NO_CLAIMS",
-    "NAMES",
-    "REASONS",
-    "SEVERITY",
-    "worst_code",
-    "name_of",
-    "reason_of",
-    "Severity",
-    "KEY_BY_CODE",
+    "CITATION_UNRESOLVED",
     "CODE_BY_KEY",
     "DEFAULT_SEVERITY",
-    "resolve_severity",
+    "HASH_MISMATCH",
+    "KEY_BY_CODE",
+    "NAMES",
+    "NO_CLAIMS",
+    "NO_LINEAGE",
+    "OK",
+    "REASONS",
+    "SEVERITY",
+    "SOURCE_MISSING",
+    "STALE_LINEAGE",
+    "UNSOURCED",
+    "UNVERIFIED",
+    "VALUE_MISMATCH",
+    "VERIFY_ERROR",
+    "Severity",
     "classify_exit",
+    "name_of",
+    "reason_of",
+    "resolve_severity",
+    "worst_code",
 ]
 
 # EOF

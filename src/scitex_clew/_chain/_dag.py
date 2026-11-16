@@ -74,6 +74,9 @@ def _topological_sort(adjacency: dict[str, list[str]]) -> list[str]:
 
 def verify_dag(
     targets: list[str | Path],
+    *,
+    minimal: bool = False,
+    level: int = 1,
 ) -> DAGVerification:
     """Verify the full DAG for one or more target files.
 
@@ -84,6 +87,11 @@ def verify_dag(
     ----------
     targets : list of str or Path
         Target files to trace back to sources
+    minimal : bool, optional
+        Verify only the file-level minimal slice of the targets (see
+        :mod:`scitex_clew._chain._slice`). Default False: run-level closure.
+    level : int, optional
+        Slice level when ``minimal`` (1 path-pruned, 2 declared deps).
 
     Returns
     -------
@@ -113,7 +121,14 @@ def verify_dag(
 
     # Resolve the DAG with the ONE lineage resolver (hash-bound save->load
     # handshakes, bounded + deduped). See ._routes for the model.
-    adjacency, all_ids = resolve_file_dag(leaf_sessions, db=db)
+    slice_ = None
+    if minimal:
+        from ._slice import build_slice
+
+        slice_ = build_slice(resolved_targets, level=level, db=db)
+        adjacency = {sid: list(slice_.parents.get(sid, [])) for sid in slice_.runs}
+    else:
+        adjacency, all_ids = resolve_file_dag(leaf_sessions, db=db)
 
     # Topological sort (roots first)
     topo_order = _topological_sort(adjacency)
@@ -124,7 +139,12 @@ def verify_dag(
     hash_cache = new_hash_cache()
     verifications: dict[str, RunVerification] = {}
     for sid in topo_order:
-        verifications[sid] = verify_run(sid, propagate=False, hash_cache=hash_cache)
+        verifications[sid] = verify_run(
+            sid,
+            propagate=False,
+            hash_cache=hash_cache,
+            slice_files=slice_.run_files(sid) if slice_ else None,
+        )
 
     # Propagate failures forward through the DAG
     failed_sessions: set = set()
@@ -173,6 +193,7 @@ def verify_dag(
         edges=edges,
         status=status,
         topological_order=topo_order,
+        slice=slice_,
     )
 
 
@@ -277,7 +298,7 @@ def verify_dag_strict(
             own_failures[sid] = list(run.outputs) or list(run.files)
 
     db = get_db()
-    all_claims = list_claims(limit=10000)
+    all_claims = list_claims(limit=10_000)
 
     if result.is_verified:
         return {

@@ -41,7 +41,15 @@ def _dag_payload(result) -> dict:
             for r in result.runs
         ],
         "edges": [{"parent": p, "child": c} for p, c in result.edges],
+        **_slice_payload(getattr(result, "slice", None)),
     }
+
+
+def _slice_payload(slice_) -> dict:
+    """``{"slice": {...}}`` when the result was verified over a minimal slice."""
+    if slice_ is None:
+        return {}
+    return {"slice": {"level": slice_.level, "counts": slice_.counts()}}
 
 
 def _echo_dag_human(result, label: str = "DAG") -> None:
@@ -88,6 +96,18 @@ def _echo_dag_human(result, label: str = "DAG") -> None:
     is_flag=True,
     help="On hash mismatch, return failure-attribution payload (F2).",
 )
+@click.option(
+    "--minimal",
+    is_flag=True,
+    help="Verify only the file-level minimal slice (see `clew slice`).",
+)
+@click.option(
+    "--level",
+    default=1,
+    show_default=True,
+    type=click.IntRange(1, 2),
+    help="Slice level with --minimal (1 path-pruned, 2 declared deps).",
+)
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")
 @click.pass_context
 def dag(
@@ -95,6 +115,8 @@ def dag(
     targets,
     claims: bool,
     strict: bool,
+    minimal: bool,
+    level: int,
     as_json: bool,
 ):
     """Verify the DAG for one or more targets (or every claim).
@@ -124,9 +146,9 @@ def dag(
 
     # Non-strict: existing DAGVerification surface.
     if claims:
-        result = verify_claims_dag()
+        result = verify_claims_dag(minimal=minimal, level=level)
     else:
-        result = verify_dag(list(targets))
+        result = verify_dag(list(targets), minimal=minimal, level=level)
 
     payload = _dag_payload(result)
 
@@ -139,9 +161,23 @@ def dag(
 
 @click.command(cls=SpecCommand, help_spec=CLI_HELP['chain'])
 @click.argument("target_file")
+@click.option(
+    "--minimal",
+    is_flag=True,
+    help="Verify only the file-level minimal slice (see `clew slice`).",
+)
+@click.option(
+    "--level",
+    default=1,
+    show_default=True,
+    type=click.IntRange(1, 2),
+    help="Slice level with --minimal (1 path-pruned, 2 declared deps).",
+)
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")
 @click.pass_context
-def chain(ctx: click.Context, target_file: str, as_json: bool):
+def chain(
+    ctx: click.Context, target_file: str, minimal: bool, level: int, as_json: bool
+):
     """Verify the provenance chain that produced a target file.
 
     Walks backwards through every upstream session that contributed to
@@ -167,7 +203,7 @@ def chain(ctx: click.Context, target_file: str, as_json: bool):
             click.echo(f"ERROR: file not found: {target_file}", err=True)
         ctx.exit(1)
 
-    result = clew.chain(str(path.resolve()))
+    result = clew.chain(str(path.resolve()), minimal=minimal, level=level)
 
     payload = {
         "target_file": result.target_file,
@@ -186,6 +222,7 @@ def chain(ctx: click.Context, target_file: str, as_json: bool):
             }
             for r in result.runs
         ],
+        **_slice_payload(result.slice),
     }
 
     if _json_mode(ctx):
@@ -210,6 +247,68 @@ def chain(ctx: click.Context, target_file: str, as_json: bool):
                 click.echo(
                     f"       FROZEN (trusted hash, not re-read): {f.path}"
                 )
+
+
+@click.command("slice", cls=SpecCommand, help_spec=CLI_HELP["slice"])
+@click.argument("targets", nargs=-1, required=True)
+@click.option(
+    "--level",
+    default=1,
+    show_default=True,
+    type=click.IntRange(0, 2),
+    help="0 run-level closure, 1 path-pruned, 2 declared per-output deps.",
+)
+@click.option(
+    "--compare",
+    is_flag=True,
+    help="Report node/edge counts at every level (0, 1, 2) instead.",
+)
+@click.option("--json", "as_json", is_flag=True, help="Emit JSON output.")
+@click.pass_context
+def slice_cmd(ctx: click.Context, targets, level: int, compare: bool, as_json: bool):
+    """Minimal provenance slice: only runs and files on a path to TARGETS.
+
+    TARGETS are files, claim ids, or ``paper.tex:L42`` claim locations.
+    """
+    from scitex_clew._chain._slice import build_slice, compare_levels
+
+    if as_json:
+        ctx.obj = ctx.obj or {}
+        ctx.obj["json"] = True
+
+    if compare:
+        counts = compare_levels(list(targets))
+        if _json_mode(ctx):
+            click.echo(json.dumps({str(k): v for k, v in counts.items()}, indent=2))
+            return
+        for lvl, c in counts.items():
+            click.echo(
+                f"level {lvl}: runs={c['runs']} files={c['files']} "
+                f"nodes={c['nodes']} edges={c['edges']}"
+            )
+        return
+
+    sl = build_slice(list(targets), level=level)
+    if _json_mode(ctx):
+        click.echo(json.dumps(sl.to_dict(), indent=2, default=str))
+        return
+    c = sl.counts()
+    click.echo(
+        f"slice level={sl.level} runs={c['runs']} files={c['files']} "
+        f"nodes={c['nodes']} edges={c['edges']}"
+    )
+    for sid in sl.runs:
+        click.echo(f"  run {sid}")
+        for p in sl.run_inputs.get(sid, []):
+            click.echo(f"    <- {p}")
+        for p in sl.run_outputs.get(sid, []):
+            click.echo(f"    -> {p}")
+    for sid, paths in sl.dropped_outputs.items():
+        click.echo(f"  dropped outputs of {sid}: {len(paths)}")
+    for sid, paths in sl.dropped_inputs.items():
+        click.echo(f"  dropped inputs of {sid}: {len(paths)}")
+    for sid, reason in sl.fallback_runs.items():
+        click.echo(f"  level-2 fallback for {sid}: {reason}")
 
 
 @click.command("rerun-dag", cls=SpecCommand, help_spec=CLI_HELP['rerun_dag'])

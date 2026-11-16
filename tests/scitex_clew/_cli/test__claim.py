@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """CLI tests for ``clew claim {remove,supersede,list --file-path-prefix}``.
 
 Mirrors ``src/scitex_clew/_cli/_claim.py``.
@@ -8,6 +7,7 @@ Per PA-306 §3 (no mocks): the real store — each test gets its own
 PostgreSQL schema from tests/conftest.py — plus CliRunner.
 Per PA-307 §3: AAA marker comments + one observable assertion per test.
 """
+
 from __future__ import annotations
 
 import json
@@ -19,7 +19,6 @@ CliRunner = pytest.importorskip("click.testing").CliRunner
 
 from scitex_clew._cli._main import main
 from scitex_clew._db import get_db
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -81,7 +80,9 @@ class TestClaimRemoveById:
         # Assert
         assert result.exit_code == 0
 
-    def test_remove_existing_claim_json_removed_true(self, runner, isolated_db, tmp_path):
+    def test_remove_existing_claim_json_removed_true(
+        self, runner, isolated_db, tmp_path
+    ):
         # Arrange
         paper = tmp_path / "paper.tex"
         paper.write_text("x\n")
@@ -191,7 +192,9 @@ class TestClaimRemoveByPrefix:
 
 
 class TestClaimSupersede:
-    def test_supersede_existing_claim_exit_code_zero(self, runner, isolated_db, tmp_path):
+    def test_supersede_existing_claim_exit_code_zero(
+        self, runner, isolated_db, tmp_path
+    ):
         # Arrange
         paper = tmp_path / "paper.tex"
         paper.write_text("x\n")
@@ -201,7 +204,9 @@ class TestClaimSupersede:
         # Assert
         assert result.exit_code == 0
 
-    def test_supersede_returns_superseded_true_in_json(self, runner, isolated_db, tmp_path):
+    def test_supersede_returns_superseded_true_in_json(
+        self, runner, isolated_db, tmp_path
+    ):
         # Arrange
         paper = tmp_path / "paper.tex"
         paper.write_text("x\n")
@@ -219,7 +224,9 @@ class TestClaimSupersede:
         # Assert
         assert result.exit_code != 0
 
-    def test_supersede_claim_excluded_from_default_list(self, runner, isolated_db, tmp_path):
+    def test_supersede_claim_excluded_from_default_list(
+        self, runner, isolated_db, tmp_path
+    ):
         # Arrange
         paper = tmp_path / "paper.tex"
         paper.write_text("x\n")
@@ -333,6 +340,66 @@ class TestClaimListFilePathPrefix:
         payload = json.loads(result.output)
         dir_b_str = str(dir_b.resolve())
         assert not any(dir_b_str in c["file_path"] for c in payload["claims"])
+
+
+# ---------------------------------------------------------------------------
+# claim add --source-keys / claim verify value-vs-source
+# ---------------------------------------------------------------------------
+
+
+def _add_located(runner, tmp_path, claimed: str, source_value: float):
+    """Register a claim whose value is located at /test/auc in results.json."""
+    src = tmp_path / "results.json"
+    src.write_text(json.dumps({"test": {"auc": source_value}}))
+    result = runner.invoke(
+        main,
+        [
+            "--json",
+            "claim",
+            "add",
+            "--file-path",
+            str(tmp_path / "paper.tex"),
+            "--type",
+            "value",
+            "--value",
+            claimed,
+            "--source-file",
+            str(src),
+            "--source-keys",
+            '{"pointer": "/test/auc"}',
+            "--claim-id",
+            f"auc_{claimed}",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    return json.loads(result.output)["claim_id"]
+
+
+class TestClaimSourceKeysCli:
+    def test_value_within_written_precision_verifies(self, runner, tmp_path):
+        # Arrange
+        cid = _add_located(runner, tmp_path, "0.91", 0.9093)
+        # Act
+        result = runner.invoke(main, ["--json", "claim", "verify", cid])
+        # Assert
+        assert json.loads(result.output)["value_verified"] is True
+
+    def test_value_contradicting_source_is_mismatch(self, runner, tmp_path):
+        # Arrange
+        cid = _add_located(runner, tmp_path, "0.91", 0.81)
+        # Act
+        result = runner.invoke(main, ["--json", "claim", "verify", cid])
+        # Assert
+        assert json.loads(result.output)["claim"]["status"] == "mismatch"
+
+    def test_invalid_source_keys_json_is_rejected(self, runner, tmp_path):
+        # Arrange
+        args = ["claim", "add", "--file-path", str(tmp_path / "p.tex")]
+        args += ["--type", "value", "--source-file", str(tmp_path / "r.json")]
+        # Act
+        result = runner.invoke(main, args + ["--source-keys", "{not json"])
+        # Assert
+        assert result.exit_code != 0
 
 
 # EOF

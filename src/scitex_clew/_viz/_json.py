@@ -54,6 +54,8 @@ def generate_dag_json(
     target_files: list[str] | None = None,
     claims: bool = False,
     path_mode: PathMode = "name",
+    minimal: bool = False,
+    level: int = 1,
 ) -> dict[str, Any]:
     """
     Generate JSON representation of verification DAG.
@@ -68,6 +70,11 @@ def generate_dag_json(
         Start from session that produced this file
     path_mode : str, optional
         Path display mode: "name", "relative", or "absolute"
+    minimal : bool, optional
+        Draw only the file-level minimal slice (runs and files on a path to
+        the target(s); see ``scitex_clew.slice``). Ignored in session mode.
+    level : int, optional
+        Slice level when ``minimal``.
 
     Returns
     -------
@@ -91,12 +98,16 @@ def generate_dag_json(
             target_files=target_files,
             claims=claims,
             path_mode=path_mode,
+            minimal=minimal,
+            level=level,
         )
 
     # chain_ids is leaf-first (reversed below to draw sources first); both
     # branches come from the ONE lineage resolver (see _chain._routes).
+    slice_ = None
     if target_file:
-        chain = verify_chain(target_file)
+        chain = verify_chain(target_file, minimal=minimal, level=level)
+        slice_ = chain.slice
         chain_ids = [run.session_id for run in reversed(chain.runs)]
     elif session_id and db.get_run(session_id) is None:
         chain_ids = []  # unknown session: nothing to draw
@@ -118,9 +129,15 @@ def generate_dag_json(
     runs_data = []
     for sid in chain_ids:
         run = db.get_run(sid)
-        verification = verify_run(sid)
-        inputs = db.get_file_hashes(sid, role="input")
-        outputs = db.get_file_hashes(sid, role="output")
+        verification = verify_run(
+            sid, slice_files=slice_.run_files(sid) if slice_ else None
+        )
+        inputs = restrict_to_slice(
+            db.get_file_hashes(sid, role="input"), slice_, sid, "input"
+        )
+        outputs = restrict_to_slice(
+            db.get_file_hashes(sid, role="output"), slice_, sid, "output"
+        )
         runs_data.append(
             {
                 "session_id": sid,
@@ -205,14 +222,31 @@ def generate_dag_json(
             "session_id": session_id,
             "num_runs": len(runs_data),
             "num_files": len([n for n in nodes if n["type"] == "file"]),
+            **_slice_metadata(slice_),
         },
     }
+
+
+def restrict_to_slice(files: dict, slice_, sid: str, role: str) -> dict:
+    """Keep only the files the minimal slice kept for ``sid`` (no-op without one)."""
+    if slice_ is None:
+        return files
+    keep = slice_.run_files(sid)[role]
+    return {p: h for p, h in files.items() if p in keep}
+
+
+def _slice_metadata(slice_) -> dict:
+    if slice_ is None:
+        return {}
+    return {"slice_level": slice_.level, "slice_counts": slice_.counts()}
 
 
 def _generate_dag_json_multi(
     target_files: list[str] | None = None,
     claims: bool = False,
     path_mode: PathMode = "name",
+    minimal: bool = False,
+    level: int = 1,
 ) -> dict[str, Any]:
     """Generate JSON DAG for multiple targets."""
     from datetime import datetime
@@ -222,11 +256,11 @@ def _generate_dag_json_multi(
     if claims:
         from .._claim import verify_claims_dag
 
-        dag = verify_claims_dag()
+        dag = verify_claims_dag(minimal=minimal, level=level)
     elif target_files:
         from .._chain import verify_dag
 
-        dag = verify_dag(target_files)
+        dag = verify_dag(target_files, minimal=minimal, level=level)
     else:
         return {
             "nodes": [],
@@ -252,8 +286,12 @@ def _generate_dag_json_multi(
         verification = verifications.get(sid)
         if not verification:
             continue
-        inputs = db.get_file_hashes(sid, role="input")
-        outputs = db.get_file_hashes(sid, role="output")
+        inputs = restrict_to_slice(
+            db.get_file_hashes(sid, role="input"), dag.slice, sid, "input"
+        )
+        outputs = restrict_to_slice(
+            db.get_file_hashes(sid, role="output"), dag.slice, sid, "output"
+        )
 
         script_id = f"script_{i}"
         script_path = run.get("script_path", "unknown") if run else "unknown"
@@ -316,6 +354,7 @@ def _generate_dag_json_multi(
             "topological_order": dag.topological_order,
             "num_runs": len(dag.runs),
             "num_files": len([n for n in nodes if n["type"] == "file"]),
+            **_slice_metadata(dag.slice),
         },
     }
 

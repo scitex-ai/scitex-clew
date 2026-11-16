@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Project-root resolution for clew's regenerable file artifacts.
 
 clew no longer has a database FILE. Its four stores resolve through
@@ -14,17 +13,71 @@ export artifact, and the manuscript-hints feed clew merges into.
 
 from __future__ import annotations
 
+import functools
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 
 __all__ = [
     "_default_claims_json_path",
     "_default_hints_json_path",
     "_find_project_root",
+    "project_root",
+    "project_root_override",
+    "with_project_root",
 ]
 
 
+#: Explicit project root for the current context (see :func:`project_root`).
+_PROJECT_ROOT_OVERRIDE: ContextVar = ContextVar("clew_project_root", default=None)
+
+
+def project_root_override() -> Path | None:
+    """The root set by an enclosing :func:`project_root` block, else None."""
+    return _PROJECT_ROOT_OVERRIDE.get()
+
+
+@contextmanager
+def project_root(root: str | Path | None):
+    """Run clew calls against ``root``'s project without ``chdir``.
+
+    Inside the block, the project scope (claims, runs, the per-project id and
+    claims.json export location) resolves from ``root`` instead of the
+    current working directory. ``None`` is a no-op. Context-local, so it is
+    safe across threads / asyncio tasks (unlike ``os.chdir``).
+    """
+    if root is None:
+        yield None
+        return
+    token = _PROJECT_ROOT_OVERRIDE.set(Path(root).resolve())
+    try:
+        yield _PROJECT_ROOT_OVERRIDE.get()
+    finally:
+        _PROJECT_ROOT_OVERRIDE.reset(token)
+
+
+def with_project_root(fn):
+    """Give ``fn`` an optional ``project_root=`` kwarg (see :func:`project_root`)."""
+
+    @functools.wraps(fn)
+    def wrapper(*args, project_root: str | Path | None = None, **kwargs):
+        with _project_root_cm(project_root):
+            return fn(*args, **kwargs)
+
+    return wrapper
+
+
+_project_root_cm = project_root
+
+
 def _find_project_root() -> Path:
-    """Walk up from cwd to find the project root (contains .git or pyproject.toml)."""
+    """Walk up from cwd to find the project root (contains .git or pyproject.toml).
+
+    An explicit root set via :func:`project_root` wins.
+    """
+    override = _PROJECT_ROOT_OVERRIDE.get()
+    if override is not None:
+        return override
     current = Path.cwd()
     for parent in [current, *current.parents]:
         if (parent / ".git").exists() or (parent / "pyproject.toml").exists():

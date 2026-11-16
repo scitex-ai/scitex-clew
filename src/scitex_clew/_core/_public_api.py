@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Public API registry for scitex_clew.
 
 Extracted from __init__.py to keep that file under the 512-line limit;
@@ -26,7 +25,7 @@ from __future__ import annotations
 # Each entry is resolved on first attribute access via __getattr__ below,
 # then cached in module globals so subsequent accesses are free.
 # ---------------------------------------------------------------------------
-_LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
+_LAZY_ATTRS: dict[str, tuple[str, str | None]] = {
     # ----- Submodule re-export -----
     "groupers": (".groupers", None),
     # ----- Public names re-exported from submodules -----
@@ -41,6 +40,7 @@ _LAZY_ATTRS: "dict[str, tuple[str, str | None]]" = {
     "RunVerification": ("._chain", "RunVerification"),
     "ChainVerification": ("._chain", "ChainVerification"),
     "DAGVerification": ("._chain", "DAGVerification"),
+    "ProvenanceSlice": ("._chain._slice", "ProvenanceSlice"),
     # _claim
     "add_claim": ("._claim", "add_claim"),
     "list_claims": ("._claim", "list_claims"),

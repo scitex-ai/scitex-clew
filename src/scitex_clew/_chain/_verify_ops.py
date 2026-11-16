@@ -150,6 +150,7 @@ def verify_run(
     propagate: bool = True,
     collapse_suspect: bool = False,
     hash_cache: dict[str, str] | None = None,
+    slice_files: dict[str, set[str]] | None = None,
 ) -> RunVerification:
     """Verify a session run by checking all file hashes.
 
@@ -170,6 +171,12 @@ def verify_run(
         Per-pass cache (resolved-path -> hash) threaded from the top-level
         verify entry point. When provided, each file is hashed at most once
         within the pass; subsequent references reuse the cached value.
+    slice_files : dict, optional
+        ``{"input": {paths}, "output": {paths}}`` from a minimal slice
+        (:meth:`ProvenanceSlice.run_files`): only these recorded files (plus
+        the script) are checked, and upstream-failure propagation considers
+        only parents bound through the kept inputs. ``None`` checks every
+        recorded file (run-level closure).
 
     Returns
     -------
@@ -205,6 +212,11 @@ def verify_run(
     # Get all file hashes
     input_hashes = db.get_file_hashes(session_id, role="input")
     output_hashes = db.get_file_hashes(session_id, role="output")
+    if slice_files is not None:
+        keep_in = slice_files.get("input", set())
+        keep_out = slice_files.get("output", set())
+        input_hashes = {p: h for p, h in input_hashes.items() if p in keep_in}
+        output_hashes = {p: h for p, h in output_hashes.items() if p in keep_out}
 
     # Get frozen file sets (additive helper, no change to existing get_file_hashes API)
     frozen_inputs = db.get_frozen_files(session_id, role="input")
@@ -254,10 +266,13 @@ def verify_run(
     # even when every hash still matches: treat it as an upstream failure.
     # Parents are the hash-bound producers from the shared lineage resolver.
     if propagate and not upstream_failed:
-        from ._routes import parents_of
+        from ._routes import _session_bindings
 
+        bindings, _ = _session_bindings(db, session_id)
         upstream_failed = any(
-            run_failed(db.get_run(parent)) for parent in parents_of(db, session_id)
+            run_failed(db.get_run(b.parent))
+            for b in bindings
+            if b.file_path in input_hashes
         )
 
     # Determine overall status.

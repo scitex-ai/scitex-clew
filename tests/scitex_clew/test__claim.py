@@ -583,9 +583,9 @@ def test_strict_chain_memo_verify_chain_called_once(strict_chain_sandbox, env_sa
     call_count = [0]
     real_verify_chain = None
 
-    def counting_verify_chain(source_file):
+    def counting_verify_chain(source_file, **kwargs):
         call_count[0] += 1
-        return real_verify_chain(source_file)
+        return real_verify_chain(source_file, **kwargs)
 
     # Patch at module level (not mock — replaces the real function reference)
     import scitex_clew._chain as _chain_mod

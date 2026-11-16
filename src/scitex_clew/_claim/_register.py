@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Claim registration + listing — add_claim, list_claims, format_claims."""
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +12,7 @@ from typing import List, Optional
 from scitex_dev.store import ANY_REVISION
 
 from .._db import get_db
+from .._db._paths import with_project_root
 from ._model import (
     CLAIM_TYPES,
     Claim,
@@ -25,12 +26,17 @@ from ._store import _open_store
 def add_claim(
     file_path: str,
     claim_type: str,
-    line_number: Optional[int] = None,
-    claim_value: Optional[str] = None,
-    source_file: Optional[str] = None,
-    source_session: Optional[str] = None,
+    line_number: int | None = None,
+    claim_value: str | None = None,
+    source_file: str | None = None,
+    source_session: str | None = None,
     *,
-    claim_id: Optional[str] = None,
+    claim_id: str | None = None,
+    value=None,
+    source_keys: dict | None = None,
+    tolerance: dict | None = None,
+    metadata: dict | None = None,
+    project_root: str | Path | None = None,
 ) -> Claim:
     """Register a claim linking a manuscript assertion to the verification chain.
 
@@ -58,6 +64,26 @@ def add_claim(
         value in so two distinct numbers on one line no longer collapse. Re-
         registering the same explicit id (or the same derived tuple) overwrites
         idempotently.
+    value : scalar or dict, optional
+        Structured claimed value (keyword-only), e.g. ``0.91`` or
+        ``{"auc": 0.91, "n": 120}``. ``claim_value`` stays the display string;
+        when ``value`` is omitted the display string is the checked value.
+    source_keys : dict, optional
+        ``{field | ".": locator}`` — where each value field lives inside
+        ``source_file``: ``{"pointer": "/test/auc"}`` (RFC 6901, json/yaml) or
+        ``{"row": 3 | {"col": "v"}, "column": "auc" | 2}`` (csv/tsv), each
+        optionally with ``abs_tol`` / ``rel_tol``. Verification then compares
+        the claimed value with the value read there (``VALUE_MISMATCH`` on
+        disagreement). Same shape as scitex-writer's ``source_keys``; see
+        :mod:`scitex_clew._claim._locator`. Validated here.
+    tolerance : dict, optional
+        Claim-level ``{"abs_tol", "rel_tol"}``. Without any declared tolerance
+        the precision the value was written with is used (0.91 -> ±0.005).
+    metadata : dict, optional
+        Free-form JSON-serialisable caller data, stored verbatim.
+    project_root : str or Path, optional
+        Register into this project's scope (and resolve relative paths
+        against it) without ``chdir``. Default: resolved from the cwd.
 
     Returns
     -------
@@ -69,6 +95,41 @@ def add_claim(
             f"Invalid claim_type '{claim_type}'. Must be one of: {CLAIM_TYPES}"
         )
 
+    from ._locator import normalize_source_keys, normalize_tolerance
+
+    if source_keys is not None and not source_file:
+        raise ValueError("source_keys needs a source_file to locate into")
+    source_keys = normalize_source_keys(source_keys) or None
+    tolerance = normalize_tolerance(tolerance) or None
+    for name, obj in (("value", value), ("metadata", metadata)):
+        try:
+            json.dumps(obj)
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"{name} must be JSON-serialisable: {e}") from e
+
+    if project_root is not None:
+        root = Path(project_root)
+        file_path = str(root / file_path)  # absolute paths are kept as-is
+        if source_file:
+            source_file = str(root / source_file)
+        from .._db._paths import project_root as _project_root
+
+        with _project_root(root):
+            return _register(
+                file_path, claim_type, line_number, claim_value, source_file,
+                source_session, claim_id, value, source_keys, tolerance, metadata,
+            )
+    return _register(
+        file_path, claim_type, line_number, claim_value, source_file,
+        source_session, claim_id, value, source_keys, tolerance, metadata,
+    )
+
+
+def _register(
+    file_path, claim_type, line_number, claim_value, source_file,
+    source_session, claim_id, value, source_keys, tolerance, metadata,
+) -> Claim:
+    """add_claim's body, run inside the caller's project scope."""
     file_path = str(Path(file_path).resolve())
     if claim_id is not None:
         resolved_id = str(claim_id).strip()
@@ -128,6 +189,10 @@ def add_claim(
         source_session=source_session,
         source_file=source_file,
         source_hash=source_hash,
+        value=value,
+        source_keys=source_keys,
+        tolerance=tolerance,
+        metadata=metadata,
     )
 
     # Store in database. ANY_REVISION preserves the old ``INSERT OR REPLACE``
@@ -152,12 +217,26 @@ def add_claim(
                 "source_session": claim.source_session,
                 "source_file": claim.source_file,
                 "source_hash": claim.source_hash,
+                **{
+                    name: (json.dumps(obj) if obj is not None else None)
+                    for name, obj in (
+                        ("value", value),
+                        ("source_keys", source_keys),
+                        ("tolerance", tolerance),
+                        ("metadata", metadata),
+                    )
+                },
                 "status": "registered",
                 "registered_at": datetime.now().isoformat(),
                 "verified_at": None,
             },
             expected_revision=ANY_REVISION,
         )
+        # Re-registering a REMOVED claim brings it back: remove_claim hides
+        # the row (a Store never deletes) and put() alone leaves it hidden.
+        key = {"claim_id": claim.claim_id}
+        if store.is_hidden(key):
+            store.unhide(key, expected_revision=ANY_REVISION)
     finally:
         store.close()
 
@@ -191,15 +270,16 @@ def add_claim(
     return claim
 
 
+@with_project_root
 def list_claims(
-    file_path: Optional[str] = None,
-    claim_type: Optional[str] = None,
-    status: Optional[str] = None,
+    file_path: str | None = None,
+    claim_type: str | None = None,
+    status: str | None = None,
     limit: int = 100,
     *,
     include_superseded: bool = False,
-    file_path_prefix: Optional[str] = None,
-) -> List[Claim]:
+    file_path_prefix: str | None = None,
+) -> list[Claim]:
     """List registered claims with optional filters.
 
     Parameters
@@ -268,15 +348,13 @@ def list_claims(
     matched.sort(
         key=lambda r: (
             r.values["file_path"] or "",
-            (0, 0)
-            if r.values["line_number"] is None
-            else (1, r.values["line_number"]),
+            (0, 0) if r.values["line_number"] is None else (1, r.values["line_number"]),
         )
     )
     return [_row_to_claim(r) for r in matched[:limit]]
 
 
-def format_claims(claims: List[Claim], verbose: bool = False) -> str:
+def format_claims(claims: list[Claim], verbose: bool = False) -> str:
     """Format claims list for terminal display."""
     if not claims:
         return "No claims registered."

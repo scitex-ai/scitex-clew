@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Claim model — dataclasses, status palette, table + low-level DB helpers.
 
 Split out of the former single-file ``_claim.py`` (over the 512-line limit).
@@ -37,7 +36,7 @@ CLAIM_TYPES = ("statistic", "figure", "table", "text", "value")
 # The hue clears the CUD delta-E floor (CIE76 >= 12) of the locked 7 across
 # normal/protan/deutan/tritan (see tests/scitex_clew/_claim/test__model.py).
 # ---------------------------------------------------------------------------
-_CLAIM_PALETTE: Dict[str, str] = {
+_CLAIM_PALETTE: dict[str, str] = {
     "verified": "2da44e",  # green
     "suspect": "d29922",  # amber
     "mismatch": "cf222e",  # red
@@ -53,7 +52,7 @@ _PALETTE_FALLBACK = "6e7781"  # grey — used for any unknown/future status
 # Schema v1.3: 4-bucket display palette (reader-facing, color-only, no icons).
 # Maps the 4 display buckets to accessible hex values.
 # ---------------------------------------------------------------------------
-_DISPLAY_PALETTE: Dict[str, str] = {
+_DISPLAY_PALETTE: dict[str, str] = {
     "verified": "2da44e",
     "suspect": "d29922",
     "failed": "cf222e",
@@ -71,7 +70,7 @@ _DISPLAY_PALETTE: Dict[str, str] = {
 # into verified (green). clew still EMITS full-7 (author tooling + DAG
 # fidelity); readers see only the 4 buckets.
 # ---------------------------------------------------------------------------
-_DISPLAY_GROUPS: Dict[str, str] = {
+_DISPLAY_GROUPS: dict[str, str] = {
     "verified": "verified",
     "suspect": "suspect",
     "mismatch": "failed",
@@ -92,7 +91,7 @@ def _resolve_status(
     status: str,
     has_exception: bool,
     has_frozen: bool,
-    grounded: Optional[bool] = None,
+    grounded: bool | None = None,
 ) -> str:
     """Resolve a claim to its single full-8 status (color precedence).
 
@@ -163,7 +162,7 @@ def _resolve_display_group(
     status: str,
     has_exception: bool,
     has_frozen: bool,
-    grounded: Optional[bool] = None,
+    grounded: bool | None = None,
 ) -> str:
     """Resolve the reader display group for a claim.
 
@@ -178,15 +177,13 @@ def _resolve_display_group(
         the full-8 STATUS from :func:`_resolve_status` still keeps ``unsourced``
         distinct for author tooling + DAG fidelity.)
     """
-    return _DISPLAY_GROUPS[
-        _resolve_status(status, has_exception, has_frozen, grounded)
-    ]
+    return _DISPLAY_GROUPS[_resolve_status(status, has_exception, has_frozen, grounded)]
 
 
 # ---------------------------------------------------------------------------
 # Back-compat helper: normalise legacy stored "partial" -> "suspect".
 # ---------------------------------------------------------------------------
-_LEGACY_STATUS_MAP: Dict[str, str] = {
+_LEGACY_STATUS_MAP: dict[str, str] = {
     "partial": "suspect",
 }
 
@@ -197,15 +194,30 @@ class Claim:
 
     claim_id: str
     file_path: str
-    line_number: Optional[int]
+    line_number: int | None
     claim_type: str
-    claim_value: Optional[str]
-    source_session: Optional[str]
-    source_file: Optional[str]
-    source_hash: Optional[str]
-    registered_at: Optional[str] = None
-    verified_at: Optional[str] = None
+    claim_value: str | None
+    source_session: str | None
+    source_file: str | None
+    source_hash: str | None
+    registered_at: str | None = None
+    verified_at: str | None = None
     status: str = "registered"
+    #: Structured claimed value (scalar or ``{field: value}``); ``None`` means
+    #: ``claim_value`` (the display string) is the value.
+    value: object = None
+    #: ``{field | ".": locator}`` into ``source_file`` (see
+    #: :mod:`scitex_clew._claim._locator`); ``None`` = hash check only.
+    source_keys: dict | None = None
+    #: Claim-level ``{"abs_tol", "rel_tol"}`` for the value check.
+    tolerance: dict | None = None
+    #: Free-form caller metadata, stored verbatim.
+    metadata: dict | None = None
+
+    @property
+    def checked_value(self) -> object:
+        """The value the source check compares (structured, else display)."""
+        return self.value if self.value is not None else self.claim_value
 
     @property
     def location(self) -> str:
@@ -214,7 +226,7 @@ class Claim:
             return f"{self.file_path}:L{self.line_number}"
         return self.file_path
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "claim_id": self.claim_id,
             "file_path": self.file_path,
@@ -227,6 +239,10 @@ class Claim:
             "registered_at": self.registered_at,
             "verified_at": self.verified_at,
             "status": self.status,
+            "value": self.value,
+            "source_keys": self.source_keys,
+            "tolerance": self.tolerance,
+            "metadata": self.metadata,
         }
 
 
@@ -236,21 +252,21 @@ class ClaimVerification:
 
     claim_id: str
     location: str
-    claim_value: Optional[str]
-    status: Optional[str]
-    source_file: Optional[str]
-    source_session: Optional[str]
+    claim_value: str | None
+    status: str | None
+    source_file: str | None
+    source_session: str | None
     source_verified: bool
     chain_verified: bool
     outcome: str  # exit-code NAME: "OK" / "UNVERIFIED" / "HASH_MISMATCH" / ...
     severity: str  # resolved severity for this outcome: error/warning/ignore/ok
-    details: List[str]
+    details: list[str]
 
     @property
     def is_verified(self) -> bool:
         return self.outcome == "OK"
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "claim_id": self.claim_id,
             "location": self.location,
@@ -283,18 +299,18 @@ class VerificationResult:
     strict: bool
     total: int
     verified: int
-    counts: Dict[str, int]
-    claims: List[ClaimVerification]
-    severities: Dict[str, str]  # pattern key -> resolved severity (transparency)
-    errors: List[str]  # pattern NAMES that fired at ERROR severity
-    warnings: List[str]  # pattern NAMES that fired at WARNING severity
+    counts: dict[str, int]
+    claims: list[ClaimVerification]
+    severities: dict[str, str]  # pattern key -> resolved severity (transparency)
+    errors: list[str]  # pattern NAMES that fired at ERROR severity
+    warnings: list[str]  # pattern NAMES that fired at WARNING severity
 
     @property
     def ok(self) -> bool:
         """True iff exit_code == 0 — a solver may then legitimately signal DONE."""
         return self.exit_code == 0
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "exit_code": self.exit_code,
             "exit_name": self.exit_name,
@@ -323,9 +339,9 @@ def migrate_add_claims_table() -> None:
 
 def _generate_claim_id(
     file_path: str,
-    line_number: Optional[int],
+    line_number: int | None,
     claim_type: str,
-    claim_value: Optional[str] = None,
+    claim_value: str | None = None,
 ) -> str:
     """Generate a deterministic claim ID.
 
@@ -355,7 +371,7 @@ def _ensure_claims_table(db=None) -> None:
     migrate_add_claims_table()
 
 
-def _file_path_matches_prefix(file_path: Optional[str], resolved_prefix: str) -> bool:
+def _file_path_matches_prefix(file_path: str | None, resolved_prefix: str) -> bool:
     """Whether ``file_path`` matches the old
     ``file_path LIKE '<prefix>%' OR file_path = '<prefix without trailing />'``.
 
@@ -386,10 +402,23 @@ def _row_to_claim(row) -> Claim:
         verified_at=v["verified_at"],
         # Back-compat: normalize legacy "partial" -> "suspect"
         status=_LEGACY_STATUS_MAP.get(v["status"], v["status"]),
+        value=_decode_json(v.get("value")),
+        source_keys=_decode_json(v.get("source_keys")),
+        tolerance=_decode_json(v.get("tolerance")),
+        metadata=_decode_json(v.get("metadata")),
     )
 
 
-def _resolve_claim(identifier: str, db) -> Optional[Claim]:
+def _decode_json(raw):
+    """Stored JSON text -> object (``None`` when absent)."""
+    if raw is None or raw == "":
+        return None
+    import json
+
+    return json.loads(raw)
+
+
+def _resolve_claim(identifier: str, db) -> Claim | None:
     """Resolve a claim by ID or location string."""
     store = _open_store()
     try:
@@ -404,7 +433,10 @@ def _resolve_claim(identifier: str, db) -> Optional[Claim]:
             fpath = str(Path(match.group(1)).resolve())
             line = int(match.group(2))
             for row in store.rows():
-                if row.values["file_path"] == fpath and row.values["line_number"] == line:
+                if (
+                    row.values["file_path"] == fpath
+                    and row.values["line_number"] == line
+                ):
                     return _row_to_claim(row)
             return None
 
@@ -416,7 +448,9 @@ def _resolve_claim(identifier: str, db) -> Optional[Claim]:
             return None
         candidates.sort(
             key=lambda r: (
-                (0, 0) if r.values["line_number"] is None else (1, r.values["line_number"])
+                (0, 0)
+                if r.values["line_number"] is None
+                else (1, r.values["line_number"])
             )
         )
         return _row_to_claim(candidates[0])

@@ -36,8 +36,8 @@ class TestCompareHashes:
         # Arrange
         # Arrange
         # Arrange
-        original = {"/path/to/output.csv": "abc123"}
-        new = {"/other/path/output.csv": "abc123"}
+        original = {"output.csv": "abc123"}
+        new = {"output.csv": "abc123"}
         # Act
         # Act
         result = _compare_hashes(original, new)
@@ -51,8 +51,8 @@ class TestCompareHashes:
         # Arrange
         # Arrange
         # Arrange
-        original = {"/path/to/output.csv": "abc123"}
-        new = {"/other/path/output.csv": "abc123"}
+        original = {"output.csv": "abc123"}
+        new = {"output.csv": "abc123"}
         # Act
         # Act
         result = _compare_hashes(original, new)
@@ -67,8 +67,8 @@ class TestCompareHashes:
         # Arrange
         # Arrange
         # Arrange
-        original = {"/path/output.csv": "abc123"}
-        new = {"/path/output.csv": "different_hash"}
+        original = {"output.csv": "abc123"}
+        new = {"output.csv": "different_hash"}
         # Act
         # Act
         result = _compare_hashes(original, new)
@@ -82,8 +82,8 @@ class TestCompareHashes:
         # Arrange
         # Arrange
         # Arrange
-        original = {"/path/output.csv": "abc123"}
-        new = {"/path/output.csv": "different_hash"}
+        original = {"output.csv": "abc123"}
+        new = {"output.csv": "different_hash"}
         # Act
         # Act
         result = _compare_hashes(original, new)
@@ -98,7 +98,7 @@ class TestCompareHashes:
         # Arrange
         # Arrange
         # Arrange
-        original = {"/path/output.csv": "abc123"}
+        original = {"output.csv": "abc123"}
         new = {}
         # Act
         # Act
@@ -113,7 +113,7 @@ class TestCompareHashes:
         # Arrange
         # Arrange
         # Arrange
-        original = {"/path/output.csv": "abc123"}
+        original = {"output.csv": "abc123"}
         new = {}
         # Act
         # Act
@@ -125,30 +125,28 @@ class TestCompareHashes:
         assert result[0].status == VerificationStatus.MISSING
 
 
-    def test_matches_by_filename_not_full_path(self):
-        # Arrange
-        # Arrange
-        original = {"/original/dir/results.csv": "hash_a"}
-        new = {"/new/run/dir/results.csv": "hash_a"}
-        # Act
+    def test_same_basename_in_another_subdir_is_missing_not_verified(self):
+        # Arrange — rerun outputs are matched by FULL relative path, so a
+        # same-named file in another sub-directory never stands in.
+        original = {"fig/results.csv": "hash_a"}
+        new = {"tables/results.csv": "hash_a"}
         # Act
         result = _compare_hashes(original, new)
         # Assert
-        # Assert
-        assert result[0].status == VerificationStatus.VERIFIED
+        assert result[0].status == VerificationStatus.MISSING
 
     def test_multiple_files_statuses_out1_csv_verificationstatus_verified(self):
         # Arrange
         # Arrange
         # Arrange
         original = {
-            "/path/out1.csv": "hash1",
-            "/path/out2.png": "hash2",
-            "/path/out3.csv": "hash3",
+            "out1.csv": "hash1",
+            "out2.png": "hash2",
+            "out3.csv": "hash3",
         }
         new = {
-            "/new/out1.csv": "hash1",
-            "/new/out2.png": "different",
+            "out1.csv": "hash1",
+            "out2.png": "different",
             # out3 is missing
         }
         result = _compare_hashes(original, new)
@@ -166,13 +164,13 @@ class TestCompareHashes:
         # Arrange
         # Arrange
         original = {
-            "/path/out1.csv": "hash1",
-            "/path/out2.png": "hash2",
-            "/path/out3.csv": "hash3",
+            "out1.csv": "hash1",
+            "out2.png": "hash2",
+            "out3.csv": "hash3",
         }
         new = {
-            "/new/out1.csv": "hash1",
-            "/new/out2.png": "different",
+            "out1.csv": "hash1",
+            "out2.png": "different",
             # out3 is missing
         }
         result = _compare_hashes(original, new)
@@ -190,13 +188,13 @@ class TestCompareHashes:
         # Arrange
         # Arrange
         original = {
-            "/path/out1.csv": "hash1",
-            "/path/out2.png": "hash2",
-            "/path/out3.csv": "hash3",
+            "out1.csv": "hash1",
+            "out2.png": "hash2",
+            "out3.csv": "hash3",
         }
         new = {
-            "/new/out1.csv": "hash1",
-            "/new/out2.png": "different",
+            "out1.csv": "hash1",
+            "out2.png": "different",
             # out3 is missing
         }
         result = _compare_hashes(original, new)
@@ -223,8 +221,8 @@ class TestCompareHashes:
     def test_result_contains_expected_hash(self):
         # Arrange
         # Arrange
-        original = {"/path/file.csv": "expected_hash"}
-        new = {"/new/file.csv": "expected_hash"}
+        original = {"file.csv": "expected_hash"}
+        new = {"file.csv": "expected_hash"}
         # Act
         # Act
         result = _compare_hashes(original, new)
@@ -235,8 +233,8 @@ class TestCompareHashes:
     def test_result_contains_current_hash_when_matched(self):
         # Arrange
         # Arrange
-        original = {"/path/file.csv": "my_hash"}
-        new = {"/new/file.csv": "my_hash"}
+        original = {"file.csv": "my_hash"}
+        new = {"file.csv": "my_hash"}
         # Act
         # Act
         result = _compare_hashes(original, new)
@@ -247,7 +245,7 @@ class TestCompareHashes:
     def test_result_current_hash_none_when_missing(self):
         # Arrange
         # Arrange
-        original = {"/path/file.csv": "my_hash"}
+        original = {"file.csv": "my_hash"}
         new = {}
         # Act
         # Act
@@ -259,8 +257,8 @@ class TestCompareHashes:
     def test_role_is_output(self):
         # Arrange
         # Arrange
-        original = {"/path/file.csv": "h"}
-        new = {"/new/file.csv": "h"}
+        original = {"file.csv": "h"}
+        new = {"file.csv": "h"}
         # Act
         # Act
         result = _compare_hashes(original, new)
