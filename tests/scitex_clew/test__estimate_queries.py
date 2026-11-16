@@ -108,14 +108,14 @@ class TestSelfJoinOverFilePath:
         # Act
         hints = _hints_two_producers_same_file_path(tmp_path)
         # Assert
-        assert "p2" in hints[0]
+        assert "session p2" in hints[0]
 
     def test_hint_does_not_name_the_stale_producer(self, tmp_path):
         # Arrange — see _hints_two_producers_same_file_path.
         # Act
         hints = _hints_two_producers_same_file_path(tmp_path)
         # Assert
-        assert "p1" not in hints[0]
+        assert "session p1" not in hints[0]
 
 
 # ---------------------------------------------------------------------------
@@ -236,7 +236,7 @@ class TestLimitFivePerSessionId:
         # Act
         hints = _hints_six_producers_one_consumer(tmp_path)
         # Assert — p1 (oldest started_at) is bumped by the per-sid LIMIT 5.
-        assert "p1" not in " ".join(hints)
+        assert "session p1" not in " ".join(hints)
 
     def test_limit_5_includes_all_five_most_recent_producers(self, tmp_path):
         # Arrange — see _hints_six_producers_one_consumer.
@@ -244,7 +244,7 @@ class TestLimitFivePerSessionId:
         hints = _hints_six_producers_one_consumer(tmp_path)
         # Assert
         joined = " ".join(hints)
-        assert all(f"p{i}" in joined for i in range(2, 7))
+        assert all(f"session p{i}" in joined for i in range(2, 7))
 
     def test_limit_5_reapplies_independently_per_sid_total_hints(self, tmp_path):
         # Arrange — TWO consumer sessions, each with 6 distinct producers of
