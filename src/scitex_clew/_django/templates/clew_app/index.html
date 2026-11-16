@@ -8,21 +8,27 @@
 {% endblock %}
 {% block extra_css %}
     <!-- Shared shell assets are owned by scitex_sdk.ui -->
+    <link rel="stylesheet" href="{% static 'scitex_sdk/ui/css/app/app-header.css' %}" />
     <!-- Clew specific styles -->
     <link rel="stylesheet" href="{% static 'clew_app/css/clew.css' %}" />
 {% endblock %}
 {% block scitex_app_content %}
     <div id="workspace-project-config" data-project-ref="{{ clew_project_id }}" data-mode="clew"></div>
     <div data-clew-config data-mount="{{ stx_mount }}"></div>
-    <header class="clew-app-header">
-        <h1>Clew <small>v{{ clew_version }}</small></h1>
+    {# Shared SDK AppHeader (title + version + project-selector slot); the #}
+    {# auto-mount adopts the direct-child picker into its project slot. #}
+    <div data-stx-app-header
+         data-app-title="Clew"
+         {% if clew_version %}data-app-version="{{ clew_version }}"{% endif %}>
         {% scitex_project_picker scope="project" current=clew_project_id %}
+    </div>
+    <div class="clew-toolbar">
         <form id="clew-file-form">
             <label for="clew-file-path">Project file</label>
             <input id="clew-file-path" name="path" placeholder="output/figure.png" autocomplete="off">
             <button type="submit">Trace</button>
         </form>
-    </header>
+    </div>
     {% if clew_project_error %}<p class="clew-project-message" role="status">{{ clew_project_error }}. Choose a project to inspect its records.</p>{% endif %}
     <div class="clew-workspace"
          data-ai-hint="Clew workspace: pipeline DAG editor, verification chain visualization, dependency tracking">
@@ -97,5 +103,6 @@
     </div>
 {% endblock %}
 {% block extra_js %}
+    <script type="module" src="{% static 'scitex_sdk/ui/js/app/app-header.js' %}"></script>
     <script type="module" src="{% static 'clew_app/js/clew-init.js' %}"></script>
 {% endblock %}

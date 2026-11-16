@@ -4,10 +4,20 @@
 The package declares scitex-logging as a dependency. If its initialization
 fails, package imports retain the existing stdlib logging fallback.
 
-Set SCITEX_CLEW_DEBUG_MODE=1 to enable DEBUG-level logging.
+Set SCITEX_CLEW_DEBUG_MODE=1 to enable DEBUG-level logging. The level is
+applied through scitex-logging's ``set_level`` (PS-220: package source must
+not configure stdlib logging directly), which lowers both the root logger
+and its handlers so DEBUG records actually reach the console. In the
+degraded stdlib fallback the flag has no effect.
 """
 
 import os
+
+_DEBUG_MODE = os.environ.get("SCITEX_CLEW_DEBUG_MODE", "").strip() in (
+    "1",
+    "true",
+    "yes",
+)
 
 try:
     # scitex_logging may initialize file handlers under the canonical
@@ -19,16 +29,12 @@ try:
     import scitex_logging as _logging
 
     getLogger = _logging.getLogger
+    if _DEBUG_MODE:
+        _logging.set_level(_logging.DEBUG)
 except Exception:
     import logging
 
     getLogger = logging.getLogger
-
-if os.environ.get("SCITEX_CLEW_DEBUG_MODE", "").strip() in ("1", "true", "yes"):
-    import logging
-
-    logging.basicConfig(level=logging.DEBUG)
-    getLogger("scitex_clew").setLevel(logging.DEBUG)
 
 
 # EOF

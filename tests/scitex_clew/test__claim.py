@@ -309,10 +309,16 @@ def test_read_only_false_keeps_default_perms(tmp_path, env_sandbox):
     _make_project_root(workdir)
     env_sandbox.set_env("SCITEX_CLEW_AUTO_EXPORT_CLAIMS", "0")
     _seed_claim(workdir)
+    # A fresh file's "default perms" are 0o666 masked by the process umask
+    # (0o644 under umask 022, 0o664 under the common desktop umask 002), so
+    # derive the expectation from the live umask instead of hard-coding one.
+    current_umask = os.umask(0)
+    os.umask(current_umask)
+    expected_mode = 0o666 & ~current_umask
     # Act
     out = clew.export_claims_json(read_only=False)
     # Assert
-    assert (out.stat().st_mode & 0o777) == 0o644
+    assert (out.stat().st_mode & 0o777) == expected_mode
 
 
 def test_auto_export_disabled_by_env(tmp_path, env_sandbox):
