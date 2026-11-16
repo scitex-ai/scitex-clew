@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Claim verification — verify_claim, verify_all_claims, verify_claims_dag."""
 
 from __future__ import annotations
@@ -20,9 +19,9 @@ from ._register import list_claims
 
 def verify_claim(
     claim_id_or_location: str,
-    hash_cache: "Optional[Dict[str, str]]" = None,
-    chain_cache: "Optional[Dict[str, object]]" = None,
-) -> Dict:
+    hash_cache: dict[str, str] | None = None,
+    chain_cache: dict[str, object] | None = None,
+) -> dict:
     """Verify a specific claim by checking its source against the verification chain.
 
     Parameters
@@ -73,14 +72,10 @@ def verify_claim(
             result["claim"]["status"] = "missing"
             return result
 
-        from .._hash import hash_file
+        from .._hash import hash_file, hashes_match
 
         current_hash = hash_file(source_path, hash_cache=hash_cache)
-        if (
-            claim.source_hash
-            and current_hash[: len(claim.source_hash)]
-            == claim.source_hash[: len(current_hash)]
-        ):
+        if hashes_match(claim.source_hash, current_hash):
             result["source_verified"] = True
             result["details"].append("Source file hash matches")
         else:
@@ -106,6 +101,12 @@ def verify_claim(
                 if chain_cache is not None:
                     chain_cache[chain_key] = chain
             result["chain_verified"] = chain.is_verified
+            # "no_lineage": no recorded run produced the source at all.
+            # Anything else that is not verified is a lineage that EXISTS but
+            # no longer holds (changed upstream input, failed run, ...).
+            result["chain_status"] = (
+                "no_lineage" if not chain.runs else chain.status.value
+            )
             if chain.is_verified:
                 result["details"].append(f"Chain verified ({len(chain.runs)} runs)")
             else:
@@ -127,8 +128,8 @@ def verify_claim(
 
 
 def verify_claims_dag(
-    file_path: Optional[str] = None,
-    claim_type: Optional[str] = None,
+    file_path: str | None = None,
+    claim_type: str | None = None,
 ):
     """Build a unified DAG from all claims, tracing each back to its source.
 
@@ -144,8 +145,7 @@ def verify_claims_dag(
     DAGVerification
         Unified verification result covering all claim source chains merged.
     """
-    from .._chain import DAGVerification, VerificationStatus
-    from .._chain import verify_dag
+    from .._chain import DAGVerification, VerificationStatus, verify_dag
 
     claims = list_claims(file_path=file_path, claim_type=claim_type)
 
@@ -167,7 +167,7 @@ def verify_claims_dag(
     return verify_dag(source_files)
 
 
-def _classify_claim(result: Dict, *, strict: bool) -> int:
+def _classify_claim(result: dict, *, strict: bool) -> int:
     """Classify a single ``verify_claim`` result into an exit code.
 
     Maps the per-claim verification outcome onto the documented fail-loud
@@ -185,16 +185,21 @@ def _classify_claim(result: Dict, *, strict: bool) -> int:
       (``verified_at`` is null AND status is still ``registered``) →
       ``UNVERIFIED``.
     * Source verified:
-        * non-strict → ``OK`` (hash match is the bar).
-        * strict and chain NOT verified → ``NO_LINEAGE`` (hand-written
-          leaf, no ``@stx.session`` provenance upstream).
-        * strict and chain verified → ``OK``.
+        * a recorded lineage exists but does not verify (an upstream input,
+          output or script changed, or a run in it failed) →
+          ``STALE_LINEAGE`` in BOTH modes: the claim's value may no longer
+          follow from its inputs, so it is not verified.
+        * no lineage at all, non-strict → ``OK`` (hash match is the bar).
+        * no lineage at all, strict → ``NO_LINEAGE`` (hand-written leaf,
+          no ``@stx.session`` provenance upstream).
+        * lineage verified → ``OK``.
     """
     from .._cli._exit_codes import (
         HASH_MISMATCH,
         NO_LINEAGE,
         OK,
         SOURCE_MISSING,
+        STALE_LINEAGE,
         UNVERIFIED,
     )
 
@@ -213,9 +218,12 @@ def _classify_claim(result: Dict, *, strict: bool) -> int:
         return HASH_MISMATCH
 
     if result.get("source_verified"):
-        if strict and not result.get("chain_verified"):
-            return NO_LINEAGE
-        return OK
+        if result.get("chain_verified"):
+            return OK
+        chain_status = result.get("chain_status")
+        if chain_status is not None and chain_status != "no_lineage":
+            return STALE_LINEAGE
+        return NO_LINEAGE if strict else OK
 
     # Source linked but neither verified nor explicitly failed: it was
     # never put through a real verification pass (verified_at null).
@@ -227,12 +235,12 @@ def _classify_claim(result: Dict, *, strict: bool) -> int:
 
 
 def verify_all_claims(
-    file_path: Optional[str] = None,
-    claim_type: Optional[str] = None,
+    file_path: str | None = None,
+    claim_type: str | None = None,
     *,
     strict: bool = False,
-    config: Optional[Union[str, Path]] = None,
-) -> "VerificationResult":
+    config: str | Path | None = None,
+) -> VerificationResult:
     """Verify every registered claim and reduce to a fail-loud result.
 
     This is the reusable core behind ``clew verify`` (claim-set mode). It
@@ -319,17 +327,19 @@ def verify_all_claims(
     # is keyed by str(resolved source_file) and populated on first encounter so
     # each unique chain is walked at most once per pass.  A fresh dict is
     # created each call so no stale entries leak across independent passes.
-    chain_cache: Dict[str, object] = {}
+    chain_cache: dict[str, object] = {}
 
-    per_claim: List[ClaimVerification] = []
-    per_codes: List[int] = []
+    per_claim: list[ClaimVerification] = []
+    per_codes: list[int] = []
     verified = 0
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
 
     db = get_db()
 
     for c in claims:
-        result = verify_claim(c.claim_id, hash_cache=hash_cache, chain_cache=chain_cache)
+        result = verify_claim(
+            c.claim_id, hash_cache=hash_cache, chain_cache=chain_cache
+        )
         code = _classify_claim(result, strict=strict)
 
         # Source gate: an otherwise-OK (link-verified) claim whose chain reaches

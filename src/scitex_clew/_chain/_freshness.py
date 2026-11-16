@@ -27,18 +27,16 @@ from ._types import RunVerification, VerificationLevel, VerificationStatus
 
 
 def _hashes_match(current: str, recorded: str) -> bool:
-    """Prefix-tolerant hash equality (same convention as ``verify_file``).
+    """Hash equality via :func:`scitex_clew._hash.hashes_match` (as ``verify_file``).
 
     ``hash_file`` now returns the full sha256 digest, but a ``runs``/
     ``file_hashes`` row recorded before clew-fix-truncated-hash-comparison
-    may still hold the old 32-char truncated value. Compare over the
-    shorter length so freshness detection keeps working for both old and
-    new rows instead of degrading to "always stale" for a pre-existing DB.
+    may still hold the old 32-char truncated value; ``hashes_match``
+    tolerates exactly that legacy width and nothing shorter.
     """
-    if not current or not recorded:
-        return False
-    n = min(len(current), len(recorded))
-    return current[:n] == recorded[:n]
+    from .._hash import hashes_match
+
+    return hashes_match(recorded, current)
 
 
 def _is_session_fresh(

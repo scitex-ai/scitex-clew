@@ -149,9 +149,10 @@ def _resolve_to_session_id(db, target: str) -> str | None:
         if run.get("script_path") == resolved:
             return run["session_id"]
 
-    # Try as artifact (output) path
-    sessions = db.find_session_by_file(resolved, role="output")
-    return sessions[0] if sessions else None
+    # Try as artifact (output) path: the producer of the bytes on disk now.
+    from ._chain._routes import current_hash_or_none, resolve_producer
+
+    return resolve_producer(db, resolved, current_hash_or_none(resolved))
 
 
 def _unknown_result(session_id: str, script_path: str) -> RunVerification:
@@ -203,7 +204,7 @@ def _find_new_session(db, script_path: str, original_id: str) -> tuple:
 
 
 def _compare_hashes(
-    original_hashes: Dict[str, str], new_hashes: Dict[str, str]
+    original_hashes: dict[str, str], new_hashes: dict[str, str]
 ) -> list:
     """Compare hashes by filename and return FileVerification list."""
     original_by_name = {Path(p).name: h for p, h in original_hashes.items()}
@@ -298,15 +299,21 @@ def rerun_dag(
             hashes = db.get_file_hashes(run["session_id"], role="output")
             targets.extend(hashes.keys())
 
-    # Resolve targets to leaf session IDs
+    from ._chain._routes import (
+        current_hash_or_none,
+        resolve_file_dag,
+        resolve_producer,
+    )
+
+    # Resolve targets to leaf session IDs (producer of the bytes on disk)
     resolved_targets = []
     leaf_sessions = []
     for target in targets:
         target_str = str(Path(target).resolve())
         resolved_targets.append(target_str)
-        sessions = db.find_session_by_file(target_str, role="output")
-        if sessions:
-            leaf_sessions.append(sessions[0])
+        leaf = resolve_producer(db, target_str, current_hash_or_none(target_str))
+        if leaf is not None and leaf not in leaf_sessions:
+            leaf_sessions.append(leaf)
 
     if not leaf_sessions:
         return DAGVerification(
@@ -317,8 +324,9 @@ def rerun_dag(
             topological_order=[],
         )
 
-    # BFS backward to collect full DAG
-    adjacency, _all_ids = db.get_dag(leaf_sessions)
+    # The ONE lineage resolver (hash-bound save->load handshakes) — the same
+    # DAG verify_dag / verify_chain / the renderers walk.
+    adjacency, _all_ids = resolve_file_dag(leaf_sessions, db=db)
 
     # Topological sort (roots first)
     topo_order = _topological_sort(adjacency)

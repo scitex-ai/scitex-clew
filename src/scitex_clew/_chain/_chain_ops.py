@@ -10,13 +10,19 @@ from typing import Any, Dict, Union
 
 from .._db import get_db
 from ._hash_cache import new_hash_cache
-from ._routes import DEFAULT_MAX_DEPTH, order_roots_first, resolve_file_dag
+from ._routes import (
+    DEFAULT_MAX_DEPTH,
+    current_hash_or_none,
+    order_roots_first,
+    resolve_file_dag,
+    resolve_producer,
+)
 from ._types import ChainVerification, VerificationStatus
 from ._verify_ops import verify_run
 
 
 def verify_chain(
-    target: Union[str, Path],
+    target: str | Path,
     *,
     db_factory=get_db,
     verify_run_fn=verify_run,
@@ -47,23 +53,19 @@ def verify_chain(
     db = db_factory()
     target = str(Path(target).resolve())
 
-    # Find session that produced this output
-    sessions = db.find_session_by_file(target, role="output")
-    if not sessions:
+    # The leaf is the session that produced the bytes now on disk (falling
+    # back to the path's newest producer, so a tampered target still reports
+    # its mismatch instead of vanishing).
+    session_id = resolve_producer(db, target, current_hash_or_none(target))
+    if session_id is None:
         return ChainVerification(
             target_file=target,
             runs=[],
             status=VerificationStatus.UNKNOWN,
         )
 
-    # Get the most recent session
-    session_id = sessions[0]
-
-    # Resolve the chain via file save->load handshakes (bounded + deduped),
-    # NOT the legacy parent_session walk (which was cyclic and accreted every
-    # historical producer of every shared/config input). The target's producer
-    # is the leaf; walk back through the newest producer of each loaded file.
-    # See ._routes for the model.
+    # Resolve upstream lineage with the ONE resolver (hash-bound save->load
+    # handshakes, bounded + deduped). See ._routes for the model.
     adjacency, all_ids = resolve_file_dag([session_id], db=db, max_depth=max_depth)
 
     # Roots-first order (sources -> target), cycle-tolerant.
@@ -85,7 +87,9 @@ def verify_chain(
     # Severity preserved: VERIFIED > SUSPECT > MISSING > MISMATCH > UNKNOWN
     # is NOT the order — instead we keep the historical "any-failure-wins"
     # priority and slot SUSPECT in below MISMATCH/MISSING:
-    #     MISMATCH > MISSING > SUSPECT > UNKNOWN.
+    #     MISMATCH > MISSING > FAILED > SUSPECT > UNKNOWN.
+    # FAILED (a run in the lineage whose execution failed) ranks above
+    # SUSPECT: it is the root cause the SUSPECT consumers point at.
     # A chain that has any *locally* broken run reports MISMATCH/MISSING
     # because that needs to be fixed first; a chain whose runs are all
     # locally valid but at least one is SUSPECT (its upstream was broken)
@@ -97,6 +101,8 @@ def verify_chain(
         status = VerificationStatus.MISMATCH
     elif any(r.status == VerificationStatus.MISSING for r in run_verifications):
         status = VerificationStatus.MISSING
+    elif any(r.status == VerificationStatus.FAILED for r in run_verifications):
+        status = VerificationStatus.FAILED
     elif any(r.status == VerificationStatus.SUSPECT for r in run_verifications):
         status = VerificationStatus.SUSPECT
     else:
@@ -113,7 +119,7 @@ def get_status(
     *,
     db_factory=get_db,
     verify_run_fn=verify_run,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get verification status for all runs (like git status).
 
     Parameters
@@ -137,6 +143,7 @@ def get_status(
     verified = []
     mismatched = []
     missing = []
+    failed = []
 
     # Share a single hash cache across all runs in this status pass so files
     # referenced by multiple sessions are hashed from disk only once.
@@ -151,6 +158,9 @@ def get_status(
 
         if verification.is_verified:
             verified.append(session_id)
+        elif verification.status == VerificationStatus.FAILED:
+            # Execution failed: never verified, whatever its files hash to.
+            failed.append(session_id)
         elif verification.mismatched_files:
             mismatched.append(
                 {
@@ -170,8 +180,10 @@ def get_status(
         "verified_count": len(verified),
         "mismatch_count": len(mismatched),
         "missing_count": len(missing),
+        "failed_count": len(failed),
         "mismatched": mismatched,
         "missing": missing,
+        "failed": failed,
     }
 
 

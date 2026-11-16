@@ -92,9 +92,11 @@ def add_claim(
     # Auto-detect source session if not provided
     if source_file and not source_session:
         db = get_db()
-        sessions = db.find_session_by_file(source_file, role="output")
-        if sessions:
-            source_session = sessions[0]
+        from .._chain._routes import resolve_producer
+
+        # The producer of the exact bytes being claimed (content hash), not
+        # merely whoever last wrote this path.
+        source_session = resolve_producer(db, source_file, source_hash)
 
     # Warn LOUD, at the point the mistake was made, when a source_file was
     # given but no owning @stx.session run produced it. Without this the claim

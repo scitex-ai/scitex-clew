@@ -62,6 +62,7 @@ def status_icon(
         VerificationStatus.VERIFIED: f"{Colors.GREEN}●{Colors.RESET}",
         VerificationStatus.MISMATCH: f"{Colors.RED}●{Colors.RESET}",
         VerificationStatus.SUSPECT: f"{Colors.ORANGE}●{Colors.RESET}",
+        VerificationStatus.FAILED: f"{Colors.RED}✗{Colors.RESET}",
         VerificationStatus.MISSING: f"{Colors.YELLOW}○{Colors.RESET}",
         VerificationStatus.UNKNOWN: f"{Colors.CYAN}?{Colors.RESET}",
     }
@@ -86,6 +87,7 @@ def status_text(status: VerificationStatus) -> str:
         VerificationStatus.VERIFIED: f"{Colors.GREEN}verified{Colors.RESET}",
         VerificationStatus.MISMATCH: f"{Colors.RED}mismatch{Colors.RESET}",
         VerificationStatus.SUSPECT: f"{Colors.ORANGE}suspect{Colors.RESET}",
+        VerificationStatus.FAILED: f"{Colors.RED}failed run{Colors.RESET}",
         VerificationStatus.MISSING: f"{Colors.YELLOW}missing{Colors.RESET}",
         VerificationStatus.UNKNOWN: f"{Colors.CYAN}unknown{Colors.RESET}",
     }

@@ -81,11 +81,17 @@ def generate_mermaid_dag(
     db = get_db()
     lines = ["graph TD"]
 
+    # chain_ids is leaf-first (the generators reverse it to draw sources
+    # first); both branches come from the ONE lineage resolver.
     if target_file:
         chain = verify_chain(target_file)
-        chain_ids = [run.session_id for run in chain.runs]
+        chain_ids = [run.session_id for run in reversed(chain.runs)]
+    elif session_id and db.get_run(session_id) is None:
+        chain_ids = []  # unknown session: nothing to draw
     elif session_id:
-        chain_ids = db.get_chain(session_id)
+        from .._chain._routes import resolve_lineage
+
+        chain_ids = list(reversed(resolve_lineage([session_id], db=db).roots_first()))
     else:
         all_runs = db.list_runs(limit=500)
         chain_ids = [r["session_id"] for r in all_runs]
@@ -272,9 +278,7 @@ def render_dag(
         import subprocess
         import tempfile
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".mmd", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
             f.write(mermaid)
             mmd_path = f.name
 

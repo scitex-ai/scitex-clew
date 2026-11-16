@@ -7,6 +7,39 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — back-trace correctness (claim -> minimal, correct DAG)
+
+- **Parents are bound by content hash, not path.** An input is linked to the
+  producer that recorded the SAME hash for that path no later than the input
+  was loaded (`_chain._routes.resolve_lineage` / `bind_input`). A later run
+  overwriting a file no longer re-parents an earlier consumer; a
+  byte-identical re-run after the load is not its parent either. Inputs whose
+  bytes match no recorded output are reported as unbound (`external` /
+  `unmatched`) instead of being guessed. `SessionTracker.record_input` now
+  records only that hash-bound parent (not every producer of the path).
+- **One resolver.** `rerun_dag`, `verify_dag_strict` claim invalidation,
+  `generate_dag_json(session_id=...)` and `mermaid(session_id=...)` now walk
+  the same hash-bound resolver as `verify_chain` / `verify_dag`, instead of
+  the legacy `session_parents` table or `get_chain`. Leaf producers of a
+  target/claim are chosen by content hash (`resolve_producer`).
+- **A failed run is never verified.** New `VerificationStatus.FAILED` for runs
+  whose recorded status is `failed`/`error`; consumers of their outputs are
+  `SUSPECT`; `clew.status()` adds `failed_count` / `failed` (additive keys);
+  Mermaid draws such runs and their outputs `failed`.
+- **Full hash equality.** `scitex_clew._hash.hashes_match` replaces every
+  prefix comparison; only the legacy 32-char truncated sha256 is tolerated.
+
+### Changed
+
+- **Stale lineage fails default claim verification.** New exit code
+  `18 STALE_LINEAGE` (config key `stale_lineage`, default `error`): a claim
+  whose source hashes fine but whose recorded lineage no longer verifies (an
+  upstream input/output/script changed, or a run in it failed) is not
+  verified, in default AND `--strict` mode. Previously default mode passed
+  it (`OK`) and `--strict` mislabelled it `NO_LINEAGE`. Existing code names
+  and integers are unchanged; `NO_LINEAGE` now means only "no lineage at
+  all". Severity ranks above `UNVERIFIED`, below `SOURCE_MISSING`.
+
 ## [0.21.0] — pending release
 
 ### Added

@@ -34,9 +34,9 @@ class SessionTracker:
     def __init__(
         self,
         session_id: str,
-        script_path: Optional[str] = None,
-        parent_session: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        script_path: str | None = None,
+        parent_session: str | None = None,
+        metadata: dict[str, Any] | None = None,
         db=None,
     ):
         """
@@ -59,9 +59,9 @@ class SessionTracker:
         self.script_path = script_path
         self.parent_session = parent_session
 
-        self._inputs: Dict[str, str] = {}
-        self._outputs: Dict[str, str] = {}
-        self._script_hash: Optional[str] = None
+        self._inputs: dict[str, str] = {}
+        self._outputs: dict[str, str] = {}
+        self._script_hash: str | None = None
         self._finalized = False
         self._parent_sessions: set = set()
         if parent_session:
@@ -84,9 +84,9 @@ class SessionTracker:
 
     def record_input(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         track: bool = True,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Record a file as an input.
 
@@ -121,22 +121,31 @@ class SessionTracker:
                 size_bytes=_stat_size(path_str),
             )
 
-            # Auto-link parents: record ALL producer sessions
-            producer_sessions = self._db.find_session_by_file(path_str, role="output")
-            for producer in producer_sessions:
-                if producer not in self._parent_sessions:
-                    self._parent_sessions.add(producer)
-                    self._db.add_parent(self.session_id, producer)
-                    if self.parent_session is None:
-                        self.parent_session = producer
+            # Auto-link the parent: the producer of THESE bytes (content hash),
+            # never every session that ever wrote this path. Same binding rule
+            # as the lineage resolver (scitex_clew._chain._routes); at load
+            # time every recorded output precedes this input, so no time gate.
+            from ._chain._routes import bind_input
+
+            producers = self._db.find_producer_records([path_str]).get(path_str, [])
+            producer = bind_input(
+                producers,
+                consumer_session=self.session_id,
+                input_hash=file_hash,
+            )
+            if producer is not None and producer not in self._parent_sessions:
+                self._parent_sessions.add(producer)
+                self._db.add_parent(self.session_id, producer)
+                if self.parent_session is None:
+                    self.parent_session = producer
 
         return self._inputs[path_str]
 
     def record_output(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         track: bool = True,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Record a file as an output.
 
@@ -174,9 +183,9 @@ class SessionTracker:
 
     def record_inputs(
         self,
-        paths: List[Union[str, Path]],
+        paths: list[str | Path],
         track: bool = True,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Record multiple input files."""
         result = {}
         for path in paths:
@@ -187,9 +196,9 @@ class SessionTracker:
 
     def record_outputs(
         self,
-        paths: List[Union[str, Path]],
+        paths: list[str | Path],
         track: bool = True,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Record multiple output files."""
         result = {}
         for path in paths:
@@ -199,12 +208,12 @@ class SessionTracker:
         return result
 
     @property
-    def inputs(self) -> Dict[str, str]:
+    def inputs(self) -> dict[str, str]:
         """Get all recorded inputs."""
         return self._inputs.copy()
 
     @property
-    def outputs(self) -> Dict[str, str]:
+    def outputs(self) -> dict[str, str]:
         """Get all recorded outputs."""
         return self._outputs.copy()
 
@@ -222,7 +231,7 @@ class SessionTracker:
         self,
         status: str = "success",
         exit_code: int = 0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Finalize the session tracking.
 
@@ -254,7 +263,7 @@ class SessionTracker:
 
         return self.summary()
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         """Get summary of tracked files."""
         return {
             "session_id": self.session_id,
@@ -269,15 +278,15 @@ class SessionTracker:
 
 
 # Global tracker for current session
-_CURRENT_TRACKER: Optional[SessionTracker] = None
+_CURRENT_TRACKER: SessionTracker | None = None
 
 
-def get_tracker() -> Optional[SessionTracker]:
+def get_tracker() -> SessionTracker | None:
     """Get the current session tracker."""
     return _CURRENT_TRACKER
 
 
-def set_tracker(tracker: Optional[SessionTracker]) -> None:
+def set_tracker(tracker: SessionTracker | None) -> None:
     """Set the current session tracker."""
     global _CURRENT_TRACKER
     _CURRENT_TRACKER = tracker
@@ -285,9 +294,9 @@ def set_tracker(tracker: Optional[SessionTracker]) -> None:
 
 def start_tracking(
     session_id: str,
-    script_path: Optional[str] = None,
-    parent_session: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    script_path: str | None = None,
+    parent_session: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> SessionTracker:
     """
     Start tracking a new session.
@@ -321,7 +330,7 @@ def start_tracking(
 def stop_tracking(
     status: str = "success",
     exit_code: int = 0,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """
     Stop tracking the current session.
 
@@ -348,10 +357,10 @@ def stop_tracking(
 
 @contextmanager
 def session(
-    script_path: Optional[str] = None,
-    session_id: Optional[str] = None,
-    parent_session: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    script_path: str | None = None,
+    session_id: str | None = None,
+    parent_session: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ):
     """Zero-dependency provenance-recording context manager.
 
@@ -417,7 +426,7 @@ def session(
         stop_tracking(status=status, exit_code=exit_code)
 
 
-def record_input(path: Union[str, Path], track: bool = True) -> Optional[str]:
+def record_input(path: str | Path, track: bool = True) -> str | None:
     """Record ``path`` as an input of the CURRENT clew session.
 
     Convenience over ``get_tracker().record_input`` for the module-level
@@ -432,7 +441,7 @@ def record_input(path: Union[str, Path], track: bool = True) -> Optional[str]:
     return tracker.record_input(path, track=track)
 
 
-def record_output(path: Union[str, Path], track: bool = True) -> Optional[str]:
+def record_output(path: str | Path, track: bool = True) -> str | None:
     """Record ``path`` as an output of the CURRENT clew session (see :func:`record_input`)."""
     tracker = get_tracker()
     if tracker is None:
