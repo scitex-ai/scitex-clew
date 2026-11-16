@@ -23,7 +23,7 @@ import scitex.clew
 | `list_runs(limit=100, status=None)` | List tracked runs                                     |
 | `run(session_id, from_scratch=False)` | Verify one session by re-hashing every file         |
 | `chain(target, minimal=False, level=1)` | Trace the provenance chain for a file (`minimal=True`: only its slice) |
-| `slice(target_or_claim, level=1)` | Minimal provenance slice: only runs/files on a path to the target (`.counts()`, `.to_dict()`) |
+| `slice(target_or_claim, level=1)` | Minimal provenance slice: only runs/files on a path to the target; levels, claim `source_keys`, `project_root=`: [06](06_minimal-slice-and-claim-values.md) |
 | `dag(targets=None, claims=False, minimal=False, level=1)` | Verify the full DAG (or claims-DAG)        |
 | `rerun(target, timeout=300, cleanup=True)` | Re-execute and compare outputs                 |
 | `mermaid(...)`                  | Render Mermaid diagram for the DAG                        |
@@ -46,52 +46,8 @@ ok = verify_file("results/figure_3.png")
 summary = verify_all_claims(strict=True)   # optional config="path/to/.scitex/clew"
 if not summary.ok:                         # summary.exit_code == 0; see _cli._exit_codes
     abstain(reason=summary.reason)         # never claim success on nonzero
-# summary.errors / summary.warnings list fired patterns by name; per-pattern
-# severity (error vs warning) is tunable in .scitex/clew/config.yaml.
+# summary.errors / summary.warnings list fired patterns by name; per-pattern severity (error vs warning) is tunable in .scitex/clew/config.yaml.
 ```
-
-## Minimal provenance slice
-
-```python
-sl = scitex_clew.slice("results/fig3.png", level=1)   # or a claim id / "paper.tex:L42"
-sl.runs, sl.files, sl.edges           # only what lies on a path to the target
-sl.counts()                           # {"runs", "files", "nodes", "edges"}
-sl.dropped_outputs, sl.fallback_runs  # what level 1/2 pruned, and why not
-from scitex_clew._chain._slice import compare_levels
-compare_levels(["results/fig3.png"])  # {0: counts, 1: counts, 2: counts}
-
-scitex_clew.chain("results/fig3.png", minimal=True)  # verify only slice files
-verify_dag(targets, minimal=True, level=2)
-```
-
-Level 0 = run-level closure; 1 = path-pruned (keeps every input of a kept
-run); 2 = honours per-output `derived_from` (`tracker.record_output(path,
-derived_from=[inp])`), falling back to level 1 per undeclared run.
-`generate_dag_json` / `generate_mermaid_dag` take the same
-`minimal=`/`level=`. Claim verification always uses the level-1 slice.
-
-## Claims: value vs source, native fields, `project_root=`
-
-```python
-scitex_clew.add_claim(
-    "paper.tex", "value", claim_value="AUC = 0.91",   # display string
-    source_file="results.json",
-    value=0.91,                                       # checked value (else the display string)
-    source_keys={".": {"pointer": "/test/auc"}},      # RFC 6901; csv: {"row": 3|{"split":"test"}, "column": "auc"}
-    tolerance={"abs_tol": 0.01},                      # optional; else implied by written precision
-    metadata={"section": "results"},
-    claim_id="auc", project_root="/abs/path/to/my-paper",   # no chdir needed
-)
-scitex_clew.verify_claim("auc", project_root="/abs/path/to/my-paper")
-# -> {"value_verified": True, "value_checks": [...], ...}
-```
-
-`source_keys` is scitex-writer's shape (`{field | ".": locator}`, per-locator
-`abs_tol`/`rel_tol`). A contradicting value is `VALUE_MISMATCH` (21); an
-unreadable locator or a raising lineage walk is `VERIFY_ERROR` (19) — never
-OK. `project_root=` is also accepted by `list_claims`, `verify_all_claims`,
-`verify_claims_dag`, `remove_claim(s_by_prefix)`, `supersede_claim(s_by_prefix)`.
-Re-adding a claim id after `remove_claim` makes it visible again.
 
 ## Tracking primitives
 
@@ -103,8 +59,7 @@ from scitex_clew import (
 )
 ```
 
-`start_tracking()` is invoked automatically by `@stx.session`; you only need
-it when integrating clew into a non-scitex pipeline.
+`start_tracking()` is invoked automatically by `@stx.session`; you only need it when integrating clew into a non-scitex pipeline.
 
 ## Formatting helpers
 

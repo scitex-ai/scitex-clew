@@ -45,6 +45,13 @@ intransitive_verbs:
   # command name; rename would be worse UX.
   - chain
 
+  # `clew slice` — cut the provenance DAG down to the runs/files on a path
+  # to the target (file, claim id, or paper.tex:L42 positional). "slice" is
+  # a standard English verb ("to slice"; cf. program slicing), Moby lists it
+  # as noun AND verb; the verb meaning is intended. It mirrors the Python
+  # API `clew.slice(...)` one-for-one and sits beside `chain` / `dag`.
+  - slice
+
   # `clew stamp` — record a temporal stamp (root-of-trust timestamp) for
   # successful runs. The action is a complete unit ("record a stamp");
   # "stamp" is also a standard English verb ("to stamp"), but Moby leans

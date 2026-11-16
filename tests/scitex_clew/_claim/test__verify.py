@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
-"""Claim value-vs-source, native claim fields, re-add after remove, project_root.
+"""Claim verification: value-vs-source (:mod:`scitex_clew._claim._verify`).
 
-(g)  ``source_keys`` (scitex-writer's shape: RFC 6901 pointer / csv cell) +
-     tolerance (declared, else implied by the written precision); verification
-     compares the claimed value with the value read from the source.
-(h)  If the lineage walk raises, the claim is never reported OK.
-(W2) ``value`` / ``source_keys`` / ``tolerance`` / ``metadata`` are native
-     columns; ``claim_value`` stays the display string.
-(W3) Re-adding a removed claim id makes it visible again.
-(W4) ``project_root=`` scopes claim/verify calls without ``chdir``.
+``source_keys`` (scitex-writer's shape: RFC 6901 pointer / csv cell) +
+tolerance (declared, else implied by the written precision): verification
+compares the claimed value with the value read from the source. A lineage
+walk that raises is never reported OK.
 
-Real store, real files, no mocks. The (h) fault is a genuinely corrupted
-provenance record written straight into the store.
+Real store, real files, no mocks. The chain-error fault is a genuinely
+corrupted provenance record written straight into the store.
 """
 
 from __future__ import annotations
@@ -22,12 +18,6 @@ import warnings
 
 import pytest
 import scitex_clew as clew
-from scitex_clew._claim._locator import (
-    SourceLocatorError,
-    compare,
-    implied_abs_tol,
-    normalize_locator,
-)
 from scitex_clew._db import get_db
 from scitex_clew._tracker import SessionTracker
 from scitex_dev.store import ANY_REVISION
@@ -83,6 +73,8 @@ def table_csv(tmp_path):
         "subject,metric,value\nS01,auc,0.91\nS02,auc,0.85\n",
         sid="S2",
     )
+
+
 
 
 class TestValueCheck:
@@ -148,106 +140,6 @@ class TestValueCheck:
         # Assert
         assert result.exit_name == "VERIFY_ERROR"
 
-    def test_per_locator_tolerance_overrides_claim_level(self):
-        # Arrange
-        locator = {"pointer": "/x", "abs_tol": 0.0}
-        # Act
-        ok, _ = compare("0.81", 0.8123, locator, {"abs_tol": 0.1})
-        # Assert
-        assert not ok
-
-    def test_implied_tolerance_is_half_the_last_written_place(self):
-        # Arrange
-        written = "4.23"
-        # Act
-        tol = implied_abs_tol(written)
-        # Assert
-        assert tol == pytest.approx(0.005)
-
-    def test_malformed_locator_is_rejected(self):
-        # Arrange
-        bad = {"pointer": "no-leading-slash"}
-        # Act
-        call = lambda: normalize_locator(bad)
-        # Assert
-        with pytest.raises(SourceLocatorError):
-            call()
-
-
-class TestNativeClaimFields:
-    def test_fields_round_trip_and_display_string_is_kept(self, tmp_path, results_json):
-        # Arrange
-        _claim(
-            tmp_path,
-            "AUC = 0.81",
-            results_json,
-            value={"auc": 0.81},
-            source_keys={"auc": "/test/auc"},
-            tolerance={"rel_tol": 0.01},
-            metadata={"writer_schema": 1, "macro": "\\clewAuc"},
-        )
-        # Act
-        c = clew.list_claims()[0]
-        # Assert
-        assert (c.claim_value, c.value, c.source_keys, c.tolerance, c.metadata) == (
-            "AUC = 0.81",
-            {"auc": 0.81},
-            {"auc": {"pointer": "/test/auc"}},
-            {"rel_tol": 0.01},
-            {"writer_schema": 1, "macro": "\\clewAuc"},
-        )
-
-
-class TestReAddAfterRemove:
-    def test_readded_claim_is_visible(self, tmp_path, results_json):
-        # Arrange
-        _claim(tmp_path, "0.81", results_json, claim_id="auc")
-        clew.remove_claim("auc")
-        # Act
-        _claim(tmp_path, "0.81", results_json, claim_id="auc")
-        # Assert
-        assert [c.claim_id for c in clew.list_claims()] == ["auc"]
-
-
-class TestProjectRoot:
-    def test_project_root_scopes_without_chdir(self, tmp_path):
-        # Arrange
-        a, b = tmp_path / "proj_a", tmp_path / "proj_b"
-        for root in (a, b):
-            (root / ".git").mkdir(parents=True)
-            (root / "r.json").write_text("{}")
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)
-            clew.add_claim(
-                "paper.tex",
-                "value",
-                1,
-                "1",
-                source_file="r.json",
-                claim_id="x",
-                project_root=a,
-            )
-        # Act
-        seen = (
-            [c.claim_id for c in clew.list_claims(project_root=a)],
-            [c.claim_id for c in clew.list_claims(project_root=b)],
-        )
-        # Assert
-        assert seen == (["x"], [])
-
-    def test_relative_paths_resolve_against_project_root(self, tmp_path):
-        # Arrange
-        root = tmp_path / "proj"
-        (root / ".git").mkdir(parents=True)
-        (root / "r.json").write_text("{}")
-        # Act
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)
-            claim = clew.add_claim(
-                "paper.tex", "value", 1, "1", source_file="r.json", project_root=root
-            )
-        # Assert
-        assert claim.source_file == str((root / "r.json").resolve())
 
 
 class TestChainErrorIsNeverOk:
