@@ -8,9 +8,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-from ._archive_lookup import hash_archived_file
 from .._db import get_db
-from .._hash import hash_file
+from .._hash import hash_file, hashes_match
+from ._archive_lookup import hash_archived_file
 from ._types import (
     FileVerification,
     RunVerification,
@@ -19,10 +19,10 @@ from ._types import (
 
 
 def verify_file(
-    path: Union[str, Path],
+    path: str | Path,
     expected_hash: str,
     role: str = "unknown",
-    hash_cache: Optional[Dict[str, str]] = None,
+    hash_cache: dict[str, str] | None = None,
     frozen: bool = False,
 ) -> FileVerification:
     """Verify a single file against expected hash.
@@ -102,8 +102,8 @@ def verify_file(
                 status=VerificationStatus.MISSING,
             )
 
-    # Compare only the length of expected_hash
-    matches = current_hash[: len(expected_hash)] == expected_hash
+    # Full equality; only the legacy 32-char truncated width is tolerated.
+    matches = hashes_match(expected_hash, current_hash)
 
     return FileVerification(
         path=path_str,
@@ -128,16 +128,28 @@ def _resolve_target(db, target: str) -> str | None:
         if run.get("script_path") == resolved:
             return run["session_id"]
 
-    # Try as artifact (output) path
-    sessions = db.find_session_by_file(resolved, role="output")
-    return sessions[0] if sessions else None
+    # Try as artifact (output) path: the producer of the bytes on disk now.
+    from ._routes import current_hash_or_none, resolve_producer
+
+    return resolve_producer(db, resolved, current_hash_or_none(resolved))
+
+
+#: Recorded run statuses that mean the execution did not complete. Such a
+#: run's files are not evidence, whatever their hashes say.
+FAILED_RUN_STATUSES = frozenset({"failed", "error"})
+
+
+def run_failed(run_info: dict | None) -> bool:
+    """True when the recorded execution status says the run failed."""
+    status = (run_info or {}).get("status")
+    return str(status).lower() in FAILED_RUN_STATUSES if status else False
 
 
 def verify_run(
     target: str,
     propagate: bool = True,
     collapse_suspect: bool = False,
-    hash_cache: Optional[Dict[str, str]] = None,
+    hash_cache: dict[str, str] | None = None,
 ) -> RunVerification:
     """Verify a session run by checking all file hashes.
 
@@ -238,7 +250,21 @@ def verify_run(
         )
         file_verifications.append(script_verification)
 
+    # A consumer of bytes produced by a FAILED run is resting on non-evidence
+    # even when every hash still matches: treat it as an upstream failure.
+    # Parents are the hash-bound producers from the shared lineage resolver.
+    if propagate and not upstream_failed:
+        from ._routes import parents_of
+
+        upstream_failed = any(
+            run_failed(db.get_run(parent)) for parent in parents_of(db, session_id)
+        )
+
     # Determine overall status.
+    #
+    # A run whose recorded execution FAILED is never verified: its files are
+    # not evidence, whatever their hashes say. This outranks every
+    # hash-derived state.
     #
     # Order matters: a *local* failure (MISMATCH on an output/script, or a
     # MISSING output) is always more severe than upstream propagation —
@@ -250,7 +276,9 @@ def verify_run(
     locally_failed_files = [
         f for f in file_verifications if f.role != "input" and not f.is_verified
     ]
-    if locally_failed_files:
+    if run_failed(run_info):
+        status = VerificationStatus.FAILED
+    elif locally_failed_files:
         # Pick MISMATCH if any local artifact mismatches; MISSING only when
         # every local failure is "file absent" (matches the original
         # severity preference).

@@ -21,7 +21,7 @@ from typing import Dict, List, Optional
 from scitex_dev.store import ANY_REVISION
 
 
-def _resolve_host() -> Optional[str]:
+def _resolve_host() -> str | None:
     """Resolve the recording host for a file-hash row.
 
     Precedence: ``$SCITEX_CLEW_HOST`` > ``$SAC_HOST`` > ``socket.gethostname()``.
@@ -74,7 +74,7 @@ class FileHashMixin:
         file_path: str,
         hash_value: str,
         role: str,
-        size_bytes: Optional[int] = None,
+        size_bytes: int | None = None,
         frozen: bool = False,
     ) -> None:
         """Add a file hash record.
@@ -123,7 +123,7 @@ class FileHashMixin:
     def add_file_hashes(
         self,
         session_id: str,
-        hashes: Dict[str, str],
+        hashes: dict[str, str],
         role: str,
     ) -> None:
         """Add multiple file hashes at once (without size_bytes — batch variant).
@@ -160,8 +160,8 @@ class FileHashMixin:
     def get_file_hashes(
         self,
         session_id: str,
-        role: Optional[str] = None,
-    ) -> Dict[str, str]:
+        role: str | None = None,
+    ) -> dict[str, str]:
         """Get file hashes for a session.
 
         Parameters
@@ -182,7 +182,7 @@ class FileHashMixin:
     def get_frozen_files(
         self,
         session_id: str,
-        role: Optional[str] = None,
+        role: str | None = None,
     ) -> set:
         """Return the set of file paths that are marked frozen for a session.
 
@@ -204,7 +204,75 @@ class FileHashMixin:
         rows = self._rows_for_session(session_id, role)
         return {r.values.get("file_path") for r in rows if r.values.get("frozen")}
 
-    def _rows_for_session(self, session_id: str, role: Optional[str]):
+    def get_file_records(
+        self,
+        session_id: str,
+        role: str | None = None,
+    ) -> list[dict[str, str | None]]:
+        """Return a session's file rows WITH their record time.
+
+        Like :meth:`get_file_hashes` but keeps ``recorded_at``, which the
+        lineage resolver needs to bind an input to a producer that recorded
+        the same bytes BEFORE the input was loaded.
+
+        Returns
+        -------
+        list of dict
+            ``[{"file_path", "hash", "recorded_at"}, ...]`` in store order.
+        """
+        return [
+            {
+                "file_path": r.values.get("file_path"),
+                "hash": r.values.get("hash"),
+                "recorded_at": r.values.get("recorded_at"),
+            }
+            for r in self._rows_for_session(session_id, role)
+        ]
+
+    def find_producer_records(
+        self,
+        file_paths: list[str],
+    ) -> dict[str, list[dict[str, str | None]]]:
+        """Every OUTPUT row recorded for each of ``file_paths``, newest-first.
+
+        The content-addressed counterpart of :meth:`find_sessions_by_files`:
+        each record carries the producer's recorded output ``hash`` and
+        ``recorded_at`` so a caller can bind a consumer's input to the
+        producer of THOSE bytes rather than to whoever wrote the path last.
+        Keyed by the caller's spelling; paths are matched in resolved form.
+
+        Returns
+        -------
+        dict
+            ``{file_path: [{"session_id", "hash", "recorded_at"}, ...]}``.
+            Paths with no producer are absent.
+        """
+        if not file_paths:
+            return {}
+        resolved_to_original: dict[str, str] = {}
+        for original in file_paths:
+            resolved_to_original.setdefault(_resolve_abspath(original), original)
+        rows = [
+            r
+            for r in self._file_hashes.rows()
+            if r.values.get("role") == "output"
+            and r.values.get("file_path") in resolved_to_original
+        ]
+        rows.sort(key=lambda r: r.values.get("recorded_at") or "", reverse=True)
+        result: dict[str, list[dict[str, str | None]]] = {}
+        for r in rows:
+            stored = r.values.get("file_path")
+            key = resolved_to_original.get(stored, stored)
+            result.setdefault(key, []).append(
+                {
+                    "session_id": r.values.get("session_id"),
+                    "hash": r.values.get("hash"),
+                    "recorded_at": r.values.get("recorded_at"),
+                }
+            )
+        return result
+
+    def _rows_for_session(self, session_id: str, role: str | None):
         return [
             r
             for r in self._file_hashes.rows()
@@ -215,8 +283,8 @@ class FileHashMixin:
     def find_session_by_file(
         self,
         file_path: str,
-        role: Optional[str] = None,
-    ) -> List[str]:
+        role: str | None = None,
+    ) -> list[str]:
         """Find sessions that used a specific file.
 
         Parameters
@@ -247,9 +315,9 @@ class FileHashMixin:
 
     def find_sessions_by_files(
         self,
-        file_paths: List[str],
+        file_paths: list[str],
         role: str,
-    ) -> Dict[str, List[str]]:
+    ) -> dict[str, list[str]]:
         """Batch lookup: producers of multiple files, grouped by file_path.
 
         Parameters
@@ -279,7 +347,7 @@ class FileHashMixin:
         # Map resolved-form -> original spelling so the returned dict is keyed
         # by what the caller passed in, even though the match must use the
         # resolved form to find what is actually stored.
-        resolved_to_original: Dict[str, str] = {}
+        resolved_to_original: dict[str, str] = {}
         for original in file_paths:
             resolved_to_original.setdefault(_resolve_abspath(original), original)
 
@@ -290,7 +358,7 @@ class FileHashMixin:
             and r.values.get("file_path") in resolved_to_original
         ]
         rows.sort(key=lambda r: r.values.get("recorded_at") or "", reverse=True)
-        result: Dict[str, List[str]] = {}
+        result: dict[str, list[str]] = {}
         for r in rows:
             stored = r.values.get("file_path")
             fp = resolved_to_original.get(stored, stored)
@@ -303,8 +371,8 @@ class FileHashMixin:
     def find_sessions_by_hash(
         self,
         content_hash: str,
-        role: Optional[str] = None,
-    ) -> List[str]:
+        role: str | None = None,
+    ) -> list[str]:
         """Find sessions that recorded a file with a given CONTENT hash.
 
         Content-addressed counterpart to :meth:`find_session_by_file` (which
@@ -340,7 +408,7 @@ class FileHashMixin:
         rows.sort(key=lambda r: r.values.get("recorded_at") or "", reverse=True)
         return _dedup([r.values.get("session_id") for r in rows])
 
-    def hosts_for_hash(self, content_hash: str) -> List[str]:
+    def hosts_for_hash(self, content_hash: str) -> list[str]:
         """Return the distinct known hosts that recorded a given content hash.
 
         A NULL host (recorded before Phase 5, or when host resolution failed)
@@ -365,10 +433,10 @@ class FileHashMixin:
         return sorted(hosts)
 
 
-def _dedup(items: List[str]) -> List[str]:
+def _dedup(items: list[str]) -> list[str]:
     """First-occurrence-preserving dedup (mirrors SQL SELECT DISTINCT)."""
     seen: set = set()
-    result: List[str] = []
+    result: list[str] = []
     for item in items:
         if item not in seen:
             seen.add(item)
@@ -382,7 +450,7 @@ def _now_iso() -> str:
     return datetime.now().isoformat()
 
 
-def _stat_size(path: str) -> Optional[int]:
+def _stat_size(path: str) -> int | None:
     """Return os.path.getsize for *path*, or None if the file is inaccessible."""
     try:
         return os.path.getsize(path)

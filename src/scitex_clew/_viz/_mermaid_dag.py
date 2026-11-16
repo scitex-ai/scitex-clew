@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from .._chain import VerificationLevel, verify_run
+from .._chain import VerificationLevel, VerificationStatus, verify_run
 from .._db import get_db
 from .._groupers._base import FileEntry
 from .._groupers._spec import resolve_spec
@@ -123,6 +123,12 @@ def generate_detailed_dag(
             if not verify_file_hash(fpath, stored_hash):
                 failed_files.add(fpath)
 
+    # A run whose execution FAILED produced no evidence: its outputs are drawn
+    # failed (and so taint their consumers) even when their hashes match.
+    for data in runs_data:
+        if data["verification"].status == VerificationStatus.FAILED:
+            failed_files.update(data["outputs"].keys())
+
     for data in runs_data:
         inputs = data["inputs"]
         has_failed_input = any(fpath in failed_files for fpath in inputs.keys())
@@ -148,23 +154,59 @@ def generate_detailed_dag(
 
         if group_fn is None:
             add_file_nodes(
-                lines, script_id, inputs, node_ids, show_hashes, path_mode,
-                "input", False, failed_files, None, frozen_files,
+                lines,
+                script_id,
+                inputs,
+                node_ids,
+                show_hashes,
+                path_mode,
+                "input",
+                False,
+                failed_files,
+                None,
+                frozen_files,
             )
             add_file_nodes(
-                lines, script_id, outputs, node_ids, show_hashes, path_mode,
-                "output", is_rerun, failed_files, None, frozen_files,
+                lines,
+                script_id,
+                outputs,
+                node_ids,
+                show_hashes,
+                path_mode,
+                "output",
+                is_rerun,
+                failed_files,
+                None,
+                frozen_files,
             )
         else:
             in_entries = _files_dict_to_entries(inputs, "input", sid)
             out_entries = _files_dict_to_entries(outputs, "output", sid)
             add_grouped_nodes(
-                lines, script_id, group_fn(in_entries), node_ids, show_hashes,
-                path_mode, "input", False, failed_files, None, frozen_files,
+                lines,
+                script_id,
+                group_fn(in_entries),
+                node_ids,
+                show_hashes,
+                path_mode,
+                "input",
+                False,
+                failed_files,
+                None,
+                frozen_files,
             )
             add_grouped_nodes(
-                lines, script_id, group_fn(out_entries), node_ids, show_hashes,
-                path_mode, "output", is_rerun, failed_files, None, frozen_files,
+                lines,
+                script_id,
+                group_fn(out_entries),
+                node_ids,
+                show_hashes,
+                path_mode,
+                "output",
+                is_rerun,
+                failed_files,
+                None,
+                frozen_files,
             )
 
 

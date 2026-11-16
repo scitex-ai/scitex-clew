@@ -9,12 +9,45 @@ import hashlib
 from pathlib import Path
 from typing import Dict, Optional, Union
 
+#: Width of the legacy truncated sha256 digest that ``hash_file`` wrote before
+#: clew-fix-truncated-hash-comparison (the first 32 hex chars, 128 bits). Rows
+#: recorded back then still hold this width; it is the ONLY prefix width that
+#: :func:`hashes_match` accepts.
+LEGACY_TRUNCATED_HASH_LEN = 32
+
+
+def hashes_match(recorded: str | None, current: str | None) -> bool:
+    """Decide whether a recorded hash and a current hash name the same bytes.
+
+    The single comparison rule every verifier uses:
+
+    * Either side empty / ``None`` -> ``False`` (nothing to compare is never a
+      match).
+    * Same width -> exact (case-insensitive hex) equality. Where full digests
+      are stored, nothing short of full equality passes.
+    * Different widths -> accepted ONLY when the shorter side is exactly the
+      legacy 32-hex-char truncated sha256 (:data:`LEGACY_TRUNCATED_HASH_LEN`)
+      and it is a prefix of the longer one. Any other prefix (e.g. an 8-char
+      stub, a single character) is rejected: an arbitrary short prefix is not
+      evidence that the bytes are the same.
+    """
+    if not recorded or not current:
+        return False
+    a = recorded.lower()
+    b = current.lower()
+    if len(a) == len(b):
+        return a == b
+    short, long_ = (a, b) if len(a) < len(b) else (b, a)
+    if len(short) != LEGACY_TRUNCATED_HASH_LEN:
+        return False
+    return long_.startswith(short)
+
 
 def hash_file(
-    path: Union[str, Path],
+    path: str | Path,
     algorithm: str = "sha256",
     chunk_size: int = 8192,
-    hash_cache: Optional[Dict[str, str]] = None,
+    hash_cache: dict[str, str] | None = None,
 ) -> str:
     """
     Compute hash of a file.
@@ -52,9 +85,9 @@ def hash_file(
     hashlib.sha256(open(path, "rb").read()).hexdigest()`` silently and
     permanently False for every tracked file — a confident-wrong-answer bug
     (clew-fix-truncated-hash-comparison). The full digest is now returned;
-    every internal comparison site already compares over
-    ``min(len(a), len(b))`` (prefix-tolerant), so this is backward
-    compatible with any pre-existing truncated hash rows.
+    every internal comparison site goes through :func:`hashes_match`,
+    which requires full equality and tolerates ONLY the legacy 32-char
+    truncated width, so pre-existing truncated rows still verify.
     """
     path = Path(path)
 
@@ -83,11 +116,11 @@ def hash_file(
 
 
 def hash_directory(
-    path: Union[str, Path],
+    path: str | Path,
     pattern: str = "*",
     recursive: bool = True,
     algorithm: str = "sha256",
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Compute hashes for all files in a directory.
 
@@ -146,9 +179,9 @@ def hash_directory(
 
 
 def hash_files(
-    paths: list[Union[str, Path]],
+    paths: list[str | Path],
     algorithm: str = "sha256",
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Compute hashes for a list of files.
 
@@ -172,7 +205,7 @@ def hash_files(
     return hashes
 
 
-def combine_hashes(hashes: Dict[str, str], algorithm: str = "sha256") -> str:
+def combine_hashes(hashes: dict[str, str], algorithm: str = "sha256") -> str:
     """
     Combine multiple hashes into a single hash.
 
@@ -215,7 +248,7 @@ def combine_hashes(hashes: Dict[str, str], algorithm: str = "sha256") -> str:
 
 
 def verify_hash(
-    path: Union[str, Path],
+    path: str | Path,
     expected_hash: str,
     algorithm: str = "sha256",
 ) -> bool:
@@ -238,8 +271,8 @@ def verify_hash(
     """
     try:
         actual_hash = hash_file(path, algorithm=algorithm)
-        # Compare only the length of expected_hash (may be truncated)
-        return actual_hash[: len(expected_hash)] == expected_hash
+        # Full equality; only the legacy 32-char truncation is tolerated.
+        return hashes_match(expected_hash, actual_hash)
     except FileNotFoundError:
         return False
 

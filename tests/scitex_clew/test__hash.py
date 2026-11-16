@@ -654,8 +654,8 @@ class TestVerifyHash:
         # Assert
         assert result is False
 
-    def test_verify_hash_truncated(self, tmp_path):
-        """Test verification with truncated hash."""
+    def test_verify_hash_rejects_arbitrary_prefix(self, tmp_path):
+        """A short prefix is not evidence the bytes match (full equality)."""
         # Arrange
         test_file = tmp_path / "test.txt"
         test_file.write_text("Hello, World!")
@@ -665,6 +665,18 @@ class TestVerifyHash:
 
         # Act
         result = verify_hash(test_file, short_hash)
+        # Assert
+        assert result is False
+
+    def test_verify_hash_accepts_legacy_32_char_truncation(self, tmp_path):
+        """Rows written before the full-digest fix stored 32 hex chars."""
+        # Arrange
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("Hello, World!")
+        legacy_hash = hash_file(test_file)[:32]
+
+        # Act
+        result = verify_hash(test_file, legacy_hash)
         # Assert
         assert result is True
 

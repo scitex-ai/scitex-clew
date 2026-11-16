@@ -11,7 +11,7 @@ This skill is for AI agents solving multi-step computations. It is not for verif
 
 ## When this skill applies
 
-Apply when the task has the shape: raw data plus a question, the agent must produce a numerical or categorical answer through some pipeline, and the answer's correctness depends on intermediate computations the agent chooses. Bioinformatics workflows (RNA-seq, ChIP-seq, GO enrichment), epidemiological analyses, multi-method convergence problems on benchmarks like BixBench. Skip for single-step lookups or pure code generation that does not produce numerical results.
+Apply when the task has the shape: raw data plus a question, the agent must produce a numerical or categorical answer through some pipeline, and the answer's correctness depends on intermediate computations the agent chooses. Bioinformatics workflows (RNA-seq, ChIP-seq, GO enrichment), epidemiological analyses, multi-method convergence problems in a research project or a benchmark task. Skip for single-step lookups or pure code generation that does not produce numerical results.
 
 ## Required behavior
 
@@ -61,6 +61,8 @@ a documented, machine-actionable contract:
 | `11` | `SOURCE_MISSING` | a claim's source file is gone                                  |
 | `12` | `HASH_MISMATCH`  | a claim's source changed since registration                    |
 | `13` | `NO_LINEAGE`     | `--strict`: source is a hand-written leaf, no upstream computation |
+| `17` | `UNSOURCED`      | link-verified but ungrounded (only when the source gate is active) |
+| `18` | `STALE_LINEAGE`  | lineage exists but no longer holds (upstream input changed / a run failed) — re-run the pipeline |
 | `20` | `NO_CLAIMS`      | nothing registered — there is nothing to stand behind a DONE   |
 
 On any nonzero exit you MUST NOT claim success. Emit an honest abstention

@@ -51,6 +51,12 @@ Add `--strict` (claim-set mode) to additionally require that each claim's
 source has upstream `@stx.session` lineage — this rejects a hand-written
 leaf (e.g. a hand-edited `results.json`) even when its hash matches.
 
+A claim whose recorded lineage is **stale** (an upstream input changed after
+the pipeline ran, or a run in the lineage failed) exits `18 STALE_LINEAGE`
+in BOTH modes — a stale claim is never reported verified. (Through 0.21.1 the
+default mode passed such a claim on its source hash alone, and `--strict`
+mislabelled it `NO_LINEAGE`.)
+
 Per-pattern **severity** is configurable: each outcome can be `error` (fails
 the run), `warning` (reported, tolerated, exit `0`), or `ignore`, via
 `verify.severity` in `.scitex/clew/config.yaml` (user- and project-level; see
@@ -65,10 +71,12 @@ except `no_lineage` (`warning`, which `--strict` promotes to `error`).
 | `11` | `SOURCE_MISSING` | a claim's source file is gone                                    |
 | `12` | `HASH_MISMATCH`  | a claim's source changed since registration                      |
 | `13` | `NO_LINEAGE`     | `--strict` only: source is a hand-written leaf, no computation   |
+| `17` | `UNSOURCED`      | link-verified but ungrounded (only when the source gate is active) |
+| `18` | `STALE_LINEAGE`  | source has recorded lineage but it no longer holds — an upstream input/output/script changed or a run in it FAILED. Fires in default AND `--strict` mode |
 | `20` | `NO_CLAIMS`      | nothing registered — nothing to verify                           |
 
 When several `error`-severity classes co-occur, the single returned code is
-the highest-severity one (tamper/missing > unverified > no-lineage > empty);
+the highest-severity one (tamper/missing > stale-lineage > unverified > unsourced > no-lineage > empty);
 `warning`/`ignore` patterns never set the exit code (they surface under
 `warnings` in `--json`).
 `DONE` is legitimate **only on exit `0`**; on any nonzero exit the agent

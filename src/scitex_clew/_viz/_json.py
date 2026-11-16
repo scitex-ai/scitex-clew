@@ -49,12 +49,12 @@ def file_to_node_id(file_path: str) -> str:
 
 
 def generate_dag_json(
-    session_id: Optional[str] = None,
-    target_file: Optional[str] = None,
-    target_files: Optional[List[str]] = None,
+    session_id: str | None = None,
+    target_file: str | None = None,
+    target_files: list[str] | None = None,
     claims: bool = False,
     path_mode: PathMode = "name",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generate JSON representation of verification DAG.
 
@@ -93,11 +93,17 @@ def generate_dag_json(
             path_mode=path_mode,
         )
 
+    # chain_ids is leaf-first (reversed below to draw sources first); both
+    # branches come from the ONE lineage resolver (see _chain._routes).
     if target_file:
         chain = verify_chain(target_file)
-        chain_ids = [run.session_id for run in chain.runs]
+        chain_ids = [run.session_id for run in reversed(chain.runs)]
+    elif session_id and db.get_run(session_id) is None:
+        chain_ids = []  # unknown session: nothing to draw
     elif session_id:
-        chain_ids = db.get_chain(session_id)
+        from .._chain._routes import resolve_lineage
+
+        chain_ids = list(reversed(resolve_lineage([session_id], db=db).roots_first()))
     else:
         chain_ids = []
 
@@ -204,10 +210,10 @@ def generate_dag_json(
 
 
 def _generate_dag_json_multi(
-    target_files: Optional[List[str]] = None,
+    target_files: list[str] | None = None,
     claims: bool = False,
     path_mode: PathMode = "name",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Generate JSON DAG for multiple targets."""
     from datetime import datetime
 

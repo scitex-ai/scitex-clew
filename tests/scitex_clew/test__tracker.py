@@ -6,6 +6,7 @@ from __future__ import annotations
 import pytest
 
 import scitex_clew._db as _db_module
+from scitex_clew._hash import hash_file
 from scitex_clew._tracker import (
     SessionTracker,
     get_tracker,
@@ -281,7 +282,8 @@ class TestRecordInput:
         db = _db_module.get_db()
         db.add_run("producer_sess", "/path/producer.py")
         abs_path = str(data_file.resolve())
-        db.add_file_hash("producer_sess", abs_path, "fakehash", "output")
+        # The producer recorded THESE bytes (parents bind by content hash).
+        db.add_file_hash("producer_sess", abs_path, hash_file(data_file), "output")
 
         # Consumer records this file as input
         tracker = SessionTracker("consumer_sess")
@@ -293,6 +295,19 @@ class TestRecordInput:
         # Assert
         # Assert
         assert "producer_sess" in tracker._parent_sessions
+
+    def test_record_input_does_not_link_producer_of_other_bytes(self, tmp_path):
+        # Arrange — the producer recorded different bytes for this path.
+        data_file = tmp_path / "shared.csv"
+        data_file.write_text("produced data")
+        db = _db_module.get_db()
+        db.add_run("producer_sess", "/path/producer.py")
+        db.add_file_hash("producer_sess", str(data_file.resolve()), "0" * 64, "output")
+        tracker = SessionTracker("consumer_sess")
+        # Act
+        tracker.record_input(data_file)
+        # Assert
+        assert "producer_sess" not in tracker._parent_sessions
 
 
 # ---------------------------------------------------------------------------

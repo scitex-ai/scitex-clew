@@ -60,6 +60,13 @@ CITATION_UNRESOLVED 15  At least one cited key has no confirmed real
                      source yet — registered but scholar has not resolved
                      it to a DOI-bearing source (per-key status
                      ``unverified``).
+STALE_LINEAGE 18     A claim's source hashes fine and HAS recorded
+                     ``@stx.session`` lineage, but that lineage no longer
+                     holds: an upstream input / output / script changed
+                     since it was recorded, or a run in it FAILED. The
+                     claimed value may no longer follow from its inputs.
+                     Fires in BOTH default and ``--strict`` mode (a
+                     stale claim is never reported verified).
 CITATION_UNLINKED 16  At least one ``\\cite{}`` key present in the
                      manuscript has no clew citation node at all — never
                      registered by scholar and nothing to judge it against
@@ -101,6 +108,9 @@ CITATION_UNLINKED: int = 16
 # Outranked by the hard integrity failures (mismatch/missing) per the status
 # precedence; only fires when the gate is active (a non-empty valid manifest).
 UNSOURCED: int = 17
+# A claim's recorded lineage exists but no longer verifies (changed upstream
+# input / failed run). Distinct from NO_LINEAGE (no lineage at all).
+STALE_LINEAGE: int = 18
 NO_CLAIMS: int = 20
 
 # Human-readable name per code (for summaries / JSON payloads).
@@ -114,6 +124,7 @@ NAMES: Dict[int, str] = {
     CITATION_UNRESOLVED: "CITATION_UNRESOLVED",
     CITATION_UNLINKED: "CITATION_UNLINKED",
     UNSOURCED: "UNSOURCED",
+    STALE_LINEAGE: "STALE_LINEAGE",
     NO_CLAIMS: "NO_CLAIMS",
 }
 
@@ -147,6 +158,11 @@ REASONS: Dict[int, str] = {
         "registered source (ungrounded) — register the source or ground the "
         "chain"
     ),
+    STALE_LINEAGE: (
+        "a claim's recorded lineage no longer holds (an upstream input, "
+        "output or script changed, or a run in it failed) — re-run the "
+        "pipeline"
+    ),
     NO_CLAIMS: "no claims registered — nothing to verify",
 }
 
@@ -164,11 +180,12 @@ SEVERITY: Dict[int, int] = {
     NO_LINEAGE: 2,
     UNSOURCED: 3,
     UNVERIFIED: 4,
-    SOURCE_MISSING: 5,
-    HASH_MISMATCH: 6,
-    CITATION_UNLINKED: 7,
-    CITATION_UNRESOLVED: 8,
-    CITATION_STUB: 9,
+    STALE_LINEAGE: 5,
+    SOURCE_MISSING: 6,
+    HASH_MISMATCH: 7,
+    CITATION_UNLINKED: 8,
+    CITATION_UNRESOLVED: 9,
+    CITATION_STUB: 10,
 }
 
 
@@ -215,6 +232,7 @@ KEY_BY_CODE: Dict[int, str] = {
     CITATION_UNRESOLVED: "citation_unresolved",
     CITATION_UNLINKED: "citation_unlinked",
     UNSOURCED: "unsourced",
+    STALE_LINEAGE: "stale_lineage",
     NO_CLAIMS: "no_claims",
 }
 CODE_BY_KEY: Dict[str, int] = {key: code for code, key in KEY_BY_CODE.items()}
@@ -234,6 +252,8 @@ DEFAULT_SEVERITY: Dict[int, Severity] = {
     CITATION_UNLINKED: Severity.ERROR,
     # The source gate fails the run by default (colour amber, exit non-zero).
     UNSOURCED: Severity.ERROR,
+    # A stale lineage is an integrity failure: fail by default, both modes.
+    STALE_LINEAGE: Severity.ERROR,
     NO_CLAIMS: Severity.ERROR,
 }
 
@@ -332,6 +352,7 @@ __all__ = [
     "CITATION_UNRESOLVED",
     "CITATION_UNLINKED",
     "UNSOURCED",
+    "STALE_LINEAGE",
     "NO_CLAIMS",
     "NAMES",
     "REASONS",

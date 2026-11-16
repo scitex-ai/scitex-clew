@@ -72,8 +72,24 @@ Gotchas:
 
 **(a) `VerificationStatus` enum** (`src/scitex_clew/_chain/_types.py`) —
 for runs / files / chains / DAGs: `VERIFIED`, `MISMATCH`, `SUSPECT`,
-`MISSING`, `UNKNOWN`. `SUSPECT` = locally valid but an upstream session
-failed.
+`FAILED`, `MISSING`, `UNKNOWN`. `SUSPECT` = locally valid but an upstream
+session failed (including: it consumed bytes produced by a FAILED run).
+`FAILED` = the run's recorded execution status is `failed`/`error`; its
+files are not evidence, so it is never `VERIFIED` whatever its hashes say
+(`clew.status()` counts it under `failed_count`, Mermaid draws it `failed`).
+
+**Hash comparison** is full-digest equality everywhere
+(`scitex_clew._hash.hashes_match`); the only tolerated prefix is the legacy
+32-hex-char truncated sha256 written by pre-0.10 releases. A shorter stored
+prefix never verifies.
+
+**Lineage** (every chain / DAG / rerun / renderer view) comes from ONE
+resolver, `scitex_clew._chain._routes.resolve_lineage`: a session's input is
+bound to the producer that recorded the SAME content hash for that path no
+later than the input was loaded. A later run overwriting the path never
+re-parents an earlier consumer; an input whose bytes match no recorded output
+is left unbound and reported (`external` = never produced by a run,
+`unmatched` = produced, but not these bytes).
 
 **(b) Claim `status` strings** (stored on the claims row): `registered`,
 `verified`, `suspect`, `mismatch`, `missing` — plus `not_found` as a
@@ -83,7 +99,8 @@ lookup outcome (never stored). Written by `verify_claim`:
 |---|---|
 | source file gone | `missing` |
 | stored hash ≠ current hash | `mismatch` |
-| hash matches, chain fails | `suspect` |
+| hash matches, lineage exists but fails (exit `STALE_LINEAGE`) | `suspect` |
+| hash matches, no lineage at all | `suspect` |
 | hash matches, chain verifies | `verified` |
 | never verified | `registered` (initial) |
 
