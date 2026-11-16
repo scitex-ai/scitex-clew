@@ -38,8 +38,8 @@ from django.contrib.staticfiles import finders
 from django.db.migrations.loader import MigrationLoader
 from django.test import Client
 
-assert apps.get_app_config("scitex_app").name == "scitex_sdk.app"
-assert apps.get_app_config("scitex_ui").name == "scitex_sdk.ui"
+assert apps.is_installed("scitex_sdk.app")
+assert apps.is_installed("scitex_sdk.ui")
 assert apps.get_app_config("clew_app").name == "scitex_clew._django"
 assert apps.get_model("clew_app", "HashRegistration")._meta.db_table == "clew_app_hashregistration"
 assert ("clew_app", "0001_initial") in MigrationLoader(None).disk_migrations

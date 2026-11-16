@@ -48,48 +48,6 @@ class _FakeTool:
         self.fn = fn
 
 
-class _FakeProc:
-    """Minimal stand-in for a ``subprocess.CompletedProcess`` result."""
-
-    def __init__(self, stdout: str = "", stderr: str = "", returncode: int = 0):
-        self.stdout = stdout
-        self.stderr = stderr
-        self.returncode = returncode
-
-
-class _CallRecorder:
-    """Callable that records call args/kwargs (mock-free replacement)."""
-
-    def __init__(self, return_value=None):
-        self.return_value = return_value
-        self.calls: list[tuple[tuple, dict]] = []
-
-    def __call__(self, *args, **kwargs):
-        self.calls.append((args, kwargs))
-        return self.return_value
-
-    @property
-    def call_count(self) -> int:
-        return len(self.calls)
-
-    def assert_called_once(self) -> None:
-        assert self.call_count == 1, f"expected 1 call, got {self.call_count}"
-
-    @property
-    def call_args(self):
-        if not self.calls:
-            return None
-        args, kwargs = self.calls[-1]
-        return _CallArgs(args, kwargs)
-
-
-class _CallArgs:
-    """Mimics the ``call_args`` API used by the tests (.kwargs)."""
-
-    def __init__(self, args, kwargs):
-        self.args = args
-        self.kwargs = kwargs
-
 # PA-303: click is in the [cli] extra (not [project] deps), so guard so a
 # clean install without [cli] doesn't crash collection.
 click = pytest.importorskip("click")
@@ -1731,132 +1689,98 @@ class TestCompletionCommand:
     """`clew print-shell-completion --shell <bash|zsh|fish>` (audit-cli §1a).
 
     The legacy `clew completion <SHELL>` shape was split into
-    `print-shell-completion` and `install-shell-completion`. The
-    underlying mechanism still shells out via `_SCITEX_CLEW_COMPLETE`
-    (Click's auto-completion env var), so the tests mock subprocess.run.
+    `print-shell-completion` and `install-shell-completion`.
+    `scitex_clew._cli._completion` generates the script in-process with
+    Click's completion classes (no subprocess, no PATH lookup), so these
+    tests run the real command and check the
+    emitted script wires Click's `_SCITEX_CLEW_COMPLETE` env var with the
+    shell-specific completion mode.
     """
 
     _ENV_VAR = "_SCITEX_CLEW_COMPLETE"
 
     def _invoke_print(self, runner, shell: str):
-        import scitex_dev._cli._completion as _completion_mod
-
-        fake_proc = _FakeProc(
-            stdout=f"# {shell} completion for scitex-clew\n", returncode=0
-        )
-        recorder = _CallRecorder(return_value=fake_proc)
-        with _swap_attr(_completion_mod.subprocess, "run", recorder):
-            return runner.invoke(main, ["print-shell-completion", "--shell", shell])
+        return runner.invoke(main, ["print-shell-completion", "--shell", shell])
 
     def test_bash_completion_exit_code(self, runner):
         # Arrange
+        shell = "bash"
         # Act
+        result = self._invoke_print(runner, shell)
         # Assert
-        # Arrange
-        # Act
-        # Assert
-        assert self._invoke_print(runner, "bash").exit_code == 0
+        assert result.exit_code == 0, result.output
 
     def test_zsh_completion_exit_code(self, runner):
         # Arrange
+        shell = "zsh"
         # Act
+        result = self._invoke_print(runner, shell)
         # Assert
-        # Arrange
-        # Act
-        # Assert
-        assert self._invoke_print(runner, "zsh").exit_code == 0
+        assert result.exit_code == 0, result.output
 
     def test_bash_completion_output_not_empty(self, runner):
         # Arrange
+        shell = "bash"
         # Act
+        result = self._invoke_print(runner, shell)
         # Assert
-        # Arrange
-        # Act
-        # Assert
-        assert len(self._invoke_print(runner, "bash").output.strip()) > 0
+        assert len(result.output.strip()) > 0
 
     def test_zsh_completion_output_not_empty(self, runner):
         # Arrange
+        shell = "zsh"
         # Act
+        result = self._invoke_print(runner, shell)
         # Assert
-        # Arrange
-        # Act
-        # Assert
-        assert len(self._invoke_print(runner, "zsh").output.strip()) > 0
+        assert len(result.output.strip()) > 0
 
     def test_invalid_shell_fails(self, runner):
         # Arrange
+        args = ["print-shell-completion", "--shell", "powershell"]
         # Act
-        # Arrange
-        # Act
-        result = runner.invoke(
-            main, ["print-shell-completion", "--shell", "powershell"]
-        )
-        # Assert
+        result = runner.invoke(main, args)
         # Assert
         assert result.exit_code != 0
 
     def test_print_completion_help_result_exit_code_equals_n_0(self, runner):
         # Arrange
-        # Arrange
+        args = ["print-shell-completion", "--help"]
         # Act
-        # Arrange
-        # Act
-        result = runner.invoke(main, ["print-shell-completion", "--help"])
-        # Act
-        # Assert
-        # Assert
+        result = runner.invoke(main, args)
         # Assert
         assert result.exit_code == 0
 
     def test_print_completion_help_shell_in_result_output_lower(self, runner):
         # Arrange
-        # Arrange
+        args = ["print-shell-completion", "--help"]
         # Act
-        # Arrange
-        # Act
-        result = runner.invoke(main, ["print-shell-completion", "--help"])
-        # Act
-        # Assert
-        # Assert
+        result = runner.invoke(main, args)
         # Assert
         assert "shell" in result.output.lower()
 
-
-    def test_bash_completion_calls_subprocess(self, runner):
+    def test_bash_completion_script_uses_bash_complete_env_var(self, runner):
         # Arrange
+        expected = f"{self._ENV_VAR}=bash_complete"
+        # Act
+        result = self._invoke_print(runner, "bash")
+        # Assert
+        assert expected in result.output
+
+    def test_zsh_completion_script_uses_zsh_complete_env_var(self, runner):
         # Arrange
-        import scitex_dev._cli._completion as _completion_mod
-
-        fake_proc = _FakeProc(stdout="# bash completion\n", returncode=0)
-        recorder = _CallRecorder(return_value=fake_proc)
-        with _swap_attr(_completion_mod.subprocess, "run", recorder):
-            runner.invoke(main, ["print-shell-completion", "--shell", "bash"])
-
-        recorder.assert_called_once()
+        expected = f"{self._ENV_VAR}=zsh_complete"
         # Act
-        # Act
-        env = recorder.call_args.kwargs.get("env") or {}
+        result = self._invoke_print(runner, "zsh")
         # Assert
-        # Assert
-        assert env.get(self._ENV_VAR) == "bash_source"
+        assert expected in result.output
 
-    def test_zsh_completion_calls_subprocess_with_zsh_source(self, runner):
+    def test_zsh_completion_script_declares_compdef(self, runner):
         # Arrange
-        # Arrange
-        import scitex_dev._cli._completion as _completion_mod
-
-        fake_proc = _FakeProc(stdout="# zsh completion\n", returncode=0)
-        recorder = _CallRecorder(return_value=fake_proc)
-        with _swap_attr(_completion_mod.subprocess, "run", recorder):
-            runner.invoke(main, ["print-shell-completion", "--shell", "zsh"])
-
+        expected = "#compdef scitex-clew"
         # Act
-        # Act
-        env = recorder.call_args.kwargs.get("env") or {}
+        result = self._invoke_print(runner, "zsh")
         # Assert
-        # Assert
-        assert env.get(self._ENV_VAR) == "zsh_source"
+        assert expected in result.output
 
 
 # ===========================================================================
