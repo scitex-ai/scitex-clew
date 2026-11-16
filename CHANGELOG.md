@@ -7,6 +7,13 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-11-16
+
+Minor release: new exit codes `STALE_LINEAGE` (18), `VERIFY_ERROR` (19),
+`VALUE_MISMATCH` (21), the `FAILED` run status, the `clew.slice` / `clew slice`
+minimal-provenance API, and additive claim-store columns. (0.21.1 was never
+published; its changes ship here.)
+
 ### Added — file-level minimal provenance slice
 
 - **`clew.slice(target_or_claim, level=1)`** / `clew slice TARGET [--level]
