@@ -44,13 +44,13 @@ from scitex_dev.store import ANY_REVISION, Store, StoreTarget, WriterPolicy, hos
 
 from ._chain import ChainMixin
 from ._file_hashes import FileHashMixin
+
 #: Re-exported: several modules import these from ``._db._core``.
 from ._paths import (  # noqa: F401
     _default_claims_json_path,
     _default_hints_json_path,
     _find_project_root,
 )
-from ._scope import ProjectScopedStore
 from ._queries import VerificationQueryMixin
 from ._schema import (
     FILE_HASHES_SCHEMA,
@@ -59,6 +59,7 @@ from ._schema import (
     VERIFICATION_RESULTS_SCHEMA,
     resolve_node_id,
 )
+from ._scope import ProjectScopedStore
 
 __all__ = [
     "VerificationDB",
@@ -111,9 +112,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
 
         self._runs = _open("runs", RUNS_SCHEMA)
         self._file_hashes = _open("file_hashes", FILE_HASHES_SCHEMA)
-        self._verifications = _open(
-            "verification_results", VERIFICATION_RESULTS_SCHEMA
-        )
+        self._verifications = _open("verification_results", VERIFICATION_RESULTS_SCHEMA)
         self._session_parents = _open("session_parents", SESSION_PARENTS_SCHEMA)
 
     # -------------------------------------------------------------------------
@@ -124,11 +123,11 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         self,
         session_id: str,
         script_path: str,
-        script_hash: Optional[str] = None,
-        parent_session: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        script_hash: str | None = None,
+        parent_session: str | None = None,
+        metadata: dict[str, Any] | None = None,
         provenance: str = "tracked",
-        exception_reason: Optional[str] = None,
+        exception_reason: str | None = None,
     ) -> None:
         """
         Add a new run to the database.
@@ -179,7 +178,7 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
         session_id: str,
         status: str = "success",
         exit_code: int = 0,
-        combined_hash: Optional[str] = None,
+        combined_hash: str | None = None,
     ) -> None:
         """
         Mark a run as finished.
@@ -207,7 +206,30 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
             expected_revision=ANY_REVISION,
         )
 
-    def get_run(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def merge_run_metadata(self, session_id: str, extra: dict[str, Any]) -> bool:
+        """Merge ``extra`` into a run's JSON metadata (list values extend).
+
+        Returns False when the run does not exist. Used to attach capture
+        failures reported after the run record was opened (e.g. a
+        session-close payload, or a failed clew hook).
+        """
+        run = self.get_run(session_id)
+        if run is None:
+            return False
+        raw = run.get("metadata")
+        meta = json.loads(raw) if raw else {}
+        for key, value in extra.items():
+            if isinstance(value, list) and isinstance(meta.get(key), list):
+                meta[key] = meta[key] + value
+            else:
+                meta[key] = value
+        self._runs.put(
+            {"session_id": session_id, "metadata": json.dumps(meta, default=str)},
+            expected_revision=ANY_REVISION,
+        )
+        return True
+
+    def get_run(self, session_id: str) -> dict[str, Any] | None:
         """Get run information by session ID."""
         row = self._runs.get((session_id,))
         if row is None:
@@ -216,10 +238,10 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
 
     def list_runs(
         self,
-        status: Optional[str] = None,
+        status: str | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         List runs with optional filtering.
 
@@ -260,12 +282,29 @@ class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
 
 
 # Global instance
-_DB_INSTANCE: Optional[VerificationDB] = None
+_DB_INSTANCE: VerificationDB | None = None
+
+
+#: One instance per explicit project root (``project_root=`` / ``with
+#: scitex_clew.project_root(...)``); each captures that project's scope.
+_ROOT_DB_INSTANCES: dict[str, VerificationDB] = {}
 
 
 def get_db() -> VerificationDB:
-    """Get or create the global database instance."""
+    """Get or create the database instance for the current project.
+
+    Inside a :func:`scitex_clew._db._paths.project_root` block the instance is
+    scoped to that root's project; otherwise the cwd-resolved global one.
+    """
     global _DB_INSTANCE
+    from ._paths import project_root_override
+
+    root = project_root_override()
+    if root is not None:
+        key = str(root)
+        if key not in _ROOT_DB_INSTANCES:
+            _ROOT_DB_INSTANCES[key] = VerificationDB()
+        return _ROOT_DB_INSTANCES[key]
     if _DB_INSTANCE is None:
         _DB_INSTANCE = VerificationDB()
     return _DB_INSTANCE
@@ -287,6 +326,9 @@ def reset_db() -> None:
     if _DB_INSTANCE is not None:
         _DB_INSTANCE.close()
     _DB_INSTANCE = None
+    for db in _ROOT_DB_INSTANCES.values():
+        db.close()
+    _ROOT_DB_INSTANCES.clear()
 
 
 # EOF

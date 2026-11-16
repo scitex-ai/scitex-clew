@@ -27,6 +27,8 @@ def verify_chain(
     db_factory=get_db,
     verify_run_fn=verify_run,
     max_depth: int = DEFAULT_MAX_DEPTH,
+    minimal: bool = False,
+    level: int = 1,
 ) -> ChainVerification:
     """Verify the dependency chain for a target file.
 
@@ -37,6 +39,12 @@ def verify_chain(
     ----------
     target : str or Path
         Target file to trace
+    minimal : bool, optional
+        Verify only the file-level minimal slice (see
+        :mod:`scitex_clew._chain._slice`): runs and files on a path to the
+        target. Default False keeps the run-level closure.
+    level : int, optional
+        Slice level when ``minimal`` (1 path-pruned, 2 declared deps).
     db_factory : callable, optional
         Zero-arg callable returning a verification-DB handle. Defaults
         to the real ``get_db``; tests inject a hand-rolled fake DB via
@@ -64,12 +72,18 @@ def verify_chain(
             status=VerificationStatus.UNKNOWN,
         )
 
-    # Resolve upstream lineage with the ONE resolver (hash-bound save->load
-    # handshakes, bounded + deduped). See ._routes for the model.
-    adjacency, all_ids = resolve_file_dag([session_id], db=db, max_depth=max_depth)
+    slice_ = None
+    if minimal:
+        from ._slice import build_slice
 
-    # Roots-first order (sources -> target), cycle-tolerant.
-    chain = order_roots_first(adjacency, all_ids)
+        slice_ = build_slice([target], level=level, db=db, max_depth=max_depth)
+        chain = list(slice_.runs)
+    else:
+        # Resolve upstream lineage with the ONE resolver (hash-bound
+        # save->load handshakes, bounded + deduped). See ._routes.
+        adjacency, all_ids = resolve_file_dag([session_id], db=db, max_depth=max_depth)
+        # Roots-first order (sources -> target), cycle-tolerant.
+        chain = order_roots_first(adjacency, all_ids)
 
     # Verify each run in the chain, sharing a single hash cache across all
     # sessions so a file referenced by multiple sessions is hashed only once
@@ -79,7 +93,13 @@ def verify_chain(
     run_verifications = []
     for sid in chain:
         if verify_run_fn is verify_run:
-            run_verifications.append(verify_run_fn(sid, hash_cache=hash_cache))
+            run_verifications.append(
+                verify_run_fn(
+                    sid,
+                    hash_cache=hash_cache,
+                    slice_files=slice_.run_files(sid) if slice_ else None,
+                )
+            )
         else:
             run_verifications.append(verify_run_fn(sid))
 
@@ -112,6 +132,7 @@ def verify_chain(
         target_file=target,
         runs=run_verifications,
         status=status,
+        slice=slice_,
     )
 
 

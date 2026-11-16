@@ -6,8 +6,6 @@
 from __future__ import annotations
 
 import dataclasses
-import shutil
-import subprocess
 from pathlib import Path
 from typing import Dict
 
@@ -18,7 +16,11 @@ from ._chain import (
     VerificationLevel,
     VerificationStatus,
 )
+from ._core import getLogger
 from ._db import get_db
+from ._hash import hashes_match
+
+logger = getLogger(__name__)
 
 # _chain._freshness and _chain._hash_cache are imported lazily inside rerun_dag
 # so they do not add to the cold-start cost of `import scitex_clew`.
@@ -58,7 +60,20 @@ def _verify_single(
     timeout: int = 300,
     cleanup: bool = True,
 ) -> RunVerification:
-    """Verify a single target."""
+    """Verify a single target by replaying it in a sandbox.
+
+    See :mod:`scitex_clew._chain._rerun_sandbox` for the contract: the
+    recorded ``argv`` is replayed from the recorded ``cwd`` into a sandbox
+    output root (originals are never overwritten), and outputs are compared
+    by full path relative to ``<script>_out/`` plus hash.
+    """
+    from ._chain._rerun_sandbox import (
+        cleanup_sandbox,
+        plan_sandbox,
+        relative_outputs,
+        run_in_sandbox,
+    )
+
     db = get_db()
 
     # Resolve target to session_id
@@ -88,28 +103,59 @@ def _verify_single(
     if not original_hashes:
         return _unknown_result(session_id, script_path)
 
-    # Re-execute the script (creates new session)
-    exec_result = _execute_script(script_path, timeout)
-    if exec_result is not None:
-        return dataclasses.replace(exec_result, session_id=session_id)
+    plan = plan_sandbox(session_id, run_info, original_hashes)
+    if not plan.can_sandbox:
+        # Outputs saved outside <stem>_out/ would be overwritten in place by a
+        # replay: refuse rather than touch the originals.
+        logger.warning(
+            "clew rerun: %s not re-run — %d output(s) outside %s cannot be "
+            "sandboxed: %s",
+            session_id,
+            len(plan.outside_outputs),
+            plan.out_root,
+            plan.outside_outputs[:5],
+        )
+        return dataclasses.replace(
+            _unknown_result(session_id, script_path),
+            files=[
+                FileVerification(
+                    p, "output", original_hashes[p], None, VerificationStatus.UNKNOWN
+                )
+                for p in plan.outside_outputs
+            ],
+        )
+    for note in plan.notes:
+        logger.warning("clew rerun %s: %s", session_id, note)
 
-    # Find the new session (most recent from this script)
-    new_session_id, new_sdir_run = _find_new_session(db, script_path, session_id)
-    if not new_session_id:
-        return _unknown_result(session_id, script_path)
-
-    # Get new session's output hashes
-    new_hashes = db.get_file_hashes(new_session_id, role="output")
-
-    # Compare hashes by filename
-    file_verifications = _compare_hashes(original_hashes, new_hashes)
-
-    # Cleanup new session's output directory if requested
-    if cleanup and new_sdir_run:
-        _cleanup_session_dir(new_sdir_run)
-
-    # Determine overall status
-    status = _determine_status(file_verifications)
+    replay = run_in_sandbox(plan, db, timeout)
+    try:
+        if replay.timed_out:
+            return _unknown_result(session_id, script_path)
+        if replay.returncode != 0:
+            logger.warning(
+                "clew rerun: replay of %s exited %s: %s",
+                session_id,
+                replay.returncode,
+                replay.stderr_tail,
+            )
+            status = VerificationStatus.FAILED
+            file_verifications = []
+        elif replay.new_session_id is None:
+            logger.warning(
+                "clew rerun: replay of %s recorded no run (is the script "
+                "tracked by @stx.session / clew.session?)",
+                session_id,
+            )
+            return _unknown_result(session_id, script_path)
+        else:
+            file_verifications = _compare_hashes(
+                relative_outputs(original_hashes, plan.out_root),
+                replay.new_outputs,
+            )
+            status = _determine_status(file_verifications)
+    finally:
+        if cleanup:
+            cleanup_sandbox(replay, db)
 
     # Record verification result in database for original session
     db.record_verification(
@@ -168,61 +214,27 @@ def _unknown_result(session_id: str, script_path: str) -> RunVerification:
     )
 
 
-def _execute_script(script_path: str, timeout: int) -> RunVerification | None:
-    """Execute script and return error result if failed, None if success."""
-    try:
-        result = subprocess.run(
-            ["python", script_path],
-            capture_output=True,
-            timeout=timeout,
-            cwd=Path(script_path).parent,
-        )
-        if result.returncode != 0:
-            return RunVerification(
-                session_id="",
-                script_path=script_path,
-                status=VerificationStatus.MISMATCH,
-                files=[],
-                combined_hash_expected=None,
-                combined_hash_current=None,
-                level=VerificationLevel.RERUN,
-            )
-        return None  # Success
-    except subprocess.TimeoutExpired:
-        return _unknown_result("", script_path)
-    except Exception:
-        return _unknown_result("", script_path)
-
-
-def _find_new_session(db, script_path: str, original_id: str) -> tuple:
-    """Find the new session created by re-running the script."""
-    recent_runs = db.list_runs(limit=5)
-    for run in recent_runs:
-        if run.get("script_path") == script_path and run["session_id"] != original_id:
-            return run["session_id"], run.get("sdir_run")
-    return None, None
-
-
 def _compare_hashes(
     original_hashes: dict[str, str], new_hashes: dict[str, str]
 ) -> list:
-    """Compare hashes by filename and return FileVerification list."""
-    original_by_name = {Path(p).name: h for p, h in original_hashes.items()}
-    new_by_name = {Path(p).name: h for p, h in new_hashes.items()}
+    """Compare outputs keyed by path RELATIVE to the output root.
 
+    Both dicts map ``relative/path -> hash`` (see
+    :func:`scitex_clew._chain._rerun_sandbox.relative_outputs`). A file is
+    matched only by its full relative path, never by basename.
+    """
     verifications = []
-    for filename, expected_hash in original_by_name.items():
-        current_hash = new_by_name.get(filename)
+    for rel_path, expected_hash in original_hashes.items():
+        current_hash = new_hashes.get(rel_path)
         if current_hash is None:
             status = VerificationStatus.MISSING
-        elif current_hash == expected_hash:
+        elif hashes_match(expected_hash, current_hash):
             status = VerificationStatus.VERIFIED
         else:
             status = VerificationStatus.MISMATCH
-
         verifications.append(
             FileVerification(
-                path=filename,
+                path=rel_path,
                 role="output",
                 expected_hash=expected_hash,
                 current_hash=current_hash,
@@ -230,16 +242,6 @@ def _compare_hashes(
             )
         )
     return verifications
-
-
-def _cleanup_session_dir(sdir_run: str) -> None:
-    """Remove the session's output directory (best-effort)."""
-    try:
-        path = Path(sdir_run)
-        if path.exists():
-            shutil.rmtree(path)
-    except Exception:
-        pass
 
 
 def _determine_status(file_verifications: list) -> VerificationStatus:
@@ -295,7 +297,7 @@ def rerun_dag(
     # If no targets, collect all output files from all runs
     if targets is None:
         targets = []
-        for run in db.list_runs(limit=10000):
+        for run in db.list_runs(limit=10_000):
             hashes = db.get_file_hashes(run["session_id"], role="output")
             targets.extend(hashes.keys())
 
@@ -379,6 +381,10 @@ def rerun_dag(
         verifications[sid].status == VerificationStatus.MISSING for sid in topo_order
     ):
         status = VerificationStatus.MISSING
+    elif any(
+        verifications[sid].status == VerificationStatus.FAILED for sid in topo_order
+    ):
+        status = VerificationStatus.FAILED
     else:
         status = VerificationStatus.UNKNOWN
 

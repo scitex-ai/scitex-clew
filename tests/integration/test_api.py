@@ -31,7 +31,7 @@ class TestPublicAPI:
         # Arrange
         # Act
         # Assert
-        assert len(clew.__all__) == 43
+        assert len(clew.__all__) == 44
 
     def test_all_names_set_clew_all_expected(self):
         # Arrange
@@ -41,6 +41,7 @@ class TestPublicAPI:
             "status",
             "run",
             "chain",
+            "slice",
             "dag",
             "rerun",
             "rerun_dag",

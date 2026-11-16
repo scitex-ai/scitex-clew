@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Claim CLI subcommands — `clew claim {add,list,verify,remove,supersede}`.
 
 Mirrors the Python API in ``scitex_clew._claim`` one-for-one. Each command
@@ -15,10 +14,9 @@ from __future__ import annotations
 import json as _json
 
 import click
-
 from scitex_dev.ecosystem import SpecCommand, SpecGroup
-from ._help_specs import CLI_HELP
 
+from ._help_specs import CLI_HELP
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -51,12 +49,12 @@ def _emit(ctx: click.Context, payload, human_text: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-@click.group("claim", cls=SpecGroup, help_spec=CLI_HELP['claim'])
+@click.group("claim", cls=SpecGroup, help_spec=CLI_HELP["claim"])
 def claim() -> None:
     """Manuscript-claim operations (add / list / verify / remove / supersede)."""
 
 
-@claim.command("add", cls=SpecCommand, help_spec=CLI_HELP['claim_add'])
+@claim.command("add", cls=SpecCommand, help_spec=CLI_HELP["claim_add"])
 @click.option(
     "--file-path",
     "file_path",
@@ -117,6 +115,48 @@ def claim() -> None:
         "file/line/type/value so distinct values never collapse."
     ),
 )
+@click.option(
+    "--structured-value",
+    "structured_value",
+    default=None,
+    help=(
+        "JSON claimed value checked against the source (e.g. '0.91' or "
+        "'{\"auc\": 0.91}'). Default: the --value display string."
+    ),
+)
+@click.option(
+    "--source-keys",
+    "source_keys",
+    default=None,
+    help=(
+        "JSON locator(s) into --source-file (scitex-writer shape): "
+        '\'{"pointer": "/test/auc"}\' for json/yaml, '
+        '\'{"row": {"split": "test"}, "column": "auc"}\' for csv/tsv, or '
+        "{field: locator}. Enables the value-vs-source check."
+    ),
+)
+@click.option(
+    "--tolerance",
+    "tolerance",
+    default=None,
+    help=(
+        "JSON claim-level tolerance, e.g. '{\"abs_tol\": 0.01}'. Default: "
+        "implied by the written precision (0.91 -> +/-0.005)."
+    ),
+)
+@click.option(
+    "--metadata",
+    "metadata",
+    default=None,
+    help="JSON object stored verbatim with the claim.",
+)
+@click.option(
+    "--project-root",
+    "project_root",
+    default=None,
+    type=click.Path(file_okay=False),
+    help="Register into this project (relative paths resolve against it).",
+)
 @click.pass_context
 def claim_add(
     ctx: click.Context,
@@ -127,6 +167,11 @@ def claim_add(
     source_file,
     source_session,
     claim_id,
+    structured_value,
+    source_keys,
+    tolerance,
+    metadata,
+    project_root,
     dry_run: bool,
     yes: bool,
 ) -> None:
@@ -134,6 +179,27 @@ def claim_add(
     from scitex_clew import add_claim
 
     del yes  # accepted for §2 compliance
+    try:
+        parsed = {
+            name: (_json.loads(raw) if raw is not None else None)
+            for name, raw in (
+                ("value", structured_value),
+                ("source_keys", source_keys),
+                ("tolerance", tolerance),
+                ("metadata", metadata),
+            )
+        }
+    except _json.JSONDecodeError as exc:
+        raise click.BadParameter(f"not valid JSON: {exc}") from exc
+    if parsed["source_keys"] is not None and not isinstance(
+        parsed["source_keys"], dict
+    ):
+        raise click.BadParameter("--source-keys must be a JSON object")
+    if parsed["source_keys"] is not None and (
+        "pointer" in parsed["source_keys"] or "column" in parsed["source_keys"]
+    ):
+        # A single locator applies to the whole claimed value.
+        parsed["source_keys"] = {".": parsed["source_keys"]}
     if dry_run:
         preview = {
             "file_path": file_path,
@@ -143,6 +209,8 @@ def claim_add(
             "source_file": source_file,
             "source_session": source_session,
             "claim_id": claim_id,
+            **parsed,
+            "project_root": project_root,
         }
         if _json_mode(ctx):
             click.echo(_json.dumps({"dry_run": True, "claim": preview}, indent=2))
@@ -161,6 +229,8 @@ def claim_add(
             source_file=source_file,
             source_session=source_session,
             claim_id=claim_id,
+            project_root=project_root,
+            **parsed,
         )
     except ValueError as exc:
         msg = {"error": str(exc), "claim": None}
@@ -181,7 +251,7 @@ def claim_add(
     _emit(ctx, payload, human)
 
 
-@claim.command("list", cls=SpecCommand, help_spec=CLI_HELP['claim_list'])
+@claim.command("list", cls=SpecCommand, help_spec=CLI_HELP["claim_list"])
 @click.option(
     "--file-path", "file_path", default=None, help="Filter by manuscript path (exact)."
 )
@@ -253,14 +323,23 @@ def claim_list(
     _emit(ctx, payload, human)
 
 
-@claim.command("verify", cls=SpecCommand, help_spec=CLI_HELP['claim_verify'])
+@claim.command("verify", cls=SpecCommand, help_spec=CLI_HELP["claim_verify"])
 @click.argument("claim_id_or_location")
+@click.option(
+    "--project-root",
+    "project_root",
+    default=None,
+    type=click.Path(file_okay=False),
+    help="Verify within this project instead of the cwd's.",
+)
 @click.pass_context
-def claim_verify(ctx: click.Context, claim_id_or_location: str) -> None:
+def claim_verify(
+    ctx: click.Context, claim_id_or_location: str, project_root: str | None
+) -> None:
     """Verify a specific claim (by claim_id or 'file.tex:L42')."""
     from scitex_clew import verify_claim
 
-    result = verify_claim(claim_id_or_location)
+    result = verify_claim(claim_id_or_location, project_root=project_root)
 
     if result.get("status") == "not_found":
         if _json_mode(ctx):
@@ -277,11 +356,17 @@ def claim_verify(ctx: click.Context, claim_id_or_location: str) -> None:
         click.echo(f"status:          {c.get('status')}")
         click.echo(f"source_verified: {result.get('source_verified')}")
         click.echo(f"chain_verified:  {result.get('chain_verified')}")
+        if "value_checks" in result:
+            click.echo(f"value_verified:  {result.get('value_verified')}")
         for d in result.get("details", []):
             click.echo(f"  - {d}")
 
 
-@claim.command("register-intermediate", cls=SpecCommand, help_spec=CLI_HELP['claim_register_intermediate'])
+@claim.command(
+    "register-intermediate",
+    cls=SpecCommand,
+    help_spec=CLI_HELP["claim_register_intermediate"],
+)
 @click.option(
     "--name",
     required=True,
@@ -394,7 +479,7 @@ def claim_register_intermediate(
 # ---------------------------------------------------------------------------
 # Register mutation subcommands (remove / supersede) from _claim_mutate.py
 # ---------------------------------------------------------------------------
-from ._claim_mutate import register_mutate_commands as _reg  # noqa: E402
+from ._claim_mutate import register_mutate_commands as _reg
 
 _reg(claim)
 del _reg

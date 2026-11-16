@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """scitex_dev.store schema definitions for clew's four tables.
 
 Extracted from `_core.py` only to keep that file under the project's
@@ -27,10 +26,10 @@ import socket
 from scitex_dev.store import FieldKind, FieldPolicy, FieldRole, MergeRule, Schema
 
 __all__ = [
-    "RUNS_SCHEMA",
     "FILE_HASHES_SCHEMA",
-    "VERIFICATION_RESULTS_SCHEMA",
+    "RUNS_SCHEMA",
     "SESSION_PARENTS_SCHEMA",
+    "VERIFICATION_RESULTS_SCHEMA",
     "resolve_node_id",
 ]
 
@@ -52,7 +51,9 @@ def _data_field(
     merge: MergeRule = MergeRule.LAST_WRITER_WINS,
     indexed: bool = False,
 ) -> FieldPolicy:
-    return FieldPolicy(kind=kind, role=FieldRole.DATA, required=required, merge=merge, indexed=indexed)
+    return FieldPolicy(
+        kind=kind, role=FieldRole.DATA, required=required, merge=merge, indexed=indexed
+    )
 
 
 RUNS_SCHEMA = Schema.build(
@@ -98,6 +99,11 @@ FILE_HASHES_SCHEMA = Schema.build(
         # Nullable/optional: unset until `auto_classify()`/`set_node_class()`
         # populates it, matching the old ALTER-TABLE column's default NULL.
         "node_class": _data_field(FieldKind.TEXT),
+        # Level-2 minimal slice: on an OUTPUT row, the JSON list of resolved
+        # paths this output was derived from, as DECLARED by the writing tool
+        # (``record_output(..., derived_from=[...])``). Nullable: NULL means
+        # "undeclared" and the slice falls back to all of the run's inputs.
+        "derived_from": _data_field(FieldKind.TEXT),
     },
 )
 

@@ -13,6 +13,7 @@ normally a small store (see the PR body). No raw DB driver import here
 
 from __future__ import annotations
 
+import json
 import os
 import socket
 from pathlib import Path
@@ -76,6 +77,7 @@ class FileHashMixin:
         role: str,
         size_bytes: int | None = None,
         frozen: bool = False,
+        derived_from: list[str] | None = None,
     ) -> None:
         """Add a file hash record.
 
@@ -104,6 +106,10 @@ class FileHashMixin:
             Freezing skips hashing but still notes when the file is absent
             (frozen means "trust the hash without re-reading", not "ignore
             missing files").
+        derived_from : list of str, optional
+            OUTPUT rows only: the resolved paths this output was derived from,
+            as declared by the writing tool (level-2 minimal slice). ``None``
+            records "undeclared".
         """
         host = _resolve_host()
         self._file_hashes.put(
@@ -116,6 +122,9 @@ class FileHashMixin:
                 "frozen": frozen,
                 "host": host,
                 "recorded_at": _now_iso(),
+                "derived_from": (
+                    json.dumps(list(derived_from)) if derived_from is not None else None
+                ),
             },
             expected_revision=ANY_REVISION,
         )
@@ -218,16 +227,23 @@ class FileHashMixin:
         Returns
         -------
         list of dict
-            ``[{"file_path", "hash", "recorded_at"}, ...]`` in store order.
+            ``[{"file_path", "hash", "recorded_at", "role", "derived_from"},
+            ...]`` in store order. ``derived_from`` is the declared list (see
+            :meth:`add_file_hash`) or ``None`` when undeclared.
         """
-        return [
-            {
-                "file_path": r.values.get("file_path"),
-                "hash": r.values.get("hash"),
-                "recorded_at": r.values.get("recorded_at"),
-            }
-            for r in self._rows_for_session(session_id, role)
-        ]
+        out = []
+        for r in self._rows_for_session(session_id, role):
+            raw = r.values.get("derived_from")
+            out.append(
+                {
+                    "file_path": r.values.get("file_path"),
+                    "hash": r.values.get("hash"),
+                    "recorded_at": r.values.get("recorded_at"),
+                    "role": r.values.get("role"),
+                    "derived_from": json.loads(raw) if raw else None,
+                }
+            )
+        return out
 
     def find_producer_records(
         self,

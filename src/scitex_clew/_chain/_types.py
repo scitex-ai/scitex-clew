@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 
 class VerificationStatus(Enum):
@@ -121,6 +121,9 @@ class ChainVerification:
     target_file: str
     runs: list[RunVerification]
     status: VerificationStatus
+    #: The minimal slice the chain was verified over (``minimal=True``);
+    #: ``None`` for the run-level closure.
+    slice: Any = None
 
     @property
     def is_verified(self) -> bool:
@@ -140,6 +143,8 @@ class DAGVerification:
     edges: list[tuple[str, str]]  # (parent_sid, child_sid)
     status: VerificationStatus
     topological_order: list[str]
+    #: The minimal slice the DAG was verified over (``minimal=True``).
+    slice: Any = None
 
     @property
     def is_verified(self) -> bool:

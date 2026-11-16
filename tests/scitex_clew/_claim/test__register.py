@@ -14,6 +14,7 @@ assertion per test.
 
 from __future__ import annotations
 
+import json
 import os
 import warnings
 from pathlib import Path
@@ -22,6 +23,7 @@ import pytest
 
 import scitex_clew as clew
 import scitex_clew._db as _db_module
+from scitex_clew._tracker import SessionTracker
 
 
 @pytest.fixture(autouse=True)
@@ -171,6 +173,118 @@ class TestAddClaimNoLineageWarning:
                 os.environ["SCITEX_CLEW_WARN_NO_LINEAGE"] = prev
         # Assert
         assert not any("NO_LINEAGE" in str(w.message) for w in caught)
+
+
+# ---------------------------------------------------------------------------
+# Native claim fields, re-add after remove, project_root=
+# ---------------------------------------------------------------------------
+
+
+def _produce(tmp_path, name, content, sid="S1"):
+    script = tmp_path / "make.py"
+    script.write_text("# make\n")
+    out = tmp_path / name
+    out.write_text(content)
+    tracker = SessionTracker(sid, script_path=str(script))
+    tracker.record_output(out)
+    tracker.finalize()
+    return out
+
+
+def _claim(tmp_path, display, source, **kw):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return clew.add_claim(
+            str(tmp_path / "paper.tex"),
+            "value",
+            1,
+            display,
+            source_file=str(source),
+            **kw,
+        )
+
+
+@pytest.fixture
+def results_json(tmp_path):
+    return _produce(
+        tmp_path, "results.json", json.dumps({"test": {"auc": 0.8123, "n": 120}})
+    )
+
+
+class TestNativeClaimFields:
+    def test_fields_round_trip_and_display_string_is_kept(self, tmp_path, results_json):
+        # Arrange
+        _claim(
+            tmp_path,
+            "AUC = 0.81",
+            results_json,
+            value={"auc": 0.81},
+            source_keys={"auc": "/test/auc"},
+            tolerance={"rel_tol": 0.01},
+            metadata={"writer_schema": 1, "macro": "\\clewAuc"},
+        )
+        # Act
+        c = clew.list_claims()[0]
+        # Assert
+        assert (c.claim_value, c.value, c.source_keys, c.tolerance, c.metadata) == (
+            "AUC = 0.81",
+            {"auc": 0.81},
+            {"auc": {"pointer": "/test/auc"}},
+            {"rel_tol": 0.01},
+            {"writer_schema": 1, "macro": "\\clewAuc"},
+        )
+
+
+class TestReAddAfterRemove:
+    def test_readded_claim_is_visible(self, tmp_path, results_json):
+        # Arrange
+        _claim(tmp_path, "0.81", results_json, claim_id="auc")
+        clew.remove_claim("auc")
+        # Act
+        _claim(tmp_path, "0.81", results_json, claim_id="auc")
+        # Assert
+        assert [c.claim_id for c in clew.list_claims()] == ["auc"]
+
+
+class TestProjectRoot:
+    def test_project_root_scopes_without_chdir(self, tmp_path):
+        # Arrange
+        a, b = tmp_path / "proj_a", tmp_path / "proj_b"
+        for root in (a, b):
+            (root / ".git").mkdir(parents=True)
+            (root / "r.json").write_text("{}")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            clew.add_claim(
+                "paper.tex",
+                "value",
+                1,
+                "1",
+                source_file="r.json",
+                claim_id="x",
+                project_root=a,
+            )
+        # Act
+        seen = (
+            [c.claim_id for c in clew.list_claims(project_root=a)],
+            [c.claim_id for c in clew.list_claims(project_root=b)],
+        )
+        # Assert
+        assert seen == (["x"], [])
+
+    def test_relative_paths_resolve_against_project_root(self, tmp_path):
+        # Arrange
+        root = tmp_path / "proj"
+        (root / ".git").mkdir(parents=True)
+        (root / "r.json").write_text("{}")
+        # Act
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            claim = clew.add_claim(
+                "paper.tex", "value", 1, "1", source_file="r.json", project_root=root
+            )
+        # Assert
+        assert claim.source_file == str((root / "r.json").resolve())
 
 
 # EOF

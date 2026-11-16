@@ -13,8 +13,9 @@ into so the umbrella package never has to wire them:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any, Dict
 
 from scitex_clew._core import getLogger
 
@@ -31,7 +32,7 @@ _registered_io_ids: set = set()
 _registered_session_ids: set = set()
 
 
-def on_io_save(path: Path, obj: Any, kwargs: Dict[str, Any]) -> None:
+def on_io_save(path: Path, obj: Any, kwargs: dict[str, Any]) -> None:
     """Post-save hook fired by scitex-io after a successful save.
 
     Ensures the clew DB exists and, if a session tracker is active,
@@ -93,8 +94,12 @@ def on_io_save(path: Path, obj: Any, kwargs: Dict[str, Any]) -> None:
         )
         return
 
+    # Level-2 minimal-slice hook: ``stx.io.save(obj, path, derived_from=[...])``
+    # declares which files this output was computed from. (scitex-io must
+    # strip the kwarg before dispatching to the format saver.)
+    derived_from = kwargs.get("derived_from") if isinstance(kwargs, dict) else None
     try:
-        tracker.record_output(path, track=track)
+        tracker.record_output(path, track=track, derived_from=derived_from)
     except Exception as e:
         logger.debug("clew: failed to record output %s: %s", path, e)
 
@@ -261,9 +266,7 @@ def register_with_scitex_session() -> bool:
     reg_start = getattr(scitex_session, "register_session_start_hook", None)
     reg_close = getattr(scitex_session, "register_session_close_hook", None)
     if reg_start is None or reg_close is None:
-        logger.debug(
-            "clew: scitex_session has no lifecycle-hook registry; skipping"
-        )
+        logger.debug("clew: scitex_session has no lifecycle-hook registry; skipping")
         return False
 
     if id(scitex_session) in _registered_session_ids:
@@ -272,12 +275,20 @@ def register_with_scitex_session() -> bool:
     def _start_adapter(session_id, script_path=None, metadata=None):
         on_session_start(session_id, script_path=script_path, metadata=metadata)
 
-    def _close_adapter(status="success", exit_code=0):
-        on_session_close(status=status, exit_code=exit_code)
+    def _close_adapter(status="success", exit_code=0, metadata=None):
+        # ``metadata`` is optional and positional-compatible: today's
+        # scitex-session fires ``close(status, exit_code)``; a payload of
+        # capture failures (e.g. ``{"hook_failures": [...]}``) is merged into
+        # the run record when a session manager sends one.
+        on_session_close(status=status, exit_code=exit_code, metadata=metadata)
 
     try:
         reg_start(_start_adapter)
         reg_close(_close_adapter)
+        # Without this the idempotency guard never engages: the import-time
+        # bootstrap and the entry-point activation both register, and every
+        # hook fires twice per session.
+        _registered_session_ids.add(id(scitex_session))
         return True
     except Exception as e:
         logger.debug("clew: failed to register hooks with scitex_session: %s", e)

@@ -145,6 +145,7 @@ class SessionTracker:
         self,
         path: str | Path,
         track: bool = True,
+        derived_from: list[str | Path] | None = None,
     ) -> str | None:
         """
         Record a file as an output.
@@ -155,6 +156,13 @@ class SessionTracker:
             Path to the output file
         track : bool, optional
             Whether to track this file (default: True)
+        derived_from : list of str or Path, optional
+            The files this output was computed from (inputs of this run, or
+            earlier outputs of it). Declaring it lets the level-2 minimal
+            slice (:func:`scitex_clew.slice`) drop this run's other inputs
+            from the output's back-trace. ``None`` = undeclared (the slice
+            keeps every input of the run). An empty list declares "derived
+            from no file".
 
         Returns
         -------
@@ -171,12 +179,18 @@ class SessionTracker:
         path_str = str(path.resolve())
         file_hash = hash_file(path)
         self._outputs[path_str] = file_hash
+        declared = (
+            None
+            if derived_from is None
+            else [str(Path(p).resolve()) for p in derived_from]
+        )
         self._db.add_file_hash(
             session_id=self.session_id,
             file_path=path_str,
             hash_value=file_hash,
             role="output",
             size_bytes=_stat_size(path_str),
+            derived_from=declared,
         )
 
         return file_hash
@@ -441,14 +455,22 @@ def record_input(path: str | Path, track: bool = True) -> str | None:
     return tracker.record_input(path, track=track)
 
 
-def record_output(path: str | Path, track: bool = True) -> str | None:
-    """Record ``path`` as an output of the CURRENT clew session (see :func:`record_input`)."""
+def record_output(
+    path: str | Path,
+    track: bool = True,
+    derived_from: list[str | Path] | None = None,
+) -> str | None:
+    """Record ``path`` as an output of the CURRENT clew session (see :func:`record_input`).
+
+    ``derived_from`` declares the files this output was computed from (the
+    level-2 minimal-slice hook; see :meth:`SessionTracker.record_output`).
+    """
     tracker = get_tracker()
     if tracker is None:
         raise RuntimeError(
             "record_output requires an active clew.session()/start_tracking()"
         )
-    return tracker.record_output(path, track=track)
+    return tracker.record_output(path, track=track, derived_from=derived_from)
 
 
 # EOF
