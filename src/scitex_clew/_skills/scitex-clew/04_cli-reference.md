@@ -100,7 +100,7 @@ leaf (e.g. a hand-edited `results.json`) even when its hash matches.
 
 A claim whose recorded lineage is **stale** (an upstream input changed after
 the pipeline ran, or a run in the lineage failed) exits `18 STALE_LINEAGE`
-in BOTH modes — a stale claim is never reported verified. (Through 0.21.1 the
+in BOTH modes — a stale claim is never reported verified. (Through 0.21.0 the
 default mode passed such a claim on its source hash alone, and `--strict`
 mislabelled it `NO_LINEAGE`.)
 
