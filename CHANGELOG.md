@@ -7,6 +7,13 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-11-17
+
+Minor release (new feature): unconscious file-I/O and project-code
+capture inside `@stx.session` runs (#179). Pairs with scitex-session
+0.3.5, which sends `metadata["project_root"]`; older sessions still
+work (clew derives the root from `git.root` or the script directory).
+
 ### Added
 - **Unconscious capture inside `@stx.session` runs** (`scitex_clew._capture`,
   activated by the session start/close hooks). Closes the two largest E1
@@ -42,7 +49,9 @@ versions follow [Semantic Versioning](https://semver.org/).
 - `find_producer_records` (called once per recorded input, including every
   `stx.io.load`) decoded the project's WHOLE `file_hashes` table and filtered
   in Python: 0.4 s per input at ~10k rows. It now filters in SQL
-  (`ProjectScopedStore.search`).
+  (`ProjectScopedStore.search`) (#179).
+- A file read inside `scitex_io.save` (e.g. a read-back check) is no
+  longer recorded as a run input (#179).
 
 ## [0.22.2] — 2026-11-17
 
