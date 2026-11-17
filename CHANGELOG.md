@@ -7,6 +7,12 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.24.3] — 2026-11-18
+
+Patch release: symlinks a run went through are recorded, sliced and verified
+(#192); claims registered during a session follow its run-dir move (#191).
+No schema change.
+
 ### Fixed
 - **Symlinks a run went through are recorded, sliced and verified** (#192).
   An input opened through an in-project symlink (`alias -> data`,
