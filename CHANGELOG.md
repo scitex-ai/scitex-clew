@@ -7,6 +7,27 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.24.1] — 2026-11-17
+
+Patch release: project code executed without importing (runpy, exec,
+exec_module, %run) is recorded as a code input (#185). No schema change.
+
+### Added
+- **Executed-not-imported project code is a code input** (#185). `runpy.run_path`,
+  `exec(compile(open(p).read(), p, "exec"))`, `exec(open(p).read())`,
+  `importlib.util.spec_from_file_location` + `exec_module` (not in
+  `sys.modules`) and IPython `%run` left no module behind, so a claim's slice
+  lacked that code. The `exec` audit event (`co_filename`) and, for
+  `exec(<str>)`, the `compile` event (source matched by newline-normalised
+  hash to a `.py` file the run read; exact match only) now record it, under
+  the same project-root / external-input rules; library and stdlib code, the
+  temp dir and the entry script are excluded. Run metadata
+  `capture.exec_code_inputs`. No schema change.
+
+### Changed
+- `scitex_clew._capture` is split: `RunCapture` lives in `_capture/_run.py`,
+  exec/compile capture in `_capture/_code.py` (imports unchanged).
+
 ## [0.24.0] — 2026-11-17
 
 Minor release (new feature): external inputs — files read from outside the
