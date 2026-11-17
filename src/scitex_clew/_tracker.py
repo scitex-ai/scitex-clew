@@ -61,6 +61,9 @@ class SessionTracker:
 
         self._inputs: dict[str, str] = {}
         self._outputs: dict[str, str] = {}
+        # path -> (hash, declared derived_from) of outputs recorded WITH a
+        # declaration, so a same-bytes re-record cannot erase it.
+        self._declared: dict[str, tuple[str, list[str]]] = {}
         self._script_hash: str | None = None
         self._finalized = False
         self._parent_sessions: set = set()
@@ -164,6 +167,12 @@ class SessionTracker:
             keeps every input of the run). An empty list declares "derived
             from no file".
 
+            Recording the SAME bytes of the same path again in this run
+            (e.g. a figure tool records its image, then the ``stx.io.save``
+            that called it fires its hook for the same file) never erases a
+            declaration: an undeclared re-record keeps it and a second
+            declaration is unioned with it. New bytes replace it.
+
         Returns
         -------
         str or None
@@ -184,6 +193,7 @@ class SessionTracker:
             if derived_from is None
             else [str(Path(p).resolve()) for p in derived_from]
         )
+        declared = self._merge_declaration(path_str, file_hash, declared)
         self._db.add_file_hash(
             session_id=self.session_id,
             file_path=path_str,
@@ -194,6 +204,21 @@ class SessionTracker:
         )
 
         return file_hash
+
+    def _merge_declaration(
+        self, path_str: str, file_hash: str, declared: list[str] | None
+    ) -> list[str] | None:
+        """Combine ``declared`` with an earlier declaration of the same bytes."""
+        previous = self._declared.get(path_str)
+        if previous is not None and previous[0] == file_hash:
+            if declared is None:
+                return list(previous[1])
+            declared = previous[1] + [p for p in declared if p not in previous[1]]
+        if declared is None:
+            self._declared.pop(path_str, None)
+        else:
+            self._declared[path_str] = (file_hash, list(declared))
+        return declared
 
     def record_inputs(
         self,
