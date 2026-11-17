@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Union
 from ._db import get_db
 from ._db._file_hashes import _stat_size
 from ._hash import combine_hashes, hash_file
+from ._tracker_batch import record_hashed_inputs as _record_hashed_inputs
 
 
 class SessionTracker:
@@ -143,6 +144,9 @@ class SessionTracker:
                     self.parent_session = producer
 
         return self._inputs[path_str]
+
+    #: Bulk counterpart of :meth:`record_input` for pre-hashed paths.
+    record_hashed_inputs = _record_hashed_inputs
 
     def record_output(
         self,

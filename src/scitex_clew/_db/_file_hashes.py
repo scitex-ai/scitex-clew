@@ -268,12 +268,16 @@ class FileHashMixin:
         resolved_to_original: dict[str, str] = {}
         for original in file_paths:
             resolved_to_original.setdefault(_resolve_abspath(original), original)
-        rows = [
-            r
-            for r in self._file_hashes.rows()
-            if r.values.get("role") == "output"
-            and r.values.get("file_path") in resolved_to_original
-        ]
+        from scitex_dev.store import Query, eq, is_in
+
+        # Filtered in SQL: called once per recorded input, so a client-side
+        # scan of every row (``rows()``) made recording O(table) per file —
+        # measured 0.4 s/input at ~10k rows.
+        rows = self._file_hashes.search(
+            Query().where(
+                eq("role", "output"), is_in("file_path", list(resolved_to_original))
+            )
+        )
         rows.sort(key=lambda r: r.values.get("recorded_at") or "", reverse=True)
         result: dict[str, list[dict[str, str | None]]] = {}
         for r in rows:
