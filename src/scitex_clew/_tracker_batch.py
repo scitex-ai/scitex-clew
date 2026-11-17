@@ -12,14 +12,17 @@ from __future__ import annotations
 from ._db._file_hashes import _stat_size
 
 
-def record_hashed_inputs(tracker, hashes: dict[str, str]) -> dict[str, str]:
+def record_hashed_inputs(
+    tracker, hashes: dict[str, str], external: dict[str, dict] | None = None
+) -> dict[str, str]:
     """Record many inputs whose bytes were ALREADY hashed, in one batch.
 
     ``hashes`` maps resolved paths to the hash of the bytes that were read.
     Paths already recorded as inputs of this run are skipped (first record
     wins, as in ``record_input``). Producers are bound by content hash exactly
     as ``record_input`` does, with ONE producer lookup and ONE store
-    transaction for all of them.
+    transaction for all of them. ``external`` maps the paths among them that
+    were read from OUTSIDE the project root to their ``external`` payload.
 
     Returns the ``{path: hash}`` newly recorded.
     """
@@ -31,15 +34,20 @@ def record_hashed_inputs(tracker, hashes: dict[str, str]) -> dict[str, str]:
     from ._chain._routes import bind_input
 
     db = tracker._db
+    external = external or {}
     with db._file_hashes.batch():
         for path_str, file_hash in new.items():
             tracker._inputs[path_str] = file_hash
+            info = external.get(path_str)
+            if info is not None:
+                tracker._external[path_str] = info
             db.add_file_hash(
                 session_id=tracker.session_id,
                 file_path=path_str,
                 hash_value=file_hash,
                 role="input",
                 size_bytes=_stat_size(path_str),
+                external=info,
             )
     producers = db.find_producer_records(list(new))
     for path_str, file_hash in new.items():

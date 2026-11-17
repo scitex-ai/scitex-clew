@@ -221,6 +221,7 @@ def verify_run(
     # Get frozen file sets (additive helper, no change to existing get_file_hashes API)
     frozen_inputs = db.get_frozen_files(session_id, role="input")
     frozen_outputs = db.get_frozen_files(session_id, role="output")
+    external_inputs = db.get_external_files(session_id, role="input")
 
     # Verify each file
     file_verifications = []
@@ -234,6 +235,7 @@ def verify_run(
             hash_cache=hash_cache,
             frozen=path in frozen_inputs,
         )
+        fv.external = path in external_inputs
         file_verifications.append(fv)
 
         # Check if upstream session that produced this input has failed

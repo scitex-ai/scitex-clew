@@ -41,6 +41,14 @@ Level 2 — declared per-output dependencies (opt-in, trusts the writer)
 
 Verification over a slice checks only the slice's files (a changed sibling
 output no longer marks the target's lineage stale).
+
+External inputs (files read from OUTSIDE the project root — shared datasets,
+a sibling project's outputs, in-project symlinks to elsewhere; see
+:mod:`scitex_clew._capture._external`) are ordinary input nodes at every
+level, flagged in :attr:`ProvenanceSlice.external` and listed by
+:meth:`ProvenanceSlice.required_external` (``required_not_bundled`` in
+``to_dict``): a re-run needs them at their recorded paths with their recorded
+hashes, and a slice cannot carry them.
 """
 
 from __future__ import annotations
@@ -111,6 +119,10 @@ class ProvenanceSlice:
     dropped_outputs: dict[str, list[str]] = field(default_factory=dict)
     fallback_runs: dict[str, str] = field(default_factory=dict)
     unrecorded_declarations: dict[str, list[str]] = field(default_factory=dict)
+    #: Kept inputs read from OUTSIDE the project root:
+    #: ``{path: {"via", "size", "mtime", "runs"}}``. A slice can never bundle
+    #: them — they are REQUIRED-BUT-NOT-BUNDLED (see :meth:`required_external`).
+    external: dict[str, dict] = field(default_factory=dict)
 
     @property
     def files(self) -> list[str]:
@@ -142,13 +154,41 @@ class ProvenanceSlice:
         runs, files, edges = len(self.runs), len(self.file_hashes), len(self.edges)
         return {"runs": runs, "files": files, "nodes": runs + files, "edges": edges}
 
+    def required_external(self) -> list[dict]:
+        """Inputs a re-run needs that the slice cannot carry, one dict each:
+        ``{"path", "hash", "size", "via", "mtime", "runs"}`` (path order)."""
+        return [
+            {
+                "path": p,
+                "hash": self.file_hashes.get(p),
+                "size": info.get("size"),
+                "via": info.get("via"),
+                "mtime": info.get("mtime"),
+                "runs": list(info.get("runs", [])),
+            }
+            for p, info in sorted(self.external.items())
+        ]
+
     def to_dict(self) -> dict:
         return {
             "targets": list(self.targets),
             "level": self.level,
             "counts": self.counts(),
             "runs": list(self.runs),
-            "files": [{"path": p, "hash": self.file_hashes[p]} for p in self.files],
+            "files": [
+                {
+                    "path": p,
+                    "hash": self.file_hashes[p],
+                    "external": p in self.external,
+                    **(
+                        {"via": self.external[p].get("via")}
+                        if p in self.external
+                        else {}
+                    ),
+                }
+                for p in self.files
+            ],
+            "required_not_bundled": self.required_external(),
             "edges": [
                 {"source": e.source, "target": e.target, "kind": e.kind}
                 for e in self.edges
@@ -218,6 +258,14 @@ class _RunIndex:
 
     def outputs(self, sid: str) -> dict[str, dict]:
         return {r["file_path"]: r for r in self.records(sid, "output")}
+
+    def external(self, sid: str) -> dict[str, dict]:
+        """``{path: external payload}`` of the run's outside-the-project inputs."""
+        return {
+            r["file_path"]: r["external"]
+            for r in self.records(sid, "input")
+            if r.get("external")
+        }
 
     def parent_of(self, sid: str, input_path: str) -> str | None:
         if sid not in self._bindings:
@@ -312,10 +360,15 @@ def build_slice(
     }
     dropped_in: dict[str, list[str]] = {}
     dropped_out: dict[str, list[str]] = {}
+    external: dict[str, dict] = {}
     for sid in order:
         ins, outs = index.inputs(sid), index.outputs(sid)
-        for p in kept_in[sid]:
+        ext = index.external(sid)
+        for p in sorted(kept_in[sid]):
             file_hashes.setdefault(p, ins.get(p))
+            if p in ext:
+                entry = external.setdefault(p, {**ext[p], "runs": []})
+                entry["runs"].append(sid)
         for p in kept_out[sid]:
             file_hashes[p] = outs[p].get("hash") if p in outs else file_hashes.get(p)
         if level != LEVEL_RUN_CLOSURE:
@@ -339,6 +392,7 @@ def build_slice(
         dropped_outputs=dropped_out,
         fallback_runs=fallback,
         unrecorded_declarations={s: sorted(v) for s, v in unrecorded.items() if v},
+        external=external,
     )
 
 

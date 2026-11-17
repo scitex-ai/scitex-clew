@@ -104,6 +104,11 @@ FILE_HASHES_SCHEMA = Schema.build(
         # (``record_output(..., derived_from=[...])``). Nullable: NULL means
         # "undeclared" and the slice falls back to all of the run's inputs.
         "derived_from": _data_field(FieldKind.TEXT),
+        # INPUT rows read from OUTSIDE the project root (a shared dataset, a
+        # sibling project's output, an in-project symlink to elsewhere): JSON
+        # ``{"via", "size", "mtime"}``. NULL = an in-project input. A slice
+        # lists such inputs as required-but-not-bundled.
+        "external": _data_field(FieldKind.TEXT),
     },
 )
 
