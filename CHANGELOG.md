@@ -7,8 +7,15 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-11-17
+
+Minor release (new feature): external inputs — files read from outside the
+project root and in-project symlinks to elsewhere are recorded, sliced as
+required-but-not-bundled, verified, and warned about (#182). New exit code
+22 `EXTERNAL_MISSING`.
+
 ### Added
-- **External inputs** — files a run reads from OUTSIDE its project root
+- **External inputs** (#182) — files a run reads from OUTSIDE its project root
   (shared datasets on `/data` `/scratch` / a NAS mount / `~/datasets`,
   downloads, a sibling project's outputs) and in-project symlinks whose
   target lies outside (`data/raw -> /mnt/shared/raw`) were silently dropped
