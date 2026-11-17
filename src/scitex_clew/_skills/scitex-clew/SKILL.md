@@ -54,6 +54,7 @@ scitex_clew.status(...)
 * [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — workflows + CLI detail + MCP refs
 * [13_registered-source-gate.md](13_registered-source-gate.md) — the registered-source whitelist + the amber `unsourced` verdict: `clew register-source`, the hash-pinned manifest, the chain-walk grounding gate, exit code `17`, opt-in + monotonic semantics
 * [15_zero-dep-session.md](15_zero-dep-session.md) — the zero-dependency `clew.session()` provenance recorder: pure-stdlib `runs` + file-hash edges (fallback for `@stx.session`)
+* [16_unconscious-capture.md](16_unconscious-capture.md) — inside `@stx.session`, files opened by ANY Python code (pandas/numpy/`open()`) under the project root and imported project-local modules are recorded as inputs/outputs (audit hook); scope rules, `SCITEX_CLEW_AUDIT_CAPTURE=0` opt-out
 * [20_env-vars.md](20_env-vars.md), [14_grouping.md](14_grouping.md) — env vars + DAG-node grouping
 * [21_agentic-reasoning.md](21_agentic-reasoning.md) — when-to-call discipline for AI agents using Clew as an active reasoning substrate (v2 framing)
 * [22_agentic-reasoning-examples.md](22_agentic-reasoning-examples.md) — rationale (cache/tamper/provenance), anti-patterns, and a worked five-step example for 21_agentic-reasoning

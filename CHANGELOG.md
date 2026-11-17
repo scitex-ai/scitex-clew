@@ -7,6 +7,31 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Unconscious capture inside `@stx.session` runs** (`scitex_clew._capture`,
+  activated by the session start/close hooks). Closes the two largest E1
+  recall gaps measured on real agent runs:
+  - *Files opened outside stx.io* — a `sys.addaudithook` handler on the
+    `open` event records files read (→ input, hashed at open) or written
+    (→ output, hashed at close; `os.replace` of a written temp file follows
+    to its target) by ANY Python code — `pandas.read_csv`, `numpy.load`,
+    `open()` — **under the project root only**. Session bookkeeping
+    (`*_out/RUNNING|FINISHED*`), `.git`, `__pycache__`, `.py/.pyc`, the
+    interpreter prefix, `site-/dist-packages`, `.scitex`, `/proc /dev /sys`
+    and anything whose real path leaves the root are excluded. Deduped with
+    the stx.io hooks (same resolved path → one edge).
+  - *Imported project-local code* — modules whose file is under the project
+    root (not installed, not the entry script) are recorded as run inputs at
+    start (late imports at close), so `clew.slice` / `chain` include the
+    helper code; a module changed on disk during the run is warned about.
+  - Loud, never silent: an uninstallable hook or a failed record WARNS and is
+    written to run metadata `capture` (`audit`, `code_inputs`,
+    `code_changed`, `open_reads`, `open_writes`, `errors`).
+  - Opt out with `SCITEX_CLEW_AUDIT_CAPTURE=0` (default on); code capture
+    stays on. Benchmark: `tests/develop/bench_audit_capture.py`.
+  - Project root: scitex-session's new `metadata["project_root"]`, else
+    `git.root`, else the script's directory.
+
 ## [0.22.2] — 2026-11-17
 
 Patch release (bug fix only). Pairs with scitex-io 0.6.0, whose
