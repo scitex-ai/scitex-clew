@@ -272,6 +272,21 @@ class ProjectScopedStore:
             if row.values.get(PROJECT_FIELD) == self._project
         ]
 
+    def search(self, query):
+        """This project's rows matching ``query`` — filtered in SQL, not Python.
+
+        :meth:`rows` decodes the WHOLE table and filters client-side; a
+        per-file lookup through it costs O(table) per call. Use this for
+        point queries (e.g. "output rows for these paths").
+        """
+        from scitex_dev.store import eq
+
+        return self._store.search(query.where(eq(PROJECT_FIELD, self._project)))
+
+    def batch(self):
+        """One durable transaction for many writes (``Store.batch``)."""
+        return self._store.batch()
+
     def get(self, key, *, include_hidden: bool = False):
         return self._store.get(self._key(key), include_hidden=include_hidden)
 

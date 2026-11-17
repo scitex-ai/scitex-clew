@@ -15,7 +15,8 @@ active-inside   session active, the SAME project file opened 10k times
                 (recorded once, then the cached fast path)
 active-outside  session active, a file OUTSIDE the project opened 10k times
 active-many     session active, 10k DISTINCT project files (each one hashed
-                and recorded once: the worst case, dominated by store writes)
+                at open; all recorded in ONE store transaction at close —
+                "close s" column)
 """
 
 from __future__ import annotations
@@ -55,10 +56,14 @@ for p in paths:
     with open(p) as f:
         pass
 dt = time.perf_counter() - t0
+close = 0.0
 if mode.startswith("active"):
+    t1 = time.perf_counter()
     _capture.finish(tracker)
+    close = time.perf_counter() - t1
     stop_tracking()
-print(json.dumps({"mode": mode, "seconds": dt, "us_per_open": dt / n * 1e6}))
+print(json.dumps({"mode": mode, "seconds": dt, "us_per_open": dt / n * 1e6,
+                  "close_seconds": close}))
 """
 
 
@@ -87,11 +92,14 @@ def main() -> None:
             )
             rows.append(json.loads(out.stdout.strip().splitlines()[-1]))
     base = rows[0]["us_per_open"]
-    print(f"{'mode':<16}{'total s':>10}{'us/open':>10}{'overhead us':>13}")
+    print(
+        f"{'mode':<16}{'loop s':>10}{'us/open':>10}{'overhead us':>13}"
+        f"{'close s':>10}"
+    )
     for r in rows:
         print(
             f"{r['mode']:<16}{r['seconds']:>10.4f}{r['us_per_open']:>10.2f}"
-            f"{r['us_per_open'] - base:>13.2f}"
+            f"{r['us_per_open'] - base:>13.2f}{r['close_seconds']:>10.3f}"
         )
 
 

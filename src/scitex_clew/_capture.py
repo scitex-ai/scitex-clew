@@ -23,9 +23,10 @@ This module closes both, for the life of a session (activated by
   ``O_RDWR``), which is uniform across ``open()`` and ``os.open``:
 
   - a *read* is hashed at open time (the bytes about to be read) and recorded
-    as a run input through :meth:`SessionTracker.record_input` — the same call
-    and the same resolved path the ``stx.io.load`` hook uses, so a file loaded
-    through ``stx.io`` is one edge, never two;
+    as a run input at session close, in one store transaction
+    (:meth:`SessionTracker.record_hashed_inputs`), keyed by the same resolved
+    path the ``stx.io.load`` hook uses — a file also loaded through ``stx.io``
+    is one edge, never two;
   - a *write* is remembered and hashed at session close (a file may be written
     many times; the last bytes are the output), then recorded through
     :meth:`SessionTracker.record_output` unless the tracker already holds the
@@ -210,6 +211,7 @@ class RunCapture:
         self.reads: list[str] = []
         self._read_set: set[str] = set()
         self.writes: set[str] = set()
+        self._pending_reads: dict[str, str] = {}
         self.code: dict[str, str] = {}
         self.code_changed: list[str] = []
         self.errors: list[str] = []
@@ -294,11 +296,15 @@ class RunCapture:
                 return
             self._read_set.add(real)
             self.reads.append(real)
+        # Hash NOW (the bytes about to be read); the store write is batched
+        # at close so the user's open() never waits on a store round-trip.
+        from ._hash import hash_file
+
         _tls.busy = True
         try:
-            self.tracker.record_input(real)
+            self._pending_reads[real] = hash_file(real)
         except Exception as exc:  # noqa: BLE001
-            self._fail(f"record input {real}: {type(exc).__name__}: {exc}")
+            self._fail(f"hash input {real}: {type(exc).__name__}: {exc}")
         finally:
             _tls.busy = False
 
@@ -340,18 +346,25 @@ class RunCapture:
 
     def record_code(self) -> None:
         """Record every imported project-local module not yet recorded."""
+        from ._hash import hash_file
+
         _tls.busy = True
         try:
+            found: dict[str, str] = {}
             for real in sorted(set(self.local_modules().values())):
                 if real in self.code:
                     continue
                 try:
-                    digest = self.tracker.record_input(real)
+                    found[real] = hash_file(real)
                 except Exception as exc:  # noqa: BLE001
-                    self._fail(f"record code {real}: {type(exc).__name__}: {exc}")
-                    continue
-                if digest:
-                    self.code[real] = digest
+                    self._fail(f"hash code {real}: {type(exc).__name__}: {exc}")
+            if found:
+                try:
+                    self.tracker.record_hashed_inputs(found)
+                except Exception as exc:  # noqa: BLE001
+                    self._fail(f"record code: {type(exc).__name__}: {exc}")
+                else:
+                    self.code.update(found)
         finally:
             _tls.busy = False
 
@@ -385,8 +398,21 @@ class RunCapture:
         try:
             self._check_code_unchanged()
             self.record_code()
-            recorded = self.tracker._outputs
-            outputs: list[str] = []
+            if self._pending_reads:
+                try:
+                    # stx.io-recorded paths are skipped inside (one edge).
+                    self.tracker.record_hashed_inputs(self._pending_reads)
+                except Exception as exc:  # noqa: BLE001
+                    self._fail(f"record inputs: {type(exc).__name__}: {exc}")
+            outputs = self._record_writes(hash_file)
+        finally:
+            _tls.busy = False
+        return self.summary(outputs)
+
+    def _record_writes(self, hash_file) -> list[str]:
+        recorded = self.tracker._outputs
+        outputs: list[str] = []
+        with self.tracker._db._file_hashes.batch():
             for real in sorted(self.writes):
                 if not os.path.isfile(real):
                     continue  # temp file removed / renamed away
@@ -398,9 +424,7 @@ class RunCapture:
                         outputs.append(real)
                 except Exception as exc:  # noqa: BLE001
                     self._fail(f"record output {real}: {type(exc).__name__}: {exc}")
-        finally:
-            _tls.busy = False
-        return self.summary(outputs)
+        return outputs
 
     def summary(self, outputs: list[str] | None = None) -> dict[str, Any]:
         def listed(items):
