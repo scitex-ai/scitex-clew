@@ -86,8 +86,15 @@ dev = [
     # The session-seam integration tests (tests/integration/
     # test_session_036_seam.py) drive a REAL scitex-session >= 0.3.6 run
     # (relocations / entry / packages). Test-only: clew itself has no
-    # runtime dependency on scitex-session.
-    "scitex-session>=0.3.6",
+    # runtime dependency on scitex-session. >=0.4.0: the notebook entry
+    # (tests/integration/test_notebook_runs.py).
+    "scitex-session>=0.4.0",
+    # Real Jupyter kernels for the notebook tests (and `clew run-notebook`,
+    # whose executor is optional at runtime).
+    "ipykernel",
+    "nbclient",
+    "nbconvert",
+    "nbformat",
 ]
 docs = [
     "sphinx>=7.0",

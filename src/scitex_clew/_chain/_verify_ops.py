@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, Optional, Union
 
 from .._db import get_db
-from .._hash import hash_file, hashes_match
+from .._hash import hash_like, hashes_match
 from ._archive_lookup import hash_archived_file
 from ._types import (
     FileVerification,
@@ -88,7 +88,8 @@ def verify_file(
         )
 
     if path.exists():
-        current_hash = hash_file(path, hash_cache=hash_cache)
+        # same scheme as recorded (a notebook code hash re-hashes the code)
+        current_hash = hash_like(path, expected_hash, hash_cache=hash_cache)
     else:
         # Loose file absent — try to read it from an ancestor session archive
         # (transparent .tar.gz support). None means truly gone.

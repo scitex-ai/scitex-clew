@@ -338,7 +338,7 @@ def estimate(
     >>> result = estimate("results/fig1.png")   # resolves producing script
     """
     from ._db import get_db
-    from ._hash import hash_file
+    from ._hash import hash_code
 
     if db is None:
         db = get_db()
@@ -370,7 +370,7 @@ def estimate(
         sp = Path(resolved_script_path)
         if sp.exists():
             try:
-                current_hash = hash_file(sp)
+                current_hash = hash_code(sp)  # a notebook: its code identity
             except Exception:
                 current_hash = None
 

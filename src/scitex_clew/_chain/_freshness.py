@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from .._db import get_db
-from .._hash import hash_file
+from .._hash import hash_like
 from ._hash_cache import new_hash_cache
 from ._types import RunVerification, VerificationLevel, VerificationStatus
 
@@ -90,7 +90,9 @@ def _is_session_fresh(
         return False
 
     try:
-        current_script_hash = hash_file(script_path, hash_cache=hash_cache)
+        current_script_hash = hash_like(
+            script_path, recorded_script_hash, hash_cache=hash_cache
+        )
     except FileNotFoundError:
         return False
 
@@ -103,7 +105,7 @@ def _is_session_fresh(
         if not Path(file_path).exists():
             return False
         try:
-            current_hash = hash_file(file_path, hash_cache=hash_cache)
+            current_hash = hash_like(file_path, recorded_hash, hash_cache=hash_cache)
         except FileNotFoundError:
             return False
         if not _hashes_match(current_hash, recorded_hash):

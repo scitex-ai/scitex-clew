@@ -24,6 +24,13 @@ Contract
   recorded ``cwd`` (symlinked entries, minus the output root), so relative
   reads still resolve and outputs land in the sandbox. Refused, with a reason,
   when only the command's hash was recorded or the text no longer matches it.
+* **Notebook runs** (a ``@session`` called in a notebook cell; scitex-session
+  >= 0.4.0 records the ``.ipynb`` as the run's script) are replayed by
+  executing a sandbox COPY of the notebook headless (``python -m scitex_clew
+  execute-notebook``, nbclient) with the kernel in the recorded ``cwd`` — never
+  by replaying the kernel's argv. Refused, with what to install, when the
+  recorded interpreter lacks nbclient/ipykernel. A ``%run`` script started
+  from a notebook replays as the script it is.
 * **Clean up.** The sandbox directory is removed and the sandbox run's
   records are hidden from the default view (the store never deletes), so
   they do not show up as MISSING in ``clew status`` afterwards.
@@ -62,6 +69,8 @@ class SandboxPlan:
     command: str | None = None
     #: Why the run cannot be replayed at all (None when it can).
     refusal: str | None = None
+    #: True when the script is a notebook replayed with ``execute-notebook``.
+    notebook: bool = False
 
     @property
     def can_sandbox(self) -> bool:
@@ -141,6 +150,10 @@ def plan_sandbox(session_id: str, run_info: dict, output_paths) -> SandboxPlan:
         python = sys.executable
 
     outside = sorted(p for p in output_paths if not _is_under(Path(p), out_root))
+    notebook = script.suffix == ".ipynb"
+    refusal = _notebook_executor_missing(python) if notebook else None
+    if notebook:
+        argv_tail = []  # the kernel's argv is not the notebook's CLI
     return SandboxPlan(
         session_id=session_id,
         script=script,
@@ -150,6 +163,23 @@ def plan_sandbox(session_id: str, run_info: dict, output_paths) -> SandboxPlan:
         python=python,
         outside_outputs=outside,
         notes=notes,
+        refusal=refusal,
+        notebook=notebook,
+    )
+
+
+def _notebook_executor_missing(python: str) -> str | None:
+    """Why ``python`` cannot execute a notebook headless, or None."""
+    probe = subprocess.run(
+        [python, "-c", "import nbclient, nbformat, ipykernel"],
+        capture_output=True,
+        text=True,
+    )
+    if probe.returncode == 0:
+        return None
+    return (
+        f"notebook replay needs nbclient + nbformat + ipykernel in {python} "
+        "(pip install nbclient nbformat ipykernel)"
     )
 
 
@@ -246,6 +276,11 @@ def run_in_sandbox(plan: SandboxPlan, db, timeout: int) -> SandboxRun:
         script_copy = None
         cmd = [plan.python, "-c", plan.command]
         run_cwd = sandbox
+    elif plan.notebook:
+        script_copy = _mirror_script_dir(plan, sandbox)
+        cmd = [plan.python, "-m", "scitex_clew", "execute-notebook", str(script_copy),
+               "--cwd", str(plan.cwd)]  # fmt: skip
+        run_cwd = plan.cwd
     else:
         script_copy = _mirror_script_dir(plan, sandbox)
         cmd = [plan.python, str(script_copy), *plan.argv_tail]

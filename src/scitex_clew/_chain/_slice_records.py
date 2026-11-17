@@ -51,6 +51,23 @@ def run_environment(db, sid: str) -> dict | None:
     }
 
 
+def collect_recipes(db, runs) -> dict[str, dict]:
+    """``{sid: recipe}`` for every kept run that a notebook ran.
+
+    A notebook run is re-executed by running the notebook (headless, top to
+    bottom; :func:`scitex_clew._chain._notebook.rerun_recipe`), never by replaying
+    the kernel's argv. Runs without a recipe replay their recorded argv.
+    """
+    from ._notebook import rerun_recipe
+
+    out: dict[str, dict] = {}
+    for sid in runs:
+        recipe = rerun_recipe(db.get_run(sid))
+        if recipe is not None:
+            out[sid] = recipe
+    return out
+
+
 def run_links(db, sid: str) -> list[dict]:
     """The symlink entries recorded for run ``sid`` (``metadata["links"]``)."""
     meta = _run_metadata(db, sid) or {}
