@@ -12,7 +12,8 @@ Resolution (lowest precedence first; each layer deep-merged over the previous)::
     code defaults  <  user scope  <  project scope  <  explicit
 
     user scope:     ``$SCITEX_DIR/clew/``      (default ``~/.scitex/clew/``)
-    project scope:  ``<git-root>/.scitex/clew/``
+    project scope:  ``<project-root>/.scitex/clew/`` (same root as the store
+                    scope; see ``scitex_clew._core._project_root``)
     explicit:       a ``--config`` path (file or dir), highest priority
 
 Within ONE scope dir, ``config.yaml`` is the base and every
@@ -55,19 +56,21 @@ def _user_root() -> Path:
     return root / PKG_SHORT
 
 
-def _find_git_root(start: Path) -> Optional[Path]:
-    """Walk up from ``start`` looking for a ``.git`` entry."""
-    cur = start.resolve()
-    for parent in (cur, *cur.parents):
-        if (parent / ".git").exists():
-            return parent
-    return None
-
-
 def _project_root(start: Optional[Path] = None) -> Optional[Path]:
-    """Project-scope ``<git-root>/.scitex/clew`` (or ``None`` outside a repo)."""
-    git_root = _find_git_root(start or Path.cwd())
-    return (git_root / ".scitex" / PKG_SHORT) if git_root else None
+    """Project-scope ``<project-root>/.scitex/clew``.
+
+    The project root is the SAME one clew scopes its store by
+    (:func:`scitex_clew._db._paths.project_root_info`): an explicit
+    ``project_root(...)`` block, else the active scitex-session's recorded
+    root, else the shared detection rule from ``start`` (default: CWD) --
+    the enclosing work tree, then project markers (``pyproject.toml``,
+    ``config/`` + ``scripts/``, ...), so a non-VCS project has a project
+    scope too.
+    """
+    from .._db._paths import project_root_info
+
+    root = Path(project_root_info(start)["project_root"])
+    return root / ".scitex" / PKG_SHORT
 
 
 def _read_yaml(path: Path) -> Dict[str, Any]:
@@ -139,7 +142,8 @@ def load_config(
     ----------
     start : pathlib.Path, optional
         Directory to resolve the project scope from (default: CWD). The
-        project scope is ``<git-root-of-start>/.scitex/clew``.
+        project scope is ``<project-root>/.scitex/clew`` (see
+        :func:`_project_root`).
     explicit : str or pathlib.Path, optional
         A ``--config`` override. A directory is treated like a scope
         (``config.yaml`` + ``config/``); a file is read directly. Must

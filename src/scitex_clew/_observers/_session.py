@@ -19,7 +19,11 @@ Payload (scitex-session >= the capture-completeness release)
 ------------------------------------------------------------
 The start hook's ``metadata`` carries ``argv``, ``args``, ``seed``, ``cwd``,
 ``python``, ``git``, ``packages``, ``local_modules``, ``sdir_run``,
-``sdir_out``, ``started_at`` and ``capture_errors``. It is stored verbatim as
+``sdir_out``, ``started_at`` and ``capture_errors`` — and, from
+scitex-session 0.3.7, ``project_root`` / ``project_root_source`` /
+``project_root_marker``: clew adopts that root for the whole run (store
+scope, project id, claims.json, config scope), so the session and clew
+cannot disagree about which project a run belongs to. It is stored verbatim as
 the run's metadata; :mod:`scitex_clew._rerun` replays ``argv`` from ``cwd``
 and the close-time completeness check reads ``sdir_out``. A non-empty
 ``capture_errors`` is surfaced as a WARNING at start. The close hook accepts
@@ -104,7 +108,12 @@ def on_session_start(
         Whatever opening the run record raised — after it was warned and
         recorded (see module docstring).
     """
+    from .._db._paths import clear_session_project_root, set_session_project_root
+
     try:
+        # BEFORE the run record opens: the store scope (project id) is
+        # resolved when the DB instance is built, and must be the session's.
+        set_session_project_root(metadata, script_path)
         start_tracking(
             session_id=session_id,
             script_path=script_path,
@@ -112,6 +121,7 @@ def on_session_start(
             metadata=metadata,
         )
     except Exception as e:
+        clear_session_project_root()
         _record_hook_failure("start", session_id, e)
         raise
     _activate_capture(get_tracker(), script_path, metadata)
@@ -179,11 +189,16 @@ def on_session_close(
             # incomplete recording is expected, so only check success.
             _warn_if_unrecorded_outputs(tracker)
         stop_tracking(status=status, exit_code=exit_code)
+        if _should_auto_register(register) and session_id is not None:
+            _auto_register_session(session_id)  # warns on failure, never raises
     except Exception as e:
         _record_hook_failure("close", session_id, e)
         raise
-    if _should_auto_register(register) and session_id is not None:
-        _auto_register_session(session_id)
+    finally:
+        # Only now: everything above must resolve to the session's project.
+        from .._db._paths import clear_session_project_root
+
+        clear_session_project_root()
 
 
 def _apply_relocations(tracker, metadata) -> int:

@@ -19,6 +19,7 @@ import warnings
 from pathlib import Path
 
 import pytest
+from scitex_clew._db._paths import project_root
 import scitex_clew as clew
 from scitex_clew import _capture
 from scitex_clew._db import get_db
@@ -27,6 +28,19 @@ from scitex_clew._observers._session import on_session_close, on_session_start
 from scitex_clew._tracker import set_tracker
 
 CAPTURE_LOGGER = "scitex_clew._capture"
+
+
+@pytest.fixture(autouse=True)
+def _one_clew_project_scope(tmp_path):
+    """Session hooks and the reads in these tests share ONE clew project scope.
+
+    clew scopes a session's records to the session's project root, so a read
+    from the test process's cwd would look in another project. An explicit
+    ``project_root`` block wins over both (scoping itself is tested in
+    ``tests/scitex_clew/_core/test__project_root.py``).
+    """
+    with project_root(tmp_path.resolve()):
+        yield
 
 
 @pytest.fixture(autouse=True)

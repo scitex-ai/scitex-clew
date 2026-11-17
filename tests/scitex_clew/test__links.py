@@ -30,6 +30,7 @@ from scitex_clew._chain._slice import build_slice
 from scitex_clew._chain._types import VerificationStatus
 from scitex_clew._chain._verify_ops import verify_run
 from scitex_clew._db import get_db
+from scitex_clew._db._paths import project_root
 from scitex_clew._links import link_entries, symlink_hops
 from scitex_clew._observers._session import on_session_close, on_session_start
 from scitex_clew._tracker import get_tracker, set_tracker
@@ -69,7 +70,10 @@ def project(tmp_path):
     (root / "config" / "c.yaml").write_text("k: 1\n")
     (root / "lib" / "helper.py").write_text("VALUE = 41 + 1\n")
     (root / "run.py").write_text(_SCRIPT)
-    return root
+    # The session records ``root`` as its project, and clew scopes the run's
+    # records to the session's project: read them back in that project.
+    with project_root(root):
+        yield root
 
 
 def _start(project):
