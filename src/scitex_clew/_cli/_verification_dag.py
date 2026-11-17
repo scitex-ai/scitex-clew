@@ -342,6 +342,14 @@ def slice_cmd(ctx: click.Context, targets, level: int, compare: bool, as_json: b
         for item in required:
             via = f"  (via {item['via']})" if item["via"] else ""
             click.echo(f"    {item['path']}  sha256={item['hash']}{via}")
+    links = sl.required_links()
+    if links:
+        click.echo(
+            f"  SYMLINKS TO RECREATE: {len(links)} (the run opened these paths):"
+        )
+        for item in links:
+            where = "" if item.get("in_project") else "  [target outside the project]"
+            click.echo(f"    {item['link']} -> {item['recreate']}{where}")
 
 
 @click.command("rerun-dag", cls=SpecCommand, help_spec=CLI_HELP["rerun_dag"])

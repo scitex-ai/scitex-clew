@@ -7,6 +7,40 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.24.3] — 2026-11-18
+
+Patch release: symlinks a run went through are recorded, sliced and verified
+(#192); claims registered during a session follow its run-dir move (#191).
+No schema change.
+
+### Fixed
+- **Symlinks a run went through are recorded, sliced and verified** (#192).
+  An input opened through an in-project symlink (`alias -> data`,
+  `sub/config -> ../config`, an absolute link, a chain `a -> b -> data`, a
+  symlinked directory, imported/exec'd code under a linked dir, or a link to
+  outside the project) was recorded by its resolved path only, so a re-run
+  of the slice — which opens the LINK path — failed. Every symlink traversed
+  to a recorded file whose link file lies inside the project is now kept in
+  the run's `metadata["links"]` (`link`, verbatim `target`, `resolved`,
+  `in_project`, `recreate`, `kind`, `files`; new `scitex_clew._links`). The
+  walk is kernel-faithful (`link/..` climbs from the link's target; the
+  capture no longer normalises `..` lexically before resolving). Slices carry
+  them (`ProvenanceSlice.links`, `required_links()`, `to_dict()["links"]`;
+  `clew slice` prints `SYMLINKS TO RECREATE`): `recreate` keeps a relative
+  in-project target verbatim (chains stay chains), turns an absolute
+  in-project target relative, and points an external one at its resolved
+  path — whose file stays in `required_not_bundled`, now with the `links`
+  reaching it. `verify` checks each link (exists, still resolves to the
+  recorded target; `FileVerification.link`), besides the target's hash. No
+  schema change.
+- **Claims registered during a session follow its run-dir move** (#191).
+  `relocations` at close now also rewrite every claim of the project whose
+  `source_file` (or manuscript `file_path`) lies under the moved directory,
+  in one store transaction, and bind a claim registered before its source
+  was recorded to the closing session when the bytes match; `claims.json` is
+  re-exported. Previously such claims kept the `RUNNING/` path and verified
+  `SOURCE_MISSING`.
+
 ## [0.24.2] — 2026-11-17
 
 Patch release: the scitex-session 0.3.6 close payload is applied —

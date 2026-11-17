@@ -15,6 +15,7 @@ from ._db import get_db
 from ._db._file_hashes import _stat_size
 from ._hash import combine_hashes, hash_file
 from ._tracker_batch import _explicit_external, warn_external_inputs
+from ._tracker_batch import explicit_links, note_links, write_links
 from ._tracker_batch import record_hashed_inputs as _record_hashed_inputs
 from ._tracker_batch import relocate as _relocate
 
@@ -67,6 +68,8 @@ class SessionTracker:
         #: the project root (see :mod:`scitex_clew._capture._external`).
         self._external: dict[str, dict] = {}
         self._outputs: dict[str, str] = {}
+        #: link path -> in-project symlink traversed to a recorded file (#192).
+        self._links: dict[str, dict] = {}
         # path -> (hash, declared derived_from) of outputs recorded WITH a
         # declaration, so a same-bytes re-record cannot erase it.
         self._declared: dict[str, tuple[str, list[str]]] = {}
@@ -119,6 +122,7 @@ class SessionTracker:
             return None
 
         path_str = str(path.resolve())
+        self.note_links(explicit_links(path, path_str))
         if path_str not in self._inputs:
             file_hash = hash_file(path)
             self._inputs[path_str] = file_hash
@@ -158,6 +162,8 @@ class SessionTracker:
     record_hashed_inputs = _record_hashed_inputs
     #: Apply a session manager's run-dir move (``relocations``) to the record.
     relocate = _relocate
+    #: Remember in-project symlinks traversed to recorded files (#192).
+    note_links = note_links
 
     def record_output(
         self,
@@ -203,6 +209,7 @@ class SessionTracker:
         path_str = str(path.resolve())
         file_hash = hash_file(path)
         self._outputs[path_str] = file_hash
+        self.note_links(explicit_links(path, path_str))
         declared = (
             None
             if derived_from is None
@@ -306,6 +313,7 @@ class SessionTracker:
 
         combined = self.combined_hash
         warn_external_inputs(self.session_id, self._external)
+        write_links(self)
 
         self._db.finish_run(
             session_id=self.session_id,

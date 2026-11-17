@@ -42,6 +42,8 @@ import hashlib
 import os
 from typing import Any
 
+from .._links import absolute
+
 __all__ = ["CodeExecCapture", "source_digest"]
 
 
@@ -97,13 +99,13 @@ class CodeExecCapture:
         path = _as_path(raw)
         if not path or not path.endswith(".py"):
             return None
-        key = path if os.path.isabs(path) else os.path.abspath(path)
+        key = absolute(path)
         try:
             return self._decided_code[key]
         except KeyError:
-            decision = self._decided_code[key] = self.scope(
-                os.path.normpath(key), code=True
-            )
+            decision = self._decided_code[key] = self.scope(key, code=True)
+            if decision is not None:
+                self.note_links(key, decision[0])
             return decision
 
     # --------------------------------------------------------- audit side
@@ -112,9 +114,7 @@ class CodeExecCapture:
         """An ``open`` of a ``.py`` file for reading: a possible exec source."""
         path = _as_path(raw)
         if path and path.endswith(".py"):
-            self._code_candidates.add(
-                path if os.path.isabs(path) else os.path.abspath(path)
-            )
+            self._code_candidates.add(absolute(path))
 
     def _on_exec(self, args: tuple) -> None:
         try:

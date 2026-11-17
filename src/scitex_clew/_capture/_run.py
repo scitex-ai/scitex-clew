@@ -15,6 +15,7 @@ from typing import Any
 
 from .._core import getLogger
 from ._code import CodeExecCapture
+from .._links import absolute, link_entries, merge_link_entries
 from ._external import ExternalPolicy, external_info
 
 logger = getLogger("scitex_clew._capture")
@@ -110,6 +111,9 @@ class RunCapture(CodeExecCapture):
         #: resolved path -> ``external`` payload of every external input read.
         self.external: dict[str, dict] = {}
         self._external_writes: set[str] = set()
+        #: link path -> entry of every in-project symlink traversed to reach
+        #: an in-scope file (see :mod:`scitex_clew._links`, #192).
+        self.links: dict[str, dict] = {}
         self.code: dict[str, str] = {}
         self.code_changed: list[str] = []
         self.errors: list[str] = []
@@ -141,7 +145,10 @@ class RunCapture(CodeExecCapture):
             return None
         if not code and path.endswith(_EXCLUDED_SUFFIXES):
             return None
-        lexically_in = _under(path, self._root_lexical) or _under(path, self.root)
+        lexical = os.path.normpath(path)
+        lexically_in = _under(lexical, self._root_lexical) or _under(
+            lexical, self.root
+        )
         real = os.path.realpath(path)
         if real == self.root:
             return None
@@ -176,10 +183,11 @@ class RunCapture(CodeExecCapture):
         only the boundary applies (no precision filter) — a file whose real
         location is outside the project root is external.
         """
-        lexical = os.path.abspath(str(path))
+        lexical = absolute(str(path))
         real = os.path.realpath(lexical)
         if _under(real, self.root):
             return None
+        lexical = os.path.normpath(lexical)
         lexically_in = _under(lexical, self._root_lexical) or _under(lexical, self.root)
         return external_info(real, lexical if lexically_in else None)
 
@@ -190,12 +198,26 @@ class RunCapture(CodeExecCapture):
             raw = os.fsdecode(raw)
         elif not isinstance(raw, str):
             raw = os.fspath(raw)
-        key = raw if os.path.isabs(raw) else os.path.abspath(raw)
+        key = absolute(raw)
         try:
             return self._decided[key]
         except KeyError:
-            decision = self._decided[key] = self.scope(os.path.normpath(key))
+            # Unnormalised: ``link/..`` must resolve as the kernel does.
+            decision = self._decided[key] = self.scope(key)
+            if decision is not None:
+                self.note_links(key, decision[0])
             return decision
+
+    def note_links(self, path: str, real: str) -> None:
+        """Remember the in-project symlinks ``path`` went through to ``real``."""
+        try:
+            entries = link_entries(path, self.root, real)
+        except OSError as exc:
+            self._fail(f"symlink walk {path}: {type(exc).__name__}: {exc}")
+            return
+        if entries:
+            with self._lock:
+                merge_link_entries(self.links, entries)
 
     # ------------------------------------------------------------- audit side
 
@@ -299,6 +321,9 @@ class RunCapture(CodeExecCapture):
                 continue
             if os.path.isfile(real):
                 found[name] = real
+                # Imported through a symlinked dir/file: the import path is
+                # what a re-run resolves, so the link is part of the record.
+                self.note_links(absolute(str(file)), real)
         return found
 
     def record_code(self) -> None:
@@ -373,6 +398,8 @@ class RunCapture(CodeExecCapture):
                 except Exception as exc:  # noqa: BLE001
                     self._fail(f"record inputs: {type(exc).__name__}: {exc}")
             outputs = self._record_writes(hash_file)
+            if self.links:
+                self.tracker.note_links(self.links.values())
         finally:
             _tls.busy = False
         return self.summary(outputs)
@@ -411,6 +438,7 @@ class RunCapture(CodeExecCapture):
             "exec_code_inputs": sorted(self.exec_code),
             "external_inputs": sorted(self.external),
             "external": self.external_policy.describe(),
+            "links": sorted(self.links),
             "errors": list(self.errors),
         }
         if reads_more:
