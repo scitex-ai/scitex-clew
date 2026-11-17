@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Project scoping for clew's stores — resolved in ONE place.
 
 WHY THIS EXISTS
@@ -60,6 +59,17 @@ CI that pins a scope on purpose — and an override that cannot override is
 not one. The write is suppressed so a one-off override can never silently
 re-stamp the project's identity.
 
+WHERE ``<project_root>`` IS comes from :func:`._paths.project_root_info`:
+inside a scitex-session run, the root the session recorded; otherwise the
+shared rule of :mod:`scitex_clew._core._project_root`. clew <= 0.24.3
+walked up from cwd for ``.git``/``pyproject.toml`` only, so a non-git
+project used from ``scripts/`` got its id in ``scripts/.scitex/clew/``. Such
+a stale id (one the old rule would use, at a directory INSIDE the new root)
+is MIGRATED BY HAND, never automatically: when the new root has
+no id, the old one stays in use (history is not split) and a warning gives
+the exact ``mv`` command; when both hold different ids, a warning names
+both.
+
 DEGRADED CASE: if the id cannot be written (a read-only checkout), the
 scope falls back to the project path and warns. A move then loses history
 exactly as it would have before this change — no worse, and noisy instead
@@ -68,13 +78,15 @@ of silent.
 
 from __future__ import annotations
 
-from .._core._logging import getLogger
 import os
+import shlex
 import uuid
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
-from ._paths import _find_project_root
+from .._core._logging import getLogger
+from ._paths import _find_project_root, _legacy_project_root, project_root_info
 
 logger = getLogger(__name__)
 
@@ -120,13 +132,13 @@ def _warn_once(key: str, message: str) -> None:
         logger.warning(message)
 
 
-def project_id_path(project_root: "Path | None" = None) -> Path:
+def project_id_path(project_root: Path | None = None) -> Path:
     """Where this project's id lives."""
     root = project_root if project_root is not None else _find_project_root()
     return Path(root) / ".scitex" / "clew" / PROJECT_ID_FILENAME
 
 
-def _read_project_id(path: Path) -> "str | None":
+def _read_project_id(path: Path) -> str | None:
     try:
         value = path.read_text(encoding="utf-8").strip()
     except OSError:
@@ -134,7 +146,7 @@ def _read_project_id(path: Path) -> "str | None":
     return value or None
 
 
-def _mint_project_id(path: Path) -> "str | None":
+def _mint_project_id(path: Path) -> str | None:
     """Create the id exactly once, even against a concurrent writer.
 
     ``O_CREAT | O_EXCL`` is what makes this safe: two processes starting in
@@ -174,11 +186,73 @@ def _write_sibling_gitignore(directory: Path) -> None:
         pass
 
 
+def _legacy_id_path(root: Path, via: str) -> Path | None:
+    """A project id clew <= 0.24.3 left where the OLD root rule pointed.
+
+    The old rule walked up from cwd to the first ``.git``/``pyproject.toml``
+    with no ``$HOME`` ceiling, else used cwd — so a non-git project run from
+    ``scripts/`` minted its id in ``scripts/.scitex/clew/``. Only meaningful
+    when the root was detected or came from the session; an explicit
+    ``project_root(...)`` is not compared against cwd.
+    """
+    if via == "argument":
+        return None
+    legacy = _legacy_project_root()
+    # Only a location INSIDE the project (``proj/scripts``, ``repo/pkg``) can
+    # hold this project's old id. Anything else — an unrelated repository
+    # the run happened to start from, a stray ``~/pyproject.toml`` — holds
+    # ANOTHER scope, and adopting it would merge two projects' provenance.
+    if legacy == root or root not in legacy.parents:
+        return None
+    path = project_id_path(legacy)
+    return path if _read_project_id(path) else None
+
+
+def _move_command(legacy_dir: Path, new_dir: Path) -> str:
+    """The exact shell command that moves clew's state to the new root."""
+    q = shlex.quote
+    if not new_dir.exists():
+        return f"mkdir -p {q(str(new_dir.parent))} && mv {q(str(legacy_dir))} {q(str(new_dir))}"
+    return (
+        f"mv -n {q(str(legacy_dir / PROJECT_ID_FILENAME))} "
+        f"{q(str(new_dir / PROJECT_ID_FILENAME))}"
+    )
+
+
+def _warn_legacy(legacy: Path, path: Path, info: dict, persisted: str | None) -> None:
+    legacy_id = _read_project_id(legacy)
+    rule = info.get("project_root_source")
+    marker = info.get("project_root_marker")
+    why = f"{rule} ({marker})" if marker else f"{rule}"
+    if persisted is None:
+        _warn_once(
+            f"legacy:{legacy}",
+            f"clew: MIGRATION NEEDED — this project's provenance id "
+            f"{legacy_id!r} is at {legacy}, a location older clew chose "
+            f"from the working directory. The project root is now "
+            f"{info['project_root']} (rule: {why}, via "
+            f"{info.get('via')}). clew keeps using the old id for now so "
+            "no history is split, and has NOT moved anything. Move it:\n\n"
+            f"    {_move_command(legacy.parent, path.parent)}\n",
+        )
+    elif persisted != legacy_id:
+        _warn_once(
+            f"legacy-split:{legacy}",
+            f"clew: TWO provenance ids for one project — {persisted!r} at "
+            f"{path} (in use; project root via rule {why}) and "
+            f"{legacy_id!r} at {legacy} (left by older clew). Records under "
+            "the old id are not visible here. Nothing was moved. To make the "
+            "old id this project's, replace the new one:\n\n"
+            f"    mv -f {shlex.quote(str(legacy))} {shlex.quote(str(path))}\n",
+        )
+
+
 def resolve_project_scope() -> str:
     """The project these records belong to. The ONLY definition of it."""
     override = os.environ.get(PROJECT_SCOPE_ENV)
     override = override.strip() if override else ""
-    root = _find_project_root().resolve()
+    info = project_root_info()
+    root = Path(info["project_root"]).resolve()
     path = project_id_path(root)
 
     if override:
@@ -194,6 +268,11 @@ def resolve_project_scope() -> str:
         return override
 
     persisted = _read_project_id(path)
+    legacy = _legacy_id_path(root, info.get("via", "detected"))
+    if legacy is not None:
+        _warn_legacy(legacy, path, info, persisted)
+        if persisted is None:
+            return _read_project_id(legacy)
     if persisted:
         return persisted
 
@@ -225,7 +304,7 @@ class ProjectScopedStore:
     environment changes keeps answering for the project it was opened for.
     """
 
-    def __init__(self, store, project: "str | None" = None) -> None:
+    def __init__(self, store, project: str | None = None) -> None:
         self._store = store
         self._project = project if project is not None else resolve_project_scope()
 
@@ -243,13 +322,10 @@ class ProjectScopedStore:
         return self._store.schema
 
     def __repr__(self) -> str:
-        return (
-            f"ProjectScopedStore(project={self._project!r}, "
-            f"store={self._store!r})"
-        )
+        return f"ProjectScopedStore(project={self._project!r}, store={self._store!r})"
 
     # -- key handling -----------------------------------------------------
-    def _key(self, key: "Mapping[str, Any] | Sequence[Any] | str"):
+    def _key(self, key: Mapping[str, Any] | Sequence[Any] | str):
         """Prepend the scope to a positional key, or add it to a mapping.
 
         A bare string is a single-component key, not a sequence of
@@ -307,7 +383,7 @@ class ProjectScopedStore:
     def close(self) -> None:
         self._store.close()
 
-    def __enter__(self) -> "ProjectScopedStore":
+    def __enter__(self) -> ProjectScopedStore:
         self._store.__enter__()
         return self
 

@@ -7,6 +7,44 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+clew's project root — store scope / project id, `claims.json`,
+hints, and **project-scope config** — now follows the same rule as
+scitex-session 0.3.7, and inside a session is the session's recorded root.
+Config semantics change (a non-git project now HAS a project scope; a git
+repository at `$HOME` no longer is one), hence a minor bump. No schema change.
+
+### Changed
+- **One project-root rule for clew and scitex-session.** Inside an
+  `@stx.session` run clew adopts `metadata["project_root"]` for the whole run
+  (set before the run record opens, cleared after close). Standalone, the new
+  `scitex_clew._core._project_root.resolve_project_root` applies the session's
+  order: explicit > `$SCITEX_SESSION_PROJECT_ROOT` > git root (not at
+  `$HOME`) > nearest marker (`.git`/`.hg`/`.svn`, `pyproject.toml`,
+  `setup.cfg`, `setup.py`, `scitex/.scitex-structure-version`,
+  `scripts/`+`config/`) > cwd > script dir (warned). Never above `$HOME`/`/`,
+  no mount crossing, `.scitex/` is not a marker. Previously clew walked up
+  from cwd for `.git`/`pyproject.toml` only, with no `$HOME` stop, so a
+  non-git project used from `scripts/` was scoped to `scripts/.scitex/clew/`.
+- **Project-scope config** (`_core/_config`) uses the same root instead of
+  git-only discovery.
+- Capture's fallback for session managers that send no root uses the same
+  rule (was: git root, else script dir).
+- The root and the rule that chose it are reported by
+  `scitex_clew._db._paths.project_root_info()` and recorded on every run as
+  `metadata["clew_project_root"]` (`project_root`, `project_root_source`,
+  `project_root_marker`, `via` = `argument`/`session`/`detected`).
+
+### Added
+- `tests/scitex_clew/conformance/project-root-vectors.json`: shared detection vectors,
+  byte-identical in scitex-session, run by both suites.
+
+### Migration
+- A project id older clew left where the old rule pointed (e.g.
+  `proj/scripts/.scitex/clew/project-id`) is detected: clew keeps using it
+  (so history is not split), moves nothing, and warns with the exact
+  `mkdir -p … && mv …` command. If both locations hold different ids, a
+  TWO-ids warning names both and the command to keep the old one.
+
 ## [0.24.3] — 2026-11-18
 
 Patch release: symlinks a run went through are recorded, sliced and verified

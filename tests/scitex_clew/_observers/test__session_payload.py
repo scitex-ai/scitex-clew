@@ -20,6 +20,7 @@ import time
 from datetime import datetime
 
 import pytest
+from scitex_clew._db._paths import project_root
 import scitex_clew._observers as obs
 import scitex_session
 from scitex_clew._db import get_db
@@ -33,6 +34,19 @@ from scitex_clew._tracker import get_tracker, set_tracker
 from scitex_session import _hooks
 
 LOGGER = "scitex_clew._observers._session"
+
+
+@pytest.fixture(autouse=True)
+def _one_clew_project_scope(tmp_path):
+    """Session hooks and the reads in these tests share ONE clew project scope.
+
+    clew scopes a session's records to the session's project root, so a read
+    from the test process's cwd would look in another project. An explicit
+    ``project_root`` block wins over both (scoping itself is tested in
+    ``tests/scitex_clew/_core/test__project_root.py``).
+    """
+    with project_root(tmp_path.resolve()):
+        yield
 
 
 @pytest.fixture(autouse=True)

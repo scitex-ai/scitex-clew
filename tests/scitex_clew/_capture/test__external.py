@@ -27,6 +27,7 @@ import warnings
 from pathlib import Path
 
 import pytest
+from scitex_clew._db._paths import project_root
 from click.testing import CliRunner
 
 import scitex_clew as clew
@@ -59,6 +60,19 @@ _ENVS = (
     _capture_external.ENV_EXTERNAL_INCLUDE,
     _capture_external.ENV_EXTERNAL_EXCLUDE,
 )
+
+
+@pytest.fixture(autouse=True)
+def _one_clew_project_scope(tmp_path):
+    """Session hooks and the reads in these tests share ONE clew project scope.
+
+    clew scopes a session's records to the session's project root, so a read
+    from the test process's cwd would look in another project. An explicit
+    ``project_root`` block wins over both (scoping itself is tested in
+    ``tests/scitex_clew/_core/test__project_root.py``).
+    """
+    with project_root(tmp_path.resolve()):
+        yield
 
 
 @pytest.fixture(autouse=True)

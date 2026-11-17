@@ -91,7 +91,6 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
 from typing import Any
 
 from .._core import getLogger
@@ -184,17 +183,19 @@ def _install_hook() -> bool | str:
 
 
 def _project_root(metadata: dict | None, script_path: str | None) -> str | None:
-    """scitex-session's ``project_root`` (>=0.3.5), else git root, else script dir."""
+    """scitex-session's recorded ``project_root``, else the SAME rule it uses.
+
+    A session manager older than scitex-session 0.3.5 sends no root; the
+    shared resolver (:mod:`scitex_clew._core._project_root`) then decides
+    from the script, so capture, store scope and config scope agree.
+    """
     meta = metadata if isinstance(metadata, dict) else {}
     root = meta.get("project_root")
     if root:
         return str(root)
-    git = meta.get("git")
-    if isinstance(git, dict) and git.get("root"):
-        return str(git["root"])
-    if script_path:
-        return str(Path(script_path).resolve().parent)
-    return None
+    from .._core._project_root import resolve_project_root
+
+    return resolve_project_root(script_path, cwd=meta.get("cwd"))["project_root"]
 
 
 def activate(

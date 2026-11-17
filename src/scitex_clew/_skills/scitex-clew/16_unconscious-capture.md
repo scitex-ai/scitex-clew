@@ -22,8 +22,15 @@ session start/close hooks — nothing to call):
 So `clew.slice(claim)` / `clew.chain(...)` now include the data a third-party
 loader read and the helper code the result was computed with.
 
-**Project root** = scitex-session's `metadata["project_root"]` (git root,
-else the script's directory); older sessions: `git.root`, else script dir.
+**Project root** = scitex-session's `metadata["project_root"]` (0.3.7+:
+argument > `$SCITEX_SESSION_PROJECT_ROOT` > git root not at `$HOME` > nearest
+marker ancestor — `.git`/`.hg`/`.svn`, `pyproject.toml`, `setup.cfg`,
+`setup.py`, `scitex/.scitex-structure-version`, `scripts/`+`config/` > cwd >
+script dir with a warning). The same root scopes clew's store, project id,
+`claims.json` and project config for the run. Without a recorded root (older
+sessions, the CLI) clew applies the identical rule in
+`scitex_clew._core._project_root`; both are pinned by the shared
+`tests/scitex_clew/conformance/project-root-vectors.json` — change both together.
 
 ## External inputs (the capture boundary)
 
