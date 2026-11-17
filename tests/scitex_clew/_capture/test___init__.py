@@ -120,7 +120,7 @@ def _external(sid):
 def elsewhere_included(project):
     """Opt the sibling ``elsewhere/`` dir in (tmp_path is under the temp dir,
     which the external-input policy excludes by default)."""
-    from scitex_clew._capture_external import ENV_EXTERNAL_INCLUDE
+    from scitex_clew._capture._external import ENV_EXTERNAL_INCLUDE
 
     os.environ[ENV_EXTERNAL_INCLUDE] = str(project.parent / "elsewhere")
     yield

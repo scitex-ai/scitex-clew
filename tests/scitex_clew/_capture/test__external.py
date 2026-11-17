@@ -30,8 +30,9 @@ import pytest
 from click.testing import CliRunner
 
 import scitex_clew as clew
-from scitex_clew import _capture, _capture_external
-from scitex_clew._capture_external import ExternalPolicy
+from scitex_clew import _capture
+from scitex_clew._capture import _external as _capture_external
+from scitex_clew._capture._external import ExternalPolicy
 from scitex_clew._claim._verify import verify_all_claims, verify_claim
 from scitex_clew._cli._exit_codes import EXTERNAL_MISSING, STALE_LINEAGE
 from scitex_clew._db import get_db

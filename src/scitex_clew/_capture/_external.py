@@ -123,7 +123,7 @@ def _split_env(name: str) -> list[str]:
 
 def _config_external() -> dict[str, Any]:
     """``capture.external`` of the layered ``.scitex/clew`` config (or ``{}``)."""
-    from ._core import load_config
+    from .._core import load_config
 
     cfg = load_config()
     section = ((cfg.get("capture") or {}).get("external")) or {}

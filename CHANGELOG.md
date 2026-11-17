@@ -17,7 +17,7 @@ versions follow [Semantic Versioning](https://semver.org/).
   `file_path` = resolved target, `hash` = bytes read). Precision: the
   interpreter/stdlib/site-packages, imported package directories, system
   trees, the temp dir, `$SCITEX_DIR`, hidden dot-paths, directories and
-  non-regular files are never recorded (`scitex_clew._capture_external`).
+  non-regular files are never recorded (`scitex_clew._capture._external`).
   Configurable via `SCITEX_CLEW_EXTERNAL_INCLUDE` / `_EXCLUDE` /
   `SCITEX_CLEW_EXTERNAL_CAPTURE=0` or `capture.external` in
   `.scitex/clew/config.yaml`.

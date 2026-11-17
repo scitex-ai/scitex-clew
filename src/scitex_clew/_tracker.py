@@ -62,7 +62,7 @@ class SessionTracker:
 
         self._inputs: dict[str, str] = {}
         #: resolved path -> ``external`` payload of inputs read from OUTSIDE
-        #: the project root (see :mod:`scitex_clew._capture_external`).
+        #: the project root (see :mod:`scitex_clew._capture._external`).
         self._external: dict[str, dict] = {}
         self._outputs: dict[str, str] = {}
         # path -> (hash, declared derived_from) of outputs recorded WITH a

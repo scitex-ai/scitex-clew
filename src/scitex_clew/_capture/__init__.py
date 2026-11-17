@@ -39,7 +39,7 @@ This module closes both, for the life of a session (activated by
   outside it — are recorded as **external inputs** (an ``input`` row whose
   ``external`` column carries the in-project path used, size and mtime;
   ``file_path`` is the resolved target). Interpreter, library, system, temp
-  and tool-state reads are excluded by :mod:`scitex_clew._capture_external`,
+  and tool-state reads are excluded by :mod:`scitex_clew._capture._external`,
   which documents the full exclusion list and the include/exclude knobs.
   Writes outside the root are not outputs (see that module).
 
@@ -89,8 +89,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ._capture_external import ExternalPolicy, external_info
-from ._core import getLogger
+from .._core import getLogger
+from ._external import ExternalPolicy, external_info
 
 logger = getLogger(__name__)
 
@@ -382,7 +382,7 @@ class RunCapture:
             self.reads.append(real)
         # Hash NOW (the bytes about to be read); the store write is batched
         # at close so the user's open() never waits on a store round-trip.
-        from ._hash import hash_file
+        from .._hash import hash_file
 
         _tls.busy = True
         try:
@@ -432,7 +432,7 @@ class RunCapture:
 
     def record_code(self) -> None:
         """Record every imported project-local module not yet recorded."""
-        from ._hash import hash_file
+        from .._hash import hash_file
 
         _tls.busy = True
         try:
@@ -455,7 +455,7 @@ class RunCapture:
             _tls.busy = False
 
     def _check_code_unchanged(self) -> None:
-        from ._hash import hash_file
+        from .._hash import hash_file
 
         for real, digest in sorted(self.code.items()):
             try:
@@ -478,7 +478,7 @@ class RunCapture:
 
     def flush(self) -> dict[str, Any]:
         """Record captured writes + late imports; return the metadata summary."""
-        from ._hash import hash_file
+        from .._hash import hash_file
 
         _tls.busy = True
         try:

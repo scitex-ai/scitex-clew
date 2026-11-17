@@ -44,7 +44,7 @@ output no longer marks the target's lineage stale).
 
 External inputs (files read from OUTSIDE the project root — shared datasets,
 a sibling project's outputs, in-project symlinks to elsewhere; see
-:mod:`scitex_clew._capture_external`) are ordinary input nodes at every
+:mod:`scitex_clew._capture._external`) are ordinary input nodes at every
 level, flagged in :attr:`ProvenanceSlice.external` and listed by
 :meth:`ProvenanceSlice.required_external` (``required_not_bundled`` in
 ``to_dict``): a re-run needs them at their recorded paths with their recorded
