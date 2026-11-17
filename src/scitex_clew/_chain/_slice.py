@@ -49,6 +49,13 @@ level, flagged in :attr:`ProvenanceSlice.external` and listed by
 :meth:`ProvenanceSlice.required_external` (``required_not_bundled`` in
 ``to_dict``): a re-run needs them at their recorded paths with their recorded
 hashes, and a slice cannot carry them.
+
+The software environment travels the same way: each kept run's recorded
+``packages`` (``{distribution: version}``, refreshed at close by
+scitex-session >= 0.3.6) and ``unresolved_imports`` (imported code no
+distribution owns — an explicit gap) are collected in
+:attr:`ProvenanceSlice.environment`; :meth:`ProvenanceSlice.requirements`
+merges them into what a re-run must install.
 """
 
 from __future__ import annotations
@@ -123,6 +130,40 @@ class ProvenanceSlice:
     #: ``{path: {"via", "size", "mtime", "runs"}}``. A slice can never bundle
     #: them — they are REQUIRED-BUT-NOT-BUNDLED (see :meth:`required_external`).
     external: dict[str, dict] = field(default_factory=dict)
+    #: Per kept run: ``{"packages": {dist: version}, "unresolved_imports":
+    #: {module: location}}`` from its recorded metadata (absent = not recorded).
+    environment: dict[str, dict] = field(default_factory=dict)
+
+    def requirements(self) -> dict:
+        """What a re-run of the slice must install, merged over its runs.
+
+        ``packages`` maps each distribution to its version (one version);
+        ``conflicts`` lists distributions whose runs recorded different
+        versions; ``unresolved_imports`` is imported code no distribution
+        owns (cannot be installed — a gap to close by hand);
+        ``runs_without_environment`` are kept runs that recorded no packages.
+        """
+        versions: dict[str, set[str]] = {}
+        unresolved: dict[str, str] = {}
+        missing: list[str] = []
+        for sid in self.runs:
+            env = self.environment.get(sid)
+            if not env or env.get("packages") is None:
+                missing.append(sid)
+                continue
+            for dist, version in (env.get("packages") or {}).items():
+                versions.setdefault(dist, set()).add(str(version))
+            unresolved.update(env.get("unresolved_imports") or {})
+        return {
+            "packages": {
+                d: sorted(v)[0] for d, v in sorted(versions.items()) if len(v) == 1
+            },
+            "conflicts": {
+                d: sorted(v) for d, v in sorted(versions.items()) if len(v) > 1
+            },
+            "unresolved_imports": dict(sorted(unresolved.items())),
+            "runs_without_environment": missing,
+        }
 
     @property
     def files(self) -> list[str]:
@@ -189,6 +230,7 @@ class ProvenanceSlice:
                 for p in self.files
             ],
             "required_not_bundled": self.required_external(),
+            "environment": self.requirements(),
             "edges": [
                 {"source": e.source, "target": e.target, "kind": e.kind}
                 for e in self.edges
@@ -393,7 +435,27 @@ def build_slice(
         fallback_runs=fallback,
         unrecorded_declarations={s: sorted(v) for s, v in unrecorded.items() if v},
         external=external,
+        environment={s: env for s in order if (env := _run_environment(db, s))},
     )
+
+
+def _run_environment(db, sid: str) -> dict | None:
+    """``{"packages", "unresolved_imports"}`` recorded for run ``sid``."""
+    import json
+
+    run = db.get_run(sid) or {}
+    raw = run.get("metadata")
+    try:
+        meta = json.loads(raw) if isinstance(raw, str) else (raw or {})
+    except ValueError:
+        return None
+    if not isinstance(meta, dict) or "packages" not in meta:
+        return None
+    packages = meta.get("packages")
+    return {
+        "packages": dict(packages) if isinstance(packages, dict) else None,
+        "unresolved_imports": dict(meta.get("unresolved_imports") or {}),
+    }
 
 
 def _inputs_needed(index, sid, out_path, level, kept_out, fallback, unrecorded):

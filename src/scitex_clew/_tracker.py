@@ -14,7 +14,9 @@ from typing import Any, Dict, List, Optional, Union
 from ._db import get_db
 from ._db._file_hashes import _stat_size
 from ._hash import combine_hashes, hash_file
+from ._tracker_batch import _explicit_external, warn_external_inputs
 from ._tracker_batch import record_hashed_inputs as _record_hashed_inputs
+from ._tracker_batch import relocate as _relocate
 
 
 class SessionTracker:
@@ -154,6 +156,8 @@ class SessionTracker:
 
     #: Bulk counterpart of :meth:`record_input` for pre-hashed paths.
     record_hashed_inputs = _record_hashed_inputs
+    #: Apply a session manager's run-dir move (``relocations``) to the record.
+    relocate = _relocate
 
     def record_output(
         self,
@@ -328,34 +332,6 @@ class SessionTracker:
         }
 
 
-def _explicit_external(path: Path) -> dict | None:
-    """``external`` payload when an explicitly recorded input lies outside the
-    active capture's project root (None without an active capture)."""
-    from ._capture import active_capture
-
-    capture = active_capture()
-    return capture.external_for(path) if capture is not None else None
-
-
-def warn_external_inputs(session_id: str, external: dict[str, dict]) -> None:
-    """One WARNING when a run depends on files outside its project."""
-    if not external:
-        return
-    from ._core import getLogger
-
-    paths = sorted(external)
-    more = f", ... (+{len(paths) - 5})" if len(paths) > 5 else ""
-    getLogger(__name__).warning(
-        "clew: session %s depends on %d file(s) outside the project: %s%s — "
-        "the slice cannot bundle them; they must exist at these paths with "
-        "the recorded hashes to re-run or verify",
-        session_id,
-        len(paths),
-        ", ".join(paths[:5]),
-        more,
-    )
-
-
 # Global tracker for current session
 _CURRENT_TRACKER: SessionTracker | None = None
 
@@ -505,37 +481,9 @@ def session(
         stop_tracking(status=status, exit_code=exit_code)
 
 
-def record_input(path: str | Path, track: bool = True) -> str | None:
-    """Record ``path`` as an input of the CURRENT clew session.
-
-    Convenience over ``get_tracker().record_input`` for the module-level
-    ``clew.record_input`` style. Raises if no session is active (start one with
-    :func:`session` or :func:`start_tracking`).
-    """
-    tracker = get_tracker()
-    if tracker is None:
-        raise RuntimeError(
-            "record_input requires an active clew.session()/start_tracking()"
-        )
-    return tracker.record_input(path, track=track)
-
-
-def record_output(
-    path: str | Path,
-    track: bool = True,
-    derived_from: list[str | Path] | None = None,
-) -> str | None:
-    """Record ``path`` as an output of the CURRENT clew session (see :func:`record_input`).
-
-    ``derived_from`` declares the files this output was computed from (the
-    level-2 minimal-slice hook; see :meth:`SessionTracker.record_output`).
-    """
-    tracker = get_tracker()
-    if tracker is None:
-        raise RuntimeError(
-            "record_output requires an active clew.session()/start_tracking()"
-        )
-    return tracker.record_output(path, track=track, derived_from=derived_from)
+# Module-level conveniences live with the other tracker helpers; re-exported
+# here because ``clew.record_input`` / ``record_output`` resolve to this module.
+from ._tracker_batch import record_input, record_output  # noqa: E402, F401
 
 
 # EOF
