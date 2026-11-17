@@ -40,7 +40,9 @@ This module closes both, for the life of a session (activated by
   are ``linecache``/tracebacks, not data), the running interpreter's prefix
   (an in-project venv) and ``site-/dist-packages``, ``.scitex`` tool state,
   tool caches, and ``/proc`` ``/dev`` ``/sys``. A file this run wrote and then
-  read back is an intermediate, not an input. A path whose real location is
+  read back is an intermediate, not an input; a read made INSIDE
+  ``scitex_io.save`` (a saver checking its own target) is not an input. A
+  path whose real location is
   outside the root (a symlink out of the project) is NOT recorded — precision
   first; load such data through ``stx.io.load`` to record it.
 
@@ -151,6 +153,29 @@ def _audit_hook(event: str, args: tuple) -> None:
         capture._on_open(args)
     else:
         capture._on_rename(args)
+
+
+#: Modules whose frames mean "a ``scitex_io.save`` is in progress".
+_STX_IO_SAVE_MODULES = ("scitex_io._save",)
+
+
+def _inside_stx_io_save() -> bool:
+    """True when the current open() happens inside ``scitex_io.save``.
+
+    A saver may read its own target before overwriting it (the CSV saver
+    compares with the existing file to skip identical writes). That read is
+    not a data dependency of the run — recording it would bind the run to
+    whichever earlier run produced the old bytes, an invented edge. The
+    save's real effect is reported by scitex-io's post-save hook. Only walked
+    for the first read of an in-scope path, so the cost is off the hot path.
+    """
+    frame = sys._getframe(2)
+    while frame is not None:
+        name = frame.f_globals.get("__name__", "")
+        if name.startswith(_STX_IO_SAVE_MODULES):
+            return True
+        frame = frame.f_back
+    return False
 
 
 def _install_hook() -> bool | str:
@@ -291,6 +316,8 @@ class RunCapture:
     def _record_read(self, real: str) -> None:
         if not os.path.isfile(real):
             return  # missing (the open will fail) or not a regular file
+        if _inside_stx_io_save():
+            return  # the saver's own check of its target, not a data input
         with self._lock:
             if real in self._read_set:
                 return

@@ -315,6 +315,22 @@ class TestNoDuplicateEdgesWithStxIo:
         ]
         assert [(r["role"], r["hash"]) for r in rows] == [("output", hash_file(out))]
 
+    def test_stx_io_save_over_an_existing_csv_does_not_make_it_an_input(
+        self, project, io_hooks
+    ):
+        # Arrange: the CSV saver reads its existing target to skip identical
+        # writes; that read must not become an edge to the old bytes' producer.
+        pd = pytest.importorskip("pandas")
+        out = project / "out" / "table.csv"
+        out.parent.mkdir()
+        pd.DataFrame({"a": [1]}).to_csv(out, index=False)
+        sid = _start(project)
+        # Act
+        io_hooks.save(pd.DataFrame({"a": [2]}), str(out), verbose=False)
+        on_session_close()
+        # Assert
+        assert str(out.resolve()) not in _records(sid, "input")
+
 
 class TestImportedCode:
     def test_imported_local_module_is_an_input(self, project, helper):
@@ -378,7 +394,7 @@ class TestSliceSufficiency:
         df = pd.read_csv(project / "data" / "table.csv")
         with open(project / "data" / "notes.txt") as f:
             f.read()
-        out.write_text(json.dumps({"n": int(len(df))}))
+        out.write_text(json.dumps({"n": len(df)}))
         on_session_close()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)

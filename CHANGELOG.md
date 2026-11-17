@@ -31,6 +31,18 @@ versions follow [Semantic Versioning](https://semver.org/).
     stays on. Benchmark: `tests/develop/bench_audit_capture.py`.
   - Project root: scitex-session's new `metadata["project_root"]`, else
     `git.root`, else the script's directory.
+  - Overhead (10k `open()` loop, `tests/develop/bench_audit_capture.py`):
+    +0.25 µs/open with no session active, +2.1 µs/open for a cached project
+    file, +0.9 µs/open outside the root; 10k distinct project files: hashed
+    at open (+94 µs/open) and recorded in one transaction at close (15.8 s).
+- `SessionTracker.record_hashed_inputs` — bulk, pre-hashed input recording
+  (one producer lookup, one store transaction).
+
+### Fixed
+- `find_producer_records` (called once per recorded input, including every
+  `stx.io.load`) decoded the project's WHOLE `file_hashes` table and filtered
+  in Python: 0.4 s per input at ~10k rows. It now filters in SQL
+  (`ProjectScopedStore.search`).
 
 ## [0.22.2] — 2026-11-17
 
