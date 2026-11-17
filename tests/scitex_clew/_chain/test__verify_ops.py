@@ -148,26 +148,27 @@ class TestVerifyFileFrozen:
         assert result.status == VerificationStatus.VERIFIED
 
     def test_verify_file_frozen_does_not_rehash_file(self, tmp_path):
-        # Arrange — wrap the module-level hash_file to count real calls (no mock).
-        # A frozen verify_file must not invoke hash_file at all.
+        # Arrange — wrap the module-level hasher verify_file uses (hash_like,
+        # scheme-aware since the notebook code hash) to count real calls (no
+        # mock). A frozen verify_file must not hash at all.
         import scitex_clew._chain._verify_ops as _ops_mod
 
         call_count = []
-        _real_hash_file = _ops_mod.hash_file
+        _real_hash_like = _ops_mod.hash_like
 
-        def _counting_hash_file(path, **kwargs):
+        def _counting_hash_like(path, recorded, **kwargs):
             call_count.append(path)
-            return _real_hash_file(path, **kwargs)
+            return _real_hash_like(path, recorded, **kwargs)
 
-        _ops_mod.hash_file = _counting_hash_file
+        _ops_mod.hash_like = _counting_hash_like
         try:
             f = tmp_path / "huge3.npz"
             f.write_bytes(b"4.1TB large file placeholder content")
             # Act
             verify_file(str(f), "precomputed_hash_not_on_disk", role="input", frozen=True)
         finally:
-            _ops_mod.hash_file = _real_hash_file  # restore unconditionally
-        # Assert — hash_file must NOT have been called for a frozen file.
+            _ops_mod.hash_like = _real_hash_like  # restore unconditionally
+        # Assert — nothing was hashed for a frozen file.
         assert len(call_count) == 0
 
     def test_verify_file_frozen_trusts_hash_even_when_different(self, tmp_path):

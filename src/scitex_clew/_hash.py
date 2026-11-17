@@ -115,6 +115,44 @@ def hash_file(
     return result
 
 
+def hash_code(path: str | Path, hash_cache: dict[str, str] | None = None) -> str:
+    """Identity hash of a CODE file (a run's script or notebook).
+
+    A Jupyter notebook (``.ipynb``) is identified by its code cells only
+    (``ipynb-code-v1:<sha256>``, see :mod:`scitex_clew._chain._notebook`): running
+    it again or saving new outputs does not change it. Any other file:
+    :func:`hash_file`.
+    """
+    if str(path).endswith(".ipynb"):
+        return hash_like(path, "ipynb-code-v1:", hash_cache)
+    return hash_file(path, hash_cache=hash_cache)
+
+
+def hash_like(
+    path: str | Path, recorded: str | None, hash_cache: dict[str, str] | None = None
+) -> str:
+    """Current hash of ``path`` in the SAME scheme as the ``recorded`` one.
+
+    A recorded notebook code hash (``ipynb-code-v1:`` prefix) is recomputed
+    from the code cells; everything else from the bytes (:func:`hash_file`).
+    Every verifier compares through this, so the scheme travels with the
+    recorded value and an ``.ipynb`` recorded as data keeps its byte hash.
+    """
+    from ._chain._notebook import NOTEBOOK_CODE_PREFIX, hash_notebook_code
+
+    if not (recorded and str(recorded).startswith(NOTEBOOK_CODE_PREFIX)):
+        return hash_file(path, hash_cache=hash_cache)
+    key = NOTEBOOK_CODE_PREFIX + str(Path(path).resolve())
+    if hash_cache is not None and key in hash_cache:
+        return hash_cache[key]
+    if not Path(path).exists():
+        raise FileNotFoundError(f"File not found: {path}")
+    value = hash_notebook_code(path)
+    if hash_cache is not None:
+        hash_cache[key] = value
+    return value
+
+
 def hash_directory(
     path: str | Path,
     pattern: str = "*",

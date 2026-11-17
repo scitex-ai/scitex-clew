@@ -35,6 +35,7 @@ from ._hash import hash_directory, hash_file
 from ._help_specs import CLI_HELP
 from ._introspect import list_python_apis
 from ._mcp import mcp
+from ._notebook import execute_notebook_cmd
 from ._signing import keygen_cmd, sign_cmd, verify_signatures_cmd
 from ._sources import (
     grounding_cmd,
@@ -284,6 +285,7 @@ main.add_command(verify_citations_cmd)
 main.add_command(citation)
 main.add_command(hash_file)
 main.add_command(hash_directory)
+main.add_command(execute_notebook_cmd)
 main.add_command(stamp)
 main.add_command(list_stamps)
 main.add_command(check_stamp)
