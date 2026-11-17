@@ -114,6 +114,7 @@ def on_session_start(
     except Exception as e:
         _record_hook_failure("start", session_id, e)
         raise
+    _activate_capture(get_tracker(), script_path, metadata)
     capture_errors = (
         (metadata or {}).get("capture_errors") if isinstance(metadata, dict) else None
     )
@@ -160,6 +161,7 @@ def on_session_close(
     tracker = get_tracker()
     session_id = tracker.session_id if tracker is not None else None
     try:
+        _finish_capture(tracker)
         if metadata and session_id:
             tracker._db.merge_run_metadata(session_id, dict(metadata))
             failures = metadata.get("hook_failures") or []
@@ -181,6 +183,42 @@ def on_session_close(
         raise
     if _should_auto_register(register) and session_id is not None:
         _auto_register_session(session_id)
+
+
+def _activate_capture(tracker, script_path, metadata) -> None:
+    """Start file-access + imported-code capture (:mod:`scitex_clew._capture`).
+
+    A capture failure must not abort the session; it is warned and recorded
+    on the run (``metadata["capture"]``) instead — loud, never silent.
+    """
+    if tracker is None:
+        return
+    from .. import _capture
+
+    try:
+        _capture.activate(tracker, script_path=script_path, metadata=metadata)
+    except Exception as exc:  # noqa: BLE001 - warned + recorded below
+        error = f"{type(exc).__name__}: {exc}"
+        logger.warning(
+            "clew: could not start file-access capture for session %s (%s) — "
+            "files read/written outside stx.io will NOT be recorded",
+            tracker.session_id,
+            error,
+        )
+        tracker._db.merge_run_metadata(
+            tracker.session_id, {"capture": {"audit": "failed", "errors": [error]}}
+        )
+
+
+def _finish_capture(tracker) -> None:
+    """Flush captured writes/late imports and attach the capture summary."""
+    if tracker is None:
+        return
+    from .. import _capture
+
+    summary = _capture.finish(tracker)
+    if summary is not None:
+        tracker._db.merge_run_metadata(tracker.session_id, {"capture": summary})
 
 
 #: Session-manager trees under ``sdir_out`` that hold logs/configs, not outputs.

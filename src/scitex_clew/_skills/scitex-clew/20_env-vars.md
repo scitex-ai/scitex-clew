@@ -10,6 +10,7 @@ tags: [scitex-clew-env-vars]
 | Variable | Purpose | Default | Type |
 |---|---|---|---|
 | `SCITEX_STORE_DSN` | Override for THE store this host uses. Owned by `scitex_dev.store.host_store()`, not by clew. | per-host PostgreSQL over its UNIX socket | Postgres DSN |
+| `SCITEX_CLEW_AUDIT_CAPTURE` | Inside a session, record files opened under the project root by any Python code (audit hook). `0`/`false`/`no`/`off` disables it for performance-sensitive runs (a WARNING says so); imported-code capture stays on. See 16_unconscious-capture.md. | `1` (on) | bool |
 | `SCITEX_CLEW_DEBUG_MODE` | Enable verbose tracing for claim execution and DAG re-run. | `false` | bool |
 | `SCITEX_API_TOKEN` | Ecosystem-wide API token (shared with scitex-cloud); used when clew tools call remote endpoints. | `—` | string (required when remote) |
 | `SCITEX_REGISTRY_URL` | URL of the optional SciTeX registry for cross-machine claim lookup. | unset | string (URL) |

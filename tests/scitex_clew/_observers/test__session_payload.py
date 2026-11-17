@@ -14,6 +14,8 @@ from __future__ import annotations
 import json
 import logging
 import os
+import subprocess
+import sys
 import time
 from datetime import datetime
 
@@ -288,7 +290,14 @@ class TestUnrecordedOutputs:
     def test_session_close_fires_the_warning(self, tmp_path, caplog):
         # Arrange
         sdir_out, _ = _start(tmp_path, "sid-u6")
-        (sdir_out / "result.csv").write_text("x")
+        # Written by ANOTHER process: in-process writes are now captured by
+        # clew's audit hook (scitex_clew._capture), so an unrecorded output
+        # is one this interpreter never opened.
+        subprocess.run(
+            [sys.executable, "-c", "import sys; open(sys.argv[1], 'w').write('x')",
+             str(sdir_out / "result.csv")],
+            check=True,
+        )
         # Act
         with caplog.at_level(logging.WARNING, logger=LOGGER):
             on_session_close("success", 0)

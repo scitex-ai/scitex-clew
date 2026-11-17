@@ -7,6 +7,52 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-11-17
+
+Minor release (new feature): unconscious file-I/O and project-code
+capture inside `@stx.session` runs (#179). Pairs with scitex-session
+0.3.5, which sends `metadata["project_root"]`; older sessions still
+work (clew derives the root from `git.root` or the script directory).
+
+### Added
+- **Unconscious capture inside `@stx.session` runs** (`scitex_clew._capture`,
+  activated by the session start/close hooks). Closes the two largest E1
+  recall gaps measured on real agent runs:
+  - *Files opened outside stx.io* — a `sys.addaudithook` handler on the
+    `open` event records files read (→ input, hashed at open) or written
+    (→ output, hashed at close; `os.replace` of a written temp file follows
+    to its target) by ANY Python code — `pandas.read_csv`, `numpy.load`,
+    `open()` — **under the project root only**. Session bookkeeping
+    (`*_out/RUNNING|FINISHED*`), `.git`, `__pycache__`, `.py/.pyc`, the
+    interpreter prefix, `site-/dist-packages`, `.scitex`, `/proc /dev /sys`
+    and anything whose real path leaves the root are excluded. Deduped with
+    the stx.io hooks (same resolved path → one edge).
+  - *Imported project-local code* — modules whose file is under the project
+    root (not installed, not the entry script) are recorded as run inputs at
+    start (late imports at close), so `clew.slice` / `chain` include the
+    helper code; a module changed on disk during the run is warned about.
+  - Loud, never silent: an uninstallable hook or a failed record WARNS and is
+    written to run metadata `capture` (`audit`, `code_inputs`,
+    `code_changed`, `open_reads`, `open_writes`, `errors`).
+  - Opt out with `SCITEX_CLEW_AUDIT_CAPTURE=0` (default on); code capture
+    stays on. Benchmark: `tests/develop/bench_audit_capture.py`.
+  - Project root: scitex-session's new `metadata["project_root"]`, else
+    `git.root`, else the script's directory.
+  - Overhead (10k `open()` loop, `tests/develop/bench_audit_capture.py`):
+    +0.25 µs/open with no session active, +2.1 µs/open for a cached project
+    file, +0.9 µs/open outside the root; 10k distinct project files: hashed
+    at open (+94 µs/open) and recorded in one transaction at close (15.8 s).
+- `SessionTracker.record_hashed_inputs` — bulk, pre-hashed input recording
+  (one producer lookup, one store transaction).
+
+### Fixed
+- `find_producer_records` (called once per recorded input, including every
+  `stx.io.load`) decoded the project's WHOLE `file_hashes` table and filtered
+  in Python: 0.4 s per input at ~10k rows. It now filters in SQL
+  (`ProjectScopedStore.search`) (#179).
+- A file read inside `scitex_io.save` (e.g. a read-back check) is no
+  longer recorded as a run input (#179).
+
 ## [0.22.2] — 2026-11-17
 
 Patch release (bug fix only). Pairs with scitex-io 0.6.0, whose
