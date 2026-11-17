@@ -7,6 +7,13 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.26.0] — 2026-11-18
+
+Minor release: notebook-produced claims (#199, PR #200). New slice field
+(`reruns`), a new stored-hash scheme for notebook code inputs
+(`ipynb-code-v1:`), and a new command (`clew execute-notebook`); existing rows
+and behaviour unchanged. Pairs with scitex-session >= 0.4.0.
+
 Notebook-produced claims (#199). Pairs with scitex-session >= 0.4.0, which
 records a Jupyter kernel's notebook as `entry = {"kind": "notebook", "path",
 "invocation", "code_sha256", ...}` (scitex-ai/scitex-session#77).
