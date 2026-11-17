@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import dataclasses
+import json
 from pathlib import Path
 from typing import Dict
 
@@ -71,6 +72,7 @@ def _verify_single(
         cleanup_sandbox,
         plan_sandbox,
         relative_outputs,
+        run_dir_of,
         run_in_sandbox,
     )
 
@@ -87,7 +89,8 @@ def _verify_single(
         return _unknown_result(session_id, None)
 
     script_path = run_info.get("script_path")
-    if not script_path or not Path(script_path).exists():
+    is_command = _entry_kind(run_info) == "command"
+    if not is_command and (not script_path or not Path(script_path).exists()):
         return RunVerification(
             session_id=session_id,
             script_path=script_path,
@@ -104,6 +107,9 @@ def _verify_single(
         return _unknown_result(session_id, script_path)
 
     plan = plan_sandbox(session_id, run_info, original_hashes)
+    if plan.refusal is not None:
+        logger.warning("clew rerun: %s not re-run — %s", session_id, plan.refusal)
+        return _unknown_result(session_id, script_path)
     if not plan.can_sandbox:
         # Outputs saved outside <stem>_out/ would be overwritten in place by a
         # replay: refuse rather than touch the originals.
@@ -149,7 +155,9 @@ def _verify_single(
             return _unknown_result(session_id, script_path)
         else:
             file_verifications = _compare_hashes(
-                relative_outputs(original_hashes, plan.out_root),
+                relative_outputs(
+                    original_hashes, plan.out_root, run_dir_of(run_info)
+                ),
                 replay.new_outputs,
             )
             status = _determine_status(file_verifications)
@@ -173,6 +181,16 @@ def _verify_single(
         combined_hash_current=None,
         level=VerificationLevel.RERUN,
     )
+
+
+def _entry_kind(run_info: dict) -> str | None:
+    """``metadata.entry.kind`` (scitex-session >= 0.3.6), e.g. ``command``."""
+    raw = run_info.get("metadata")
+    try:
+        meta = json.loads(raw) if isinstance(raw, str) else (raw or {})
+    except ValueError:
+        return None
+    return (meta.get("entry") or {}).get("kind")
 
 
 def _resolve_to_session_id(db, target: str) -> str | None:

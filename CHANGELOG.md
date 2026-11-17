@@ -8,6 +8,31 @@ versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- **scitex-session >= 0.3.6 close payload is applied** (clew needs no
+  scitex-session at runtime; older sessions keep working):
+  - `relocations` (run dir moved `RUNNING/<ID>` -> `FINISHED_*/<ID>` before
+    the close hooks): recorded paths are re-keyed before the run is
+    finalized — tracker maps and the session's `file_hashes` rows
+    (`VerificationDB.relocate_session_paths`, old rows hidden), declared
+    `derived_from` included — so run-dir outputs verify at their final path.
+    An output absent at its new path is warned about.
+  - `python -c` runs (`entry.kind == "command"`, no script) are re-run as
+    `python -c <entry.command>` from a sandbox mirroring the recorded cwd;
+    refused loudly when only the command hash was recorded or the text does
+    not match it. Run-dir outputs are compared as `<run-dir>/<path>` (the
+    dir name carries the run id), for script runs too.
+  - Slices carry the software environment: `ProvenanceSlice.environment`,
+    `requirements()` / `to_dict()["environment"]` (packages + versions,
+    cross-run version conflicts, `unresolved_imports`, runs with no package
+    record); `clew slice` prints them.
+- dev extra: `scitex-session>=0.3.6` for the real-session integration tests.
+
+### Changed
+- `VerificationDB`: content-hash queries moved to `_db/_content_queries.py`,
+  relocation to `_db/_relocate.py`; tracker helpers to `_tracker_batch.py`
+  (imports unchanged).
+
+### Added
 - **Executed-not-imported project code is a code input.** `runpy.run_path`,
   `exec(compile(open(p).read(), p, "exec"))`, `exec(open(p).read())`,
   `importlib.util.spec_from_file_location` + `exec_module` (not in

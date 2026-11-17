@@ -99,3 +99,24 @@ the cached path — measure with `tests/develop/bench_audit_capture.py`.
 C/C++ code that opens files without Python's `open` (HDF5 via `h5py`, some
 `pyarrow` readers) and spawned (non-forked) subprocesses. Use `stx.io.load` /
 `clew.record_input`.
+
+## scitex-session >= 0.3.6 close payload
+
+clew's close hook applies what the session manager reports:
+
+- **`relocations`** — the run dir moves `RUNNING/<ID>` -> `FINISHED_*/<ID>`
+  before close hooks fire. clew re-keys the run's recorded paths (tracker +
+  `file_hashes` rows via `VerificationDB.relocate_session_paths`; declared
+  `derived_from` too) before finalizing, so outputs saved into the run dir
+  verify at their final path. An output missing at its new path is WARNED
+  (an `archive` move is read through the `.tar.gz` by verify).
+- **`entry.kind == "command"`** (`python -c`, `script_path` None) — `rerun`
+  replays `python -c <entry.command>` from a sandbox mirroring the recorded
+  `cwd`; refused with a WARNING when only `command_sha256` was recorded or
+  the text no longer matches it. Outputs inside the run dir are compared as
+  `<run-dir>/<path>` (its name carries the run id).
+- **`packages` / `unresolved_imports`** — `slice(...).requirements()` (and
+  `to_dict()["environment"]`, `clew slice` ENVIRONMENT lines) lists the
+  distributions + versions a re-run must install, version conflicts across
+  runs, imported code no distribution owns, and runs that recorded no
+  packages.

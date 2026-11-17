@@ -315,6 +315,24 @@ def slice_cmd(ctx: click.Context, targets, level: int, compare: bool, as_json: b
         click.echo(f"  dropped inputs of {sid}: {len(paths)}")
     for sid, reason in sl.fallback_runs.items():
         click.echo(f"  level-2 fallback for {sid}: {reason}")
+    env = sl.requirements()
+    if env["packages"] or env["conflicts"]:
+        click.echo(
+            f"  ENVIRONMENT: {len(env['packages'])} package(s) to install: "
+            + ", ".join(f"{d}=={v}" for d, v in env["packages"].items())
+        )
+    for dist, found in env["conflicts"].items():
+        click.echo(f"  VERSION CONFLICT across runs: {dist} {found}")
+    if env["unresolved_imports"]:
+        click.echo(
+            "  UNRESOLVED IMPORTS (no distribution owns them; not installable): "
+            + ", ".join(f"{m} ({w})" for m, w in env["unresolved_imports"].items())
+        )
+    if env["runs_without_environment"]:
+        click.echo(
+            f"  no package record for {len(env['runs_without_environment'])} run(s): "
+            + ", ".join(env["runs_without_environment"])
+        )
     required = sl.required_external()
     if required:
         click.echo(

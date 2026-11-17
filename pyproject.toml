@@ -83,6 +83,11 @@ dev = [
     # driver is missing, and a silently-absent psycopg would turn the whole
     # store suite into skips that read exactly like passes.
     "psycopg[binary]>=3.1",
+    # The session-seam integration tests (tests/integration/
+    # test_session_036_seam.py) drive a REAL scitex-session >= 0.3.6 run
+    # (relocations / entry / packages). Test-only: clew itself has no
+    # runtime dependency on scitex-session.
+    "scitex-session>=0.3.6",
 ]
 docs = [
     "sphinx>=7.0",
