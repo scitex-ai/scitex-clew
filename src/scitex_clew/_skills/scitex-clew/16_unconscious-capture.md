@@ -16,6 +16,7 @@ session start/close hooks — nothing to call):
 | a file **read** under the project root by any Python code (`pd.read_csv`, `np.load`, `open()`, `json.load(open(...))`) | `sys.addaudithook` on the `open` event; access mode from the flags | run **input**, hashed at open time |
 | a file **written** under the project root (`open(p, "w")`, `df.to_csv`, `fig.savefig`) | same hook; `os.replace` of a written temp file follows to its target | run **output**, hashed at session close (last bytes win) |
 | an imported **project-local module** (`import helper` with `helper.py` under the root, not installed, not the entry script) | `sys.modules` scan at start; late imports at close | run **input** (`.py` → node class `source`) |
+| project code **executed without importing**: `runpy.run_path(p)`, `exec(compile(open(p).read(), p, "exec"))`, `exec(open(p).read())`, `spec_from_file_location` + `exec_module`, IPython `%run p` | `exec` audit event (`co_filename`); for `exec(<str>)` the `compile` event's source is matched (newline-normalised hash) to a `.py` file the run read — exact match only | run **input**, like an imported module; outside the root → external code input. Metadata `capture.exec_code_inputs` |
 | a data file read **outside** the project root (`/data`, `/scratch`, a NAS mount, `~/datasets`, a sibling project's outputs) or through an in-project **symlink** whose target is outside (`data/raw -> /mnt/shared/raw`) | same hook; `stx.io.load` / `clew.record_input` of such a file too | **external input**: resolved path + hash + `external = {via: link path used, size, mtime}` |
 
 So `clew.slice(claim)` / `clew.chain(...)` now include the data a third-party
@@ -81,7 +82,7 @@ include: [...], exclude: [...]}}`.
   `capture.code_changed`.
 - Per-run summary in run metadata `capture`: `audit`, `project_root`,
   `code_inputs`, `code_changed`, `open_reads`, `open_writes`,
-  `external_inputs`, `external` (the policy), `errors`.
+  `exec_code_inputs`, `external_inputs`, `external` (the policy), `errors`.
 
 ## Opt out (performance-sensitive runs)
 

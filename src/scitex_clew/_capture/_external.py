@@ -259,9 +259,13 @@ class ExternalPolicy:
         tail = real[len(common) :].lstrip(os.sep)
         return any(part.startswith(".") for part in tail.split(os.sep) if part)
 
-    def builtin_excluded(self, real: str) -> bool:
-        """True when a built-in precision rule says ``real`` is not data."""
-        if real.endswith(_CODE_SUFFIXES):
+    def builtin_excluded(self, real: str, *, code: bool = False) -> bool:
+        """True when a built-in precision rule says ``real`` is not data.
+
+        ``code=True`` judges a source file the run EXECUTED: ``.py`` is then
+        allowed (bytecode never is); every library/system rule still applies.
+        """
+        if real.endswith((".pyc", ".pyo")) or (not code and real.endswith(".py")):
             return True
         if any(part in _LIBRARY_DIRS for part in real.split(os.sep)):
             return True
@@ -271,7 +275,7 @@ class ExternalPolicy:
             return True
         return any(is_under(real, p) for p in self._imported_package_dirs())
 
-    def accepts(self, real: str) -> bool:
+    def accepts(self, real: str, *, code: bool = False) -> bool:
         """True when the resolved outside-root path ``real`` is recorded."""
         if not self.enabled or is_under(real, self.root):
             return False
@@ -279,7 +283,7 @@ class ExternalPolicy:
             return False
         if any(is_under(real, p) for p in self.include):
             return True
-        return not self.builtin_excluded(real)
+        return not self.builtin_excluded(real, code=code)
 
     def describe(self) -> dict[str, Any]:
         """The policy as recorded in ``metadata["capture"]["external"]``."""
