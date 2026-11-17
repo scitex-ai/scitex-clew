@@ -7,7 +7,9 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-clew's project root — store scope / project id, `claims.json`,
+## [0.25.0] — 2026-11-18
+
+Minor release: clew's project root — store scope / project id, `claims.json`,
 hints, and **project-scope config** — now follows the same rule as
 scitex-session 0.3.7, and inside a session is the session's recorded root.
 Config semantics change (a non-git project now HAS a project scope; a git
