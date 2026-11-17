@@ -7,13 +7,19 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.22.2] — 2026-11-17
+
+Patch release (bug fix only). Pairs with scitex-io 0.6.0, whose
+`stx.io.save(..., derived_from=[...])` hands declarations to clew's io hook
+and whose public `save_*` helpers now fire it.
+
 ### Fixed
 - `record_output`: recording the same bytes of a path twice in one run no
   longer erases a `derived_from` declaration. figrecipe records a figure's
   image declared, then the `stx.io.save` that called it fires the io hook
   for the same file undeclared; last-writer-wins dropped the declaration
   and level 2 silently fell back to level 1. An undeclared re-record now
-  keeps it, a second declaration is unioned, and new bytes replace it.
+  keeps it, a second declaration is unioned, and new bytes replace it (#173).
 
 ## [0.22.1] — 2026-11-17
 
