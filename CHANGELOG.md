@@ -7,8 +7,13 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.24.2] — 2026-11-17
+
+Patch release: the scitex-session 0.3.6 close payload is applied —
+relocations, `python -c` rerun, environment in slices (#188). No schema change.
+
 ### Added
-- **scitex-session >= 0.3.6 close payload is applied** (clew needs no
+- **scitex-session >= 0.3.6 close payload is applied** (#188) (clew needs no
   scitex-session at runtime; older sessions keep working):
   - `relocations` (run dir moved `RUNNING/<ID>` -> `FINISHED_*/<ID>` before
     the close hooks): recorded paths are re-keyed before the run is
