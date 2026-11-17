@@ -69,6 +69,11 @@ class FileVerification:
     the flag propagates to CLI output and Mermaid nodes so the trust is always
     explicit and visible.
     """
+    external: bool = False
+    """True for an input read from OUTSIDE the project root (a shared dataset,
+    a sibling project's output, an in-project symlink to elsewhere). It is
+    hash-checked like any input; when absent it is reported as a MISSING
+    external input — a dependency this machine lacks, never a silent pass."""
 
     @property
     def is_verified(self) -> bool:
@@ -112,6 +117,37 @@ class RunVerification:
     @property
     def missing_files(self) -> list[FileVerification]:
         return [f for f in self.files if f.status == VerificationStatus.MISSING]
+
+    @property
+    def missing_external_files(self) -> list[FileVerification]:
+        """External inputs absent on this machine (see FileVerification)."""
+        return [f for f in self.missing_files if f.external]
+
+
+def missing_external_paths(runs) -> list[str]:
+    """Sorted paths of external inputs missing in any of ``runs``."""
+    return sorted({f.path for r in runs for f in r.missing_external_files})
+
+
+def only_external_missing(runs) -> bool:
+    """True when the ONLY failures in ``runs`` are missing external inputs.
+
+    Such a lineage is not stale — nothing recorded changed; the machine
+    lacks data that lives outside the project. A failed run, a changed file
+    or a missing in-project file makes this False.
+    """
+    found = False
+    for r in runs:
+        if r.status == VerificationStatus.FAILED:
+            return False
+        for f in r.files:
+            if f.is_verified:
+                continue
+            if f.external and f.status == VerificationStatus.MISSING:
+                found = True
+                continue
+            return False
+    return found
 
 
 @dataclass

@@ -131,6 +131,16 @@ def verify_claim(
                 if chain_cache is not None:
                     chain_cache[chain_key] = chain
             result["chain_verified"] = chain.is_verified
+            from .._chain._types import missing_external_paths, only_external_missing
+
+            missing_external = missing_external_paths(chain.runs)
+            if missing_external:
+                result["external_missing"] = missing_external
+                result["external_only"] = only_external_missing(chain.runs)
+                result["details"].append(
+                    f"{len(missing_external)} external input(s) missing on "
+                    f"this machine: {missing_external[:5]}"
+                )
             # "no_lineage": no recorded run produced the source at all.
             # Anything else that is not verified is a lineage that EXISTS but
             # no longer holds (changed upstream input, failed run, ...).
@@ -235,12 +245,16 @@ def _classify_claim(result: dict, *, strict: bool) -> int:
           output or script changed, or a run in it failed) →
           ``STALE_LINEAGE`` in BOTH modes: the claim's value may no longer
           follow from its inputs, so it is not verified.
+        * the lineage's ONLY failures are inputs read from outside the
+          project that are absent on this machine → ``EXTERNAL_MISSING``
+          (unverifiable here, not stale).
         * no lineage at all, non-strict → ``OK`` (hash match is the bar).
         * no lineage at all, strict → ``NO_LINEAGE`` (hand-written leaf,
           no ``@stx.session`` provenance upstream).
         * lineage verified → ``OK``.
     """
     from .._cli._exit_codes import (
+        EXTERNAL_MISSING,
         HASH_MISMATCH,
         NO_LINEAGE,
         OK,
@@ -275,6 +289,8 @@ def _classify_claim(result: dict, *, strict: bool) -> int:
         chain_status = result.get("chain_status")
         if chain_status == "error":
             return VERIFY_ERROR
+        if result.get("external_only"):
+            return EXTERNAL_MISSING
         if chain_status is not None and chain_status != "no_lineage":
             return STALE_LINEAGE
         return NO_LINEAGE if strict else OK

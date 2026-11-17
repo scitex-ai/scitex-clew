@@ -78,6 +78,7 @@ class FileHashMixin:
         size_bytes: int | None = None,
         frozen: bool = False,
         derived_from: list[str] | None = None,
+        external: dict | None = None,
     ) -> None:
         """Add a file hash record.
 
@@ -110,6 +111,10 @@ class FileHashMixin:
             OUTPUT rows only: the resolved paths this output was derived from,
             as declared by the writing tool (level-2 minimal slice). ``None``
             records "undeclared".
+        external : dict, optional
+            INPUT rows only: ``{"via", "size", "mtime"}`` when the file was
+            read from OUTSIDE the project root (``via`` is the in-project
+            path used, e.g. a symlink, else None). ``None`` = in-project.
         """
         host = _resolve_host()
         self._file_hashes.put(
@@ -125,6 +130,7 @@ class FileHashMixin:
                 "derived_from": (
                     json.dumps(list(derived_from)) if derived_from is not None else None
                 ),
+                "external": json.dumps(external) if external is not None else None,
             },
             expected_revision=ANY_REVISION,
         )
@@ -227,13 +233,16 @@ class FileHashMixin:
         Returns
         -------
         list of dict
-            ``[{"file_path", "hash", "recorded_at", "role", "derived_from"},
-            ...]`` in store order. ``derived_from`` is the declared list (see
-            :meth:`add_file_hash`) or ``None`` when undeclared.
+            ``[{"file_path", "hash", "recorded_at", "role", "derived_from",
+            "external", "size_bytes"}, ...]`` in store order. ``derived_from``
+            is the declared list (see :meth:`add_file_hash`) or ``None`` when
+            undeclared; ``external`` is the outside-the-project payload or
+            ``None`` for an in-project file.
         """
         out = []
         for r in self._rows_for_session(session_id, role):
             raw = r.values.get("derived_from")
+            ext = r.values.get("external")
             out.append(
                 {
                     "file_path": r.values.get("file_path"),
@@ -241,8 +250,24 @@ class FileHashMixin:
                     "recorded_at": r.values.get("recorded_at"),
                     "role": r.values.get("role"),
                     "derived_from": json.loads(raw) if raw else None,
+                    "external": json.loads(ext) if ext else None,
+                    "size_bytes": r.values.get("size_bytes"),
                 }
             )
+        return out
+
+    def get_external_files(
+        self,
+        session_id: str,
+        role: str | None = "input",
+    ) -> dict[str, dict]:
+        """``{path: external payload}`` of a session's files read from OUTSIDE
+        the project root (see :meth:`add_file_hash`)."""
+        out: dict[str, dict] = {}
+        for r in self._rows_for_session(session_id, role):
+            raw = r.values.get("external")
+            if raw:
+                out[r.values.get("file_path")] = json.loads(raw)
         return out
 
     def find_producer_records(

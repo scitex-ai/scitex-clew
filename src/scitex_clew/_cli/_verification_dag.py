@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """DAG-related CLI subcommands: dag, chain, rerun-dag, rerun-claims.
 
 Extracted from ``_verification.py`` to keep each module under 512 lines.
@@ -10,12 +9,10 @@ from __future__ import annotations
 import json
 
 import click
-
 from scitex_dev.ecosystem import SpecCommand, SpecGroup
-from ._help_specs import CLI_HELP
 
 from ._claim import _json_mode
-
+from ._help_specs import CLI_HELP
 
 # ---------------------------------------------------------------------------
 # Shared DAG serialization helpers
@@ -69,9 +66,16 @@ def _echo_dag_human(result, label: str = "DAG") -> None:
             click.echo(f"       EXCEPTION (reason: {reason})")
         for f in getattr(r, "files", []):
             if getattr(f, "frozen", False):
-                click.echo(
-                    f"       FROZEN (trusted hash, not re-read): {f.path}"
-                )
+                click.echo(f"       FROZEN (trusted hash, not re-read): {f.path}")
+            _echo_external(f)
+
+
+def _echo_external(f) -> None:
+    """One line for an input read from outside the project (if ``f`` is one)."""
+    if not getattr(f, "external", False):
+        return
+    state = "MISSING on this machine" if f.status.value == "missing" else f.status.value
+    click.echo(f"       EXTERNAL input ({state}, not bundled): {f.path}")
 
 
 # ---------------------------------------------------------------------------
@@ -79,7 +83,7 @@ def _echo_dag_human(result, label: str = "DAG") -> None:
 # ---------------------------------------------------------------------------
 
 
-@click.command(cls=SpecCommand, help_spec=CLI_HELP['dag'])
+@click.command(cls=SpecCommand, help_spec=CLI_HELP["dag"])
 @click.option(
     "--target",
     "targets",
@@ -126,8 +130,8 @@ def dag(
       clew dag --target results/foo.csv --json
       clew dag --claims --strict --json
     """
-    from scitex_clew._claim import verify_claims_dag
     from scitex_clew._chain import verify_dag, verify_dag_strict
+    from scitex_clew._claim import verify_claims_dag
 
     if as_json:
         ctx.obj = ctx.obj or {}
@@ -159,7 +163,7 @@ def dag(
     _echo_dag_human(result, label="DAG")
 
 
-@click.command(cls=SpecCommand, help_spec=CLI_HELP['chain'])
+@click.command(cls=SpecCommand, help_spec=CLI_HELP["chain"])
 @click.argument("target_file")
 @click.option(
     "--minimal",
@@ -219,6 +223,8 @@ def chain(
                 "is_verified": r.is_verified,
                 "mismatched_files": [f.path for f in r.mismatched_files],
                 "missing_files": [f.path for f in r.missing_files],
+                "external_inputs": [f.path for f in r.files if f.external],
+                "missing_external_files": [f.path for f in r.missing_external_files],
             }
             for r in result.runs
         ],
@@ -244,9 +250,8 @@ def chain(
             click.echo(f"       EXCEPTION (reason: {reason})")
         for f in getattr(r, "files", []):
             if getattr(f, "frozen", False):
-                click.echo(
-                    f"       FROZEN (trusted hash, not re-read): {f.path}"
-                )
+                click.echo(f"       FROZEN (trusted hash, not re-read): {f.path}")
+            _echo_external(f)
 
 
 @click.command("slice", cls=SpecCommand, help_spec=CLI_HELP["slice"])
@@ -300,7 +305,8 @@ def slice_cmd(ctx: click.Context, targets, level: int, compare: bool, as_json: b
     for sid in sl.runs:
         click.echo(f"  run {sid}")
         for p in sl.run_inputs.get(sid, []):
-            click.echo(f"    <- {p}")
+            tag = "  [EXTERNAL: outside the project, not bundled]"
+            click.echo(f"    <- {p}{tag if p in sl.external else ''}")
         for p in sl.run_outputs.get(sid, []):
             click.echo(f"    -> {p}")
     for sid, paths in sl.dropped_outputs.items():
@@ -309,9 +315,18 @@ def slice_cmd(ctx: click.Context, targets, level: int, compare: bool, as_json: b
         click.echo(f"  dropped inputs of {sid}: {len(paths)}")
     for sid, reason in sl.fallback_runs.items():
         click.echo(f"  level-2 fallback for {sid}: {reason}")
+    required = sl.required_external()
+    if required:
+        click.echo(
+            f"  REQUIRED BUT NOT BUNDLED: {len(required)} external input(s) must "
+            "exist at these paths with these hashes to re-run:"
+        )
+        for item in required:
+            via = f"  (via {item['via']})" if item["via"] else ""
+            click.echo(f"    {item['path']}  sha256={item['hash']}{via}")
 
 
-@click.command("rerun-dag", cls=SpecCommand, help_spec=CLI_HELP['rerun_dag'])
+@click.command("rerun-dag", cls=SpecCommand, help_spec=CLI_HELP["rerun_dag"])
 @click.option(
     "--target",
     "targets",
@@ -347,7 +362,7 @@ def rerun_dag(ctx: click.Context, targets, timeout: int, as_json: bool):
     _echo_dag_human(result, label="rerun-dag")
 
 
-@click.command("rerun-claims", cls=SpecCommand, help_spec=CLI_HELP['rerun_claims'])
+@click.command("rerun-claims", cls=SpecCommand, help_spec=CLI_HELP["rerun_claims"])
 @click.option(
     "--file-path", "file_path", default=None, help="Filter claims by manuscript path."
 )

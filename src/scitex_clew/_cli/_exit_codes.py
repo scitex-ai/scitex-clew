@@ -73,6 +73,12 @@ VERIFY_ERROR  19     Verification of a claim could not complete (the
 VALUE_MISMATCH 21    The claim carries ``source_keys`` and a value
                      read from the source at that locator disagrees with
                      ``claim_value`` beyond the declared tolerance.
+EXTERNAL_MISSING 22  The claim's lineage depends on an input read from
+                     OUTSIDE the project (a shared dataset, a sibling
+                     project's output, a symlink target) that is absent on
+                     this machine, and nothing else in the lineage failed.
+                     Not stale — unverifiable here: mount/restore the data
+                     at its recorded path, then verify again.
 CITATION_UNLINKED 16  At least one ``\\cite{}`` key present in the
                      manuscript has no clew citation node at all — never
                      registered by scholar and nothing to judge it against
@@ -123,6 +129,10 @@ VERIFY_ERROR: int = 19
 NO_CLAIMS: int = 20
 # The claimed value disagrees with the value read at one of its source_keys.
 VALUE_MISMATCH: int = 21
+# The claim's lineage reads a file from OUTSIDE the project that is absent on
+# this machine (and nothing else failed). Distinct from STALE_LINEAGE: nothing
+# recorded changed, the dependency is simply not here.
+EXTERNAL_MISSING: int = 22
 
 # Human-readable name per code (for summaries / JSON payloads).
 NAMES: dict[int, str] = {
@@ -139,6 +149,7 @@ NAMES: dict[int, str] = {
     VERIFY_ERROR: "VERIFY_ERROR",
     NO_CLAIMS: "NO_CLAIMS",
     VALUE_MISMATCH: "VALUE_MISMATCH",
+    EXTERNAL_MISSING: "EXTERNAL_MISSING",
 }
 
 # One-line reason per code (printed in the human summary; embedded in JSON).
@@ -184,6 +195,10 @@ REASONS: dict[int, str] = {
         "declared locator (beyond tolerance)"
     ),
     NO_CLAIMS: "no claims registered — nothing to verify",
+    EXTERNAL_MISSING: (
+        "a claim's lineage depends on a file outside the project that is "
+        "missing on this machine — restore/mount it at its recorded path"
+    ),
 }
 
 # Severity ranking: higher wins when several failure classes co-occur.
@@ -200,14 +215,15 @@ SEVERITY: dict[int, int] = {
     NO_LINEAGE: 2,
     UNSOURCED: 3,
     UNVERIFIED: 4,
-    STALE_LINEAGE: 5,
-    VERIFY_ERROR: 6,
-    VALUE_MISMATCH: 7,
-    SOURCE_MISSING: 8,
-    HASH_MISMATCH: 9,
-    CITATION_UNLINKED: 10,
-    CITATION_UNRESOLVED: 11,
-    CITATION_STUB: 12,
+    EXTERNAL_MISSING: 5,
+    STALE_LINEAGE: 6,
+    VERIFY_ERROR: 7,
+    VALUE_MISMATCH: 8,
+    SOURCE_MISSING: 9,
+    HASH_MISMATCH: 10,
+    CITATION_UNLINKED: 11,
+    CITATION_UNRESOLVED: 12,
+    CITATION_STUB: 13,
 }
 
 
@@ -258,6 +274,7 @@ KEY_BY_CODE: dict[int, str] = {
     VERIFY_ERROR: "verify_error",
     VALUE_MISMATCH: "value_mismatch",
     NO_CLAIMS: "no_claims",
+    EXTERNAL_MISSING: "external_missing",
 }
 CODE_BY_KEY: dict[str, int] = {key: code for code, key in KEY_BY_CODE.items()}
 
@@ -282,6 +299,8 @@ DEFAULT_SEVERITY: dict[int, Severity] = {
     VERIFY_ERROR: Severity.ERROR,
     VALUE_MISMATCH: Severity.ERROR,
     NO_CLAIMS: Severity.ERROR,
+    # A missing external dependency is never a silent pass.
+    EXTERNAL_MISSING: Severity.ERROR,
 }
 
 
@@ -375,6 +394,7 @@ __all__ = [
     "CITATION_UNRESOLVED",
     "CODE_BY_KEY",
     "DEFAULT_SEVERITY",
+    "EXTERNAL_MISSING",
     "HASH_MISMATCH",
     "KEY_BY_CODE",
     "NAMES",

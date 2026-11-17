@@ -107,6 +107,26 @@ def _records(sid, role):
     }
 
 
+def _external(sid):
+    """``{path: via}`` of the run's inputs flagged as outside the project."""
+    return {
+        r["file_path"]: r["external"]["via"]
+        for r in get_db().get_file_records(sid, role="input")
+        if r["external"]
+    }
+
+
+@pytest.fixture
+def elsewhere_included(project):
+    """Opt the sibling ``elsewhere/`` dir in (tmp_path is under the temp dir,
+    which the external-input policy excludes by default)."""
+    from scitex_clew._capture._external import ENV_EXTERNAL_INCLUDE
+
+    os.environ[ENV_EXTERNAL_INCLUDE] = str(project.parent / "elsewhere")
+    yield
+    os.environ.pop(ENV_EXTERNAL_INCLUDE, None)
+
+
 def _capture_meta(sid):
     meta = get_db().get_run(sid)["metadata"]
     meta = json.loads(meta) if isinstance(meta, str) else meta
@@ -159,7 +179,9 @@ class TestReadsAreInputs:
         # Assert
         assert _records(sid, "input")[str(data.resolve())] == before
 
-    def test_file_outside_the_project_root_is_not_recorded(self, project):
+    def test_file_outside_the_project_root_is_an_external_input(
+        self, project, elsewhere_included
+    ):
         # Arrange
         ext = project.parent / "elsewhere" / "ext.txt"
         sid = _start(project)
@@ -168,9 +190,11 @@ class TestReadsAreInputs:
             f.read()
         on_session_close()
         # Assert
-        assert str(ext.resolve()) not in _records(sid, "input")
+        assert _external(sid) == {str(ext.resolve()): None}
 
-    def test_symlink_inside_root_to_outside_file_is_not_recorded(self, project):
+    def test_symlink_inside_root_to_outside_file_is_an_external_input(
+        self, project, elsewhere_included
+    ):
         # Arrange
         link = project / "data" / "linked.txt"
         link.symlink_to(project.parent / "elsewhere" / "ext.txt")
@@ -180,7 +204,9 @@ class TestReadsAreInputs:
             f.read()
         on_session_close()
         # Assert
-        assert _records(sid, "input") == {}
+        assert _external(sid) == {
+            str((project.parent / "elsewhere" / "ext.txt").resolve()): str(link)
+        }
 
     def test_file_this_run_wrote_then_read_is_not_an_input(self, project):
         # Arrange

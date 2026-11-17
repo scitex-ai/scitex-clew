@@ -34,6 +34,15 @@ This module closes both, for the life of a session (activated by
   - ``os.rename`` / ``os.replace`` of a written temp file carries the write
     over to the destination (atomic-save pattern).
 
+  Reads OUTSIDE the root — a shared dataset, a download, a sibling
+  project's output, or a symlink inside the project whose target lies
+  outside it — are recorded as **external inputs** (an ``input`` row whose
+  ``external`` column carries the in-project path used, size and mtime;
+  ``file_path`` is the resolved target). Interpreter, library, system, temp
+  and tool-state reads are excluded by :mod:`scitex_clew._capture._external`,
+  which documents the full exclusion list and the include/exclude knobs.
+  Writes outside the root are not outputs (see that module).
+
   Excluded even under the root: the session's own bookkeeping trees
   (``<script>_out/RUNNING|FINISHED*``), ``.git``, ``__pycache__``, Python
   sources/bytecode (code is captured by module import, below; ``.py`` opens
@@ -41,10 +50,7 @@ This module closes both, for the life of a session (activated by
   (an in-project venv) and ``site-/dist-packages``, ``.scitex`` tool state,
   tool caches, and ``/proc`` ``/dev`` ``/sys``. A file this run wrote and then
   read back is an intermediate, not an input; a read made INSIDE
-  ``scitex_io.save`` (a saver checking its own target) is not an input. A
-  path whose real location is
-  outside the root (a symlink out of the project) is NOT recorded — precision
-  first; load such data through ``stx.io.load`` to record it.
+  ``scitex_io.save`` (a saver checking its own target) is not an input.
 
 * **Imported project-local modules** (``__file__`` under the root, not
   installed, not the entry script) are recorded as run inputs at session start
@@ -56,8 +62,9 @@ This module closes both, for the life of a session (activated by
 
 Precision and loudness
 ----------------------
-Nothing outside the project root is ever recorded and nothing is inferred —
-only files the process actually opened. The hook is installed once per process
+Nothing is inferred — only files the process actually opened. Outside the
+project root only regular data files pass the external-input policy; a run
+that depends on any is WARNED about at close (a slice cannot bundle them). The hook is installed once per process
 (audit hooks cannot be removed) and is inert unless a session is active, in a
 forked child (pid check), or re-entered by clew's own hashing/DB I/O. If the
 hook cannot be installed, or recording a captured file fails, clew WARNS and
@@ -65,7 +72,8 @@ continues — the loss is also written to the run's ``metadata["capture"]``.
 
 Opt out (performance-sensitive runs): ``SCITEX_CLEW_AUDIT_CAPTURE=0`` disables
 the ``open`` capture (a WARNING says the run's provenance relies on stx.io
-alone). Code-module capture is cheap and always on.
+alone). ``SCITEX_CLEW_EXTERNAL_CAPTURE=0`` disables only the external-input
+recording. Code-module capture is cheap and always on.
 
 Not seen: files opened by C/C++ code that bypasses Python's ``open`` (e.g.
 HDF5 via ``h5py``, some ``pyarrow`` readers), memory maps of already-open
@@ -81,7 +89,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ._core import getLogger
+from .._core import getLogger
+from ._external import ExternalPolicy, external_info
 
 logger = getLogger(__name__)
 
@@ -225,6 +234,7 @@ class RunCapture:
             os.path.realpath(str(entry_script)) if entry_script else None
         )
         self._exclude = [os.path.realpath(str(p)) for p in (exclude or [])]
+        self.external_policy = ExternalPolicy(self.root)
         self._prefixes = {
             os.path.realpath(p)
             for p in {sys.prefix, sys.exec_prefix, sys.base_prefix}
@@ -232,11 +242,14 @@ class RunCapture:
         }
         self.pid = os.getpid()
         self._lock = threading.Lock()
-        self._decided: dict[str, str | None] = {}
+        self._decided: dict[str, tuple[str, bool, str | None] | None] = {}
         self.reads: list[str] = []
         self._read_set: set[str] = set()
         self.writes: set[str] = set()
         self._pending_reads: dict[str, str] = {}
+        #: resolved path -> ``external`` payload of every external input read.
+        self.external: dict[str, dict] = {}
+        self._external_writes: set[str] = set()
         self.code: dict[str, str] = {}
         self.code_changed: list[str] = []
         self.errors: list[str] = []
@@ -246,14 +259,31 @@ class RunCapture:
     # ----------------------------------------------------------------- filter
 
     def classify(self, path: str) -> str | None:
-        """Resolved path to record for ``path``, or None when out of scope."""
-        if path.startswith(_SYSTEM_PREFIXES):
+        """Resolved path to record for an IN-PROJECT ``path``, else None."""
+        decision = self.scope(path)
+        if decision is None or decision[1]:
             return None
-        if not (_under(path, self._root_lexical) or _under(path, self.root)):
+        return decision[0]
+
+    def scope(self, path: str) -> tuple[str, bool, str | None] | None:
+        """``(resolved, external, via)`` for ``path``, or None when out of scope.
+
+        ``external`` is True for a data file outside the project root (or
+        reached through an in-project symlink whose target lies outside);
+        ``via`` is then the in-project path used, else None.
+        """
+        if path.startswith(_SYSTEM_PREFIXES) or path.endswith(_EXCLUDED_SUFFIXES):
             return None
+        lexically_in = _under(path, self._root_lexical) or _under(path, self.root)
         real = os.path.realpath(path)
-        if not _under(real, self.root) or real == self.root:
+        if real == self.root:
             return None
+        if not _under(real, self.root):
+            if any(_under(real, p) for p in self._exclude):
+                return None
+            if not self.external_policy.accepts(real):
+                return None
+            return real, True, (path if lexically_in else None)
         if real.endswith(_EXCLUDED_SUFFIXES) or real == self.entry_script:
             return None
         parts = real[len(self.root) + 1 :].split(os.sep)
@@ -268,9 +298,23 @@ class RunCapture:
             return None
         if any(_under(real, p) for p in self._exclude):
             return None
-        return real
+        return real, False, None
 
-    def _decide(self, raw: Any) -> str | None:
+    def external_for(self, path: str | Path) -> dict | None:
+        """``external`` payload for an EXPLICITLY recorded input, else None.
+
+        For ``stx.io.load`` / ``record_input``: the load is intentional, so
+        only the boundary applies (no precision filter) — a file whose real
+        location is outside the project root is external.
+        """
+        lexical = os.path.abspath(str(path))
+        real = os.path.realpath(lexical)
+        if _under(real, self.root):
+            return None
+        lexically_in = _under(lexical, self._root_lexical) or _under(lexical, self.root)
+        return external_info(real, lexical if lexically_in else None)
+
+    def _decide(self, raw: Any) -> tuple[str, bool, str | None] | None:
         if isinstance(raw, int):
             return None
         if isinstance(raw, bytes):
@@ -281,7 +325,7 @@ class RunCapture:
         try:
             return self._decided[key]
         except KeyError:
-            decision = self._decided[key] = self.classify(os.path.normpath(key))
+            decision = self._decided[key] = self.scope(os.path.normpath(key))
             return decision
 
     # ------------------------------------------------------------- audit side
@@ -290,11 +334,19 @@ class RunCapture:
         try:
             if os.getpid() != self.pid:
                 return  # forked child: never write through the parent's tracker
-            real = self._decide(args[0])
-            if real is None:
+            decision = self._decide(args[0])
+            if decision is None:
                 return
+            real, external, via = decision
             flags = args[2] if len(args) > 2 and isinstance(args[2], int) else 0
             access = flags & _ACCMODE
+            if external:
+                if access != os.O_WRONLY and real not in self._read_set:
+                    if real not in self._external_writes:
+                        self._record_read(real, via=via, external=True)
+                if access != os.O_RDONLY:
+                    self._external_writes.add(real)
+                return
             if access != os.O_WRONLY and real not in self._read_set:
                 if real not in self.writes:
                     self._record_read(real)
@@ -308,12 +360,17 @@ class RunCapture:
             if os.getpid() != self.pid or len(args) < 2:
                 return
             src, dst = self._decide(args[0]), self._decide(args[1])
-            if src is not None and src in self.writes and dst is not None:
-                self.writes.add(dst)
+            if src is None or dst is None:
+                return
+            if src[0] not in self.writes and src[0] not in self._external_writes:
+                return
+            (self._external_writes if dst[1] else self.writes).add(dst[0])
         except Exception as exc:  # noqa: BLE001
             self._fail(f"rename capture: {type(exc).__name__}: {exc}")
 
-    def _record_read(self, real: str) -> None:
+    def _record_read(
+        self, real: str, *, via: str | None = None, external: bool = False
+    ) -> None:
         if not os.path.isfile(real):
             return  # missing (the open will fail) or not a regular file
         if _inside_stx_io_save():
@@ -325,11 +382,13 @@ class RunCapture:
             self.reads.append(real)
         # Hash NOW (the bytes about to be read); the store write is batched
         # at close so the user's open() never waits on a store round-trip.
-        from ._hash import hash_file
+        from .._hash import hash_file
 
         _tls.busy = True
         try:
             self._pending_reads[real] = hash_file(real)
+            if external:
+                self.external[real] = external_info(real, via)
         except Exception as exc:  # noqa: BLE001
             self._fail(f"hash input {real}: {type(exc).__name__}: {exc}")
         finally:
@@ -373,7 +432,7 @@ class RunCapture:
 
     def record_code(self) -> None:
         """Record every imported project-local module not yet recorded."""
-        from ._hash import hash_file
+        from .._hash import hash_file
 
         _tls.busy = True
         try:
@@ -396,7 +455,7 @@ class RunCapture:
             _tls.busy = False
 
     def _check_code_unchanged(self) -> None:
-        from ._hash import hash_file
+        from .._hash import hash_file
 
         for real, digest in sorted(self.code.items()):
             try:
@@ -419,7 +478,7 @@ class RunCapture:
 
     def flush(self) -> dict[str, Any]:
         """Record captured writes + late imports; return the metadata summary."""
-        from ._hash import hash_file
+        from .._hash import hash_file
 
         _tls.busy = True
         try:
@@ -428,7 +487,9 @@ class RunCapture:
             if self._pending_reads:
                 try:
                     # stx.io-recorded paths are skipped inside (one edge).
-                    self.tracker.record_hashed_inputs(self._pending_reads)
+                    self.tracker.record_hashed_inputs(
+                        self._pending_reads, external=self.external
+                    )
                 except Exception as exc:  # noqa: BLE001
                     self._fail(f"record inputs: {type(exc).__name__}: {exc}")
             outputs = self._record_writes(hash_file)
@@ -467,6 +528,8 @@ class RunCapture:
             "code_changed": list(self.code_changed),
             "open_reads": reads,
             "open_writes": writes,
+            "external_inputs": sorted(self.external),
+            "external": self.external_policy.describe(),
             "errors": list(self.errors),
         }
         if reads_more:

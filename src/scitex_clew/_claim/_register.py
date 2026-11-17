@@ -116,18 +116,81 @@ def add_claim(
 
         with _project_root(root):
             return _register(
-                file_path, claim_type, line_number, claim_value, source_file,
-                source_session, claim_id, value, source_keys, tolerance, metadata,
+                file_path,
+                claim_type,
+                line_number,
+                claim_value,
+                source_file,
+                source_session,
+                claim_id,
+                value,
+                source_keys,
+                tolerance,
+                metadata,
             )
     return _register(
-        file_path, claim_type, line_number, claim_value, source_file,
-        source_session, claim_id, value, source_keys, tolerance, metadata,
+        file_path,
+        claim_type,
+        line_number,
+        claim_value,
+        source_file,
+        source_session,
+        claim_id,
+        value,
+        source_keys,
+        tolerance,
+        metadata,
+    )
+
+
+def _warn_external_dependencies(claim_id: str, source_file: str) -> None:
+    """WARN when the claim's lineage reads files from outside the project.
+
+    Such inputs (shared datasets, a sibling project's outputs, symlink
+    targets) are part of the claim's minimal slice but can never be bundled
+    with it — whoever re-runs or verifies the claim must have them at the
+    recorded paths. Saying so at registration is the point where the author
+    can still act (copy the data in, or document where it lives).
+    """
+    import warnings as _w
+
+    from .._chain._slice import build_slice
+
+    try:
+        required = build_slice([source_file]).required_external()
+    except Exception as exc:  # noqa: BLE001 - reported, never silently skipped
+        _w.warn(
+            f"clew.add_claim: could not check claim {claim_id} for inputs "
+            f"outside the project ({type(exc).__name__}: {exc})",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+        return
+    if not required:
+        return
+    paths = [item["path"] for item in required]
+    more = f", ... (+{len(paths) - 5})" if len(paths) > 5 else ""
+    _w.warn(
+        f"clew.add_claim: claim {claim_id} depends on {len(paths)} file(s) "
+        f"outside the project: {', '.join(paths[:5])}{more} — the slice "
+        f"cannot bundle them",
+        RuntimeWarning,
+        stacklevel=3,
     )
 
 
 def _register(
-    file_path, claim_type, line_number, claim_value, source_file,
-    source_session, claim_id, value, source_keys, tolerance, metadata,
+    file_path,
+    claim_type,
+    line_number,
+    claim_value,
+    source_file,
+    source_session,
+    claim_id,
+    value,
+    source_keys,
+    tolerance,
+    metadata,
 ) -> Claim:
     """add_claim's body, run inside the caller's project scope."""
     file_path = str(Path(file_path).resolve())
@@ -179,6 +242,8 @@ def _register(
             RuntimeWarning,
             stacklevel=2,
         )
+    if source_file and source_session:
+        _warn_external_dependencies(resolved_id, source_file)
 
     claim = Claim(
         claim_id=resolved_id,

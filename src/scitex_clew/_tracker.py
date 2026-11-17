@@ -61,6 +61,9 @@ class SessionTracker:
         self.parent_session = parent_session
 
         self._inputs: dict[str, str] = {}
+        #: resolved path -> ``external`` payload of inputs read from OUTSIDE
+        #: the project root (see :mod:`scitex_clew._capture._external`).
+        self._external: dict[str, dict] = {}
         self._outputs: dict[str, str] = {}
         # path -> (hash, declared derived_from) of outputs recorded WITH a
         # declaration, so a same-bytes re-record cannot erase it.
@@ -117,12 +120,16 @@ class SessionTracker:
         if path_str not in self._inputs:
             file_hash = hash_file(path)
             self._inputs[path_str] = file_hash
+            external = _explicit_external(path)
+            if external is not None:
+                self._external[path_str] = external
             self._db.add_file_hash(
                 session_id=self.session_id,
                 file_path=path_str,
                 hash_value=file_hash,
                 role="input",
                 size_bytes=_stat_size(path_str),
+                external=external,
             )
 
             # Auto-link the parent: the producer of THESE bytes (content hash),
@@ -294,6 +301,7 @@ class SessionTracker:
             return self.summary()
 
         combined = self.combined_hash
+        warn_external_inputs(self.session_id, self._external)
 
         self._db.finish_run(
             session_id=self.session_id,
@@ -318,6 +326,34 @@ class SessionTracker:
             "combined_hash": self.combined_hash,
             "finalized": self._finalized,
         }
+
+
+def _explicit_external(path: Path) -> dict | None:
+    """``external`` payload when an explicitly recorded input lies outside the
+    active capture's project root (None without an active capture)."""
+    from ._capture import active_capture
+
+    capture = active_capture()
+    return capture.external_for(path) if capture is not None else None
+
+
+def warn_external_inputs(session_id: str, external: dict[str, dict]) -> None:
+    """One WARNING when a run depends on files outside its project."""
+    if not external:
+        return
+    from ._core import getLogger
+
+    paths = sorted(external)
+    more = f", ... (+{len(paths) - 5})" if len(paths) > 5 else ""
+    getLogger(__name__).warning(
+        "clew: session %s depends on %d file(s) outside the project: %s%s — "
+        "the slice cannot bundle them; they must exist at these paths with "
+        "the recorded hashes to re-run or verify",
+        session_id,
+        len(paths),
+        ", ".join(paths[:5]),
+        more,
+    )
 
 
 # Global tracker for current session
