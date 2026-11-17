@@ -43,7 +43,9 @@ from typing import Any, Dict, List, Optional
 from scitex_dev.store import ANY_REVISION, Store, StoreTarget, WriterPolicy, host_store
 
 from ._chain import ChainMixin
+from ._content_queries import ContentQueryMixin
 from ._file_hashes import FileHashMixin
+from ._relocate import RelocationMixin
 
 #: Re-exported: several modules import these from ``._db._core``.
 from ._paths import (  # noqa: F401
@@ -68,7 +70,13 @@ __all__ = [
 ]
 
 
-class VerificationDB(VerificationQueryMixin, FileHashMixin, ChainMixin):
+class VerificationDB(
+    VerificationQueryMixin,
+    FileHashMixin,
+    ContentQueryMixin,
+    RelocationMixin,
+    ChainMixin,
+):
     """
     Store-backed database for tracking session runs and file hashes.
 

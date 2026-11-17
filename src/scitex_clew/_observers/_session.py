@@ -161,6 +161,7 @@ def on_session_close(
     tracker = get_tracker()
     session_id = tracker.session_id if tracker is not None else None
     try:
+        _apply_relocations(tracker, metadata)
         _finish_capture(tracker)
         if metadata and session_id:
             tracker._db.merge_run_metadata(session_id, dict(metadata))
@@ -183,6 +184,55 @@ def on_session_close(
         raise
     if _should_auto_register(register) and session_id is not None:
         _auto_register_session(session_id)
+
+
+def _apply_relocations(tracker, metadata) -> int:
+    """Re-key recorded paths the session manager MOVED before closing.
+
+    scitex-session >= 0.3.6 moves ``RUNNING/<ID>`` to ``FINISHED_*/<ID>``
+    before firing close hooks and reports each move in ``metadata
+    ["relocations"]`` as ``{"from", "to", "archive"?}`` (real paths). Without
+    this, outputs saved into the run dir stay recorded at a path that no
+    longer exists and verify as MISSING. Applied before the run is finalized,
+    so the combined hash covers the final paths. When ``archive`` is set the
+    directory becomes ``<to>.tar.gz`` later; ``verify`` already reads files
+    through such an archive. An output that is at neither place is warned
+    about, never silently dropped. Returns the number of rows changed.
+    """
+    if tracker is None or not isinstance(metadata, dict):
+        return 0
+    from .._db._relocate import relocated
+
+    changed = 0
+    for item in metadata.get("relocations") or []:
+        old = item.get("from") if isinstance(item, dict) else None
+        new = item.get("to") if isinstance(item, dict) else None
+        if not old or not new:
+            logger.warning(
+                "clew: session %s — malformed relocation %r ignored; paths under "
+                "it stay recorded at their pre-move location",
+                tracker.session_id,
+                item,
+            )
+            continue
+        moved = [p for p in tracker._outputs if relocated(p, old, new) is not None]
+        changed += tracker.relocate(old, new)
+        absent = [
+            p
+            for p in (relocated(m, old, new) for m in moved)
+            if not os.path.isfile(p) and not item.get("archive")
+        ]
+        if absent:
+            logger.warning(
+                "clew: session %s — %d output(s) relocated %s -> %s are not at "
+                "their new path: %s",
+                tracker.session_id,
+                len(absent),
+                old,
+                new,
+                absent[:10],
+            )
+    return changed
 
 
 def _activate_capture(tracker, script_path, metadata) -> None:
