@@ -1,0 +1,205 @@
+{
+  "schema": "scitex-project-root-vectors/1",
+  "about": [
+    "Conformance vectors for project-root detection. This file is BYTE-IDENTICAL in",
+    "scitex-session (tests/scitex_session/conformance/, run end to end through",
+    "scitex_session._lifecycle._provenance.collect_run_metadata) and scitex-clew",
+    "(tests/scitex_clew/conformance/, run against",
+    "scitex_clew._core._project_root.resolve_project_root).",
+    "A change to the detection rule must update BOTH implementations and THIS FILE IN",
+    "BOTH REPOSITORIES in the same change.",
+    "",
+    "Every path is relative to a fresh sandbox directory S. Fields:",
+    "  tree      entries to create; a trailing '/' makes a directory, otherwise an",
+    "            (empty) file, parents created as needed",
+    "  git_init  directories to run a real `git init` in (after the tree is built)",
+    "  home      $HOME (default '.', i.e. S itself)",
+    "  cwd       working directory (default '.')",
+    "  script    entry script, or null for no script (python -c / REPL / clew CLI)",
+    "  explicit  explicit root argument, or null",
+    "  env       $SCITEX_SESSION_PROJECT_ROOT, or null (unset)",
+    "  expect    {root, source, marker} -- root relative to S -- or {error: 'ValueError'}",
+    "  warns     true when the resolver must log a WARNING (the script_dir last resort)",
+    "Mount-point stops are not covered here: they need a real second filesystem."
+  ],
+  "cases": [
+    {
+      "id": "research-layout-without-vcs",
+      "tree": ["proj/config/PATH.yaml", "proj/data/x.csv", "proj/scripts/analysis/run.py"],
+      "script": "proj/scripts/analysis/run.py",
+      "expect": {"root": "proj", "source": "marker", "marker": "scripts/ + config/"}
+    },
+    {
+      "id": "pyproject-marks-the-root",
+      "tree": ["proj/pyproject.toml", "proj/src/deep/run.py"],
+      "script": "proj/src/deep/run.py",
+      "expect": {"root": "proj", "source": "marker", "marker": "pyproject.toml"}
+    },
+    {
+      "id": "config-alone-beside-the-script-is-not-a-marker",
+      "tree": ["proj/pyproject.toml", "proj/scripts/run.py", "proj/scripts/config/"],
+      "script": "proj/scripts/run.py",
+      "expect": {"root": "proj", "source": "marker", "marker": "pyproject.toml"}
+    },
+    {
+      "id": "scitex-runtime-dir-is-not-a-marker",
+      "tree": [
+        "proj/config/",
+        "proj/scripts/analysis/run.py",
+        "proj/scripts/analysis/.scitex/clew/project-id"
+      ],
+      "script": "proj/scripts/analysis/run.py",
+      "expect": {"root": "proj", "source": "marker", "marker": "scripts/ + config/"}
+    },
+    {
+      "id": "no-script-from-scripts-dir-holding-a-stale-scitex-dir",
+      "tree": ["proj/config/", "proj/scripts/run.py", "proj/scripts/.scitex/clew/project-id"],
+      "cwd": "proj/scripts",
+      "script": null,
+      "expect": {"root": "proj", "source": "marker", "marker": "scripts/ + config/"}
+    },
+    {
+      "id": "nearest-marked-ancestor-wins",
+      "tree": [
+        "outer/config/",
+        "outer/scripts/",
+        "outer/vendor/inner/setup.cfg",
+        "outer/vendor/inner/scripts/run.py"
+      ],
+      "script": "outer/vendor/inner/scripts/run.py",
+      "expect": {"root": "outer/vendor/inner", "source": "marker", "marker": "setup.cfg"}
+    },
+    {
+      "id": "markers-in-one-dir-report-in-declared-order",
+      "tree": ["proj/setup.py", "proj/pyproject.toml", "proj/run.py"],
+      "script": "proj/run.py",
+      "expect": {"root": "proj", "source": "marker", "marker": "pyproject.toml"}
+    },
+    {
+      "id": "mercurial-marker",
+      "tree": ["proj/.hg/", "proj/code/run.py"],
+      "script": "proj/code/run.py",
+      "expect": {"root": "proj", "source": "marker", "marker": ".hg"}
+    },
+    {
+      "id": "subversion-marker",
+      "tree": ["proj/.svn/", "proj/code/run.py"],
+      "script": "proj/code/run.py",
+      "expect": {"root": "proj", "source": "marker", "marker": ".svn"}
+    },
+    {
+      "id": "setup-py-marker",
+      "tree": ["proj/setup.py", "proj/code/run.py"],
+      "script": "proj/code/run.py",
+      "expect": {"root": "proj", "source": "marker", "marker": "setup.py"}
+    },
+    {
+      "id": "scitex-template-minimal-layout-marker",
+      "tree": ["proj/scitex/.scitex-structure-version", "proj/code/run.py"],
+      "script": "proj/code/run.py",
+      "expect": {"root": "proj", "source": "marker", "marker": "scitex/.scitex-structure-version"}
+    },
+    {
+      "id": "git-root",
+      "tree": ["repo/config/", "repo/scripts/analysis/run.py"],
+      "git_init": ["repo"],
+      "script": "repo/scripts/analysis/run.py",
+      "expect": {"root": "repo", "source": "git", "marker": null}
+    },
+    {
+      "id": "git-root-wins-over-a-marker-nested-inside-the-repo",
+      "tree": ["repo/pkg/pyproject.toml", "repo/pkg/scripts/run.py"],
+      "git_init": ["repo"],
+      "script": "repo/pkg/scripts/run.py",
+      "expect": {"root": "repo", "source": "git", "marker": null}
+    },
+    {
+      "id": "git-repository-at-home-is-not-the-project",
+      "tree": ["proj/config/", "proj/scripts/run.py"],
+      "git_init": ["."],
+      "script": "proj/scripts/run.py",
+      "expect": {"root": "proj", "source": "marker", "marker": "scripts/ + config/"}
+    },
+    {
+      "id": "no-script-inside-git-repo",
+      "tree": ["repo/sub/deeper/"],
+      "git_init": ["repo"],
+      "cwd": "repo/sub/deeper",
+      "script": null,
+      "expect": {"root": "repo", "source": "git", "marker": null}
+    },
+    {
+      "id": "argument-wins-over-env-and-markers",
+      "tree": ["proj/config/", "proj/scripts/analysis/run.py"],
+      "script": "proj/scripts/analysis/run.py",
+      "env": "proj",
+      "explicit": "proj/scripts/analysis",
+      "expect": {"root": "proj/scripts/analysis", "source": "argument", "marker": null}
+    },
+    {
+      "id": "env-wins-over-git",
+      "tree": ["repo/config/", "repo/scripts/analysis/run.py"],
+      "git_init": ["repo"],
+      "script": "repo/scripts/analysis/run.py",
+      "env": "repo/scripts",
+      "expect": {"root": "repo/scripts", "source": "env", "marker": null}
+    },
+    {
+      "id": "env-applies-without-a-script",
+      "tree": ["proj/", "elsewhere/"],
+      "cwd": "elsewhere",
+      "script": null,
+      "env": "proj",
+      "expect": {"root": "proj", "source": "env", "marker": null}
+    },
+    {
+      "id": "missing-explicit-dir-fails-loudly",
+      "tree": ["proj/config/", "proj/scripts/run.py"],
+      "script": "proj/scripts/run.py",
+      "env": "typo",
+      "expect": {"error": "ValueError"}
+    },
+    {
+      "id": "cwd-containing-the-script",
+      "tree": ["work/code/run.py"],
+      "cwd": "work",
+      "script": "work/code/run.py",
+      "expect": {"root": "work", "source": "cwd", "marker": null}
+    },
+    {
+      "id": "home-as-cwd-is-never-a-root-for-a-script",
+      "tree": ["loose/s.py"],
+      "script": "loose/s.py",
+      "expect": {"root": "loose", "source": "script_dir", "marker": null},
+      "warns": true
+    },
+    {
+      "id": "search-never-reaches-home",
+      "tree": ["pyproject.toml", "config/", "scripts/", "loose/s.py"],
+      "script": "loose/s.py",
+      "expect": {"root": "loose", "source": "script_dir", "marker": null},
+      "warns": true
+    },
+    {
+      "id": "no-script-marked-ancestor-of-cwd",
+      "tree": ["proj/config/", "proj/scripts/analysis/"],
+      "cwd": "proj/scripts/analysis",
+      "script": null,
+      "expect": {"root": "proj", "source": "marker", "marker": "scripts/ + config/"}
+    },
+    {
+      "id": "no-script-no-marker-is-cwd-without-warning",
+      "tree": ["w/"],
+      "cwd": "w",
+      "script": null,
+      "expect": {"root": "w", "source": "cwd", "marker": null}
+    },
+    {
+      "id": "outside-home-the-ceiling-is-the-filesystem-root",
+      "tree": ["home/", "elsewhere/proj/pyproject.toml", "elsewhere/proj/code/run.py"],
+      "home": "home",
+      "script": "elsewhere/proj/code/run.py",
+      "expect": {"root": "elsewhere/proj", "source": "marker", "marker": "pyproject.toml"}
+    }
+  ]
+}

@@ -85,6 +85,13 @@ class SessionTracker:
         if script_path and Path(script_path).exists():
             self._script_hash = hash_file(script_path)
 
+        # Record WHICH project root (and which rule chose it) this run's
+        # store scope resolved from — the session's, an explicit one, or
+        # the standalone detection (see scitex_clew._core._project_root).
+        from ._db._paths import project_root_info
+
+        metadata = {**(metadata or {}), "clew_project_root": project_root_info()}
+
         # Register run in database
         self._db.add_run(
             session_id=session_id,
