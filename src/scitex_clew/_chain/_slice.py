@@ -56,6 +56,12 @@ scitex-session >= 0.3.6) and ``unresolved_imports`` (imported code no
 distribution owns — an explicit gap) are collected in
 :attr:`ProvenanceSlice.environment`; :meth:`ProvenanceSlice.requirements`
 merges them into what a re-run must install.
+
+Symlinks a kept run went THROUGH to reach a kept file (``alias -> data``, a
+chain, a symlinked directory, a link to outside the project; #192) are in
+:attr:`ProvenanceSlice.links` / ``to_dict()["links"]``: the link path, its
+recorded target and what to recreate it as (see :mod:`scitex_clew._links`).
+A materialized slice must recreate them — the run opens the link path.
 """
 
 from __future__ import annotations
@@ -74,6 +80,8 @@ from ._routes import (
     resolve_lineage,
     resolve_producer,
 )
+from ._slice_records import collect_links
+from ._slice_records import run_environment as _run_environment
 
 LEVEL_RUN_CLOSURE = 0
 LEVEL_PATH_PRUNED = 1
@@ -133,6 +141,16 @@ class ProvenanceSlice:
     #: Per kept run: ``{"packages": {dist: version}, "unresolved_imports":
     #: {module: location}}`` from its recorded metadata (absent = not recorded).
     environment: dict[str, dict] = field(default_factory=dict)
+    #: ``{link path: entry}`` — in-project symlinks a kept run went through to
+    #: a kept file (see :mod:`scitex_clew._links`); recreate them.
+    links: dict[str, dict] = field(default_factory=dict)
+
+    def required_links(self) -> list[dict]:
+        """Symlinks a materialized slice must recreate, in path order:
+        ``{"link", "target", "recreate", "resolved", "in_project", "kind",
+        "files", "runs"}`` (links to outside the project included: their
+        files are also in :meth:`required_external`)."""
+        return [dict(self.links[p]) for p in sorted(self.links)]
 
     def requirements(self) -> dict:
         """What a re-run of the slice must install, merged over its runs.
@@ -206,6 +224,9 @@ class ProvenanceSlice:
                 "via": info.get("via"),
                 "mtime": info.get("mtime"),
                 "runs": list(info.get("runs", [])),
+                "links": sorted(
+                    link for link, e in self.links.items() if p in e.get("files", [])
+                ),
             }
             for p, info in sorted(self.external.items())
         ]
@@ -230,6 +251,7 @@ class ProvenanceSlice:
                 for p in self.files
             ],
             "required_not_bundled": self.required_external(),
+            "links": self.required_links(),
             "environment": self.requirements(),
             "edges": [
                 {"source": e.source, "target": e.target, "kind": e.kind}
@@ -436,26 +458,8 @@ def build_slice(
         unrecorded_declarations={s: sorted(v) for s, v in unrecorded.items() if v},
         external=external,
         environment={s: env for s in order if (env := _run_environment(db, s))},
+        links=collect_links(db, order, kept_in, kept_out),
     )
-
-
-def _run_environment(db, sid: str) -> dict | None:
-    """``{"packages", "unresolved_imports"}`` recorded for run ``sid``."""
-    import json
-
-    run = db.get_run(sid) or {}
-    raw = run.get("metadata")
-    try:
-        meta = json.loads(raw) if isinstance(raw, str) else (raw or {})
-    except ValueError:
-        return None
-    if not isinstance(meta, dict) or "packages" not in meta:
-        return None
-    packages = meta.get("packages")
-    return {
-        "packages": dict(packages) if isinstance(packages, dict) else None,
-        "unresolved_imports": dict(meta.get("unresolved_imports") or {}),
-    }
 
 
 def _inputs_needed(index, sid, out_path, level, kept_out, fallback, unrecorded):

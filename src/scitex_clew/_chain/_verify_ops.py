@@ -114,6 +114,60 @@ def verify_file(
     )
 
 
+#: ``expected_hash`` / ``current_hash`` prefix of a symlink check.
+LINK_PREFIX = "symlink->"
+
+
+def verify_link(entry: dict, role: str = "input") -> FileVerification:
+    """Check a recorded symlink (see :mod:`scitex_clew._links`, #192).
+
+    VERIFIED when the link still exists and still resolves to the recorded
+    target; MISSING when the link itself is gone; MISMATCH when it is no
+    longer a link or now resolves elsewhere. Resolution is compared, not the
+    link text: a slice recreates an absolute in-project link as a relative
+    one. The target file's bytes are checked by its own file row.
+    """
+    import os
+
+    link = entry["link"]
+    expected = f"{LINK_PREFIX}{entry.get('resolved')}"
+    if os.path.islink(link):
+        current = f"{LINK_PREFIX}{os.path.realpath(link)}"
+        status = (
+            VerificationStatus.VERIFIED
+            if current == expected
+            else VerificationStatus.MISMATCH
+        )
+    elif os.path.lexists(link):
+        current, status = f"not a symlink: {link}", VerificationStatus.MISMATCH
+    else:
+        current, status = None, VerificationStatus.MISSING
+    return FileVerification(
+        path=link,
+        role=role,
+        expected_hash=expected,
+        current_hash=current,
+        status=status,
+        link=True,
+    )
+
+
+def _link_checks(run_info, input_hashes, output_hashes) -> list[FileVerification]:
+    """Link checks for the run's recorded symlinks reaching the checked files."""
+    from ._slice_records import run_metadata_of
+
+    checks = []
+    for entry in run_metadata_of(run_info).get("links") or []:
+        if not isinstance(entry, dict) or not entry.get("link"):
+            continue
+        files = set(entry.get("files") or [])
+        if files & set(input_hashes):
+            checks.append(verify_link(entry, role="input"))
+        elif files & set(output_hashes):
+            checks.append(verify_link(entry, role="output"))
+    return checks
+
+
 def _resolve_target(db, target: str) -> str | None:
     """Resolve target (session_id, script path, or artifact path) to session_id."""
     # Try as session_id
@@ -253,6 +307,13 @@ def verify_run(
                 frozen=path in frozen_outputs,
             )
         )
+
+    # The symlinks the run went through to reach those files (#192): an
+    # input link that vanished or was retargeted is a changed input.
+    for fv in _link_checks(run_info, input_hashes, output_hashes):
+        file_verifications.append(fv)
+        if propagate and fv.role == "input" and not fv.is_verified:
+            upstream_failed = True
 
     # Verify script if present
     if run_info.get("script_path") and run_info.get("script_hash"):
