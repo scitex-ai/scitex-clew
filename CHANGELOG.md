@@ -7,6 +7,28 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **External inputs** — files a run reads from OUTSIDE its project root
+  (shared datasets on `/data` `/scratch` / a NAS mount / `~/datasets`,
+  downloads, a sibling project's outputs) and in-project symlinks whose
+  target lies outside (`data/raw -> /mnt/shared/raw`) were silently dropped
+  by the 0.23.0 audit-hook capture. They are now recorded as input rows
+  flagged by a new `file_hashes.external` column (`{via, size, mtime}`;
+  `file_path` = resolved target, `hash` = bytes read). Precision: the
+  interpreter/stdlib/site-packages, imported package directories, system
+  trees, the temp dir, `$SCITEX_DIR`, hidden dot-paths, directories and
+  non-regular files are never recorded (`scitex_clew._capture_external`).
+  Configurable via `SCITEX_CLEW_EXTERNAL_INCLUDE` / `_EXCLUDE` /
+  `SCITEX_CLEW_EXTERNAL_CAPTURE=0` or `capture.external` in
+  `.scitex/clew/config.yaml`.
+- `clew slice` marks external nodes at every level and lists them as
+  `required_not_bundled` (path, hash, size, via, mtime, runs).
+- `clew verify`: new exit code **22 `EXTERNAL_MISSING`** — a claim's
+  lineage reads an outside file that is absent on this machine (and nothing
+  else failed). A changed external file is `STALE_LINEAGE` as before.
+- WARNING at session close and `RuntimeWarning` at `add_claim` when a
+  run/claim depends on files outside the project.
+
 ## [0.23.0] — 2026-11-17
 
 Minor release (new feature): unconscious file-I/O and project-code

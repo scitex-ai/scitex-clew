@@ -90,6 +90,10 @@ This classification turns the DAG into a navigable map of the research project. 
 
 All caching in Clew is **content-keyed**: every cache key is a SHA-256 hash of live file bytes — no mtime logic exists anywhere in the package. Per-pass hash caches are created fresh for each verification pass and never persisted; the opt-in `rerun_dag(skip_unchanged=True)` skip re-hashes the script and every recorded input before skipping (skipped sessions are marked `level=CACHE`, never `RERUN`); and stored verdicts are an append-only history, never read back to skip live hashing. A cache can speed up verification but can never return "verified" for content that has changed. Full audited statement: [Verification caching — correctness guarantee](src/scitex_clew/_skills/scitex-clew/03_python-api.md).
 
+### Capture Boundary: Inputs Outside the Project
+
+Inside an `@stx.session` run, clew records every file the run opens under the project root, whichever library opened it. Data read from **outside** the root (a shared dataset on `/data`, `/scratch`, a NAS mount, `~/datasets`, a sibling project's outputs, or an in-project symlink such as `data/raw -> /mnt/shared/raw`) is recorded as an **external input**: its resolved path, content hash, size, mtime (for information only; verification compares hashes) and the in-project path used. A slice cannot bundle these files, so `clew slice` lists them as *required but not bundled*. `clew verify` hash-checks them, and reports a missing one as `EXTERNAL_MISSING` (exit 22). Both the session close and `add_claim` warn about them. Interpreter, library, system, temp and hidden tool-state files are never recorded. The include/exclude knobs and the full exclusion list are in [Unconscious capture](src/scitex_clew/_skills/scitex-clew/16_unconscious-capture.md).
+
 ### Grouping for Readable DAGs
 
 Large pipelines emit many per-patient / per-fold files. The grouping API collapses related files into a single DAG node while preserving every underlying hash via a **Merkle root** — aggregate verification remains cryptographically meaningful.

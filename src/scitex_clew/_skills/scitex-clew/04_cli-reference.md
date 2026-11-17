@@ -123,6 +123,7 @@ except `no_lineage` (`warning`, which `--strict` promotes to `error`).
 | `18` | `STALE_LINEAGE`  | source has recorded lineage but it no longer holds — an upstream input/output/script changed or a run in it FAILED. Fires in default AND `--strict` mode |
 | `20` | `NO_CLAIMS`      | nothing registered — nothing to verify                           |
 | `21` | `VALUE_MISMATCH` | the value at a claim's `source_keys` disagrees with the claimed value beyond tolerance |
+| `22` | `EXTERNAL_MISSING` | the claim's lineage reads a file from OUTSIDE the project that is absent on this machine (nothing else failed) — restore it at its recorded path; see 16_unconscious-capture |
 
 When several `error`-severity classes co-occur, the single returned code is
 the highest-severity one (tamper/missing > value-mismatch > verify-error > stale-lineage > unverified > unsourced > no-lineage > empty);

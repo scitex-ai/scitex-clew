@@ -20,15 +20,25 @@ from ._claim import _json_mode
 def _run_status_to_exit_code(result) -> int:
     """Map a single-run RunVerification onto the fail-loud exit-code scheme.
 
-    A verified run -> ``OK`` (0). A locally broken run -> ``HASH_MISMATCH`` /
-    ``SOURCE_MISSING``; anything else not-verified (e.g. an unknown / missing
+    A verified run -> ``OK`` (0). A run whose only failures are inputs from
+    outside the project absent here -> ``EXTERNAL_MISSING``. A locally broken
+    run -> ``HASH_MISMATCH`` / ``SOURCE_MISSING``; anything else not-verified (e.g. an unknown / missing
     session) -> ``UNVERIFIED``.
     """
     from .._chain import VerificationStatus
-    from ._exit_codes import HASH_MISMATCH, OK, SOURCE_MISSING, UNVERIFIED
+    from .._chain._types import only_external_missing
+    from ._exit_codes import (
+        EXTERNAL_MISSING,
+        HASH_MISMATCH,
+        OK,
+        SOURCE_MISSING,
+        UNVERIFIED,
+    )
 
     if result.is_verified:
         return OK
+    if only_external_missing([result]):
+        return EXTERNAL_MISSING
     if result.status == VerificationStatus.MISMATCH:
         return HASH_MISMATCH
     if result.status == VerificationStatus.MISSING:
@@ -152,6 +162,8 @@ def verify(ctx: click.Context, session_id, strict: bool, config, as_json: bool):
       18  STALE_LINEAGE   recorded lineage no longer holds (upstream input
                           changed / a run in it failed) — default and --strict
       20  NO_CLAIMS       no claims registered — nothing to verify
+      22  EXTERNAL_MISSING lineage reads a file outside the project that is
+                          absent on this machine (restore it; not stale)
 
     A solver MUST run ``clew verify [--strict]`` before signalling DONE.
     DONE is legitimate ONLY on exit 0; any nonzero code means the agent
@@ -194,6 +206,7 @@ def verify(ctx: click.Context, session_id, strict: bool, config, as_json: bool):
                     "current_hash": f.current_hash,
                     "is_verified": f.is_verified,
                     "frozen": getattr(f, "frozen", False),
+                    "external": getattr(f, "external", False),
                 }
                 for f in result.files
             ],
@@ -211,6 +224,11 @@ def verify(ctx: click.Context, session_id, strict: bool, config, as_json: bool):
         if getattr(f, "frozen", False):
             click.echo(
                 f"  [{ficon}] {f.role:<6} FROZEN (trusted hash, not re-read): {f.path}"
+            )
+        elif getattr(f, "external", False):
+            click.echo(
+                f"  [{ficon}] {f.role:<6} EXTERNAL (outside the project, "
+                f"{f.status.value}): {f.path}"
             )
         else:
             click.echo(f"  [{ficon}] {f.role:<6} {f.path}")
