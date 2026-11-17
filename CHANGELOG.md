@@ -7,8 +7,13 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.24.1] — 2026-11-17
+
+Patch release: project code executed without importing (runpy, exec,
+exec_module, %run) is recorded as a code input (#185). No schema change.
+
 ### Added
-- **Executed-not-imported project code is a code input.** `runpy.run_path`,
+- **Executed-not-imported project code is a code input** (#185). `runpy.run_path`,
   `exec(compile(open(p).read(), p, "exec"))`, `exec(open(p).read())`,
   `importlib.util.spec_from_file_location` + `exec_module` (not in
   `sys.modules`) and IPython `%run` left no module behind, so a claim's slice
