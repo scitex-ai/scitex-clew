@@ -139,6 +139,13 @@ CLI_HELP = {
             Example("{prog} hash-file results/data.csv --json", ""),
         ),
     ),
+    "execute_notebook_cmd": CliHelp(
+        summary="Execute a notebook headless, top to bottom (needs nbclient).",
+        examples=(
+            Example("{prog} execute-notebook notebooks/analysis.ipynb", ""),
+            Example("{prog} execute-notebook notebooks/analysis.ipynb --cwd notebooks", ""),
+        ),
+    ),
     "hash_directory": CliHelp(
         summary="Print SHA-256 of every file in a directory (one per line by default).",
         examples=(

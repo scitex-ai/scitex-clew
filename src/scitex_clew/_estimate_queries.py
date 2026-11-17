@@ -165,7 +165,7 @@ def _cached_intermediate_hints(
         When provided, each unique file path is hashed at most once per
         call.  Pass ``None`` to disable caching.
     """
-    from ._hash import hash_file
+    from ._hash import hash_like
 
     hints: List[str] = []
     seen: set = set()
@@ -224,7 +224,7 @@ def _cached_intermediate_hints(
                 continue
 
             try:
-                current_hash = hash_file(artifact, hash_cache=hash_cache)
+                current_hash = hash_like(artifact, recorded_hash, hash_cache=hash_cache)
             except Exception:
                 continue
 

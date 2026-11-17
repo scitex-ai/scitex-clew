@@ -57,6 +57,9 @@ distribution owns — an explicit gap) are collected in
 :attr:`ProvenanceSlice.environment`; :meth:`ProvenanceSlice.requirements`
 merges them into what a re-run must install.
 
+A notebook-run kept run has the notebook as an input and a recipe in
+``reruns`` (run the notebook headless; see :mod:`scitex_clew._chain._notebook`).
+
 Symlinks a kept run went THROUGH to reach a kept file (``alias -> data``, a
 chain, a symlinked directory, a link to outside the project; #192) are in
 :attr:`ProvenanceSlice.links` / ``to_dict()["links"]``: the link path, its
@@ -80,7 +83,7 @@ from ._routes import (
     resolve_lineage,
     resolve_producer,
 )
-from ._slice_records import collect_links
+from ._slice_records import collect_links, collect_recipes
 from ._slice_records import run_environment as _run_environment
 
 LEVEL_RUN_CLOSURE = 0
@@ -144,6 +147,9 @@ class ProvenanceSlice:
     #: ``{link path: entry}`` — in-project symlinks a kept run went through to
     #: a kept file (see :mod:`scitex_clew._links`); recreate them.
     links: dict[str, dict] = field(default_factory=dict)
+    #: ``{sid: recipe}`` — how to re-execute a kept NOTEBOOK run (run the
+    #: notebook; see :mod:`scitex_clew._chain._notebook`). Other runs replay argv.
+    reruns: dict[str, dict] = field(default_factory=dict)
 
     def required_links(self) -> list[dict]:
         """Symlinks a materialized slice must recreate, in path order:
@@ -252,6 +258,7 @@ class ProvenanceSlice:
             ],
             "required_not_bundled": self.required_external(),
             "links": self.required_links(),
+            "reruns": {s: dict(r) for s, r in sorted(self.reruns.items())},
             "environment": self.requirements(),
             "edges": [
                 {"source": e.source, "target": e.target, "kind": e.kind}
@@ -459,6 +466,7 @@ def build_slice(
         external=external,
         environment={s: env for s in order if (env := _run_environment(db, s))},
         links=collect_links(db, order, kept_in, kept_out),
+        reruns=collect_recipes(db, order),
     )
 
 

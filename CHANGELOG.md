@@ -7,6 +7,49 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.26.0] — 2026-11-18
+
+Minor release: notebook-produced claims (#199, PR #200). New slice field
+(`reruns`), a new stored-hash scheme for notebook code inputs
+(`ipynb-code-v1:`), and a new command (`clew execute-notebook`); existing rows
+and behaviour unchanged. Pairs with scitex-session >= 0.4.0.
+
+Notebook-produced claims (#199). Pairs with scitex-session >= 0.4.0, which
+records a Jupyter kernel's notebook as `entry = {"kind": "notebook", "path",
+"invocation", "code_sha256", ...}` (scitex-ai/scitex-session#77).
+
+### Added
+- **The notebook is a code input of the run.** For an in-cell `@session` (the
+  notebook is the run's `script_path`) and a `%run script.py` session alike,
+  the `.ipynb` is recorded as an `input` row, so `clew slice` lists it and
+  `clew verify` flags an edited notebook. A `%run` script is also recorded as
+  an input row (byte hash): code the notebook ran.
+- **Notebook identity = its code cells** (`ipynb-code-v1:<sha256>`, the digest
+  scitex-session records as `code_sha256`; shared conformance vector).
+  Executing the notebook again or saving new outputs / execution counts /
+  metadata does not stale its runs; editing a code cell does. The scheme
+  travels with the stored value: every verifier re-hashes through
+  `hash_like(path, recorded)` (bytes unless the recorded value carries the
+  prefix), so an `.ipynb` recorded as data keeps its byte hash.
+  `hash_code(path)` gives a run script's identity.
+- **Explicit re-execution recipe** in slices: `to_dict()["reruns"][sid] =
+  {"kind": "notebook", "path", "cwd", "python", "argv", "command", "env",
+  "invocation", "script", "caveat"}` — run the notebook headless, top to
+  bottom, from the recorded cwd; never a replay of the kernel's argv.
+- **`clew execute-notebook NB [--cwd DIR]`** (`python -m scitex_clew execute-notebook`)
+  executes a notebook headless with nbclient (kernel cwd = DIR, notebook file
+  untouched, `$SCITEX_NOTEBOOK_PATH` set for the kernel). nbclient /
+  nbformat / ipykernel are optional: without them it exits 3 and says what to
+  install. clew still imports nothing beyond its own dependencies.
+- **`clew rerun` of an in-cell notebook run** executes a sandbox copy of the
+  notebook (kernel in the recorded cwd) and compares outputs as for scripts;
+  refused with an install hint when the recorded interpreter has no notebook
+  executor.
+
+### Changed
+- `dev` extra: `scitex-session>=0.4.0`, `ipykernel`, `nbclient`, `nbconvert`,
+  `nbformat` (real-kernel tests).
+
 ## [0.25.0] — 2026-11-18
 
 Minor release: clew's project root — store scope / project id, `claims.json`,

@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from ._db import get_db
 from ._db._file_hashes import _stat_size
-from ._hash import combine_hashes, hash_file
+from ._hash import combine_hashes, hash_code, hash_file
 from ._tracker_batch import _explicit_external, warn_external_inputs
 from ._tracker_batch import explicit_links, note_links, write_links
 from ._tracker_batch import record_hashed_inputs as _record_hashed_inputs
@@ -83,7 +83,8 @@ class SessionTracker:
 
         # Compute script hash if provided
         if script_path and Path(script_path).exists():
-            self._script_hash = hash_file(script_path)
+            # a notebook's identity is its code cells (scitex_clew._chain._notebook)
+            self._script_hash = hash_code(script_path)
 
         # Record WHICH project root (and which rule chose it) this run's
         # store scope resolved from — the session's, an explicit one, or
