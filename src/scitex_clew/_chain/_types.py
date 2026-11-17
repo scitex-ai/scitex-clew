@@ -74,6 +74,10 @@ class FileVerification:
     a sibling project's output, an in-project symlink to elsewhere). It is
     hash-checked like any input; when absent it is reported as a MISSING
     external input — a dependency this machine lacks, never a silent pass."""
+    link: bool = False
+    """True for a SYMLINK the run went through to reach a recorded file (#192):
+    ``path`` is the link, the hashes are ``symlink-><resolved target>``; it
+    verifies when the link still exists and resolves to the recorded target."""
 
     @property
     def is_verified(self) -> bool:

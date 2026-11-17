@@ -12,6 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ._db._file_hashes import _stat_size
+from ._links import absolute, link_entries, merge_link_entries
 
 
 def record_hashed_inputs(
@@ -75,6 +76,44 @@ def _explicit_external(path: Path) -> dict | None:
     return capture.external_for(path) if capture is not None else None
 
 
+def explicit_links(path: str | Path, real: str) -> list[dict]:
+    """In-project symlinks an EXPLICITLY recorded path went through (#192).
+
+    The project root is the active capture's; without one there is no root to
+    tell the project's links from the machine's, so nothing is recorded.
+    """
+    from ._capture import active_capture
+
+    capture = active_capture()
+    if capture is None:
+        return []
+    return link_entries(absolute(str(path)), capture.root, real)
+
+
+def note_links(tracker, entries) -> None:
+    """Fold symlink entries (see :mod:`scitex_clew._links`) into the run."""
+    merge_link_entries(tracker._links, list(entries))
+
+
+def write_links(tracker) -> list[dict]:
+    """Store the run's symlinks as ``metadata["links"]`` (at finalize).
+
+    Only links that reach a RECORDED file are kept, each listing those files;
+    a link that led only to an intermediate or a temp file is not a
+    dependency. Returns what was stored.
+    """
+    recorded = set(tracker._inputs) | set(tracker._outputs)
+    stored = []
+    for link in sorted(tracker._links):
+        entry = tracker._links[link]
+        files = sorted(f for f in entry["files"] if f in recorded)
+        if files:
+            stored.append({**entry, "files": files})
+    if stored:
+        tracker._db.merge_run_metadata(tracker.session_id, {"links": stored})
+    return stored
+
+
 def warn_external_inputs(session_id: str, external: dict[str, dict]) -> None:
     """One WARNING when a run depends on files outside its project."""
     if not external:
@@ -111,6 +150,14 @@ def relocate(tracker, old_prefix: str, new_prefix: str) -> int:
     for name in ("_inputs", "_outputs", "_external"):
         mapping = getattr(tracker, name)
         setattr(tracker, name, {move(p): v for p, v in mapping.items()})
+    tracker._links = {
+        move(link): {
+            **entry,
+            "link": move(link),
+            "files": [move(f) for f in entry["files"]],
+        }
+        for link, entry in tracker._links.items()
+    }
     tracker._declared = {
         move(p): (h, [move(d) for d in deps])
         for p, (h, deps) in tracker._declared.items()

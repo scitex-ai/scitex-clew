@@ -197,13 +197,18 @@ def _apply_relocations(tracker, metadata) -> int:
     so the combined hash covers the final paths. When ``archive`` is set the
     directory becomes ``<to>.tar.gz`` later; ``verify`` already reads files
     through such an archive. An output that is at neither place is warned
-    about, never silently dropped. Returns the number of rows changed.
+    about, never silently dropped. Claims whose source (or manuscript) path
+    lies under a moved directory — registered DURING the session against its
+    run dir — are rewritten too (#191, :mod:`scitex_clew._claim._relocate`).
+    Returns the number of file rows and claims changed.
     """
     if tracker is None or not isinstance(metadata, dict):
         return 0
+    from .._claim._relocate import relocate_claim_paths
     from .._db._relocate import relocated
 
     changed = 0
+    claims_moved: list[str] = []
     for item in metadata.get("relocations") or []:
         old = item.get("from") if isinstance(item, dict) else None
         new = item.get("to") if isinstance(item, dict) else None
@@ -217,6 +222,9 @@ def _apply_relocations(tracker, metadata) -> int:
             continue
         moved = [p for p in tracker._outputs if relocated(p, old, new) is not None]
         changed += tracker.relocate(old, new)
+        claims_moved += relocate_claim_paths(
+            old, new, session_id=tracker.session_id, outputs=tracker._outputs
+        )
         absent = [
             p
             for p in (relocated(m, old, new) for m in moved)
@@ -232,7 +240,12 @@ def _apply_relocations(tracker, metadata) -> int:
                 new,
                 absent[:10],
             )
-    return changed
+    if claims_moved:
+        # claims.json carries source paths: re-emit it at the final paths.
+        from .._claim._mutate import _auto_export
+
+        _auto_export("relocating claims of session " + tracker.session_id)
+    return changed + len(claims_moved)
 
 
 def _activate_capture(tracker, script_path, metadata) -> None:
