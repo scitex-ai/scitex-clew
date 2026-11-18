@@ -19,7 +19,7 @@ import json
 import os
 import subprocess
 import sys
-import time
+import shutil
 import uuid
 import warnings
 from importlib.metadata import distributions
@@ -126,9 +126,26 @@ def _wheelhouse(project: Path, out: Path) -> Path:
     return out
 
 
+def _pip_install(base: Path, label: str, *args: str) -> Path:
+    """Install with the venv's pip into ``<base>/<label>/lib/site-packages``."""
+    site = base / label / "lib" / "site-packages"
+    site.mkdir(parents=True)
+    python = base / "venv" / ("Scripts" if os.name == "nt" else "bin") / "python"
+    subprocess.run(
+        [str(python), "-m", "pip", "install", "--no-index", "--no-cache-dir"]
+        + ["--disable-pip-version-check", "--target", str(site), *args],
+        check=True,
+        capture_output=True,
+        env=_env(base),
+        timeout=300,
+    )
+    return site
+
+
 @pytest.fixture(scope="session")
 def sites(tmp_path_factory):
-    """Real ``site-packages`` dirs, one per install route / modification."""
+    """Real ``site-packages`` dirs, one per install route (never modified:
+    tests that edit an installation use ``edited_site``, a copy)."""
     base = tmp_path_factory.mktemp("clewdist")
     subprocess.run(
         [sys.executable, "-m", "venv", str(base / "venv")],
@@ -137,34 +154,29 @@ def sites(tmp_path_factory):
         env=_env(base),
         timeout=300,
     )
-    python = base / "venv" / ("Scripts" if os.name == "nt" else "bin") / "python"
     release = _project(base / "release", "VALUE = 1\n")
     patched = _project(base / "patched", "VALUE = 2  # local patch\n")
     wh_release = _wheelhouse(release, base / "wh_release")
     wh_patched = _wheelhouse(patched, base / "wh_patched")
-
-    def install(label: str, *args: str) -> Path:
-        site = base / label / "lib" / "site-packages"
-        site.mkdir(parents=True)
-        subprocess.run(
-            [str(python), "-m", "pip", "install", "--no-index", "--no-cache-dir"]
-            + ["--disable-pip-version-check", "--target", str(site), *args],
-            check=True,
-            capture_output=True,
-            env=_env(base),
-            timeout=300,
-        )
-        return site
-
-    out = {
-        "release": install("release", "--find-links", str(wh_release), NAME),
-        "patched": install("patched", "--find-links", str(wh_patched), NAME),
-        "local_dir": install("local_dir", str(patched)),
-        "edited": install("edited", "--find-links", str(wh_release), NAME),
+    return {
+        "release": _pip_install(base, "release", "--find-links", str(wh_release), NAME),
+        "patched": _pip_install(base, "patched", "--find-links", str(wh_patched), NAME),
+        "local_dir": _pip_install(base, "local_dir", str(patched)),
     }
-    time.sleep(0.01)
-    (out["edited"] / NAME / "__init__.py").write_text("VALUE = 9\n")  # same size
-    return out
+
+
+def _edit(site: Path) -> Path:
+    (site / NAME / "__init__.py").write_text("VALUE = 9\n")  # same size
+    return site
+
+
+@pytest.fixture
+def edited_site(sites, tmp_path):
+    """A per-test copy of the release install, edited after installation
+    (``copytree`` keeps the installed mtimes; the session sites stay intact)."""
+    site = tmp_path / "edited" / "lib" / "site-packages"
+    shutil.copytree(sites["release"], site)
+    return _edit(site)
 
 
 def _dist(site: Path):
@@ -212,10 +224,10 @@ class TestFingerprintConformance:
         # Assert
         assert (len(dists) > 10, disagree) == (True, [])
 
-    def test_clew_and_session_detect_the_same_edited_files(self, sites, installed_here):
+    def test_clew_and_session_detect_the_same_edited_files(self, sites, edited_site, installed_here):
         # Arrange
-        installed_here(sites["edited"])
-        session_view = session_dp.distribution_provenance(_dist(sites["edited"]))
+        installed_here(edited_site)
+        session_view = session_dp.distribution_provenance(_dist(edited_site))
         # Act
         clew_view = current_distribution(NAME)
         # Assert
@@ -234,9 +246,9 @@ class TestRecordedProvenance:
         # Assert
         assert _kinds(findings) == ["not_from_index"]
 
-    def test_index_install_edited_in_place_is_flagged(self, sites):
+    def test_index_install_edited_in_place_is_flagged(self, sites, edited_site):
         # Arrange
-        requirements = _recorded(sites["edited"])
+        requirements = _recorded(edited_site)
         # Act
         findings = environment_findings(requirements, check_current=False)
         # Assert
@@ -281,10 +293,10 @@ class TestAgainstThisEnvironment:
         # Assert
         assert findings == []
 
-    def test_installation_edited_here_is_flagged(self, sites, installed_here):
+    def test_installation_edited_here_is_flagged(self, sites, edited_site, installed_here):
         # Arrange
         requirements = _recorded(sites["release"])
-        installed_here(sites["edited"])
+        installed_here(edited_site)
         # Act
         findings = environment_findings(requirements, cache={})
         # Assert
