@@ -7,6 +7,7 @@ notebook named in ``$SCITEX_NOTEBOOK_PATH``, and leave the file untouched.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 
@@ -53,6 +54,28 @@ def test_execute_notebook_runs_the_kernel_in_cwd_and_names_the_notebook(executed
     named = seen.read_text()
     # Assert
     assert named == str(executed["path"].resolve())
+
+
+def test_execute_notebook_runs_under_a_tmpdir_too_deep_for_socket_paths(tmp_path):
+    # Arrange: a $TMPDIR deeper than a Unix socket path may be (CI work trees)
+    deep = tmp_path.joinpath(*(["d" * 30] * 4))
+    deep.mkdir(parents=True)
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [nbformat.v4.new_code_cell("x = 1\n")]
+    path = tmp_path / "a.ipynb"
+    nbformat.write(nb, str(path))
+    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": os.environ["HOME"],
+           "LANG": "C.UTF-8", "TMPDIR": str(deep)}  # fmt: skip
+    for key in ("PYTHONPATH", "COVERAGE_PROCESS_START", "COVERAGE_FILE"):
+        if key in os.environ:
+            env[key] = os.environ[key]
+    # Act
+    proc = subprocess.run(
+        [sys.executable, "-m", "scitex_clew", "execute-notebook", str(path)],
+        env=env, capture_output=True, text=True, timeout=300,
+    )  # fmt: skip
+    # Assert
+    assert (len(str(deep)) > 107, proc.returncode) == (True, 0), proc.stderr[-2000:]
 
 
 def test_execute_notebook_leaves_the_file_untouched(executed):

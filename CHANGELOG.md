@@ -58,7 +58,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   be handed the same port (`LocalPortCache` only deduplicates within one
   process). The kernel now talks over Unix-domain (`ipc`) sockets in a fresh
   private directory per execution, so no two kernels can share an address
-  (tcp is kept on Windows, which has no `ipc` kernels). The notebook tests that
+  (tcp is kept on Windows, which has no `ipc` kernels). The directory is made
+  under the temp dir when the socket paths fit the OS limit (`sun_path`, 107
+  bytes on Linux), else under `/tmp`, so a deep `$TMPDIR` (a CI work tree)
+  still works. The notebook tests that
   launch kernels through `nbconvert` use the same transport.
 
 ## [0.27.0] — 2026-11-18

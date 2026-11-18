@@ -20,12 +20,12 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import textwrap
 from pathlib import Path
 
 import pytest
 import scitex_clew as clew
+from scitex_clew._chain._notebook import kernel_channel_dir
 from scitex_clew._db import get_db
 
 nbformat = pytest.importorskip("nbformat")
@@ -110,7 +110,7 @@ def _execute(notebook: Path, cwd: Path, tmpdir: Path) -> None:
     nbconvert's default tcp, ports picked here and bound later by the kernel
     collide with a concurrently starting kernel ("Address already in use").
     """
-    channels = Path(tempfile.mkdtemp(prefix="clew-kernel-"))
+    channels = Path(kernel_channel_dir())  # short enough for socket paths
     try:
         proc = subprocess.run(
             [sys.executable, "-m", "nbconvert", "--to", "notebook", "--execute",

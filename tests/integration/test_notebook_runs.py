@@ -28,13 +28,16 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import textwrap
 import venv
 from pathlib import Path
 
 import pytest
-from scitex_clew._chain._notebook import NOTEBOOK_CODE_PREFIX, hash_notebook_code
+from scitex_clew._chain._notebook import (
+    NOTEBOOK_CODE_PREFIX,
+    hash_notebook_code,
+    kernel_channel_dir,
+)
 from scitex_clew._chain._rerun_sandbox import _notebook_executor_missing
 from scitex_clew._chain._slice import build_slice
 from scitex_clew._chain._verify_ops import verify_run
@@ -125,7 +128,7 @@ def _nbconvert(nb: Path, cwd: Path, *extra: str) -> None:
     # The kernel's channels are Unix sockets in a private directory: with
     # nbconvert's default tcp, ports picked here and bound later by the kernel
     # collide with a concurrently starting kernel ("Address already in use").
-    channels = Path(tempfile.mkdtemp(prefix="clew-kernel-"))
+    channels = Path(kernel_channel_dir())  # short enough for socket paths
     try:
         proc = subprocess.run(
             [sys.executable, "-m", "nbconvert", "--to", "notebook", "--execute",

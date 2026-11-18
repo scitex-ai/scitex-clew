@@ -47,6 +47,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -253,7 +254,8 @@ def execute_notebook(
     # The native kernel runs THIS interpreter — the run's recorded python
     # when invoked through the recipe — whatever kernelspec the file names.
     name = kernel_name or "python3"
-    with tempfile.TemporaryDirectory(prefix="clew-kernel-") as channels:
+    channels = kernel_channel_dir()
+    try:
         client = nbclient.NotebookClient(
             nb,
             km=_private_kernel_manager(name, channels),
@@ -262,6 +264,33 @@ def execute_notebook(
             resources={"metadata": {"path": cwd}},
         )
         client.execute()
+    finally:
+        shutil.rmtree(channels, ignore_errors=True)
+
+
+#: Longest Unix-domain socket path (``sizeof(sockaddr_un.sun_path) - 1`` on
+#: Linux; macOS allows 103, so the margin below covers both).
+_SOCKET_PATH_MAX = 103
+#: ``/clew-kernel-XXXXXXXX/kernel-NN`` appended to the base directory.
+_CHANNEL_SUFFIX_LEN = 32
+
+
+def kernel_channel_dir() -> str:
+    """A fresh private directory for one kernel's ``ipc`` sockets (caller removes).
+
+    Under the temp dir when the socket paths fit the OS limit there
+    (``sun_path``: 107 bytes on Linux, 103 on macOS); a deep ``$TMPDIR`` (a CI
+    runner's work tree, a macOS per-user folder) does not, so ``/tmp`` is
+    used then. Raises ``OSError`` naming the limit when neither fits.
+    """
+    for base in (tempfile.gettempdir(), "/tmp"):
+        if len(base) + _CHANNEL_SUFFIX_LEN <= _SOCKET_PATH_MAX and os.path.isdir(base):
+            return tempfile.mkdtemp(prefix="clew-kernel-", dir=base)
+    raise OSError(
+        f"clew: no directory short enough for kernel sockets "
+        f"(<= {_SOCKET_PATH_MAX - _CHANNEL_SUFFIX_LEN} chars): "
+        f"{tempfile.gettempdir()!r} and /tmp"
+    )
 
 
 def _private_kernel_manager(kernel_name: str, channels: str):
