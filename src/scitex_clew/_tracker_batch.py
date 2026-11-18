@@ -1,31 +1,54 @@
 #!/usr/bin/env python3
 """Batched recording + record maintenance for :class:`~scitex_clew._tracker.SessionTracker`.
 
-Bound onto the tracker as :meth:`SessionTracker.record_hashed_inputs`; kept in
-its own module because it is the bulk counterpart of ``record_input``, used by
-the file-access capture (:mod:`scitex_clew._capture`) that must hash at read
-time but must not pay a store round-trip per file inside the user's ``open()``.
+Bound onto the tracker as :meth:`SessionTracker.record_hashed_inputs` /
+:meth:`SessionTracker.flush_pending`. A session's file rows are QUEUED as they
+are recorded (:mod:`scitex_clew._db._deferred`) and its inputs' producers are
+bound in one lookup at flush time, so recording costs no store round trip per
+file — neither inside the user's ``open()`` nor inside ``stx.io.load``.
 """
 
 from __future__ import annotations
 
+import atexit
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 
 from ._db._file_hashes import _stat_size
 from ._links import absolute, link_entries, merge_link_entries
 
 
+#: Queued inputs that force a producer-binding flush (see _flush_pending).
+_MAX_UNBOUND = 500
+
+
+def _now_iso() -> str:
+    from datetime import datetime
+
+    return datetime.now().isoformat()
+
+
+def _captured_hash(path_str: str) -> str | None:
+    """The hash the active ``open()`` capture took of ``path_str``'s CURRENT
+    bytes, or None (no capture, never read, or changed since)."""
+    from ._capture import active_capture
+
+    capture = active_capture()
+    return capture.hash_at_open(path_str) if capture is not None else None
+
+
 def record_hashed_inputs(
     tracker, hashes: dict[str, str], external: dict[str, dict] | None = None
 ) -> dict[str, str]:
-    """Record many inputs whose bytes were ALREADY hashed, in one batch.
+    """Record many inputs whose bytes were ALREADY hashed.
 
     ``hashes`` maps resolved paths to the hash of the bytes that were read.
     Paths already recorded as inputs of this run are skipped (first record
-    wins, as in ``record_input``). Producers are bound by content hash exactly
-    as ``record_input`` does, with ONE producer lookup and ONE store
-    transaction for all of them. ``external`` maps the paths among them that
-    were read from OUTSIDE the project root to their ``external`` payload.
+    wins, as in ``record_input``). The rows are queued and their producers
+    bound at the next flush, exactly as ``record_input`` does. ``external``
+    maps the paths among them that were read from OUTSIDE the project root to
+    their ``external`` payload.
 
     Returns the ``{path: hash}`` newly recorded.
     """
@@ -34,37 +57,87 @@ def record_hashed_inputs(
     new = {p: h for p, h in hashes.items() if p not in tracker._inputs}
     if not new:
         return {}
-    from ._chain._routes import bind_input
-
     db = tracker._db
     external = external or {}
-    with db._file_hashes.batch():
-        for path_str, file_hash in new.items():
-            tracker._inputs[path_str] = file_hash
-            info = external.get(path_str)
-            if info is not None:
-                tracker._external[path_str] = info
-            db.add_file_hash(
-                session_id=tracker.session_id,
-                file_path=path_str,
-                hash_value=file_hash,
-                role="input",
-                size_bytes=_stat_size(path_str),
-                external=info,
-            )
-    producers = db.find_producer_records(list(new))
     for path_str, file_hash in new.items():
-        producer = bind_input(
-            producers.get(path_str, []),
-            consumer_session=tracker.session_id,
-            input_hash=file_hash,
+        tracker._inputs[path_str] = file_hash
+        info = external.get(path_str)
+        if info is not None:
+            tracker._external[path_str] = info
+        recorded_at = _now_iso()
+        db.add_file_hash(
+            session_id=tracker.session_id,
+            file_path=path_str,
+            hash_value=file_hash,
+            role="input",
+            size_bytes=_stat_size(path_str),
+            external=info,
+            defer=True,
+            recorded_at=recorded_at,
         )
-        if producer is not None and producer not in tracker._parent_sessions:
-            tracker._parent_sessions.add(producer)
-            db.add_parent(tracker.session_id, producer)
-            if tracker.parent_session is None:
-                tracker.parent_session = producer
+        tracker._unbound[path_str] = (file_hash, recorded_at)
+    tracker.flush_pending()
     return new
+
+
+def _flush_pending(tracker) -> int:
+    """Bind queued inputs to their producers, then write every queued row.
+
+    One producer lookup for all queued inputs (the lookup is a read, so the
+    queued rows are written first, in one transaction). Binding is the
+    lineage resolver's rule (:func:`scitex_clew._chain._routes.bind_input`):
+    the newest producer that recorded these bytes no later than the input
+    was recorded — the producer a lookup at load time would have found.
+    Returns the number of inputs bound to a producer.
+    """
+    pending, tracker._unbound = tracker._unbound, {}
+    db = tracker._db
+    bound = 0
+    if pending:
+        from ._chain._routes import bind_input
+
+        producers = db.find_producer_records(list(pending))
+        for path_str, (file_hash, recorded_at) in pending.items():
+            producer = bind_input(
+                producers.get(path_str, []),
+                consumer_session=tracker.session_id,
+                input_hash=file_hash,
+                input_recorded_at=recorded_at,
+            )
+            if producer is None:
+                continue
+            bound += 1
+            if producer not in tracker._parent_sessions:
+                tracker._parent_sessions.add(producer)
+                db.add_parent(tracker.session_id, producer)
+                if tracker._parent_session is None:
+                    tracker._parent_session = producer
+    db._file_hashes.flush()
+    return bound
+
+
+def _flush_current_at_exit() -> None:
+    """At interpreter exit, bind and write what an unclosed session queued."""
+    from ._tracker import get_tracker
+
+    tracker = get_tracker()
+    if tracker is None or tracker._finalized or not tracker._unbound:
+        return
+    try:
+        tracker.flush_pending()
+    except Exception as exc:  # noqa: BLE001 - at exit there is no caller
+        from ._core import getLogger
+
+        getLogger(__name__).warning(
+            "clew: could not record the queued inputs of session %s at exit "
+            "(%s: %s) — its provenance is INCOMPLETE",
+            tracker.session_id,
+            type(exc).__name__,
+            exc,
+        )
+
+
+atexit.register(_flush_current_at_exit)
 
 
 def _explicit_external(path: Path) -> dict | None:
@@ -144,6 +217,9 @@ def relocate(tracker, old_prefix: str, new_prefix: str) -> int:
     """
     from ._db._relocate import relocated
 
+    # Bind queued inputs at the paths they were READ from, before any moves.
+    tracker.flush_pending()
+
     def move(path: str) -> str:
         return relocated(path, old_prefix, new_prefix) or path
 
@@ -202,6 +278,83 @@ def record_output(
             "record_output requires an active clew.session()/start_tracking()"
         )
     return tracker.record_output(path, track=track, derived_from=derived_from)
+
+
+
+@contextmanager
+def session(
+    script_path: str | None = None,
+    session_id: str | None = None,
+    parent_session: str | None = None,
+    metadata: dict[str, Any] | None = None,
+):
+    """Zero-dependency provenance-recording context manager.
+
+    Records a REAL run in the clew DB — the ``runs`` row plus the
+    ``input -> output`` file-hash edges — using ONLY clew's pure-stdlib core.
+    So it works in stripped environments where ``import scitex`` / the
+    ``@stx.session`` decorator cannot load (no numpy/h5py/matplotlib/system
+    libs), giving a minimal-mode script a way to produce ``runs >= 1`` and a
+    source-reachable DAG that passes the provenance gate.
+
+    Inside the block, call ``run.record_input(path)`` / ``run.record_output(path)``
+    (or the module-level :func:`record_input` / :func:`record_output`, which act
+    on the current session) to hash + link files. A claim registered against a
+    recorded OUTPUT then grounds through the recorded run to whatever registered
+    source feeds it.
+
+    This is clew's OWN recorder — it does NOT import scitex-session; it is the
+    zero-dep counterpart to ``@stx.session`` (the full-stack path), sharing the
+    same ``runs`` / ``file_hashes`` tables. Use one or the other per run, not both.
+
+    Parameters
+    ----------
+    script_path : str, optional
+        Path to the script being run. Defaults to ``sys.argv[0]`` (the invoking
+        script) when not given.
+    session_id : str, optional
+        Unique run id. A random hex id is generated when omitted.
+    parent_session : str, optional
+        Explicit parent run id (parents are also auto-linked from inputs).
+    metadata : dict, optional
+        Extra run metadata.
+
+    Yields
+    ------
+    SessionTracker
+        The active tracker; call ``.record_input`` / ``.record_output`` on it.
+
+    Examples
+    --------
+    >>> import scitex_clew as clew
+    >>> with clew.session(script_path=__file__) as run:
+    ...     run.record_input("data/raw.csv")
+    ...     # ... stdlib compute; write results/out.json with open()/json ...
+    ...     run.record_output("results/out.json")
+    ...     clew.add_claim("paper.tex", "value", 42, "0.94",
+    ...                    source_file="results/out.json")
+    """
+    import sys
+    import uuid
+
+    from ._tracker import get_tracker, start_tracking, stop_tracking
+
+    sid = session_id or uuid.uuid4().hex
+    spath = script_path if script_path is not None else (sys.argv[0] or None)
+    start_tracking(
+        sid,
+        script_path=spath,
+        parent_session=parent_session,
+        metadata=metadata,
+    )
+    status, exit_code = "success", 0
+    try:
+        yield get_tracker()
+    except BaseException:
+        status, exit_code = "error", 1
+        raise
+    finally:
+        stop_tracking(status=status, exit_code=exit_code)
 
 
 # EOF

@@ -10,6 +10,7 @@ tags: [scitex-clew-env-vars]
 | Variable | Purpose | Default | Type |
 |---|---|---|---|
 | `SCITEX_STORE_DSN` | Override for THE store this host uses. Owned by `scitex_dev.store.host_store()`, not by clew. | per-host PostgreSQL over its UNIX socket | Postgres DSN |
+| `SCITEX_CLEW_CAPTURE` | Whole-capture switch. `0`/`false`/`no`/`off` turns ALL automatic recording off: the `@stx.session` / `stx.io` hooks open no run, record no file, install no audit hook and never touch the store (one WARNING per process says so). Explicit API calls (`clew.session()`, `record_input`, `add_claim`, `verify`) still run. For no-recording baselines and runs you do not want recorded. See 16_unconscious-capture.md. | `1` (on) | bool |
 | `SCITEX_CLEW_AUDIT_CAPTURE` | Inside a session, record files opened under the project root by any Python code (audit hook). `0`/`false`/`no`/`off` disables it for performance-sensitive runs (a WARNING says so); imported-code capture stays on. See 16_unconscious-capture.md. | `1` (on) | bool |
 | `SCITEX_CLEW_DEBUG_MODE` | Enable verbose tracing for claim execution and DAG re-run. | `false` | bool |
 | `SCITEX_API_TOKEN` | Ecosystem-wide API token (shared with scitex-cloud); used when clew tools call remote endpoints. | `—` | string (required when remote) |
@@ -40,6 +41,9 @@ it.
 ## Feature flags
 
 - **opt-in:** `SCITEX_CLEW_DEBUG_MODE=true` to enable debug tracing (verbose, default off).
+- **opt-out:** `SCITEX_CLEW_CAPTURE=0` turns all automatic recording off;
+  `SCITEX_CLEW_AUDIT_CAPTURE=0` only the `open()` capture;
+  `SCITEX_CLEW_EXTERNAL_CAPTURE=0` only external-input recording.
 
 ## Config files (`.scitex/clew`)
 

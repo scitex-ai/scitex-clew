@@ -86,6 +86,7 @@ from pathlib import Path
 from typing import Any
 
 from .._core._logging import getLogger
+from ._deferred import DeferredWritesMixin
 from ._paths import _find_project_root, _legacy_project_root, project_root_info
 
 logger = getLogger(__name__)
@@ -290,7 +291,7 @@ def resolve_project_scope() -> str:
     return str(root)
 
 
-class ProjectScopedStore:
+class ProjectScopedStore(DeferredWritesMixin):
     """A ``Store`` whose records are confined to one project.
 
     Wraps rather than subclasses so there is exactly one seam: every read
@@ -302,11 +303,16 @@ class ProjectScopedStore:
 
     The scope is captured at construction, so a store opened before the
     environment changes keeps answering for the project it was opened for.
+
+    Writes may be QUEUED (:meth:`defer_put`, see :mod:`._deferred`); every
+    other access flushes the queue first, so this process never reads past
+    a queued write.
     """
 
     def __init__(self, store, project: str | None = None) -> None:
         self._store = store
         self._project = project if project is not None else resolve_project_scope()
+        self._init_deferred()
 
     # -- introspection ----------------------------------------------------
     @property
@@ -342,53 +348,72 @@ class ProjectScopedStore:
 
     # -- reads ------------------------------------------------------------
     def rows(self, *, include_hidden: bool = False) -> list:
-        return [
-            row
-            for row in self._store.rows(include_hidden=include_hidden)
-            if row.values.get(PROJECT_FIELD) == self._project
-        ]
+        """Every row of THIS project — the project filter runs in SQL.
+
+        One host database holds every project on the machine; filtering the
+        scope client-side decoded every other project's rows too, so a read
+        here cost O(all projects' records), not O(this project's).
+        """
+        from scitex_dev.store import Query
+
+        query = Query().with_hidden() if include_hidden else Query()
+        return self.search(query)
 
     def search(self, query):
         """This project's rows matching ``query`` — filtered in SQL, not Python.
 
-        :meth:`rows` decodes the WHOLE table and filters client-side; a
-        per-file lookup through it costs O(table) per call. Use this for
-        point queries (e.g. "output rows for these paths").
+        :meth:`rows` returns the WHOLE project; a per-file lookup through it
+        costs O(project) per call. Use this for point queries (e.g. "output
+        rows for these paths", "this session's rows").
         """
         from scitex_dev.store import eq
 
+        self.flush()
         return self._store.search(query.where(eq(PROJECT_FIELD, self._project)))
 
     def batch(self):
         """One durable transaction for many writes (``Store.batch``)."""
+        self.flush()
         return self._store.batch()
 
     def get(self, key, *, include_hidden: bool = False):
+        self.flush()
         return self._store.get(self._key(key), include_hidden=include_hidden)
 
     def is_hidden(self, key):
+        self.flush()
         return self._store.is_hidden(self._key(key))
 
     # -- writes -----------------------------------------------------------
     def put(self, values: Mapping[str, Any], **kwargs):
+        self.flush()
         return self._store.put(self._values(values), **kwargs)
 
     def hide(self, key, **kwargs):
+        self.flush()
         return self._store.hide(self._key(key), **kwargs)
 
     def unhide(self, key, **kwargs):
+        self.flush()
         return self._store.unhide(self._key(key), **kwargs)
 
     # -- lifecycle --------------------------------------------------------
     def close(self) -> None:
-        self._store.close()
+        """Write any queued rows, then close (a close never drops records)."""
+        try:
+            self.flush()
+        finally:
+            self._store.close()
 
     def __enter__(self) -> ProjectScopedStore:
         self._store.__enter__()
         return self
 
     def __exit__(self, *exc) -> None:
-        self._store.__exit__(*exc)
+        try:
+            self.flush()
+        finally:
+            self._store.__exit__(*exc)
 
 
 # EOF

@@ -3,12 +3,11 @@
 # File: src/scitex_clew/_db/_file_hashes.py
 """File-hash record operations for VerificationDB (Store-backed).
 
-Every read is ``self._file_hashes.rows()`` (a ``scitex_dev.store.Store``
-built in ``_core.py``) filtered/sorted in Python — Store has no
-WHERE/JOIN/ORDER-BY. This is an accepted O(n)-scan trade-off for what is
-normally a small store (see the PR body). No raw DB driver import here
-(the legacy raw
-`file_hashes` mirror and its `_mirror_file_hash` helper are gone).
+Reads are ``self._file_hashes.search(Query...)``: filtered in SQL, so a
+per-session or per-path lookup decodes only the rows it returns, never the
+whole table (``verify`` and recording make one such lookup per run / per
+input, and a table scan per call made both grow with the project). No raw DB
+driver import here.
 """
 
 from __future__ import annotations
@@ -20,6 +19,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from scitex_dev.store import ANY_REVISION
+
+from ._record_views import RecordViewsMixin, decode_record
 
 
 def _resolve_host() -> str | None:
@@ -59,7 +60,7 @@ def _resolve_abspath(file_path: str) -> str:
     return str(Path(file_path).resolve())
 
 
-class FileHashMixin:
+class FileHashMixin(RecordViewsMixin):
     """Mixin providing file-hash CRUD operations.
 
     Requires ``self._file_hashes`` (a Store instance) from VerificationDB.
@@ -79,6 +80,8 @@ class FileHashMixin:
         frozen: bool = False,
         derived_from: list[str] | None = None,
         external: dict | None = None,
+        defer: bool = False,
+        recorded_at: str | None = None,
     ) -> None:
         """Add a file hash record.
 
@@ -115,9 +118,19 @@ class FileHashMixin:
             INPUT rows only: ``{"via", "size", "mtime"}`` when the file was
             read from OUTSIDE the project root (``via`` is the in-project
             path used, e.g. a symlink, else None). ``None`` = in-project.
+        defer : bool, optional
+            Queue the row instead of committing it now (see
+            :mod:`scitex_clew._db._deferred`): written in one transaction with
+            the rest of the queue at the next access to the store, at session
+            close, or at exit. The row is identical either way — it carries
+            the time it was recorded, not the time it was flushed.
+        recorded_at : str, optional
+            ISO time the file was recorded (default: now).
         """
         host = _resolve_host()
-        self._file_hashes.put(
+        write = self._file_hashes.defer_put if defer else self._file_hashes.put
+        kwargs = {} if defer else {"expected_revision": ANY_REVISION}
+        write(
             {
                 "session_id": session_id,
                 "file_path": file_path,
@@ -126,13 +139,13 @@ class FileHashMixin:
                 "size_bytes": size_bytes,
                 "frozen": frozen,
                 "host": host,
-                "recorded_at": _now_iso(),
+                "recorded_at": recorded_at or _now_iso(),
                 "derived_from": (
                     json.dumps(list(derived_from)) if derived_from is not None else None
                 ),
                 "external": json.dumps(external) if external is not None else None,
             },
-            expected_revision=ANY_REVISION,
+            **kwargs,
         )
 
     def add_file_hashes(
@@ -169,106 +182,18 @@ class FileHashMixin:
             )
 
     # -------------------------------------------------------------------------
-    # Query
+    # Query — per-session views (get_file_hashes, get_frozen_files,
+    # get_file_records, get_external_files) live in RecordViewsMixin and all
+    # derive from session_file_records(): ONE query per session.
     # -------------------------------------------------------------------------
 
-    def get_file_hashes(
-        self,
-        session_id: str,
-        role: str | None = None,
-    ) -> dict[str, str]:
-        """Get file hashes for a session.
+    def session_file_records(self, session_id: str) -> list[dict]:
+        """Every file row of one session, decoded (``frozen`` included).
 
-        Parameters
-        ----------
-        session_id : str
-            Session identifier.
-        role : str, optional
-            Filter by role.
-
-        Returns
-        -------
-        dict
-            Mapping of file paths to hashes.
+        Filtered in SQL: a client-side scan of the table per session made
+        ``verify`` cost (runs in the slice) x (rows in the project).
         """
-        rows = self._rows_for_session(session_id, role)
-        return {r.values.get("file_path"): r.values.get("hash") for r in rows}
-
-    def get_frozen_files(
-        self,
-        session_id: str,
-        role: str | None = None,
-    ) -> set:
-        """Return the set of file paths that are marked frozen for a session.
-
-        Additive helper — does not change the return type of ``get_file_hashes``
-        so all existing callers remain behavior-identical.
-
-        Parameters
-        ----------
-        session_id : str
-            Session identifier.
-        role : str, optional
-            Filter by role (input, output, script, …).
-
-        Returns
-        -------
-        set of str
-            File paths whose ``frozen`` flag is 1 in the DB for this session.
-        """
-        rows = self._rows_for_session(session_id, role)
-        return {r.values.get("file_path") for r in rows if r.values.get("frozen")}
-
-    def get_file_records(
-        self,
-        session_id: str,
-        role: str | None = None,
-    ) -> list[dict[str, str | None]]:
-        """Return a session's file rows WITH their record time.
-
-        Like :meth:`get_file_hashes` but keeps ``recorded_at``, which the
-        lineage resolver needs to bind an input to a producer that recorded
-        the same bytes BEFORE the input was loaded.
-
-        Returns
-        -------
-        list of dict
-            ``[{"file_path", "hash", "recorded_at", "role", "derived_from",
-            "external", "size_bytes"}, ...]`` in store order. ``derived_from``
-            is the declared list (see :meth:`add_file_hash`) or ``None`` when
-            undeclared; ``external`` is the outside-the-project payload or
-            ``None`` for an in-project file.
-        """
-        out = []
-        for r in self._rows_for_session(session_id, role):
-            raw = r.values.get("derived_from")
-            ext = r.values.get("external")
-            out.append(
-                {
-                    "file_path": r.values.get("file_path"),
-                    "hash": r.values.get("hash"),
-                    "recorded_at": r.values.get("recorded_at"),
-                    "role": r.values.get("role"),
-                    "derived_from": json.loads(raw) if raw else None,
-                    "external": json.loads(ext) if ext else None,
-                    "size_bytes": r.values.get("size_bytes"),
-                }
-            )
-        return out
-
-    def get_external_files(
-        self,
-        session_id: str,
-        role: str | None = "input",
-    ) -> dict[str, dict]:
-        """``{path: external payload}`` of a session's files read from OUTSIDE
-        the project root (see :meth:`add_file_hash`)."""
-        out: dict[str, dict] = {}
-        for r in self._rows_for_session(session_id, role):
-            raw = r.values.get("external")
-            if raw:
-                out[r.values.get("file_path")] = json.loads(raw)
-        return out
+        return [decode_record(r.values) for r in self._rows_for_session(session_id, None)]
 
     def find_producer_records(
         self,
@@ -318,12 +243,15 @@ class FileHashMixin:
         return result
 
     def _rows_for_session(self, session_id: str, role: str | None):
-        return [
-            r
-            for r in self._file_hashes.rows()
-            if r.values.get("session_id") == session_id
-            and (role is None or r.values.get("role") == role)
-        ]
+        """A session's rows (optionally one role), in record order — in SQL."""
+        from scitex_dev.store import Query, eq
+
+        query = Query().where(eq("session_id", session_id))
+        if role is not None:
+            query = query.where(eq("role", role))
+        return self._file_hashes.search(
+            query.ordered_by("recorded_at", descending=False)
+        )
 
     def find_session_by_file(
         self,
@@ -348,13 +276,12 @@ class FileHashMixin:
         list of str
             List of session IDs.
         """
-        file_path = _resolve_abspath(file_path)
-        rows = [
-            r
-            for r in self._file_hashes.rows()
-            if r.values.get("file_path") == file_path
-            and (role is None or r.values.get("role") == role)
-        ]
+        from scitex_dev.store import Query, eq
+
+        query = Query().where(eq("file_path", _resolve_abspath(file_path)))
+        if role is not None:
+            query = query.where(eq("role", role))
+        rows = self._file_hashes.search(query)
         rows.sort(key=lambda r: r.values.get("recorded_at") or "", reverse=True)
         return _dedup([r.values.get("session_id") for r in rows])
 
@@ -396,12 +323,13 @@ class FileHashMixin:
         for original in file_paths:
             resolved_to_original.setdefault(_resolve_abspath(original), original)
 
-        rows = [
-            r
-            for r in self._file_hashes.rows()
-            if r.values.get("role") == role
-            and r.values.get("file_path") in resolved_to_original
-        ]
+        from scitex_dev.store import Query, eq, is_in
+
+        rows = self._file_hashes.search(
+            Query().where(
+                eq("role", role), is_in("file_path", list(resolved_to_original))
+            )
+        )
         rows.sort(key=lambda r: r.values.get("recorded_at") or "", reverse=True)
         result: dict[str, list[str]] = {}
         for r in rows:

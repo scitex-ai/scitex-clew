@@ -27,6 +27,11 @@ class RunIndex:
         self.db = db
         self._records: dict[str, list[dict]] = {}
         self._bindings: dict[str, dict[str, str]] = {}
+        # Built once per run: the walk asks for a run's inputs once per
+        # DEMANDED output, so rebuilding them made a run with many demanded
+        # outputs cost outputs x inputs.
+        self._inputs: dict[str, dict[str, str | None]] = {}
+        self._outputs: dict[str, dict[str, dict]] = {}
 
     def records(self, sid: str, role: str) -> list[dict]:
         if sid not in self._records:
@@ -34,10 +39,20 @@ class RunIndex:
         return [r for r in self._records[sid] if r.get("role") == role]
 
     def inputs(self, sid: str) -> dict[str, str | None]:
-        return {r["file_path"]: r.get("hash") for r in self.records(sid, "input")}
+        """``{path: hash}`` of the run's inputs (shared; do not mutate)."""
+        if sid not in self._inputs:
+            self._inputs[sid] = {
+                r["file_path"]: r.get("hash") for r in self.records(sid, "input")
+            }
+        return self._inputs[sid]
 
     def outputs(self, sid: str) -> dict[str, dict]:
-        return {r["file_path"]: r for r in self.records(sid, "output")}
+        """``{path: record}`` of the run's outputs (shared; do not mutate)."""
+        if sid not in self._outputs:
+            self._outputs[sid] = {
+                r["file_path"]: r for r in self.records(sid, "output")
+            }
+        return self._outputs[sid]
 
     def external(self, sid: str) -> dict[str, dict]:
         """``{path: external payload}`` of the run's outside-the-project inputs."""

@@ -49,6 +49,15 @@ _ACCMODE = getattr(os, "O_ACCMODE", 3)
 _tls = threading.local()
 
 
+def _signature(path: str) -> tuple[int, int, int] | None:
+    """``(size, mtime_ns, inode)`` of ``path``, or None when it cannot be read."""
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    return st.st_size, st.st_mtime_ns, st.st_ino
+
+
 def _under(path: str, root: str) -> bool:
     return path == root or path.startswith(root + os.sep)
 
@@ -108,6 +117,9 @@ class RunCapture(CodeExecCapture):
         self._read_set: set[str] = set()
         self.writes: set[str] = set()
         self._pending_reads: dict[str, str] = {}
+        #: resolved path -> stat signature of the bytes hashed at open time,
+        #: so the stx.io load hook can reuse that hash (see hash_at_open).
+        self._read_sigs: dict[str, tuple[int, int, int]] = {}
         #: resolved path -> ``external`` payload of every external input read.
         self.external: dict[str, dict] = {}
         self._external_writes: set[str] = set()
@@ -280,13 +292,30 @@ class RunCapture(CodeExecCapture):
 
         _tls.busy = True
         try:
+            signature = _signature(real)
             self._pending_reads[real] = hash_file(real)
+            if signature is not None and signature == _signature(real):
+                self._read_sigs[real] = signature
             if external:
                 self.external[real] = external_info(real, via)
         except Exception as exc:  # noqa: BLE001
             self._fail(f"hash input {real}: {type(exc).__name__}: {exc}")
         finally:
             _tls.busy = False
+
+    def hash_at_open(self, real: str) -> str | None:
+        """The hash taken when ``real`` was opened, if its bytes are unchanged.
+
+        ``stx.io.load`` opens a file (captured here, hashed) and then fires
+        clew's load hook, which records the same file: the hook reuses this
+        hash instead of reading the file a second time. "Unchanged" is the
+        same ``(size, mtime_ns, inode)`` as when it was hashed — the file is
+        hashed again whenever that cannot be shown.
+        """
+        signature = self._read_sigs.get(real)
+        if signature is None or signature != _signature(real):
+            return None
+        return self._pending_reads.get(real)
 
     def _fail(self, message: str) -> None:
         if not self.errors:

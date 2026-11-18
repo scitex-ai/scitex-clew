@@ -62,9 +62,9 @@ class ChainMixin:
 
     def get_children(self, session_id: str) -> List[str]:
         """Get child sessions that depend on this session."""
-        children = [
-            r for r in self._runs.rows() if r.values.get("parent_session") == session_id
-        ]
+        from scitex_dev.store import Query, eq
+
+        children = self._runs.search(Query().where(eq("parent_session", session_id)))
         children.sort(key=lambda r: r.values.get("started_at") or "")
         return [r.values.get("session_id") for r in children]
 
@@ -134,11 +134,9 @@ class ChainMixin:
         list of str
             List of parent session IDs
         """
-        edges = [
-            r
-            for r in self._session_parents.rows()
-            if r.values.get("session_id") == session_id
-        ]
+        from scitex_dev.store import Query, eq
+
+        edges = self._session_parents.search(Query().where(eq("session_id", session_id)))
         edges.sort(key=lambda r: r.values.get("recorded_at") or "")
         return [r.values.get("parent_session") for r in edges]
 

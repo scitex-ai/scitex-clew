@@ -47,12 +47,12 @@ class ContentQueryMixin:
             Session IDs that recorded the content, newest-first
             (``recorded_at`` desc). Empty when the content is unknown.
         """
-        rows = [
-            r
-            for r in self._file_hashes.rows()
-            if r.values.get("hash") == content_hash
-            and (role is None or r.values.get("role") == role)
-        ]
+        from scitex_dev.store import Query, eq
+
+        query = Query().where(eq("hash", content_hash))
+        if role is not None:
+            query = query.where(eq("role", role))
+        rows = self._file_hashes.search(query)
         rows.sort(key=lambda r: r.values.get("recorded_at") or "", reverse=True)
         return _dedup([r.values.get("session_id") for r in rows])
 
@@ -73,10 +73,12 @@ class ContentQueryMixin:
         list of str
             Distinct non-null host names, ordered alphabetically.
         """
+        from scitex_dev.store import Query, eq
+
         hosts = {
             r.values.get("host")
-            for r in self._file_hashes.rows()
-            if r.values.get("hash") == content_hash and r.values.get("host") is not None
+            for r in self._file_hashes.search(Query().where(eq("hash", content_hash)))
+            if r.values.get("host") is not None
         }
         return sorted(hosts)
 

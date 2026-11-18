@@ -3,10 +3,8 @@
 # File: src/scitex_clew/_db/_queries.py
 """Verification recording, history, and statistics queries (Store-backed).
 
-Every read is ``self._verifications.rows()`` / ``self._runs.rows()`` /
-``self._file_hashes.rows()`` (``scitex_dev.store.Store`` instances built in
-``_core.py``) filtered/sorted/counted in Python — Store has no
-WHERE/JOIN/ORDER-BY/COUNT.
+Per-session reads filter in SQL (``store.search(Query...)``); ``stats()``
+reads the whole project (``rows()``) and counts in Python.
 
 ``verification_results`` uses a synthetic uuid4 IDENTITY (``verification_id``)
 rather than a composite of (session_id, level, verified_at): the original
@@ -98,9 +96,9 @@ class VerificationQueryMixin:
         list of dict
             Verification results ordered by timestamp (newest first)
         """
-        rows = [
-            r for r in self._verifications.rows() if r.values.get("session_id") == session_id
-        ]
+        from scitex_dev.store import Query, eq
+
+        rows = self._verifications.search(Query().where(eq("session_id", session_id)))
         rows.sort(key=lambda r: r.values.get("verified_at") or "", reverse=True)
         return [
             {

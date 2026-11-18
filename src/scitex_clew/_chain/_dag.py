@@ -98,7 +98,10 @@ def verify_dag(
     DAGVerification
         Unified verification result for the entire DAG
     """
-    db = get_db()
+    from ._pass_cache import pass_records
+
+    # One read cache for the pass: each run's rows are read once (._pass_cache).
+    db = pass_records(get_db())
 
     # Resolve targets to leaf session IDs
     leaf_sessions = []
@@ -144,6 +147,7 @@ def verify_dag(
             propagate=False,
             hash_cache=hash_cache,
             slice_files=slice_.run_files(sid) if slice_ else None,
+            db=db,
         )
 
     # Propagate failures forward through the DAG

@@ -79,7 +79,11 @@ continues — the loss is also written to the run's ``metadata["capture"]``.
 Opt out (performance-sensitive runs): ``SCITEX_CLEW_AUDIT_CAPTURE=0`` disables
 the ``open`` capture (a WARNING says the run's provenance relies on stx.io
 alone). ``SCITEX_CLEW_EXTERNAL_CAPTURE=0`` disables only the external-input
-recording. Code-module capture is cheap and always on.
+recording. Code-module capture is cheap and always on while recording is.
+
+``SCITEX_CLEW_CAPTURE=0`` turns ALL automatic recording off (see
+:func:`recording_enabled`): no run record, no file rows, no audit hook, no
+store connection from the session / stx.io hooks.
 
 Not seen: files opened by C/C++ code that bypasses Python's ``open`` (e.g.
 HDF5 via ``h5py``, some ``pyarrow`` readers), memory maps of already-open
@@ -99,12 +103,15 @@ from ._run import _FALSY, ENV_VAR, RunCapture, _tls
 logger = getLogger(__name__)
 
 __all__ = [
+    "CAPTURE_ENV_VAR",
     "ENV_VAR",
     "RunCapture",
     "activate",
     "active_capture",
     "audit_capture_enabled",
     "finish",
+    "recording_enabled",
+    "warn_recording_off",
 ]
 
 _PROBE_EVENT = "scitex_clew.capture.probe"
@@ -112,6 +119,38 @@ _PROBE_EVENT = "scitex_clew.capture.probe"
 _ACTIVE: RunCapture | None = None
 #: None = not attempted; True = installed; str = why installation failed.
 _INSTALL_STATE: bool | str | None = None
+
+
+#: Set to ``0`` / ``false`` / ``no`` / ``off`` to turn ALL automatic recording
+#: off (the whole-capture switch; :data:`ENV_VAR` turns off only ``open``).
+CAPTURE_ENV_VAR = "SCITEX_CLEW_CAPTURE"
+
+_WARNED_OFF = False
+
+
+def recording_enabled() -> bool:
+    """False when :data:`CAPTURE_ENV_VAR` turns clew's automatic recording off.
+
+    Off means the session and stx.io hooks do nothing: no run is opened, no
+    file is hashed or recorded, the audit hook is not installed and the store
+    is not touched. Explicit API calls (``clew.session()``, ``record_input``,
+    ``add_claim``, ``verify``) still do what they are asked. Read at each
+    hook call, so it can be flipped between runs of one process.
+    """
+    return os.environ.get(CAPTURE_ENV_VAR, "1").strip().lower() not in _FALSY
+
+
+def warn_recording_off() -> None:
+    """One WARNING per process that recording is off (never silent)."""
+    global _WARNED_OFF
+    if not _WARNED_OFF:
+        _WARNED_OFF = True
+        logger.warning(
+            "clew: %s=0 — provenance recording is OFF: sessions and stx.io "
+            "loads/saves in this process are NOT recorded, and claims resting "
+            "on them will not verify",
+            CAPTURE_ENV_VAR,
+        )
 
 
 def audit_capture_enabled() -> bool:
