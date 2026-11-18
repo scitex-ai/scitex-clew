@@ -7,6 +7,10 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-11-18
+
+Minor release (new public API `recover_journals`, CLI
+`recover-journals`, run statuses `killed` / `incomplete`, three env vars).
 Fixes a 0.30.0 regression: a run killed before it closed lost its record.
 0.30.0 queued a session's rows in memory and wrote them at close. A process
 killed outright (`SIGKILL`, the OOM killer, a container or agent-harness
