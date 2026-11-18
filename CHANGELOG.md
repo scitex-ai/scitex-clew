@@ -7,6 +7,30 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **A notebook run records its notebook in ONE role, as a `.py` run records
+  its script.** An in-cell `@session` recorded the `.ipynb` as the run's
+  `script` AND as an `input` row, filing the run's own code as data it read
+  (the paper's E1 capture precision on notebook probes was 0.80 for that
+  extra row alone); a `%run script.py` session likewise recorded the script
+  as both `script` and `input`. Now the run's script — notebook or `.py` — is
+  `script` only; a `%run` session's driving notebook (code the run did not
+  start from) stays an `input` row (identity = code cells). Editing a code
+  cell still stales the run (`STALE_LINEAGE`, 18) through the script check
+  (`script_hash` is the `ipynb-code-v1:` code identity), and `clew slice`
+  still lists the code a notebook run's recipe executes among its `files`.
+  Rows recorded by 0.26.0–0.27.0 keep their extra input row.
+- **`clew execute-notebook` (and `clew rerun` of a notebook run) no longer
+  fails intermittently with `ZMQError: Address already in use`** when kernels
+  start concurrently. jupyter_client's tcp transport picks the kernel's five
+  ports in the launching process (bind to port 0, read, close) and the kernel
+  binds them later in its own process; in between another starting kernel can
+  be handed the same port (`LocalPortCache` only deduplicates within one
+  process). The kernel now talks over Unix-domain (`ipc`) sockets in a fresh
+  private directory per execution, so no two kernels can share an address
+  (tcp is kept on Windows, which has no `ipc` kernels). The notebook tests that
+  launch kernels through `nbconvert` use the same transport.
+
 ## [0.27.0] — 2026-11-18
 
 Minor release: temp-dir files that pre-existed the process are recorded as

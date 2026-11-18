@@ -18,11 +18,14 @@ Identity
     an ``.ipynb`` recorded as plain DATA keeps its byte hash.
 
 Record
-    :func:`record_notebook_input` makes the notebook an ``input`` row of the
-    run (the edge slice, chain, verify and rerun staging already follow, as
-    for an imported project module), so ``clew slice`` lists it and ``clew
-    verify`` flags an edited notebook. A ``%run`` script stays a code input
-    of its own: the run's ``script_path``, and an input row (byte hash).
+    Each file has ONE role, as for a ``.py`` entry script. A notebook that is
+    the run's ``script_path`` (in-cell ``@session``) is its ``script``:
+    ``script_hash`` is its code identity, so ``clew verify`` flags an edited
+    code cell through the script check. For a ``%run script.py`` session the
+    script is the run's ``script`` and :func:`record_notebook_input` records
+    the driving notebook as an ``input`` row (code the run did not start
+    from, like an imported module). :func:`notebook_code_files` gives the
+    code a run's recipe executes, which ``clew slice`` lists among its files.
 
 Re-execution
     :func:`rerun_recipe` is the explicit recipe a slice carries per run:
@@ -45,6 +48,7 @@ import hashlib
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 #: Prefix of a stored notebook CODE hash (vs a byte hash of the file).
@@ -128,31 +132,51 @@ def notebook_of(metadata: dict | None) -> dict | None:
 
 
 def record_notebook_input(tracker, metadata: dict | None) -> list[str]:
-    """Record the code a notebook run executed as INPUT rows (see module doc).
+    """Record a notebook that ran the session, but is NOT its script, as input.
 
-    The notebook itself (identity = code cells), and — for a ``%run
-    script.py`` session, whose ``script_path`` is the script — the script
-    too (byte hash): from the notebook's point of view it is code the
-    notebook ran, and a slice must carry both to re-execute the notebook.
-    Returns the recorded paths ([] for a run without a resolved notebook).
+    One file, one role — as for a ``.py`` entry script. When the notebook IS
+    the run's ``script_path`` (``@session`` called in a cell) it is the run's
+    ``script`` (``script_hash`` = its code identity) and nothing is recorded
+    here: an extra ``input`` row would file the run's own code as data it
+    read. For a ``%run script.py`` session the script is the run's
+    ``script``; the driving notebook is code the run did not start from, so
+    it is an ``input`` row (identity = code cells), like an imported module.
+    Returns the recorded paths ([] when there is nothing to record).
     """
     entry = notebook_of(metadata)
     if entry is None:
         return []
-    from .._hash import hash_file
-
-    found: dict[str, str] = {}
     path = os.path.realpath(str(entry["path"]))
-    if os.path.isfile(path):
-        found[path] = hash_notebook_code(path)
     script = getattr(tracker, "script_path", None)
-    if entry.get("invocation") == "run" and script and os.path.isfile(script):
-        real = os.path.realpath(str(script))
-        if real != path:
-            found[real] = hash_file(real)
-    if found:
-        tracker.record_hashed_inputs(found)
-    return sorted(found)
+    if not os.path.isfile(path) or (script and os.path.realpath(str(script)) == path):
+        return []
+    tracker.record_hashed_inputs({path: hash_notebook_code(path)})
+    return [path]
+
+
+def notebook_code_files(run_info: dict | None, input_hashes: dict) -> dict:
+    """``{path: stored hash}`` of the code a notebook run's recipe executes.
+
+    The notebook and, for a ``%run`` session, the script it ran — each with
+    the hash recorded for it in its one role (``script_hash`` for the run's
+    script, the input row otherwise; None if neither). A slice carries these
+    so it can re-execute the run. ``{}`` for a non-notebook run.
+    """
+    entry = notebook_of(run_metadata(run_info))
+    if entry is None:
+        return {}
+    run_info = run_info or {}
+    script = run_info.get("script_path") or None
+    real_script = os.path.realpath(script) if script else None
+    out: dict = {}
+    for path in (str(entry["path"]), script):
+        if not path:
+            continue
+        if real_script and os.path.realpath(path) == real_script:
+            out[path] = run_info.get("script_hash")
+        else:
+            out[path] = input_hashes.get(path, input_hashes.get(os.path.realpath(path)))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -229,10 +253,44 @@ def execute_notebook(
     # The native kernel runs THIS interpreter — the run's recorded python
     # when invoked through the recipe — whatever kernelspec the file names.
     name = kernel_name or "python3"
-    client = nbclient.NotebookClient(
-        nb, timeout=timeout, kernel_name=name, resources={"metadata": {"path": cwd}}
+    with tempfile.TemporaryDirectory(prefix="clew-kernel-") as channels:
+        client = nbclient.NotebookClient(
+            nb,
+            km=_private_kernel_manager(name, channels),
+            timeout=timeout,
+            kernel_name=name,
+            resources={"metadata": {"path": cwd}},
+        )
+        client.execute()
+
+
+def _private_kernel_manager(kernel_name: str, channels: str):
+    """A kernel manager whose kernel cannot collide with any other kernel.
+
+    jupyter_client's default TCP transport picks the kernel's five ports in
+    THIS process (bind to port 0, read the number, close the socket), writes
+    them to the connection file, and the kernel binds them only later, in its
+    own process. In between, the ports are free: a concurrently starting
+    kernel (parallel CI, a batch of re-executions) can be handed the same
+    number and the loser dies with ``ZMQError: Address already in use``.
+    ``LocalPortCache`` only deduplicates within one process.
+
+    The kernel's channels are therefore Unix-domain (``ipc``) sockets, named
+    under ``channels`` — a fresh private directory of this call — so no other
+    kernel can be handed the same address; the connection file lives there
+    too. On Windows, where jupyter does not offer ``ipc`` kernels, the
+    platform's only transport (tcp) is used as before.
+    """
+    from jupyter_client.manager import AsyncKernelManager
+
+    if os.name == "nt":
+        return AsyncKernelManager(kernel_name=kernel_name)
+    return AsyncKernelManager(
+        kernel_name=kernel_name,
+        transport="ipc",
+        ip=os.path.join(channels, "kernel"),
+        connection_file=os.path.join(channels, "kernel.json"),
     )
-    client.execute()
 
 
 # EOF

@@ -120,8 +120,9 @@ def on_session_start(
             parent_session=parent_session,
             metadata=metadata,
         )
-        # A Jupyter-kernel session: its notebook is a code input of the run
-        # (identity = code cells), for in-cell and %run sessions alike.
+        # A Jupyter-kernel session: an in-cell session's notebook is already
+        # its script (one role, as for a .py); a %run session's driving
+        # notebook is recorded as a code input (identity = code cells).
         from .._chain._notebook import record_notebook_input
 
         record_notebook_input(get_tracker(), metadata)

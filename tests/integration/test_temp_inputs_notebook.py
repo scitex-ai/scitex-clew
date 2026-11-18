@@ -20,11 +20,11 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import textwrap
 from pathlib import Path
 
 import pytest
-
 import scitex_clew as clew
 from scitex_clew._db import get_db
 
@@ -104,12 +104,22 @@ def _env(tmpdir: Path) -> dict[str, str]:
 
 
 def _execute(notebook: Path, cwd: Path, tmpdir: Path) -> None:
-    """Run the notebook headless in a real kernel; raise with stderr on failure."""
-    proc = subprocess.run(
-        [sys.executable, "-m", "nbconvert", "--to", "notebook", "--execute",
-         "--stdout", os.path.relpath(notebook, cwd)],
-        cwd=cwd, env=_env(tmpdir), capture_output=True, text=True, timeout=300,
-    )  # fmt: skip
+    """Run the notebook headless in a real kernel; raise with stderr on failure.
+
+    The kernel's channels are Unix sockets in a private directory: with
+    nbconvert's default tcp, ports picked here and bound later by the kernel
+    collide with a concurrently starting kernel ("Address already in use").
+    """
+    channels = Path(tempfile.mkdtemp(prefix="clew-kernel-"))
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "nbconvert", "--to", "notebook", "--execute",
+             "--KernelManager.transport=ipc", f"--KernelManager.ip={channels / 'kernel'}",
+             "--stdout", os.path.relpath(notebook, cwd)],
+            cwd=cwd, env=_env(tmpdir), capture_output=True, text=True, timeout=300,
+        )  # fmt: skip
+    finally:
+        shutil.rmtree(channels, ignore_errors=True)
     if proc.returncode != 0:
         stderr = proc.stderr.replace(os.environ["SCITEX_STORE_DSN"], "<dsn>")
         raise RuntimeError(f"nbconvert failed:\n{stderr[-3000:]}")
