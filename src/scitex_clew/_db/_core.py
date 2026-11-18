@@ -278,7 +278,7 @@ class VerificationDB(
             else:
                 meta[key] = value
         self._runs.put(
-            {"session_id": session_id, "metadata": self._metadata_json(meta)},
+            {"session_id": session_id, "metadata": self._metadata_json(meta, default=str)},
             expected_revision=ANY_REVISION,
         )
         return True

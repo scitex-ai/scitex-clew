@@ -149,11 +149,17 @@ class EnvironmentStoreMixin:
         out[REF_KEY] = ref
         return out
 
-    def _metadata_json(self, metadata: Mapping[str, Any] | None) -> str | None:
-        """The JSON text a run row stores for ``metadata``."""
+    def _metadata_json(
+        self, metadata: Mapping[str, Any] | None, *, default=None
+    ) -> str | None:
+        """The JSON text a run row stores for ``metadata``.
+
+        ``default`` is ``json.dumps``'s: None (the run-opening put) raises on
+        a value JSON cannot hold, as it always did; a merge passes ``str``.
+        """
         if not metadata:
             return None
-        return json.dumps(self._externalize(dict(metadata)), default=str)
+        return json.dumps(self._externalize(dict(metadata)), default=default)
 
     # -- read ----------------------------------------------------------------
 
