@@ -96,30 +96,16 @@ def verify_claim(
             result["claim"]["status"] = "mismatch"
             return result
 
-    # Claim-value-vs-source check: only when the claim declares WHERE in the
-    # source its value lives. A value that contradicts its source is a
-    # failed claim however intact the file's hash is.
-    if claim.source_file and claim.source_keys:
-        from ._locator import check_claim_against_source
+    # The claimed VALUE: text vs registered value, a located value vs its
+    # source, and a locator-free value justified by search or reported
+    # unchecked (see _claim._value_check). A contradicted value stops here.
+    if claim.source_file:
+        from ._value_check import check_claim_value
 
-        checks = check_claim_against_source(
-            claim.checked_value,
-            claim.source_file,
-            claim.source_keys,
-            claim.tolerance or {},
-        )
-        result["value_checks"] = checks
-        result["details"].extend(f"value[{c['field']}]: {c['detail']}" for c in checks)
-        if any(c["error"] for c in checks):
-            # Could not READ a located value: unverifiable, never OK.
-            result["value_error"] = "; ".join(c["detail"] for c in checks if c["error"])
-            _update_claim_status(claim.claim_id, "suspect", db)
-            result["claim"]["status"] = "suspect"
-            return result
-        result["value_verified"] = all(c["ok"] for c in checks)
-        if not result["value_verified"]:
-            _update_claim_status(claim.claim_id, "mismatch", db)
-            result["claim"]["status"] = "mismatch"
+        stop_status = check_claim_value(claim, result)
+        if stop_status:
+            _update_claim_status(claim.claim_id, stop_status, db)
+            result["claim"]["status"] = stop_status
             return result
 
     # Verify the chain if we have a source file. Only the claim's minimal
@@ -169,8 +155,13 @@ def verify_claim(
             result["chain_error"] = f"{type(e).__name__}: {e}"
             result["details"].append(f"Chain verification error: {e}")
 
-    # Update status
-    if result["source_verified"] and result["chain_verified"]:
+    # Update status. A claim whose stated value could not be checked is not
+    # "verified" (green) whatever its hash and chain say: it is "suspect".
+    if (
+        result["source_verified"]
+        and result["chain_verified"]
+        and "value_unchecked" not in result
+    ):
         _update_claim_status(claim.claim_id, "verified", db)
         result["claim"]["status"] = "verified"
     elif result["source_verified"]:
@@ -256,7 +247,8 @@ def _classify_claim(result: dict, *, strict: bool) -> int:
       claim registered against nothing computable — exactly the hand-coded
       ``results.json`` story).
     * Source file gone → ``SOURCE_MISSING``.
-    * a value at one of its ``source_keys`` disagrees with the claimed value
+    * the claim text does not state its registered structured ``value``, or
+      a value at one of its ``source_keys`` disagrees with the claimed value
       → ``VALUE_MISMATCH``; a locator could not be read → ``VERIFY_ERROR``.
     * Stored hash != current hash → ``HASH_MISMATCH``.
     * The lineage walk raised → ``VERIFY_ERROR`` (never ``OK``).
@@ -275,6 +267,9 @@ def _classify_claim(result: dict, *, strict: bool) -> int:
         * no lineage at all, strict → ``NO_LINEAGE`` (hand-written leaf,
           no ``@stx.session`` provenance upstream).
         * lineage verified → ``OK``.
+        * where either of the two would be ``OK`` but the claim states a value
+          that has no ``source_keys`` and that a search of the source could
+          not justify → ``VALUE_UNCHECKED`` (warning; error under --strict).
     """
     from .._cli._exit_codes import (
         EXTERNAL_MISSING,
@@ -285,6 +280,7 @@ def _classify_claim(result: dict, *, strict: bool) -> int:
         STALE_LINEAGE,
         UNVERIFIED,
         VALUE_MISMATCH,
+        VALUE_UNCHECKED,
         VERIFY_ERROR,
     )
 
@@ -307,8 +303,11 @@ def _classify_claim(result: dict, *, strict: bool) -> int:
         return VERIFY_ERROR
 
     if result.get("source_verified"):
+        # A stated value nothing checked: the weakest failure, reported only
+        # where the claim would otherwise pass.
+        ok = VALUE_UNCHECKED if result.get("value_unchecked") else OK
         if result.get("chain_verified"):
-            return OK
+            return ok
         chain_status = result.get("chain_status")
         if chain_status == "error":
             return VERIFY_ERROR
@@ -316,7 +315,7 @@ def _classify_claim(result: dict, *, strict: bool) -> int:
             return EXTERNAL_MISSING
         if chain_status is not None and chain_status != "no_lineage":
             return STALE_LINEAGE
-        return NO_LINEAGE if strict else OK
+        return NO_LINEAGE if strict else ok
 
     # Source linked but neither verified nor explicitly failed: it was
     # never put through a real verification pass (verified_at null).
