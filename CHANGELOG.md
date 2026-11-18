@@ -7,6 +7,12 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-11-18
+
+Minor release: temp-dir files that pre-existed the process are recorded as
+external inputs (PR #203). Runs that read hand-staged temp state now verify
+as `EXTERNAL_MISSING` (22) when it is gone instead of passing silently.
+
 ### Changed
 - **Temp-dir files that pre-existed the process are external inputs.** The
   external-input boundary used to drop the temp dir wholesale, so a scratch
