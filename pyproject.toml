@@ -90,6 +90,10 @@ dev = [
     # (tests/integration/test_notebook_runs.py). >=0.5.0: package_provenance
     # (tests/scitex_clew/_chain/test__env_requirements.py; it skips without).
     "scitex-session>=0.5.0",
+    # The evidence-provider tests validate clew's report against the vendored
+    # scitex-live-paper.evidence-report schema (draft 2020-12). Test-only: the
+    # adapter itself needs no validator. scitex-io comes with scitex-session.
+    "jsonschema>=4.18",
     # Real Jupyter kernels for the notebook tests (and `clew run-notebook`,
     # whose executor is optional at runtime).
     "ipykernel",
@@ -110,6 +114,12 @@ clew = "scitex_clew._cli._main:main"
 scitex-clew = "scitex_clew._cli._main:main"
 [project.entry-points."scitex.apps"]
 clew = "scitex_clew._django.apps:ClewAppConfig"
+
+# Evidence provider for scitex-live-paper, through its provider-neutral contract
+# (scitex-live-paper.evidence-report 1.0.0, schema vendored in the package).
+# Neither side imports the other; live-paper finds this by entry point only.
+[project.entry-points."scitex.livepaper.renderers"]
+clew = "scitex_clew._evidence_provider:EvidenceEntry"
 
 [project.entry-points."scitex_dev.docs"]
 scitex-clew = "scitex_clew"

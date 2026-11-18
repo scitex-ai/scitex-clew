@@ -50,7 +50,7 @@ scitex_clew.status(...)
 * [03_python-api.md](03_python-api.md) — public callables
 * [04_cli-reference.md](04_cli-reference.md) — `clew` subcommands
 * [05_verify-claim-contract.md](05_verify-claim-contract.md) — `verify_claim` consumer contract: return shape, status vocabularies, palette + display collapse, DB precedence, re-verify recipe
-* [06_minimal-slice-and-claim-values.md](06_minimal-slice-and-claim-values.md) — minimal slice + claim value-vs-source
+* [06_minimal-slice-and-claim-values.md](06_minimal-slice-and-claim-values.md) — minimal slice + claim value-vs-source; [07](07_evidence-provider.md) — live-paper evidence
 * [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — workflows + CLI detail + MCP refs
 * [13_registered-source-gate.md](13_registered-source-gate.md) — registered-source whitelist + amber `unsourced` verdict: `clew register-source`, hash-pinned manifest, grounding gate, exit `17`
 * [15_zero-dep-session.md](15_zero-dep-session.md) — the zero-dependency `clew.session()` provenance recorder: pure-stdlib `runs` + file-hash edges (fallback for `@stx.session`)
@@ -87,8 +87,7 @@ clew list-sources        # Show registered sources + OK/TAMPERED/MISSING
 clew stats               # Database statistics
 clew mermaid             # Generate Mermaid DAG diagram
 clew mcp start           # Start MCP server
-clew skills list         # List skill pages
-clew skills get SKILL    # Get a specific skill page
+clew dev skills list     # List skill pages
 ```
 
 `clew verify` (no arg) is the agent DONE gate: exit `0` only when every

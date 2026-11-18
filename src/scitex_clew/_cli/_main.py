@@ -30,6 +30,7 @@ from ._citation import citation, verify_citations_cmd
 from ._claim import claim
 from ._estimate import estimate
 from ._export import export_claims as export_claims_cmd
+from ._export_evidence import export_evidence as export_evidence_cmd
 from ._export_hints import export_hints as export_hints_cmd
 from ._hash import hash_directory, hash_file
 from ._help_specs import CLI_HELP
@@ -77,7 +78,7 @@ COMMAND_CATEGORIES = [
             "estimate",
         ],
     ),
-    ("Claims", ["claim", "export-claims", "export-hints"]),
+    ("Claims", ["claim", "export-claims", "export-hints", "export-evidence"]),
     (
         "Sources",
         [
@@ -275,6 +276,7 @@ main.add_command(mcp)
 main.add_command(claim)
 main.add_command(export_claims_cmd)
 main.add_command(export_hints_cmd)
+main.add_command(export_evidence_cmd)
 
 # Registered-source gate: register-source (human WRITE path) + list/unregister.
 main.add_command(register_source_cmd)

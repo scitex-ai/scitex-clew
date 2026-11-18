@@ -1,0 +1,84 @@
+---
+description: |
+  [TOPIC] clew as an evidence provider for scitex-live-paper
+  [DETAILS] Implements contract scitex-live-paper.evidence-report 1.0.0 (schema vendored); entry point scitex.livepaper.renderers -> clew (port "evidence"); `clew export-evidence --out report.json`; outcome -> state/reason table; level-1 slice -> graph nodes/edges.
+tags: [scitex-clew-evidence-provider]
+---
+
+# Evidence provider (scitex-live-paper contract 1.0.0)
+
+clew supplies the per-claim evidence that scitex-live-paper renders. The two
+are coupled **only** through live-paper's published, provider-neutral
+contract `scitex-live-paper.evidence-report` **1.0.0**. clew does not import
+live-paper, and live-paper does not import clew. The schema is vendored
+version-pinned at
+`src/scitex_clew/_evidence_provider/evidence-report.schema.1.0.0.json`, and
+clew's own tests validate every report against it.
+
+## Connecting
+
+In process, live-paper discovers the entry point (no configuration needed
+once both are installed):
+
+```toml
+[project.entry-points."scitex.livepaper.renderers"]
+clew = "scitex_clew._evidence_provider:EvidenceEntry"   # port = "evidence", name = "clew"
+```
+
+```bash
+scitex-live-paper render bundle/ --out site/ --evidence-provider clew --evidence-root /path/to/project
+```
+
+Out of process, write the report file and hand it over:
+
+```bash
+clew export-evidence --out report.json                  # all registered claims of ./
+clew export-evidence --project-root ../paper --claim auc --out -   # stdout
+scitex-live-paper render bundle/ --out site/ --evidence-report report.json
+```
+
+`export-evidence` exits 0 when the report was written, whatever the claims'
+states. It is an export, not a gate (`clew verify --strict` is the gate).
+
+Python: `scitex_clew._evidence_provider.build_evidence_report(root, claim_ids, options)`
+and `build_evidence_graph(root, claim_id, options)`. Option
+`with_graphs=False` omits each `graph` key, so the consumer fetches graphs on
+demand.
+
+## What the report holds
+
+It holds one entry per **registered** claim. Unregistered text never appears.
+Verification is always `verify_all_claims(strict=True)`, scoped to
+`project_root`. A value counts as supported only when its source also has a
+recorded computation behind it.
+
+| clew outcome (code) | state | reason |
+|---|---|---|
+| OK (0) | supported | value and sources check out against the recorded run |
+| VALUE_MISMATCH (21) | not_supported | value in source differs: `<src>` in source vs `<stated>` stated |
+| HASH_MISMATCH (12) | not_supported | source changed after the claim was registered |
+| STALE_LINEAGE (18) | not_supported | source changed after the run (an input, script or run changed) |
+| EXTERNAL_MISSING (22) | not_supported | an input from outside the project is absent here, … |
+| ENV_NOT_REPRODUCIBLE (23) | not_supported | the recorded software environment cannot be reproduced … |
+| SOURCE_MISSING (11) / VERIFY_ERROR (19) / UNSOURCED (17) | not_supported | plain reason |
+| VALUE_UNCHECKED (24) | not_checkable | no locator, value not checked |
+| NO_LINEAGE (13) | no_evidence_graph | no evidence graph: the source has no recorded computation behind it |
+| UNVERIFIED (10) | no_evidence_graph | no evidence graph: no source is linked to the claim |
+| anything else | not_supported | clew reported `<NAME>` (never supported) |
+
+`provider_status` is `{name, code}` and `details` is clew's per-claim
+details list. `location.file` and `source.file` are relative to
+`project_root` (absolute when outside it). `source.locator` is the claim's
+`source_keys`.
+
+**Graph:** the claim's level-1 slice is converted as follows.
+
+- Each run becomes a `process` node, labelled with its session id.
+- Each file becomes an `output` node if a kept run wrote it, otherwise an
+  `input` node. Its label is the path relative to the project root, it
+  carries its `hash`, and an input from outside the project has
+  `external: true`.
+- The claim gets a `claim` node with `supports` edges from the slice targets.
+- The summary reads `level-1 slice: N run(s), M file(s)`.
+
+A claim with no source file has `graph: null` and a `graph_error`.

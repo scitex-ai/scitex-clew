@@ -7,6 +7,32 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Evidence provider for scitex-live-paper** (`scitex_clew._evidence_provider`),
+  implementing live-paper's provider-neutral contract
+  `scitex-live-paper.evidence-report` **1.0.0**. Neither package imports the
+  other. The schema is vendored version-pinned
+  (`evidence-report.schema.1.0.0.json`) and clew's tests validate the report
+  against it.
+  - Entry point `[project.entry-points."scitex.livepaper.renderers"] clew =
+    "scitex_clew._evidence_provider:EvidenceEntry"` (`port = "evidence"`,
+    `name = "clew"`). The adapter implements `evidence_report(project_root,
+    claim_ids, options)` and `evidence_graph(project_root, claim_id, options)`.
+  - Per registered claim, the report holds:
+    - the `verify_all_claims(strict=True)` outcome, scoped to `project_root`
+      and mapped to `supported` / `not_supported` / `not_checkable` /
+      `no_evidence_graph`, with a plain reason and `provider_status {name,
+      code}`;
+    - the claim record (location, stated text and value, source file and
+      locator), with paths relative to the project;
+    - its level-1 slice as an evidence graph (process, input and output
+      nodes, plus a claim node with `supports` edges).
+  - An unknown outcome is never reported as supported.
+  - New CLI verb `clew export-evidence --out report.json` writes the same
+    report for out-of-process use.
+  - Skill leaf `07_evidence-provider.md`.
+  - `jsonschema` added to the `dev` extra (test-only).
+
 ## [0.32.0] — 2026-11-19
 
 Minor release: the store gains a table set (`environments`) and the run-row
