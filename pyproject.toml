@@ -87,8 +87,9 @@ dev = [
     # test_session_036_seam.py) drive a REAL scitex-session >= 0.3.6 run
     # (relocations / entry / packages). Test-only: clew itself has no
     # runtime dependency on scitex-session. >=0.4.0: the notebook entry
-    # (tests/integration/test_notebook_runs.py).
-    "scitex-session>=0.4.0",
+    # (tests/integration/test_notebook_runs.py). >=0.5.0: package_provenance
+    # (tests/scitex_clew/_chain/test__env_requirements.py; it skips without).
+    "scitex-session>=0.5.0",
     # Real Jupyter kernels for the notebook tests (and `clew run-notebook`,
     # whose executor is optional at runtime).
     "ipykernel",
