@@ -117,6 +117,24 @@ Disables the `open` capture only (a WARNING says provenance relies on stx.io
 alone); imported-code capture stays on. Overhead per `open()` is a few µs on
 the cached path — measure with `tests/develop/bench_audit_capture.py`.
 
+To turn ALL automatic recording off (a no-recording baseline, or a run whose
+provenance you do not want):
+
+```bash
+SCITEX_CLEW_CAPTURE=0 python script.py         # default: on
+```
+
+The `@stx.session` and `stx.io` hooks then do nothing: no run record, no
+file rows, no audit hook, no store connection — and one WARNING per process
+says so. Explicit calls (`clew.session()`, `clew.record_input`,
+`clew.add_claim`, `clew verify`) still do what they are asked. Recording
+cost is measured with `tests/develop/bench_e5_cost.py` (`knob-off` column).
+
+Recording writes a session's file rows in ONE store transaction (at close,
+or earlier when anything in the process reads the store), not one commit per
+file; a file `stx.io.load` reads is hashed once, not once by the `open`
+capture and again by the load hook.
+
 ## Not seen
 
 C/C++ code that opens files without Python's `open` (HDF5 via `h5py`, some

@@ -32,6 +32,16 @@ _registered_io_ids: set = set()
 _registered_session_ids: set = set()
 
 
+def _recording_enabled() -> bool:
+    """``SCITEX_CLEW_CAPTURE`` gate (see :func:`scitex_clew._capture.recording_enabled`)."""
+    from scitex_clew._capture import recording_enabled, warn_recording_off
+
+    if recording_enabled():
+        return True
+    warn_recording_off()
+    return False
+
+
 def on_io_save(path: Path, obj: Any, kwargs: dict[str, Any]) -> None:
     """Post-save hook fired by scitex-io after a successful save.
 
@@ -51,6 +61,8 @@ def on_io_save(path: Path, obj: Any, kwargs: dict[str, Any]) -> None:
         Original kwargs passed to ``scitex_io.save``. We honour
         ``track`` (default True) for parity with the umbrella shim.
     """
+    if not _recording_enabled():
+        return
     try:
         from scitex_clew._db import get_db
 
@@ -117,6 +129,8 @@ def on_io_load(path: Path, result: Any) -> None:
     result : Any
         The loaded object (unused).
     """
+    if not _recording_enabled():
+        return
     try:
         from scitex_clew._db import get_db
 

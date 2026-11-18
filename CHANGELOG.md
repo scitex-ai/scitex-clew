@@ -7,6 +7,80 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-11-18
+
+Performance release driven by the paper's E5 cost measurement: `clew verify`
+is now linear in the claim's slice and independent of the rest of the
+project, and recording no longer pays a durable commit per file. Nothing
+recorded changes — same rows, roles, hashes and lineage (asserted by
+`tests/scitex_clew/test__tracker_batch.py`). Measured with the new
+`tests/develop/bench_e5_cost.py` (real stx.io + session hooks + Postgres).
+
+### Added
+- **`SCITEX_CLEW_CAPTURE=0` — whole-capture off switch.** The
+  `@stx.session` / `stx.io` hooks then open no run, record no file, install
+  no audit hook and never connect to the store; one WARNING per process says
+  recording is off. Explicit calls (`clew.session()`, `record_input`,
+  `add_claim`, `verify`) still run. A no-recording baseline no longer needs a
+  stub. Documented in README ("Turning Recording Off") and the
+  `20_env-vars` / `16_unconscious-capture` skill leaves.
+- `tests/develop/bench_e5_cost.py`: recording overhead (cold one-session
+  processes: hooks on / no hooks / switch off) and per-claim verify cost on
+  E5-shaped synthetic projects, with unrelated bulk in the same project and
+  in a second project.
+
+### Changed
+- **verify reads each run once, in SQL.** Per-session reads
+  (`get_file_hashes`, `get_frozen_files`, `get_external_files`,
+  `get_file_records`) were each a scan of the WHOLE `file_hashes` table
+  decoded in Python, and a verify made about eight of them per run of the
+  slice — cost grew as (slice runs) x (project rows): 21 s for a
+  101-run / 1101-file slice. They are now views over ONE SQL-filtered query
+  per session (`session_file_records`), and a verify pass shares a read
+  cache (`_chain/_pass_cache.PassRecords`: session rows, run rows, producer
+  lookups) across the slice walk, every per-run check and every claim of the
+  pass. Lookups by path / hash / parent (`find_session_by_file`,
+  `find_sessions_by_files`, `find_sessions_by_hash`, `hosts_for_hash`,
+  `get_children`, `get_parents`, `get_verification_history`, `list_runs`)
+  filter (and page) in SQL too.
+- **A project's reads no longer decode other projects' rows.**
+  `ProjectScopedStore.rows()` filtered the project scope client-side, so
+  every whole-project read decoded every project on the host; the scope is
+  now a SQL predicate.
+- **A verify pass opens the claims store once**, not three times per claim
+  (~0.1 s each).
+- **Recording batches its writes.** A session's file rows are queued and
+  written in ONE transaction (`_db/_deferred.py`) at close, when the queue
+  reaches 500 rows, when anything in the process reads the store
+  (read-your-writes), at store close and at interpreter exit — instead of
+  one durable commit (~4 ms of disk wait) per recorded file. Inputs' producer
+  binding happens at flush in one lookup, with the lineage resolver's rule
+  (newest producer of those bytes recorded no later than the input), which
+  picks the producer a load-time lookup would have; `tracker.parent_session`
+  reads through the queue. Rows carry the time they were recorded, not
+  flushed. A process killed outright (`SIGKILL`) before close loses its
+  queued rows; such a run never closed and stays `running`.
+- **A file stx.io loads is hashed once.** The `open()` audit capture hashes
+  the bytes at open; the load hook now reuses that hash when the file's
+  `(size, mtime_ns, inode)` is unchanged, instead of reading it again.
+- The verification-results and session-parent stores are opened on first
+  use (a recording session rarely needs them); their target and project
+  scope are still fixed when the database handle is created.
+
+### Measured (`bench_e5_cost.py`, local Postgres; before -> after)
+- `verify --strict` (in-process) of the claim on a 101-run / 1101-file
+  slice: 21.1-23.4 s -> 0.34 s; 11-run / 1011-file slice: 2.09 s -> 0.23 s;
+  a 1-run claim: 0.26 s -> 0.15 s.
+- Same 11-run / 110-file slice with 40 unrelated runs (2000 rows) in the
+  project and a second project in the store: 9.21 s -> 0.10 s (0.06 s
+  without the bulk — the project's size no longer matters).
+- One session reading 1000 inputs (whole fresh process): 5.61 s -> 2.02 s
+  (0.41 s with no hooks; 0.38 s with `SCITEX_CLEW_CAPTURE=0`): ~5.2 ms ->
+  ~1.6 ms per recorded input. The rest is `Store.put`'s per-row statements in
+  scitex-dev (no bulk put yet). 101 sessions x 11 inputs in one process: CPU
+  6.1-6.8 s -> 5.1 s (wall is dominated by disk waits on a shared host and
+  varied 22-55 s before / 8-35 s after).
+
 ## [0.29.0] — 2026-11-18
 
 Minor release: claim values are checked, not only their source files, plus
