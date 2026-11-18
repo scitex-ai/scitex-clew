@@ -5,7 +5,8 @@ Split out of :mod:`._slice` (512-line limit). Both come from the kept runs'
 recorded metadata rather than from ``file_hashes`` rows:
 
 * ``packages`` / ``unresolved_imports`` (scitex-session >= 0.3.6) — what a
-  re-run must install;
+  re-run must install — and ``package_provenance`` (>= 0.5.0): how each was
+  installed and a fingerprint of its content;
 * ``links`` (#192, :mod:`scitex_clew._links`) — the in-project symlinks the run
   went through to reach its files. A slice keeps a link when it reaches a
   kept file; materializing the slice must recreate it, or a re-run that opens
@@ -40,14 +41,19 @@ def run_metadata_of(run: dict | None) -> dict:
 
 
 def run_environment(db, sid: str) -> dict | None:
-    """``{"packages", "unresolved_imports"}`` recorded for run ``sid``."""
+    """``{"packages", "unresolved_imports", "package_provenance"}`` of run ``sid``."""
     meta = _run_metadata(db, sid)
     if meta is None or "packages" not in meta:
         return None
     packages = meta.get("packages")
+    provenance = meta.get("package_provenance")
     return {
         "packages": dict(packages) if isinstance(packages, dict) else None,
         "unresolved_imports": dict(meta.get("unresolved_imports") or {}),
+        # None = not recorded (scitex-session < 0.5.0), never "all fine"
+        "package_provenance": (
+            dict(provenance) if isinstance(provenance, dict) else None
+        ),
     }
 
 
