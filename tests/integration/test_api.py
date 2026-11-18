@@ -28,10 +28,12 @@ class TestPublicAPI:
         # live inline editor, 2026-07-14). ``GROUNDING_REASONS`` is
         # intentionally lazy-only (not in __all__), matching
         # ``HEAVY_THRESHOLD_SECONDS`` and the other plain-constant exports.
+        # +1 for ``recover_journals`` (replay journals of killed runs,
+        # 2026-11-18).
         # Arrange
         # Act
         # Assert
-        assert len(clew.__all__) == 44
+        assert len(clew.__all__) == 45
 
     def test_all_names_set_clew_all_expected(self):
         # Arrange
@@ -81,6 +83,7 @@ class TestPublicAPI:
             "init_examples",
             "on_session_start",
             "on_session_close",
+            "recover_journals",
         }
         # Assert
         assert set(clew.__all__) == expected

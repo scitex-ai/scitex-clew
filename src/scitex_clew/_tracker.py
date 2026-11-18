@@ -5,10 +5,12 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from ._db import get_db
+from ._journal._lifecycle import install_signal_handlers, open_journal
 from ._db._file_hashes import _stat_size
 from ._hash import combine_hashes, hash_code, hash_file
 from ._tracker_batch import _MAX_UNBOUND, _captured_hash, _flush_pending, _now_iso
@@ -76,6 +78,8 @@ class SessionTracker:
         #: the next flush (one lookup for all; see flush_pending).
         self._unbound: dict[str, tuple[str, str]] = {}
         self._finalized = False
+        #: The process that owns this run (a forked child never closes it).
+        self._pid = os.getpid()
         self._parent_sessions: set = set()
         if parent_session:
             self._parent_sessions.add(parent_session)
@@ -94,6 +98,11 @@ class SessionTracker:
 
         metadata = {**(metadata or {}), "clew_project_root": project_root_info()}
 
+        # The journal exists BEFORE the run record, so a run marked
+        # ``running`` always has one: every row queued from here on survives
+        # a kill (see scitex_clew._journal).
+        self._journal = open_journal(self)
+
         # Register run in database
         self._db.add_run(
             session_id=session_id,
@@ -102,6 +111,8 @@ class SessionTracker:
             parent_session=parent_session,
             metadata=metadata,
         )
+        install_signal_handlers()
+        _recover_dead_sessions()
 
     @property
     def parent_session(self) -> str | None:
@@ -167,6 +178,7 @@ class SessionTracker:
                 external=external,
                 defer=True,
                 recorded_at=recorded_at,
+                journal=self._journal,
             )
             # Its producer (the run that recorded THESE bytes before this
             # load) is bound at the next flush, all inputs in one lookup.
@@ -245,6 +257,7 @@ class SessionTracker:
             size_bytes=_stat_size(path_str),
             derived_from=declared,
             defer=True,
+            journal=self._journal,
         )
 
         return file_hash
@@ -347,6 +360,10 @@ class SessionTracker:
         )
 
         self._finalized = True
+        # The store now holds the whole run: the journal has done its job.
+        if self._journal is not None:
+            self._journal.close(delete=True)
+            self._journal = None
 
         return self.summary()
 
@@ -362,6 +379,22 @@ class SessionTracker:
             "combined_hash": self.combined_hash,
             "finalized": self._finalized,
         }
+
+
+def _recover_dead_sessions() -> None:
+    """Replay journals of processes that died with a session open (warned)."""
+    from ._journal._recover import recover_journals
+
+    try:
+        recover_journals()
+    except Exception as exc:  # noqa: BLE001 - must never block a new session
+        from ._core import getLogger
+
+        getLogger(__name__).warning(
+            "clew: could not recover the journals of killed sessions (%s: %s)",
+            type(exc).__name__,
+            exc,
+        )
 
 
 # Global tracker for current session

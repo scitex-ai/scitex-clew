@@ -93,12 +93,16 @@ class VerificationDB(
     >>> db.add_file_hash("2025Y-11M-18D-09h12m03s_HmH5", "data.csv", "a1b2c3", "input")
     """
 
-    def __init__(self) -> None:
+    def __init__(self, project: str | None = None) -> None:
         """Open clew's four stores against THE store this host uses.
 
         Takes no path and no DSN. ``host_store()`` answers "which store does
         this host use" — ``SCITEX_STORE_DSN`` when set, otherwise the
         per-host Postgres over its UNIX socket — and it is the only switch.
+
+        ``project`` pins the scope instead of resolving it from the working
+        directory — for replaying a journal written by another project's run
+        (:mod:`scitex_clew._journal`), whose rows already carry their scope.
         """
         node = resolve_node_id()
 
@@ -126,7 +130,11 @@ class VerificationDB(
                 project=project,
             )
 
-        self._runs = _open("runs", RUNS_SCHEMA)
+        #: Which store this is, without the DSN (it may hold a password).
+        from .._journal._file import store_fingerprint
+
+        self.store_fingerprint = store_fingerprint(targets["runs"].dsn)
+        self._runs = _open("runs", RUNS_SCHEMA, project)
         self._file_hashes = _open("file_hashes", FILE_HASHES_SCHEMA, self._runs.project)
         # Opened on first use: opening a store is a connection plus its
         # schema checks (~0.2 s), and a recording session never touches

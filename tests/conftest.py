@@ -141,6 +141,27 @@ def isolated_store(_writable_cluster):
             cur.execute(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
 
 
+@pytest.fixture(autouse=True)
+def isolated_journal(tmp_path):
+    """Give this test its own recording-journal directory.
+
+    Every tracker writes a journal (scitex_clew._journal) and every tracker
+    start replays dead processes' journals; a shared directory would let one
+    test's leftovers be replayed (or skipped) by another.
+    """
+    from scitex_clew._journal import JOURNAL_DIR_ENV
+
+    previous = os.environ.get(JOURNAL_DIR_ENV)
+    os.environ[JOURNAL_DIR_ENV] = str(tmp_path / "clew-journal")
+    try:
+        yield Path(os.environ[JOURNAL_DIR_ENV])
+    finally:
+        if previous is None:
+            os.environ.pop(JOURNAL_DIR_ENV, None)
+        else:
+            os.environ[JOURNAL_DIR_ENV] = previous
+
+
 # Pin coverage data file at the repo root and point process_startup at our
 # pyproject so child interpreters configure themselves correctly. Force-set
 # (not setdefault) because pytest-cov has already populated COVERAGE_FILE by

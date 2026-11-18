@@ -53,6 +53,7 @@ Public API::
     # Session lifecycle hooks (invoked by @scitex.session)
     clew.on_session_start(session_id)  # open a tracked run
     clew.on_session_close(status=...)  # finalize run + combined hash
+    clew.recover_journals()            # replay runs killed before close
 
 Implementation note (audit-all §10 cold-start)::
 
@@ -149,6 +150,8 @@ __all__ = [
     # Session lifecycle hooks
     "on_session_start",
     "on_session_close",
+    # Kill-durable recording (replay journals of killed runs)
+    "recover_journals",
 ]
 
 # Static binding of every lazily-exported public name (PA-102 requires each
@@ -222,6 +225,7 @@ if TYPE_CHECKING:
         hash_files,
         verify_hash,
     )
+    from ._journal import recover_journals
     from ._observers import on_session_close, on_session_start
     from ._register_intermediate import register_intermediate
     from ._rerun import rerun_claims, rerun_dag, verify_by_rerun  # noqa: F401

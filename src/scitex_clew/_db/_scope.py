@@ -372,9 +372,13 @@ class ProjectScopedStore(DeferredWritesMixin):
         return self._store.search(query.where(eq(PROJECT_FIELD, self._project)))
 
     def batch(self):
-        """One durable transaction for many writes (``Store.batch``)."""
+        """One durable transaction for many writes (``Store.batch``).
+
+        Journal ``flushed`` markers for rows written inside it are appended
+        only when the outermost batch commits (see :mod:`._deferred`).
+        """
         self.flush()
-        return self._store.batch()
+        return self._tracked_batch()
 
     def get(self, key, *, include_hidden: bool = False):
         self.flush()

@@ -135,6 +135,12 @@ or earlier when anything in the process reads the store), not one commit per
 file; a file `stx.io.load` reads is hashed once, not once by the `open`
 capture and again by the load hook.
 
+## Killed runs keep their record
+
+A run killed before close (SIGKILL, OOM, harness timeout) is replayed from
+its per-session journal at the next clew start: see
+[17_killed-runs-journal.md](17_killed-runs-journal.md).
+
 ## Not seen
 
 C/C++ code that opens files without Python's `open` (HDF5 via `h5py`, some

@@ -74,67 +74,71 @@ def record_hashed_inputs(
             external=info,
             defer=True,
             recorded_at=recorded_at,
+            journal=tracker._journal,
         )
         tracker._unbound[path_str] = (file_hash, recorded_at)
     tracker.flush_pending()
     return new
 
 
+def bind_producers(
+    db, session_id: str, pending: dict[str, tuple[str | None, str | None]]
+) -> list[str]:
+    """The producer each pending input binds to (one lookup for all).
+
+    ``pending`` maps input paths to ``(hash, recorded_at)``. Binding is the
+    lineage resolver's rule (:func:`scitex_clew._chain._routes.bind_input`):
+    the newest producer that recorded these bytes no later than the input
+    was recorded — the producer a lookup at load time would have found.
+    Returns the bound producers in input order (repeats possible).
+    """
+    if not pending:
+        return []
+    from ._chain._routes import bind_input
+
+    producers = db.find_producer_records(list(pending))
+    bound = []
+    for path_str, (file_hash, recorded_at) in pending.items():
+        producer = bind_input(
+            producers.get(path_str, []),
+            consumer_session=session_id,
+            input_hash=file_hash,
+            input_recorded_at=recorded_at,
+        )
+        if producer is not None:
+            bound.append(producer)
+    return bound
+
+
 def _flush_pending(tracker) -> int:
     """Bind queued inputs to their producers, then write every queued row.
 
     One producer lookup for all queued inputs (the lookup is a read, so the
-    queued rows are written first, in one transaction). Binding is the
-    lineage resolver's rule (:func:`scitex_clew._chain._routes.bind_input`):
-    the newest producer that recorded these bytes no later than the input
-    was recorded — the producer a lookup at load time would have found.
-    Returns the number of inputs bound to a producer.
+    queued rows are written first, in one transaction); see
+    :func:`bind_producers`. Returns the number of inputs bound to a producer.
     """
     pending, tracker._unbound = tracker._unbound, {}
     db = tracker._db
-    bound = 0
-    if pending:
-        from ._chain._routes import bind_input
-
-        producers = db.find_producer_records(list(pending))
-        for path_str, (file_hash, recorded_at) in pending.items():
-            producer = bind_input(
-                producers.get(path_str, []),
-                consumer_session=tracker.session_id,
-                input_hash=file_hash,
-                input_recorded_at=recorded_at,
-            )
-            if producer is None:
-                continue
-            bound += 1
-            if producer not in tracker._parent_sessions:
-                tracker._parent_sessions.add(producer)
-                db.add_parent(tracker.session_id, producer)
-                if tracker._parent_session is None:
-                    tracker._parent_session = producer
+    bound = bind_producers(db, tracker.session_id, pending)
+    for producer in bound:
+        if producer not in tracker._parent_sessions:
+            tracker._parent_sessions.add(producer)
+            db.add_parent(tracker.session_id, producer)
+            if tracker._parent_session is None:
+                tracker._parent_session = producer
     db._file_hashes.flush()
-    return bound
+    return len(bound)
 
 
 def _flush_current_at_exit() -> None:
-    """At interpreter exit, bind and write what an unclosed session queued."""
-    from ._tracker import get_tracker
+    """At interpreter exit, close a session that was never closed.
 
-    tracker = get_tracker()
-    if tracker is None or tracker._finalized or not tracker._unbound:
-        return
-    try:
-        tracker.flush_pending()
-    except Exception as exc:  # noqa: BLE001 - at exit there is no caller
-        from ._core import getLogger
+    The captured files are recorded and the run is closed with status
+    ``incomplete`` (see :mod:`scitex_clew._journal._lifecycle`).
+    """
+    from ._journal._lifecycle import finish_at_exit
 
-        getLogger(__name__).warning(
-            "clew: could not record the queued inputs of session %s at exit "
-            "(%s: %s) — its provenance is INCOMPLETE",
-            tracker.session_id,
-            type(exc).__name__,
-            exc,
-        )
+    finish_at_exit()
 
 
 atexit.register(_flush_current_at_exit)
