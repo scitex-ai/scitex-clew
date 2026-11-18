@@ -25,6 +25,7 @@ __all__ = [
     "STATES",
     "SUPPORTED",
     "classify_outcome",
+    "value_difference",
 ]
 
 SUPPORTED = "supported"
@@ -79,18 +80,23 @@ _VALUE_DIFF = re.compile(
 _CODE_BY_NAME: Mapping[str, int] = {name: code for code, name in _codes.NAMES.items()}
 
 
+def value_difference(details: Iterable[str]) -> tuple[str, str] | None:
+    """``(source value, claimed value)`` from clew's first differing value detail."""
+    for detail in details:
+        m = _VALUE_DIFF.search(str(detail))
+        if m and m["claimed"] != m["source"]:
+            return m["source"], m["claimed"]
+    return None
+
+
 def _specific_reason(outcome: str, details: Iterable[str]) -> str | None:
     """A sharper reason read from clew's details (it only rephrases them)."""
     if outcome != "VALUE_MISMATCH":
         return None
-    for detail in details:
-        m = _VALUE_DIFF.search(str(detail))
-        if m and m["claimed"] != m["source"]:
-            return (
-                f"value in source differs: {m['source']} in source vs "
-                f"{m['claimed']} stated"
-            )
-    return None
+    diff = value_difference(details)
+    if diff is None:
+        return None
+    return f"value in source differs: {diff[0]} in source vs {diff[1]} stated"
 
 
 def classify_outcome(

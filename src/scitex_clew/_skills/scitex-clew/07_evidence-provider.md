@@ -1,18 +1,18 @@
 ---
 description: |
   [TOPIC] clew as an evidence provider for scitex-live-paper
-  [DETAILS] Implements contract scitex-live-paper.evidence-report 1.0.0 (schema vendored); entry point scitex.livepaper.renderers -> clew (port "evidence"); `clew export-evidence --out report.json`; outcome -> state/reason table; level-1 slice -> graph nodes/edges.
+  [DETAILS] Implements contract scitex-live-paper.evidence-report 1.1.0 (schema vendored); entry point scitex.livepaper.renderers -> clew (port "evidence"); `clew export-evidence --out report.json`; outcome -> state/reason table; level-1 slice -> graph nodes/edges.
 tags: [scitex-clew-evidence-provider]
 ---
 
-# Evidence provider (scitex-live-paper contract 1.0.0)
+# Evidence provider (scitex-live-paper contract 1.1.0)
 
 clew supplies the per-claim evidence that scitex-live-paper renders. The two
 are coupled **only** through live-paper's published, provider-neutral
-contract `scitex-live-paper.evidence-report` **1.0.0**. clew does not import
+contract `scitex-live-paper.evidence-report` **1.1.0**. clew does not import
 live-paper, and live-paper does not import clew. The schema is vendored
 version-pinned at
-`src/scitex_clew/_evidence_provider/evidence-report.schema.1.0.0.json`, and
+`src/scitex_clew/_evidence_provider/evidence-report.schema.1.1.0.json`, and
 clew's own tests validate every report against it.
 
 ## Connecting
@@ -82,3 +82,15 @@ details list. `location.file` and `source.file` are relative to
 - The summary reads `level-1 slice: N run(s), M file(s)`.
 
 A claim with no source file has `graph: null` and a `graph_error`.
+
+**Where the evidence broke (contract 1.1.0 `node.failure`).** The graph
+marks the nodes clew's own verification failed on, as
+`failure: {kind, detail}`, so a reviewer sees the break on the graph page:
+
+| clew outcome | marked node | `failure.kind` |
+|---|---|---|
+| SOURCE_MISSING | source file | `missing` |
+| HASH_MISMATCH | source file | `changed` (differs from the hash recorded at registration) |
+| VALUE_MISMATCH | source file (located value differs; detail `<src> in source vs <stated> stated`), else the claim node | `mismatched` |
+| STALE_LINEAGE / EXTERNAL_MISSING | every file the re-verified minimal chain reports MISMATCH (`changed`) or MISSING (`missing`); a run whose execution failed (`failed`). A recorded file pruned from the drawn slice is reported on its run's node, naming the file. | as listed |
+| any other | nothing (no node broke: no locator, no lineage, environment) | — |
