@@ -7,30 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.27.0] — 2026-11-18
-
-Minor release: temp-dir files that pre-existed the process are recorded as
-external inputs (PR #203). Runs that read hand-staged temp state now verify
-as `EXTERNAL_MISSING` (22) when it is gone instead of passing silently.
-
-### Changed
-- **Temp-dir files that pre-existed the process are external inputs.** The
-  external-input boundary used to drop the temp dir wholesale, so a scratch
-  dir (or symlink) a shell command staged under `/tmp` before a run, and that
-  the run then read, left no trace: the minimal DAG looked complete and every
-  replay failed (found in the paper's E2 replay of agent-written projects).
-  The rule is now by ORIGIN, not by name: under a temp root (`$TMPDIR`,
-  `/tmp`, `/var/tmp`) a regular file is recorded — hashed, listed as
-  required-but-not-bundled, `EXTERNAL_MISSING` (22) when gone — iff its
-  `max(mtime, ctime)` predates the process's start (`/proc/self/stat`;
-  elsewhere clew's import time, erring towards recording). Files the run, its
-  children, or the same process earlier made (scratch round-trips,
-  matplotlib's fallback config dir, a Jupyter kernel's cell/runtime files)
-  stay unrecorded. `metadata["capture"]["external"]["temp"]` records the
-  roots and threshold. `SCITEX_CLEW_EXTERNAL_EXCLUDE=$TMPDIR` restores the old
-  behaviour; an INCLUDE prefix under temp records everything there.
-
 ### Added
+
 - **Non-reproducible environment requirements are flagged** (exit code
   `23 ENV_NOT_REPRODUCIBLE`). A run's record said `name==version` for a
   dependency the agent had patched and rebuilt locally; it looked identical
@@ -58,6 +36,31 @@ as `EXTERNAL_MISSING` (22) when it is gone instead of passing silently.
   accepts an editable sibling checkout as policy). It ranks just above
   `NO_LINEAGE`: every integrity / lineage failure outranks it. Version drift
   (another version, or not installed here) is not this finding.
+
+## [0.27.0] — 2026-11-18
+
+Minor release: temp-dir files that pre-existed the process are recorded as
+external inputs (PR #203). Runs that read hand-staged temp state now verify
+as `EXTERNAL_MISSING` (22) when it is gone instead of passing silently.
+
+### Changed
+- **Temp-dir files that pre-existed the process are external inputs.** The
+  external-input boundary used to drop the temp dir wholesale, so a scratch
+  dir (or symlink) a shell command staged under `/tmp` before a run, and that
+  the run then read, left no trace: the minimal DAG looked complete and every
+  replay failed (found in the paper's E2 replay of agent-written projects).
+  The rule is now by ORIGIN, not by name: under a temp root (`$TMPDIR`,
+  `/tmp`, `/var/tmp`) a regular file is recorded — hashed, listed as
+  required-but-not-bundled, `EXTERNAL_MISSING` (22) when gone — iff its
+  `max(mtime, ctime)` predates the process's start (`/proc/self/stat`;
+  elsewhere clew's import time, erring towards recording). Files the run, its
+  children, or the same process earlier made (scratch round-trips,
+  matplotlib's fallback config dir, a Jupyter kernel's cell/runtime files)
+  stay unrecorded. `metadata["capture"]["external"]["temp"]` records the
+  roots and threshold. `SCITEX_CLEW_EXTERNAL_EXCLUDE=$TMPDIR` restores the old
+  behaviour; an INCLUDE prefix under temp records everything there.
+
+### Added
 - **Pre-existing temp-dir symlinks are part of the record.** A symlink under
   a temp root that the run went through and that pre-existed the process is
   recorded in `metadata["links"]` with `"external": true` (its `recreate` is
