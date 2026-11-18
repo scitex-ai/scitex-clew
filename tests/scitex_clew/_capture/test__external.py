@@ -7,11 +7,12 @@ real sibling directory (pytest ``tmp_path``), the real session hooks
 (``on_session_start`` / ``on_session_close``), the real audit hook and a real
 PostgreSQL store. No mocks.
 
-``tmp_path`` lives under the temporary directory, which the external policy
-excludes by default (temp files are scratch, not data), so the tests that
-need a sibling "shared dataset" opt it in through the documented
-``SCITEX_CLEW_EXTERNAL_INCLUDE`` knob — exactly what a user does for a data
-tree under an excluded prefix (e.g. ``/opt/lab-data``).
+``tmp_path`` lives under the temporary directory, where only files that
+pre-existed the PROCESS are inputs (``test__external_temp.py`` covers that
+rule with real child processes); files this test process makes there are its
+own churn. So the tests that need a sibling "shared dataset" opt it in
+through the documented ``SCITEX_CLEW_EXTERNAL_INCLUDE`` knob — exactly what a
+user does for a data tree under an excluded prefix (e.g. ``/opt/lab-data``).
 """
 
 from __future__ import annotations
@@ -288,8 +289,8 @@ class TestPrecision:
         # Assert
         assert os.path.realpath(system_file) not in _inputs(sid)
 
-    def test_temp_dir_is_excluded_by_default(self, project):
-        # Arrange: no include knob; a file in a fresh temp dir
+    def test_temp_file_this_process_made_is_not_recorded(self, project):
+        # Arrange: no include knob; a file this process makes in temp
         ext = Path(tempfile.mkdtemp()) / "scratch.csv"
         ext.write_text("a\n1\n")
         sid = _start(project)
