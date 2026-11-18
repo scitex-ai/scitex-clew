@@ -7,6 +7,46 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.32.0] — 2026-11-19
+
+Minor release: the store gains a table set (`environments`) and the run-row
+format changes (a run's package provenance becomes a reference). Additive
+for existing stores — nothing is migrated or rewritten, and rows written by
+older versions read unchanged. A clew older than 0.32.0 reading a run row
+written by 0.32.0 sees its package provenance as not recorded (never as
+"all fine"), hence minor, not patch.
+
+### Changed
+- **Package provenance is stored once per environment.** scitex-session
+  (>= 0.5.0) hands each run's metadata a `package_provenance` mapping (install
+  source, wheel fingerprint, edited files per imported distribution). It is
+  the same for every run in one environment, yet it was repeated in every
+  run row and in every oplog entry that wrote the metadata (the opening put
+  and each `merge_run_metadata`). It now goes to the `environments` store:
+  one row per distinct set per project, keyed by the SHA-256 of its
+  canonical JSON (sorted keys, no whitespace, UTF-8 — scitex-session 0.6.0's
+  scheme, so the key equals the session's
+  `.scitex/session/environments/<sha256>.json` name for the same set). The
+  run row holds `package_provenance_ref: {format, sha256, distributions}`.
+  - Reads resolve it: `get_run` / `list_runs` put the hash-checked set back
+    as `package_provenance`, so slices, `run_environment` and the
+    `ENV_NOT_REPRODUCIBLE` check read what they always read.
+  - A set already in the store is not rewritten (one row, one oplog entry).
+  - If the environment row cannot be written, the set stays inline and
+    `package_provenance_store_error` says why.
+  - An unresolvable reference (missing row, content not matching its hash)
+    reads as provenance NOT recorded, with `package_provenance_unresolved`
+    naming the reason, and a warning — never silently as reproducible.
+  - Measured with real scitex-session 0.6.0 records of a 54-distribution
+    stack (12.3 KB of provenance JSON), 21 vs 1 sessions on private
+    PostgreSQL: per extra session, run metadata in rows + oplog 49.1 KB →
+    10.1 KB, total relation size ~50.0 KB → ~18.4 KB. One-time cost per
+    environment: an 11.6 KB row (+ 13.1 KB oplog).
+
+### Added
+- `VerificationDB.store_environment(provenance)` → reference,
+  `VerificationDB.get_environment(sha256)` → set (hash-checked).
+
 ## [0.31.0] — 2026-11-18
 
 Minor release (new public API `recover_journals`, CLI
