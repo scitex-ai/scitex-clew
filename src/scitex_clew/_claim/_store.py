@@ -40,7 +40,10 @@ one that gets forgotten at exactly one of them, silently.
 
 from __future__ import annotations
 
+import functools
 import socket
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 from scitex_dev.store import (
     FieldKind,
@@ -55,7 +58,7 @@ from scitex_dev.store import (
 
 from .._db._scope import ProjectScopedStore
 
-__all__ = ["_CLAIMS_SCHEMA", "_node_id", "_open_store"]
+__all__ = ["_CLAIMS_SCHEMA", "_node_id", "_open_store", "shared_claims_store"]
 
 
 def _node_id() -> str:
@@ -193,14 +196,7 @@ _CLAIMS_SCHEMA = Schema.build(
 )
 
 
-def _open_store() -> Store:
-    """Open (creating if absent) the claims :class:`Store` on the host store.
-
-    A fresh ``Store`` per call — mirroring the open / do-work / close
-    lifecycle every caller in this package already used. Callers are
-    responsible for ``store.close()`` (wrap the call in ``try/finally``,
-    exactly as before).
-    """
+def _new_store() -> ProjectScopedStore:
     target = host_store(pkg="scitex_clew", name="claims")
     return ProjectScopedStore(
         Store(
@@ -213,6 +209,80 @@ def _open_store() -> Store:
             writer_policy=WriterPolicy.MULTI_WRITER,
         )
     )
+
+
+class _Borrowed:
+    """The pass's shared claims store, lent to one caller: ``close`` is a no-op
+    (the pass closes it), everything else is the store itself."""
+
+    def __init__(self, store: ProjectScopedStore) -> None:
+        self._shared = store
+
+    def __getattr__(self, name: str):
+        return getattr(self._shared, name)
+
+    def close(self) -> None:
+        return None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc) -> None:
+        return None
+
+
+#: The claims store shared by every ``_open_store()`` inside a
+#: :func:`shared_claims_store` block (None outside one).
+_SHARED: ContextVar[_Borrowed | None] = ContextVar("clew_shared_claims", default=None)
+
+
+@contextmanager
+def shared_claims_store():
+    """Within the block, every ``_open_store()`` returns ONE open store.
+
+    Opening a store is a connection plus its schema checks (~0.1 s). A
+    verify pass resolves, checks and re-stamps every claim, and each step
+    used to open (and close) its own store — three opens per claim, which
+    made ``clew verify`` cost ~0.3 s per claim before any verification.
+    Nested blocks reuse the outer store; it is closed when the outermost
+    block exits.
+    """
+    if _SHARED.get() is not None:
+        yield
+        return
+    store = _new_store()
+    token = _SHARED.set(_Borrowed(store))
+    try:
+        yield
+    finally:
+        _SHARED.reset(token)
+        store.close()
+
+
+def with_shared_claims_store(func):
+    """Run ``func`` inside :func:`shared_claims_store`."""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with shared_claims_store():
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
+def _open_store() -> Store:
+    """Open (creating if absent) the claims :class:`Store` on the host store.
+
+    A fresh ``Store`` per call — mirroring the open / do-work / close
+    lifecycle every caller in this package already used. Callers are
+    responsible for ``store.close()`` (wrap the call in ``try/finally``,
+    exactly as before). Inside a :func:`shared_claims_store` block the
+    block's one store is returned instead, and ``close()`` leaves it open.
+    """
+    shared = _SHARED.get()
+    if shared is not None:
+        return shared
+    return _new_store()
 
 
 # EOF

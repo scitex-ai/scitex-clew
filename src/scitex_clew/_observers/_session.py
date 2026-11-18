@@ -108,8 +108,12 @@ def on_session_start(
         Whatever opening the run record raised — after it was warned and
         recorded (see module docstring).
     """
+    from .._capture import recording_enabled, warn_recording_off
     from .._db._paths import clear_session_project_root, set_session_project_root
 
+    if not recording_enabled():
+        warn_recording_off()
+        return
     try:
         # BEFORE the run record opens: the store scope (project id) is
         # resolved when the DB instance is built, and must be the session's.
@@ -175,6 +179,11 @@ def on_session_close(
         Whatever finalizing the run raised — after it was warned and recorded.
     """
     tracker = get_tracker()
+    if tracker is None:
+        from .._capture import recording_enabled
+
+        if not recording_enabled():
+            return  # recording off: the start hook opened nothing to close
     session_id = tracker.session_id if tracker is not None else None
     try:
         _apply_relocations(tracker, metadata)

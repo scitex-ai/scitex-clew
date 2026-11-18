@@ -209,6 +209,7 @@ def verify_run(
     collapse_suspect: bool = False,
     hash_cache: dict[str, str] | None = None,
     slice_files: dict[str, set[str]] | None = None,
+    db=None,
 ) -> RunVerification:
     """Verify a session run by checking all file hashes.
 
@@ -235,13 +236,18 @@ def verify_run(
         the script) are checked, and upstream-failure propagation considers
         only parents bound through the kept inputs. ``None`` checks every
         recorded file (run-level closure).
+    db : VerificationDB, optional
+        The database (or a verify pass's read cache,
+        :class:`~scitex_clew._chain._pass_cache.PassRecords`). Defaults to
+        the global one.
 
     Returns
     -------
     RunVerification
         Verification result
     """
-    db = get_db()
+    if db is None:
+        db = get_db()
 
     # Resolve target to session_id
     session_id = _resolve_target(db, target)
@@ -267,7 +273,8 @@ def verify_run(
             combined_hash_current=None,
         )
 
-    # Get all file hashes
+    # Get all file hashes (every view below is derived from ONE read of the
+    # session's rows; see scitex_clew._db._record_views)
     input_hashes = db.get_file_hashes(session_id, role="input")
     output_hashes = db.get_file_hashes(session_id, role="output")
     if slice_files is not None:

@@ -288,11 +288,9 @@ class TestRecordInput:
         # Consumer records this file as input
         tracker = SessionTracker("consumer_sess")
         # Act
-        # Act
         tracker.record_input(data_file)
+        tracker.flush_pending()  # producers are bound when the queue flushes
 
-        # Parent should be auto-linked
-        # Assert
         # Assert
         assert "producer_sess" in tracker._parent_sessions
 
@@ -306,6 +304,7 @@ class TestRecordInput:
         tracker = SessionTracker("consumer_sess")
         # Act
         tracker.record_input(data_file)
+        tracker.flush_pending()  # producers are bound when the queue flushes
         # Assert
         assert "producer_sess" not in tracker._parent_sessions
 

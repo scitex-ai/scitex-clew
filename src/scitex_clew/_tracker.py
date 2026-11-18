@@ -5,15 +5,13 @@
 
 from __future__ import annotations
 
-import sys
-import uuid
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from ._db import get_db
 from ._db._file_hashes import _stat_size
 from ._hash import combine_hashes, hash_code, hash_file
+from ._tracker_batch import _MAX_UNBOUND, _captured_hash, _flush_pending, _now_iso
 from ._tracker_batch import _explicit_external, warn_external_inputs
 from ._tracker_batch import explicit_links, note_links, write_links
 from ._tracker_batch import record_hashed_inputs as _record_hashed_inputs
@@ -61,7 +59,7 @@ class SessionTracker:
         """
         self.session_id = session_id
         self.script_path = script_path
-        self.parent_session = parent_session
+        self._parent_session = parent_session
 
         self._inputs: dict[str, str] = {}
         #: resolved path -> ``external`` payload of inputs read from OUTSIDE
@@ -74,6 +72,9 @@ class SessionTracker:
         # declaration, so a same-bytes re-record cannot erase it.
         self._declared: dict[str, tuple[str, list[str]]] = {}
         self._script_hash: str | None = None
+        #: path -> (hash, recorded_at) of inputs whose producer is bound at
+        #: the next flush (one lookup for all; see flush_pending).
+        self._unbound: dict[str, tuple[str, str]] = {}
         self._finalized = False
         self._parent_sessions: set = set()
         if parent_session:
@@ -101,6 +102,21 @@ class SessionTracker:
             parent_session=parent_session,
             metadata=metadata,
         )
+
+    @property
+    def parent_session(self) -> str | None:
+        """The run's primary parent (explicit, else its first bound producer).
+
+        Producers are bound when queued inputs are flushed; reading this
+        flushes first, so it answers exactly as an immediate binding would.
+        """
+        if self._unbound:
+            self.flush_pending()
+        return self._parent_session
+
+    @parent_session.setter
+    def parent_session(self, value: str | None) -> None:
+        self._parent_session = value
 
     def record_input(
         self,
@@ -132,11 +148,16 @@ class SessionTracker:
         path_str = str(path.resolve())
         self.note_links(explicit_links(path, path_str))
         if path_str not in self._inputs:
-            file_hash = hash_file(path)
+            # The open() capture may have hashed these very bytes a moment ago
+            # (stx.io.load opens the file): reuse that, never hash twice.
+            file_hash = _captured_hash(path_str) or hash_file(path)
             self._inputs[path_str] = file_hash
             external = _explicit_external(path)
             if external is not None:
                 self._external[path_str] = external
+            recorded_at = _now_iso()
+            # Queued, not committed: the session's rows reach the store in one
+            # transaction (scitex_clew._db._deferred), not one commit per file.
             self._db.add_file_hash(
                 session_id=self.session_id,
                 file_path=path_str,
@@ -144,27 +165,19 @@ class SessionTracker:
                 role="input",
                 size_bytes=_stat_size(path_str),
                 external=external,
+                defer=True,
+                recorded_at=recorded_at,
             )
-
-            # Auto-link the parent: the producer of THESE bytes (content hash),
-            # never every session that ever wrote this path. Same binding rule
-            # as the lineage resolver (scitex_clew._chain._routes); at load
-            # time every recorded output precedes this input, so no time gate.
-            from ._chain._routes import bind_input
-
-            producers = self._db.find_producer_records([path_str]).get(path_str, [])
-            producer = bind_input(
-                producers,
-                consumer_session=self.session_id,
-                input_hash=file_hash,
-            )
-            if producer is not None and producer not in self._parent_sessions:
-                self._parent_sessions.add(producer)
-                self._db.add_parent(self.session_id, producer)
-                if self.parent_session is None:
-                    self.parent_session = producer
+            # Its producer (the run that recorded THESE bytes before this
+            # load) is bound at the next flush, all inputs in one lookup.
+            self._unbound[path_str] = (file_hash, recorded_at)
+            if len(self._unbound) >= _MAX_UNBOUND:
+                self.flush_pending()
 
         return self._inputs[path_str]
+
+    #: Bind queued inputs to their producers and write the queued rows.
+    flush_pending = _flush_pending
 
     #: Bulk counterpart of :meth:`record_input` for pre-hashed paths.
     record_hashed_inputs = _record_hashed_inputs
@@ -231,6 +244,7 @@ class SessionTracker:
             role="output",
             size_bytes=_stat_size(path_str),
             derived_from=declared,
+            defer=True,
         )
 
         return file_hash
@@ -319,6 +333,8 @@ class SessionTracker:
         if self._finalized:
             return self.summary()
 
+        # Every queued row is durable before the run is marked finished.
+        self.flush_pending()
         combined = self.combined_hash
         warn_external_inputs(self.session_id, self._external)
         write_links(self)
@@ -426,80 +442,10 @@ def stop_tracking(
     return result
 
 
-@contextmanager
-def session(
-    script_path: str | None = None,
-    session_id: str | None = None,
-    parent_session: str | None = None,
-    metadata: dict[str, Any] | None = None,
-):
-    """Zero-dependency provenance-recording context manager.
-
-    Records a REAL run in the clew DB — the ``runs`` row plus the
-    ``input -> output`` file-hash edges — using ONLY clew's pure-stdlib core.
-    So it works in stripped environments where ``import scitex`` / the
-    ``@stx.session`` decorator cannot load (no numpy/h5py/matplotlib/system
-    libs), giving a minimal-mode script a way to produce ``runs >= 1`` and a
-    source-reachable DAG that passes the provenance gate.
-
-    Inside the block, call ``run.record_input(path)`` / ``run.record_output(path)``
-    (or the module-level :func:`record_input` / :func:`record_output`, which act
-    on the current session) to hash + link files. A claim registered against a
-    recorded OUTPUT then grounds through the recorded run to whatever registered
-    source feeds it.
-
-    This is clew's OWN recorder — it does NOT import scitex-session; it is the
-    zero-dep counterpart to ``@stx.session`` (the full-stack path), sharing the
-    same ``runs`` / ``file_hashes`` tables. Use one or the other per run, not both.
-
-    Parameters
-    ----------
-    script_path : str, optional
-        Path to the script being run. Defaults to ``sys.argv[0]`` (the invoking
-        script) when not given.
-    session_id : str, optional
-        Unique run id. A random hex id is generated when omitted.
-    parent_session : str, optional
-        Explicit parent run id (parents are also auto-linked from inputs).
-    metadata : dict, optional
-        Extra run metadata.
-
-    Yields
-    ------
-    SessionTracker
-        The active tracker; call ``.record_input`` / ``.record_output`` on it.
-
-    Examples
-    --------
-    >>> import scitex_clew as clew
-    >>> with clew.session(script_path=__file__) as run:
-    ...     run.record_input("data/raw.csv")
-    ...     # ... stdlib compute; write results/out.json with open()/json ...
-    ...     run.record_output("results/out.json")
-    ...     clew.add_claim("paper.tex", "value", 42, "0.94",
-    ...                    source_file="results/out.json")
-    """
-    sid = session_id or uuid.uuid4().hex
-    spath = script_path if script_path is not None else (sys.argv[0] or None)
-    start_tracking(
-        sid,
-        script_path=spath,
-        parent_session=parent_session,
-        metadata=metadata,
-    )
-    status, exit_code = "success", 0
-    try:
-        yield get_tracker()
-    except BaseException:
-        status, exit_code = "error", 1
-        raise
-    finally:
-        stop_tracking(status=status, exit_code=exit_code)
-
-
 # Module-level conveniences live with the other tracker helpers; re-exported
 # here because ``clew.record_input`` / ``record_output`` resolve to this module.
 from ._tracker_batch import record_input, record_output  # noqa: E402, F401
+from ._tracker_batch import session  # noqa: E402, F401
 
 
 # EOF

@@ -10,6 +10,7 @@ from typing import Any, Dict, Union
 
 from .._db import get_db
 from ._hash_cache import new_hash_cache
+from ._pass_cache import pass_records
 from ._routes import (
     DEFAULT_MAX_DEPTH,
     current_hash_or_none,
@@ -58,7 +59,10 @@ def verify_chain(
     ChainVerification
         Verification result for the entire chain
     """
-    db = db_factory()
+    # One read cache for the whole chain: the slice walk and every per-run
+    # check share each run's rows instead of re-reading them (see
+    # ._pass_cache); a run is read once however many steps consult it.
+    db = pass_records(db_factory())
     target = str(Path(target).resolve())
 
     # The leaf is the session that produced the bytes now on disk (falling
@@ -98,6 +102,7 @@ def verify_chain(
                     sid,
                     hash_cache=hash_cache,
                     slice_files=slice_.run_files(sid) if slice_ else None,
+                    db=db,
                 )
             )
         else:
@@ -158,7 +163,7 @@ def get_status(
     dict
         Summary of verification status
     """
-    db = db_factory()
+    db = pass_records(db_factory())
     runs = db.list_runs(limit=1_000)
 
     verified = []
@@ -173,7 +178,7 @@ def get_status(
     for run in runs:
         session_id = run["session_id"]
         if verify_run_fn is verify_run:
-            verification = verify_run_fn(session_id, hash_cache=hash_cache)
+            verification = verify_run_fn(session_id, hash_cache=hash_cache, db=db)
         else:
             verification = verify_run_fn(session_id)
 

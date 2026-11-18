@@ -24,9 +24,10 @@ another's inside those tables is the ``project`` identity field — see
 The per-project database file used to do that job; nothing else would have
 picked it up.
 
-Store has NO WHERE/JOIN/ORDER-BY/LIMIT support: every query below is
-``store.rows()`` (or ``store.get(key)`` for exact lookups) plus a Python
-filter/sort/aggregate — an accepted O(n)-scan trade-off.
+Point reads are ``store.get(key)``; filtered reads are
+``store.search(Query...)`` (WHERE / ORDER BY / LIMIT in SQL), so a lookup
+decodes only the rows it returns. ``store.rows()`` (a whole project) is kept
+for genuinely whole-project views.
 
 Schemas live in ``_schema.py``; the project-root walk that resolves the
 regenerable ``claims.json`` artifact lives in ``_paths.py`` (both split out
@@ -40,12 +41,11 @@ import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from scitex_dev.store import ANY_REVISION, Store, StoreTarget, WriterPolicy, host_store
+from scitex_dev.store import ANY_REVISION, Store, WriterPolicy, host_store
 
 from ._chain import ChainMixin
 from ._content_queries import ContentQueryMixin
 from ._file_hashes import FileHashMixin
-from ._relocate import RelocationMixin
 
 #: Re-exported: several modules import these from ``._db._core``.
 from ._paths import (  # noqa: F401
@@ -54,6 +54,7 @@ from ._paths import (  # noqa: F401
     _find_project_root,
 )
 from ._queries import VerificationQueryMixin
+from ._relocate import RelocationMixin
 from ._schema import (
     FILE_HASHES_SCHEMA,
     RUNS_SCHEMA,
@@ -101,27 +102,50 @@ class VerificationDB(
         """
         node = resolve_node_id()
 
-        def _target(name: str) -> StoreTarget:
-            return host_store(pkg="scitex_clew", name=name)
-
         # Every store is project-scoped: one host database holds every
         # project on this machine, and clew keys like ``claim_id`` and
         # ``cite_key`` are author-chosen. See ``_scope.py`` — the scope is
         # resolved there, once, for reads and writes alike.
-        def _open(name: str, schema) -> ProjectScopedStore:
+        #
+        # WHICH store and WHICH project are decided here, at construction,
+        # for all four — even the two opened lazily below — so a store opened
+        # later can never answer for a different target or project.
+        targets = {
+            name: host_store(pkg="scitex_clew", name=name)
+            for name in ("runs", "file_hashes", "verification_results", "session_parents")
+        }
+
+        def _open(name: str, schema, project: str | None = None) -> ProjectScopedStore:
             return ProjectScopedStore(
                 Store(
-                    _target(name),
+                    targets[name],
                     schema,
                     node=node,
                     writer_policy=WriterPolicy.MULTI_WRITER,
-                )
+                ),
+                project=project,
             )
 
         self._runs = _open("runs", RUNS_SCHEMA)
-        self._file_hashes = _open("file_hashes", FILE_HASHES_SCHEMA)
-        self._verifications = _open("verification_results", VERIFICATION_RESULTS_SCHEMA)
-        self._session_parents = _open("session_parents", SESSION_PARENTS_SCHEMA)
+        self._file_hashes = _open("file_hashes", FILE_HASHES_SCHEMA, self._runs.project)
+        # Opened on first use: opening a store is a connection plus its
+        # schema checks (~0.2 s), and a recording session never touches
+        # verification results and rarely the parent junction.
+        self._opener = _open
+        self._lazy: dict[str, ProjectScopedStore] = {}
+
+    def _lazy_store(self, name: str, schema) -> ProjectScopedStore:
+        if name not in self._lazy:
+            self._lazy[name] = self._opener(name, schema, self._runs.project)
+        return self._lazy[name]
+
+    @property
+    def _verifications(self) -> ProjectScopedStore:
+        return self._lazy_store("verification_results", VERIFICATION_RESULTS_SCHEMA)
+
+    @property
+    def _session_parents(self) -> ProjectScopedStore:
+        return self._lazy_store("session_parents", SESSION_PARENTS_SCHEMA)
 
     # -------------------------------------------------------------------------
     # Run operations
@@ -267,11 +291,13 @@ class VerificationDB(
         list of dict
             List of run records
         """
-        rows = self._runs.rows()
+        from scitex_dev.store import Query, eq
+
+        # Filtered, ordered and paged in SQL: only the page is decoded.
+        query = Query().ordered_by("started_at", descending=True)
         if status:
-            rows = [r for r in rows if r.values.get("status") == status]
-        rows.sort(key=lambda r: r.values.get("started_at") or "", reverse=True)
-        page = rows[offset : offset + limit]
+            query = query.where(eq("status", status))
+        page = self._runs.search(query.limited(limit, offset=offset))
         return [{name: r.values.get(name) for name in RUNS_SCHEMA.fields} for r in page]
 
     # -------------------------------------------------------------------------
@@ -279,13 +305,12 @@ class VerificationDB(
     # -------------------------------------------------------------------------
 
     def close(self) -> None:
-        """Close all four stores. Idempotent — Store.close() tolerates repeats."""
-        for store in (
-            self._runs,
-            self._file_hashes,
-            self._verifications,
-            self._session_parents,
-        ):
+        """Close every opened store (queued rows are written first).
+
+        Idempotent — Store.close() tolerates repeats. A store never opened is
+        not opened just to be closed.
+        """
+        for store in (self._runs, self._file_hashes, *self._lazy.values()):
             store.close()
 
 
