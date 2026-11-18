@@ -66,15 +66,18 @@ recorded changes — same rows, roles, hashes and lineage (asserted by
   scope are still fixed when the database handle is created.
 
 ### Measured (`bench_e5_cost.py`, local Postgres; before -> after)
-- `verify --strict` of the claim on a 101-run / 1101-file slice:
-  21.06 s -> 0.38 s; 11-run / 1011-file slice: 2.09 s -> 0.30 s.
+- `verify --strict` (in-process) of the claim on a 101-run / 1101-file
+  slice: 21.1-23.4 s -> 0.34 s; 11-run / 1011-file slice: 2.09 s -> 0.23 s;
+  a 1-run claim: 0.26 s -> 0.15 s.
 - Same 11-run / 110-file slice with 40 unrelated runs (2000 rows) in the
-  project and a second project in the store: 9.21 s -> 0.12 s (0.11 s
+  project and a second project in the store: 9.21 s -> 0.10 s (0.06 s
   without the bulk — the project's size no longer matters).
-- One session reading 1000 inputs (whole fresh process): 5.61 s -> 2.03 s
-  (0.45 s with no hooks; 0.35 s with `SCITEX_CLEW_CAPTURE=0`): ~5.2 ms ->
+- One session reading 1000 inputs (whole fresh process): 5.61 s -> 2.02 s
+  (0.41 s with no hooks; 0.38 s with `SCITEX_CLEW_CAPTURE=0`): ~5.2 ms ->
   ~1.6 ms per recorded input. The rest is `Store.put`'s per-row statements in
-  scitex-dev (no bulk put yet).
+  scitex-dev (no bulk put yet). 101 sessions x 11 inputs in one process: CPU
+  6.1-6.8 s -> 5.1 s (wall is dominated by disk waits on a shared host and
+  varied 22-55 s before / 8-35 s after).
 
 ## [0.29.0] — 2026-11-18
 
