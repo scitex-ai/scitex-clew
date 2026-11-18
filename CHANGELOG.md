@@ -22,6 +22,30 @@ versions follow [Semantic Versioning](https://semver.org/).
   input's producer), the level-0 closure and full-chain verification are
   unchanged. New `scitex_clew._chain._readback`; the level-1/2 walk moved to
   `_chain/_slice_walk.py`.
+- **The claim text is checked against the registered value.** A claim that
+  registered both a display string (`claim_value`, what the manuscript shows)
+  and a structured `value` was verified on `value` alone, so a manuscript
+  number that drifted from its registration passed (`claim_value="1.375"`,
+  `value=0.25`, source 0.25 -> OK; the paper's planted-fault run caught 0/27).
+  Every numeric leaf of `value` must now be written in the text, within the
+  declared tolerance or the text's own precision; otherwise `VALUE_MISMATCH`
+  (21). The parser reads `%`/`\%` (as a percent or a proportion), `1.2e-3`,
+  `1.2 × 10^-3` / `\times 10^{-3}`, `10⁻³`, thousands separators, unicode
+  minus, and treats a number after `±`/`\pm` as an uncertainty. The same
+  parser lets a text-only claim such as `"p = 0.003"` or `"45.3%"` compare
+  against its located source value (it used to be an exact string match).
+- **A value claim without a locator is never verified silently.** With no
+  `source_keys`, verify compared nothing and `--strict` passed on the source
+  file's hash alone. A claim that states a value (a `value`, or a number in a
+  `value`/`statistic` claim's text) is now searched for in its structured
+  source (JSON/YAML leaves, CSV/TSV cells, `.npy` elements up to 100k). A
+  match at exactly one location justifies it and is reported with that
+  location; no match, several matches, or an unsearchable source leave it
+  **`VALUE_UNCHECKED` (new exit 24)**: a warning by default, an error under
+  `--strict` (the posture of `NO_LINEAGE`: absent evidence, not a
+  contradiction — clew cannot prove a value wrong without a locator). The
+  claim's status is `suspect`, not `verified`. (23 is
+  `ENV_NOT_REPRODUCIBLE`, 0.28.0.)
 
 ## [0.28.0] — 2026-11-18
 

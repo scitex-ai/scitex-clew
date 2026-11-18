@@ -91,6 +91,14 @@ ENV_NOT_REPRODUCIBLE 23  The claim's lineage holds, but a distribution its
                      recorded is false); ``--strict`` makes it an ERROR
                      unless the project config sets its severity
                      explicitly (``env_not_reproducible``).
+VALUE_UNCHECKED 24   A claim states a value (a structured ``value``, or a
+                     number in a value/statistic claim's text) but declares
+                     no ``source_keys``, and searching its structured source
+                     did not find that value at exactly one location. Nothing
+                     contradicts the value; nothing checked it either. A
+                     WARNING by default, an ERROR under ``--strict`` (the
+                     same posture as NO_LINEAGE: absent evidence, not a
+                     contradiction). Fix: declare ``source_keys``.
 CITATION_UNLINKED 16  At least one ``\\cite{}`` key present in the
                      manuscript has no clew citation node at all — never
                      registered by scholar and nothing to judge it against
@@ -149,6 +157,10 @@ EXTERNAL_MISSING: int = 22
 # from the record (not from an index / edited after install / other content
 # here under the same version). Warning by default; --strict -> error.
 ENV_NOT_REPRODUCIBLE: int = 23
+# The claim states a value with no locator that a search of its source could
+# not justify: unchecked, not contradicted (warning; --strict makes it fatal).
+# 23 is ENV_NOT_REPRODUCIBLE (scitex-clew PR #204).
+VALUE_UNCHECKED: int = 24
 
 # Human-readable name per code (for summaries / JSON payloads).
 NAMES: dict[int, str] = {
@@ -167,6 +179,7 @@ NAMES: dict[int, str] = {
     VALUE_MISMATCH: "VALUE_MISMATCH",
     EXTERNAL_MISSING: "EXTERNAL_MISSING",
     ENV_NOT_REPRODUCIBLE: "ENV_NOT_REPRODUCIBLE",
+    VALUE_UNCHECKED: "VALUE_UNCHECKED",
 }
 
 # One-line reason per code (printed in the human summary; embedded in JSON).
@@ -222,6 +235,10 @@ REASONS: dict[int, str] = {
         "content here under the same version) — install it from an index and "
         "re-run"
     ),
+    VALUE_UNCHECKED: (
+        "a claim states a value that nothing checked (no source_keys, and no "
+        "unique match in its source) — declare source_keys"
+    ),
 }
 
 # Severity ranking: higher wins when several failure classes co-occur.
@@ -235,21 +252,24 @@ REASONS: dict[int, str] = {
 SEVERITY: dict[int, int] = {
     OK: 0,
     NO_CLAIMS: 1,
-    NO_LINEAGE: 2,
+    # Absent evidence ranks lowest: an unchecked value below a missing
+    # lineage.
+    VALUE_UNCHECKED: 2,
+    NO_LINEAGE: 3,
     # The weakest failure that is not about the claim set itself: the lineage
     # holds; only a replay elsewhere is at risk.
-    ENV_NOT_REPRODUCIBLE: 3,
-    UNSOURCED: 4,
-    UNVERIFIED: 5,
-    EXTERNAL_MISSING: 6,
-    STALE_LINEAGE: 7,
-    VERIFY_ERROR: 8,
-    VALUE_MISMATCH: 9,
-    SOURCE_MISSING: 10,
-    HASH_MISMATCH: 11,
-    CITATION_UNLINKED: 12,
-    CITATION_UNRESOLVED: 13,
-    CITATION_STUB: 14,
+    ENV_NOT_REPRODUCIBLE: 4,
+    UNSOURCED: 5,
+    UNVERIFIED: 6,
+    EXTERNAL_MISSING: 7,
+    STALE_LINEAGE: 8,
+    VERIFY_ERROR: 9,
+    VALUE_MISMATCH: 10,
+    SOURCE_MISSING: 11,
+    HASH_MISMATCH: 12,
+    CITATION_UNLINKED: 13,
+    CITATION_UNRESOLVED: 14,
+    CITATION_STUB: 15,
 }
 
 
@@ -302,6 +322,7 @@ KEY_BY_CODE: dict[int, str] = {
     NO_CLAIMS: "no_claims",
     EXTERNAL_MISSING: "external_missing",
     ENV_NOT_REPRODUCIBLE: "env_not_reproducible",
+    VALUE_UNCHECKED: "value_unchecked",
 }
 CODE_BY_KEY: dict[str, int] = {key: code for code, key in KEY_BY_CODE.items()}
 
@@ -330,6 +351,9 @@ DEFAULT_SEVERITY: dict[int, Severity] = {
     EXTERNAL_MISSING: Severity.ERROR,
     # Replay risk, not a false record: reported, fails only under --strict.
     ENV_NOT_REPRODUCIBLE: Severity.WARNING,
+    # A stated value nothing checked is never silent: a warning by default,
+    # promoted to ERROR by --strict (like NO_LINEAGE).
+    VALUE_UNCHECKED: Severity.WARNING,
 }
 
 
@@ -373,11 +397,11 @@ def resolve_severity(
 ) -> dict[int, Severity]:
     """Resolve per-pattern severity: defaults < ``.scitex/clew`` config < overrides.
 
-    ``--strict`` promotes :data:`NO_LINEAGE` to ERROR regardless of config,
-    and :data:`ENV_NOT_REPRODUCIBLE` to ERROR unless the config or
-    ``overrides`` set its severity explicitly (a project may accept, say, an
-    editable sibling checkout as policy). Raises on an unknown pattern key or
-    an invalid severity value.
+    ``--strict`` promotes :data:`NO_LINEAGE` and :data:`VALUE_UNCHECKED`
+    to ERROR regardless of config, and :data:`ENV_NOT_REPRODUCIBLE` to
+    ERROR unless the config or ``overrides`` set its severity explicitly
+    (a project may accept, say, an editable sibling checkout as policy).
+    Raises on an unknown pattern key or an invalid severity value.
     """
     sev: dict[int, Severity] = dict(DEFAULT_SEVERITY)
 
@@ -391,6 +415,7 @@ def resolve_severity(
         sev = _apply_overrides(sev, overrides, source="argument")
     if strict:
         sev[NO_LINEAGE] = Severity.ERROR
+        sev[VALUE_UNCHECKED] = Severity.ERROR
         explicit_keys = {str(k).strip().lower() for k in [*raw, *(overrides or {})]}
         if KEY_BY_CODE[ENV_NOT_REPRODUCIBLE] not in explicit_keys:
             sev[ENV_NOT_REPRODUCIBLE] = Severity.ERROR
@@ -444,6 +469,7 @@ __all__ = [
     "UNSOURCED",
     "UNVERIFIED",
     "VALUE_MISMATCH",
+    "VALUE_UNCHECKED",
     "VERIFY_ERROR",
     "Severity",
     "classify_exit",

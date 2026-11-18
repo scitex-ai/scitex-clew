@@ -91,7 +91,7 @@ class TestRun:
         workdir = _make_capsule(tmp_path, runs=1)
         src = workdir / "data" / "raw.csv"
         src.parent.mkdir(parents=True, exist_ok=True)
-        src.write_text("x,y\n1,2\n")
+        src.write_text("x,y\n0.94,2\n")  # holds the claimed 0.94
         register_source(
             [src],
             sources_path=workdir / ".scitex" / "clew" / "sources.json",
@@ -123,7 +123,7 @@ class TestRun:
         )
         other = workdir / "results" / "hand_made.csv"
         other.parent.mkdir(parents=True, exist_ok=True)
-        other.write_text("b\n2\n")
+        other.write_text("b\n0.94\n")  # holds the claimed 0.94
         digest = hashlib.sha256(other.read_bytes()).hexdigest()
         _insert_claim(
             claim_id="c2",
