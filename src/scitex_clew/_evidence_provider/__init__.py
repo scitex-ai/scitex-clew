@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""clew as an evidence provider (contract ``scitex-live-paper.evidence-report`` 1.0.0).
+"""clew as an evidence provider (contract ``scitex-live-paper.evidence-report`` 1.1.0).
 
 Coupling is only through the published, provider-neutral contract: clew does
 not import scitex-live-paper, and scitex-live-paper does not import clew. It
@@ -13,9 +13,9 @@ Out of process, ``clew export-evidence --out report.json`` writes the same
 report as a file.
 
 The schema this package implements is vendored, version-pinned, as
-``evidence-report.schema.1.0.0.json`` (copied verbatim from scitex-live-paper's
+``evidence-report.schema.1.1.0.json`` (copied verbatim from scitex-live-paper's
 ``src/scitex_live_paper/evidence/evidence-report.schema.json``, schema
-``$id`` ``.../evidence-report/1.0.0``). Bump it only together with
+``$id`` ``.../evidence-report/1.1.0``). Bump it only together with
 :data:`SCHEMA_VERSION`.
 """
 

@@ -7,6 +7,24 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.34.0] — 2026-11-19
+
+Minor release: the evidence provider implements contract
+`scitex-live-paper.evidence-report` **1.1.0** (vendored schema
+`evidence-report.schema.1.1.0.json`). Store and verification are unchanged.
+
+### Added
+
+- **Where the evidence broke.** Each claim's evidence graph marks the
+  nodes clew's own verification failed on, as `failure: {kind, detail}`:
+  SOURCE_MISSING -> source `missing`; HASH_MISMATCH -> source `changed`;
+  VALUE_MISMATCH -> source `mismatched` (`<src> in source vs <stated>
+  stated`), or the claim node when its text contradicts its value;
+  STALE_LINEAGE / EXTERNAL_MISSING -> every file the re-verified minimal
+  chain reports MISMATCH (`changed`) or MISSING (`missing`), and a run
+  whose execution failed (`failed`). On-demand graphs
+  (`evidence_graph`) carry the same marks as the report.
+
 ## [0.33.0] — 2026-11-19
 
 Minor release: a new public integration surface and nothing else. clew

@@ -8,8 +8,10 @@ Per registered claim of the project at ``project_root``:
 * the claim record (manuscript location, stated text and value, source file
   and locator) from :func:`list_claims`;
 * the minimal evidence graph: the claim's level-1 slice
-  (:func:`build_slice`), converted by :mod:`._graph`. A claim clew cannot
-  slice (no source file) gets ``graph: null`` and a ``graph_error``.
+  (:func:`build_slice`), converted by :mod:`._graph`, with the nodes where
+  verification failed marked ``failure`` (contract 1.1.0) by
+  :mod:`._failures`. A claim clew cannot slice (no source file) gets
+  ``graph: null`` and a ``graph_error``.
 
 Every clew call runs inside a :func:`project_root` block, so the project
 scope resolves from ``project_root`` and not from the working directory.
@@ -21,6 +23,7 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from ._failures import mark_failures
 from ._graph import relative_to_root, slice_to_graph
 from ._states import classify_outcome
 
@@ -34,7 +37,7 @@ __all__ = [
 
 #: Contract implemented (the vendored schema in this package pins it).
 SCHEMA_ID = "scitex-live-paper.evidence-report"
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 PROVIDER_NAME = "clew"
 #: Slice level of the evidence graph: path-pruned (clew's default).
 SLICE_LEVEL = 1
@@ -54,10 +57,26 @@ def _version() -> str | None:
     return __version__
 
 
-def _claim_graph(claim_id: str, root: Path) -> dict:
+def _claim_graph(
+    claim_id: str,
+    root: Path,
+    *,
+    outcome: str,
+    reason: str,
+    details: list[str],
+    source_file: str | None,
+) -> dict:
     from .._chain._slice import build_slice
 
-    return slice_to_graph(build_slice([claim_id], level=SLICE_LEVEL), claim_id, root)
+    graph = slice_to_graph(build_slice([claim_id], level=SLICE_LEVEL), claim_id, root)
+    return mark_failures(
+        graph,
+        outcome=outcome,
+        reason=reason,
+        details=details,
+        source_file=source_file,
+        root=root,
+    )
 
 
 def _entry(row, record, root: Path, with_graph: bool) -> dict:
@@ -95,7 +114,14 @@ def _entry(row, record, root: Path, with_graph: bool) -> dict:
         entry["graph_error"] = "the claim has no source file, so it has no slice"
         return entry
     try:
-        entry["graph"] = _claim_graph(row.claim_id, root)
+        entry["graph"] = _claim_graph(
+            row.claim_id,
+            root,
+            outcome=row.outcome,
+            reason=reason,
+            details=details,
+            source_file=source_file,
+        )
     except Exception as exc:  # noqa: BLE001 - surfaced per claim as graph_error
         entry["graph"] = None
         entry["graph_error"] = f"clew could not slice the claim: {exc}"
@@ -157,7 +183,7 @@ def build_evidence_graph(
     Raises :class:`KeyError` when ``claim_id`` is not a registered claim.
     """
     del options  # no graph options yet; the slice level is fixed at 1
-    from .._claim import list_claims
+    from .._claim import list_claims, verify_all_claims
     from .._db._paths import project_root as project_root_cm
 
     root = _root(project_root)
@@ -165,9 +191,23 @@ def build_evidence_graph(
         records = {c.claim_id: c for c in list_claims(limit=_CLAIM_LIMIT)}
         if claim_id not in records:
             raise KeyError(f"{claim_id!r} is not a registered clew claim")
-        if not records[claim_id].source_file:
+        record = records[claim_id]
+        if not record.source_file:
             return None
-        return _claim_graph(claim_id, root)
+        # The same strict verdict the report uses, so the failing nodes of an
+        # on-demand graph equal the report's (scoped to this claim's file).
+        result = verify_all_claims(file_path=record.file_path, strict=True)
+        row = next(r for r in result.claims if r.claim_id == claim_id)
+        details = [str(d) for d in (row.details or [])]
+        _state, reason, _status = classify_outcome(row.outcome, details)
+        return _claim_graph(
+            claim_id,
+            root,
+            outcome=row.outcome,
+            reason=reason,
+            details=details,
+            source_file=record.source_file or row.source_file,
+        )
 
 
 # EOF

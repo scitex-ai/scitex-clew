@@ -1,7 +1,7 @@
 """The evidence report on a REAL clew project, validated against the contract.
 
 The report is validated against the vendored, version-pinned contract schema
-(``scitex-live-paper.evidence-report`` 1.0.0) with jsonschema; scitex-live-paper
+(``scitex-live-paper.evidence-report`` 1.1.0) with jsonschema; scitex-live-paper
 itself is never imported. No mocks: real sessions, a real PostgreSQL store
 (one schema and one built project per module, see ``conftest.py``).
 """

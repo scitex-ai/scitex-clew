@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://scitex.ai/schemas/scitex-live-paper/evidence-report/1.0.0",
+  "$id": "https://scitex.ai/schemas/scitex-live-paper/evidence-report/1.1.0",
   "title": "scitex-live-paper evidence report",
   "description": "What an evidence provider supplies to scitex-live-paper: one entry per REGISTERED claim with its evidence state, a one-line reason, its source and locator, and its minimal evidence graph. Text that is not a registered claim never appears. Versioned by schema_version (semver): a MINOR bump only adds optional fields; a MAJOR bump changes or removes fields. See docs/evidence-provider-contract.md.",
   "type": "object",
@@ -65,6 +65,15 @@
         "graph_error": {"type": ["string", "null"]}
       }
     },
+    "failure": {
+      "type": "object",
+      "description": "Added in 1.1.0. Marks a graph node where the evidence broke. kind is a short token; changed (content differs from what the recorded computation saw), missing (absent), and mismatched (holds a value other than the claim states) are the recommended ones, and a consumer shows any other token verbatim. detail is one plain-language line.",
+      "required": ["kind"],
+      "properties": {
+        "kind": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "detail": {"type": ["string", "null"]}
+      }
+    },
     "graph": {
       "type": "object",
       "required": ["nodes", "edges"],
@@ -79,7 +88,8 @@
               "kind": {"enum": ["claim", "process", "input", "output", "other"]},
               "label": {"type": "string"},
               "hash": {"type": ["string", "null"]},
-              "external": {"type": "boolean"}
+              "external": {"type": "boolean"},
+              "failure": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/failure"}]}
             }
           }
         },
