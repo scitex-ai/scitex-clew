@@ -26,6 +26,7 @@ import socket
 from scitex_dev.store import FieldKind, FieldPolicy, FieldRole, MergeRule, Schema
 
 __all__ = [
+    "ENVIRONMENTS_SCHEMA",
     "FILE_HASHES_SCHEMA",
     "RUNS_SCHEMA",
     "SESSION_PARENTS_SCHEMA",
@@ -143,6 +144,21 @@ SESSION_PARENTS_SCHEMA = Schema.build(
         "recorded_at": _data_field(
             FieldKind.TEXT, required=True, merge=MergeRule.IMMUTABLE, indexed=True
         ),
+    },
+)
+
+#: One row per distinct package-provenance set of a project, keyed by the
+#: SHA-256 of its canonical JSON (see ``_environments.py``). Content-addressed,
+#: so every field is write-once.
+ENVIRONMENTS_SCHEMA = Schema.build(
+    "environments",
+    {
+        "project": _identity_field(),
+        "sha256": _identity_field(),
+        "format": _data_field(FieldKind.TEXT, required=True, merge=MergeRule.IMMUTABLE),
+        "distributions": _data_field(FieldKind.INTEGER, merge=MergeRule.IMMUTABLE),
+        "provenance": _data_field(FieldKind.TEXT, required=True, merge=MergeRule.IMMUTABLE),
+        "recorded_at": _data_field(FieldKind.TEXT, required=True, merge=MergeRule.IMMUTABLE),
     },
 )
 
