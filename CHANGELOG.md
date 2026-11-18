@@ -71,6 +71,16 @@ timeouts all the time.
   `stx.io.save` / `record_output` are hashed when saved, so they are kept.
 - Modules first imported after the session started, and symlink metadata.
 
+### Measured (`bench_e5_cost.py`, private local Postgres, 2 interleaved rounds; 0.30.0 -> this)
+- A journal append costs 6.8 µs per row (20k rows, in-process). That is
+  about 0.4% of the ~1.6-2 ms a recorded input costs.
+- One fresh process reading 1000 inputs, with hooks on minus no hooks:
+  1.72 / 2.14 ms per input before, 2.08 / 1.81 ms per input after. The
+  difference is within this shared host's run-to-run noise.
+- N1000-K10 (11 sessions, 1010 inputs), recording CPU: 1.44 / 1.37 s
+  before, 1.48 / 1.75 s after. Wall time: 2.89 / 3.08 s before, 3.36 /
+  2.79 s after.
+
 ## [0.30.0] — 2026-11-18
 
 Performance release driven by the paper's E5 cost measurement: `clew verify`
