@@ -173,6 +173,8 @@ def verify(ctx: click.Context, session_id, strict: bool, config, as_json: bool):
                           reproducible from the record (local build / edited
                           after install / other content here) — --strict only;
                           a warning otherwise
+      24  VALUE_UNCHECKED a stated value has no source_keys and no unique
+                          match in its source (warning; error under --strict)
 
     A solver MUST run ``clew verify [--strict]`` before signalling DONE.
     DONE is legitimate ONLY on exit 0; any nonzero code means the agent

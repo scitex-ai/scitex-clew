@@ -26,6 +26,9 @@ Level 1 — path-pruned (sound from recorded data alone; the default)
     of a kept run are kept — an input that was loaded but unused still
     appears if it was loaded by a run on the path. Level 1 is therefore exact
     at file granularity *between* runs and conservative *within* a run.
+    A demanded output is credited to its ORIGINATING producer: a run that
+    read ``P`` and rewrote it with the same bytes is skipped in favour of the
+    run that first produced those bytes (see :mod:`._readback`).
 
 Level 2 — declared per-output dependencies (opt-in, trusts the writer)
     A writing tool may declare, per output, the files it was derived from
@@ -73,7 +76,7 @@ A materialized slice must recreate them — the run opens the link path.
 from __future__ import annotations
 
 import re
-from collections import defaultdict, deque
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -81,7 +84,6 @@ from pathlib import Path
 from ._env_requirements import environment_findings, merge_requirements
 from ._routes import (
     DEFAULT_MAX_DEPTH,
-    _session_bindings,
     current_hash_or_none,
     order_roots_first,
     resolve_lineage,
@@ -89,9 +91,9 @@ from ._routes import (
 )
 from ._slice_records import collect_links, collect_recipes
 from ._slice_records import run_environment as _run_environment
+from ._slice_walk import LEVEL_PATH_PRUNED, RunIndex, walk_demanded
 
 LEVEL_RUN_CLOSURE = 0
-LEVEL_PATH_PRUNED = 1
 LEVEL_DECLARED = 2
 LEVELS = (LEVEL_RUN_CLOSURE, LEVEL_PATH_PRUNED, LEVEL_DECLARED)
 
@@ -301,40 +303,6 @@ def _lookup_claim(text: str):
 # ---------------------------------------------------------------------------
 
 
-class _RunIndex:
-    """Lazily loaded file records + input bindings per run."""
-
-    def __init__(self, db):
-        self.db = db
-        self._records: dict[str, list[dict]] = {}
-        self._bindings: dict[str, dict[str, str]] = {}
-
-    def records(self, sid: str, role: str) -> list[dict]:
-        if sid not in self._records:
-            self._records[sid] = self.db.get_file_records(sid)
-        return [r for r in self._records[sid] if r.get("role") == role]
-
-    def inputs(self, sid: str) -> dict[str, str | None]:
-        return {r["file_path"]: r.get("hash") for r in self.records(sid, "input")}
-
-    def outputs(self, sid: str) -> dict[str, dict]:
-        return {r["file_path"]: r for r in self.records(sid, "output")}
-
-    def external(self, sid: str) -> dict[str, dict]:
-        """``{path: external payload}`` of the run's outside-the-project inputs."""
-        return {
-            r["file_path"]: r["external"]
-            for r in self.records(sid, "input")
-            if r.get("external")
-        }
-
-    def parent_of(self, sid: str, input_path: str) -> str | None:
-        if sid not in self._bindings:
-            bindings, _unbound = _session_bindings(self.db, sid)
-            self._bindings[sid] = {b.file_path: b.parent for b in bindings}
-        return self._bindings[sid].get(input_path)
-
-
 def build_slice(
     targets: Iterable[str | Path],
     *,
@@ -364,7 +332,7 @@ def build_slice(
 
         db = get_db()
 
-    index = _RunIndex(db)
+    index = RunIndex(db)
     resolved_targets: list[str] = []
     seeds: list[tuple[str, str]] = []
     unproduced: list[str] = []
@@ -377,41 +345,23 @@ def build_slice(
         else:
             seeds.append((producer, path))
 
-    kept_in: dict[str, set[str]] = defaultdict(set)
-    kept_out: dict[str, set[str]] = defaultdict(set)
-    parents: dict[str, list[str]] = defaultdict(list)
-    fallback: dict[str, str] = {}
-    unrecorded: dict[str, set[str]] = defaultdict(set)
-
     if level == LEVEL_RUN_CLOSURE:
+        kept_in: dict[str, set[str]] = defaultdict(set)
+        kept_out: dict[str, set[str]] = defaultdict(set)
+        parents: dict[str, list[str]] = defaultdict(list)
+        fallback: dict[str, str] = {}
+        unrecorded: dict[str, set[str]] = {}
         lineage = resolve_lineage([sid for sid, _ in seeds], db=db, max_depth=max_depth)
         for sid in lineage.all_ids:
             kept_in[sid] = set(index.inputs(sid))
             kept_out[sid] = set(index.outputs(sid))
             parents[sid] = list(lineage.adjacency.get(sid, []))
     else:
-        queue: deque = deque((sid, path, 0) for sid, path in seeds)
-        seen: set[tuple[str, str]] = set()
-        while queue:
-            sid, out_path, depth = queue.popleft()
-            if (sid, out_path) in seen:
-                continue
-            seen.add((sid, out_path))
-            kept_out[sid].add(out_path)
-            needed = _inputs_needed(
-                index, sid, out_path, level, kept_out, fallback, unrecorded
-            )
-            for inp in needed:
-                if inp in kept_in[sid]:
-                    continue
-                kept_in[sid].add(inp)
-                parent = index.parent_of(sid, inp)
-                if parent is None:
-                    continue
-                if parent not in parents[sid]:
-                    parents[sid].append(parent)
-                if depth < max_depth:
-                    queue.append((parent, inp, depth + 1))
+        # Demanded outputs only; each credited to its ORIGINATING producer, so
+        # a same-bytes read-back rewrite adds no producer (see ._readback).
+        kept_in, kept_out, parents, fallback, unrecorded = walk_demanded(
+            index, seeds, level, max_depth
+        )
 
     run_ids = set(kept_out) | set(kept_in)
     order = order_roots_first({s: parents.get(s, []) for s in run_ids}, run_ids)
@@ -459,36 +409,6 @@ def build_slice(
         links=collect_links(db, order, kept_in, kept_out),
         reruns=reruns,
     )
-
-
-def _inputs_needed(index, sid, out_path, level, kept_out, fallback, unrecorded):
-    """Inputs of ``sid`` that the demanded output ``out_path`` rests on."""
-    inputs = index.inputs(sid)
-    if level == LEVEL_PATH_PRUNED:
-        return list(inputs)
-    outputs = index.outputs(sid)
-    needed: list[str] = []
-    stack, visited = [out_path], set()
-    while stack:
-        current = stack.pop()
-        if current in visited:
-            continue
-        visited.add(current)
-        declared = (outputs.get(current) or {}).get("derived_from")
-        if declared is None:
-            fallback.setdefault(
-                sid, f"output {current} has no derived_from declaration"
-            )
-            return list(inputs)
-        for dep in declared:
-            if dep in inputs:
-                needed.append(dep)
-            elif dep in outputs:
-                kept_out[sid].add(dep)  # declared intermediate of the same run
-                stack.append(dep)
-            else:
-                unrecorded[sid].add(dep)
-    return needed
 
 
 def compare_levels(

@@ -157,6 +157,23 @@ class TestResolveSeverity:
         # Assert
         assert sev[codes.NO_LINEAGE] == codes.Severity.ERROR
 
+    def test_default_value_unchecked_is_warning(self, clean_scopes):
+        # Arrange — no config files present.
+        # Act
+        sev = codes.resolve_severity(start=clean_scopes)
+        # Assert
+        assert sev[codes.VALUE_UNCHECKED] == codes.Severity.WARNING
+
+    def test_strict_promotes_value_unchecked_to_error(self, clean_scopes):
+        # Arrange — no config files present.
+        # Act
+        sev = codes.resolve_severity(start=clean_scopes, strict=True)
+        # Assert
+        assert (codes.VALUE_UNCHECKED, sev[codes.VALUE_UNCHECKED]) == (
+            24,
+            codes.Severity.ERROR,
+        )
+
     def test_project_config_downgrades_pattern(self, clean_scopes):
         # Arrange — downgrade the fabrication pattern via project config.
         _project_severity(

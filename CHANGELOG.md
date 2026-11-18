@@ -7,6 +7,52 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **Slice no longer chains same-bytes reruns through a read-back.** When a
+  run read a file `F` at hash `h` and rewrote `F` with the same `h` (a script
+  run twice that reads its own previous output), the second run's input edge
+  pulled the first run into the level-1/2 slice, so it held two producers of
+  `h` where one suffices (paper E2 minimality run). A demanded output is now
+  credited to its ORIGINATING producer: the slice follows such read-back
+  rewrites back to the run that first produced `h` (whose `F` input had
+  different bytes, or none), which is sufficient whatever the later
+  rewriters did internally. Applies to `clew slice` levels 1-2,
+  `chain/dag --minimal` and claim verification; a real chain (`F@h1 ->
+  F@h2`), a rewriter kept for ANOTHER output (it keeps its `F` input and that
+  input's producer), the level-0 closure and full-chain verification are
+  unchanged. New `scitex_clew._chain._readback`; the level-1/2 walk moved to
+  `_chain/_slice_walk.py`.
+- **The claim text is checked against the registered value.** A claim that
+  registered both a display string (`claim_value`, what the manuscript shows)
+  and a structured `value` was verified on `value` alone, so a manuscript
+  number that drifted from its registration passed (`claim_value="1.375"`,
+  `value=0.25`, source 0.25 -> OK; the paper's planted-fault run caught 0/27).
+  Every numeric leaf of `value` must now be written in the text, within the
+  declared tolerance or the text's own precision; otherwise `VALUE_MISMATCH`
+  (21). The parser reads `%`/`\%` (as a percent or a proportion), `1.2e-3`,
+  `1.2 × 10^-3` / `\times 10^{-3}`, `10⁻³`, thousands separators, unicode
+  minus, and treats a number after `±`/`\pm` as an uncertainty. The same
+  parser lets a text-only claim such as `"p = 0.003"` or `"45.3%"` compare
+  against its located source value (it used to be an exact string match).
+- **A value claim without a locator is never verified silently.** With no
+  `source_keys`, verify compared nothing and `--strict` passed on the source
+  file's hash alone. A claim that states a value (a `value`, or a number in a
+  `value`/`statistic` claim's text) is now searched for in its structured
+  source (JSON/YAML leaves, CSV/TSV cells, `.npy` elements up to 100k). A
+  match at exactly one location justifies it and is reported with that
+  location; no match, several matches, or an unsearchable source leave it
+  **`VALUE_UNCHECKED` (new exit 24)**: a warning by default, an error under
+  `--strict` (the posture of `NO_LINEAGE`: absent evidence, not a
+  contradiction — clew cannot prove a value wrong without a locator). The
+  claim's status is `suspect`, not `verified`. (23 is
+  `ENV_NOT_REPRODUCIBLE`, 0.28.0.)
+
+## [0.28.0] — 2026-11-18
+
+Minor release: non-reproducible environment requirements are flagged
+(PR #204, exit code 23 `ENV_NOT_REPRODUCIBLE`; warning by default, error
+under `--strict`). Reads scitex-session >= 0.5.0 `package_provenance`.
+
 ### Added
 
 - **Non-reproducible environment requirements are flagged** (exit code
