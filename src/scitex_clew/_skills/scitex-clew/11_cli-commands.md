@@ -114,6 +114,16 @@ clew list-stamps
 clew check-stamp <session_id>
 ```
 
+## Recording commands
+
+```bash
+# Replay the journals of runs whose process was killed before closing
+# (SIGKILL / OOM / harness timeout). Every clew command and session start
+# already does this quietly; this reports it. Idempotent.
+clew recover-journals
+clew --json recover-journals --dry-run   # what would be replayed
+```
+
 ## Integration commands
 
 ```bash

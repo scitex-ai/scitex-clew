@@ -104,6 +104,8 @@ _LAZY_ATTRS: dict[str, tuple[str, str | None]] = {
     # _observers (session hooks)
     "on_session_start": ("._observers", "on_session_start"),
     "on_session_close": ("._observers", "on_session_close"),
+    # _journal (kill-durable recording)
+    "recover_journals": ("._journal", "recover_journals"),
     # _chain._dag (re-exported via _chain)
     "verify_dag": ("._chain", "verify_dag"),
     "verify_dag_strict": ("._chain", "verify_dag_strict"),

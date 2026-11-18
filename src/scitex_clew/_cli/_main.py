@@ -36,6 +36,7 @@ from ._help_specs import CLI_HELP
 from ._introspect import list_python_apis
 from ._mcp import mcp
 from ._notebook import execute_notebook_cmd
+from ._recover import recover_journals, recover_quietly
 from ._signing import keygen_cmd, sign_cmd, verify_signatures_cmd
 from ._sources import (
     grounding_cmd,
@@ -90,6 +91,7 @@ COMMAND_CATEGORIES = [
     ("Signing", ["keygen", "sign", "verify-signatures"]),
     ("Citations", ["verify-citations", "citation"]),
     ("Hashing", ["hash-file", "hash-directory"]),
+    ("Recording", ["recover-journals"]),
     ("Stamping", ["stamp", "list-stamps", "check-stamp"]),
     ("Visualization", ["print-mermaid"]),
     ("Integration", ["mcp", "list-python-apis", "completion"]),
@@ -219,6 +221,10 @@ def main(
 
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
+        return
+    # Runs killed before they closed: replay their journals first, so the
+    # command sees their records (see scitex_clew._journal).
+    recover_quietly(ctx.invoked_subcommand)
 
 
 # Fleet standard completion drop-in v1 (`completion install` / `status`,
@@ -285,6 +291,7 @@ main.add_command(verify_citations_cmd)
 main.add_command(citation)
 main.add_command(hash_file)
 main.add_command(hash_directory)
+main.add_command(recover_journals)
 main.add_command(execute_notebook_cmd)
 main.add_command(stamp)
 main.add_command(list_stamps)

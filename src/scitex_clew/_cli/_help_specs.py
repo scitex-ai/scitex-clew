@@ -153,6 +153,21 @@ CLI_HELP = {
             Example("{prog} hash-directory results/ --pattern '*.csv' --json", ""),
         ),
     ),
+    "recover_journals": CliHelp(
+        summary="Replay the recording journals of runs whose process was killed.",
+        description=(
+            "A session queues its file rows and also appends them to a journal\n"
+            "($SCITEX_DIR/clew/journal/<host>/). A process killed before it closed\n"
+            "(SIGKILL, OOM, a harness timeout) leaves its journal behind; this writes\n"
+            "its rows, records its captured inputs, binds producers and closes the\n"
+            "run as 'killed'. Idempotent. Every clew command and session start\n"
+            "already does this quietly.",
+        ),
+        examples=(
+            Example("{prog} recover-journals", ""),
+            Example("{prog} recover-journals --dry-run --json", ""),
+        ),
+    ),
     "list_python_apis": CliHelp(
         summary="List Python APIs (scitex-clew public API tree).",
         description=(

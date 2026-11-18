@@ -164,6 +164,9 @@ def _child_env(dsn: str, root: Path, extra: dict | None = None) -> dict:
         "PYTHONPATH": str(SRC),
         "SCITEX_STORE_DSN": dsn,
         "SCITEX_SESSION_PROJECT_ROOT": str(root),
+        # The per-session recording journal (clew >= 0.31) stays with the
+        # bench, never in the user's ~/.scitex.
+        "SCITEX_CLEW_JOURNAL_DIR": str(root.parent / "journal"),
     }
     env.update(extra or {})
     return env
@@ -292,7 +295,9 @@ def main() -> None:
     cold = {n: run_cold(base, admin_dsn, n, args.repeats) for n in args.cold}
     print(f"{'cold 1 session':<16}" + "".join(f"{m[0]:>11}" for m in COLD_MODES))
     for n, row in cold.items():
-        print(f"{f'{n} inputs':<16}" + "".join(f"{row[m[0]]:>10.3f}s" for m in COLD_MODES))
+        print(
+            f"{f'{n} inputs':<16}" + "".join(f"{row[m[0]]:>10.3f}s" for m in COLD_MODES)
+        )
     rows = [run_config(c, base, admin_dsn, {}) for c in args.configs]
     print(
         f"{'config':<16}{'sess':>6}{'inputs':>8}{'rec s':>9}{'rec cpu':>9}"

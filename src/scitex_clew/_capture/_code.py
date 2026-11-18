@@ -174,6 +174,14 @@ class CodeExecCapture:
         self.code[real] = digest
         if external:
             self.external[real] = external_info(real, via)
+        # Recorded at close; journaled now so a kill does not lose it.
+        journal = getattr(self.tracker, "_journal", None)
+        if journal is not None:
+            try:
+                size = os.path.getsize(real)
+            except OSError:
+                size = None
+            journal.captured_read(real, digest, size, self.external.get(real))
 
 
 # EOF

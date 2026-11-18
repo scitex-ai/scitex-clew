@@ -7,6 +7,70 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+Fixes a 0.30.0 regression: a run killed before it closed lost its record.
+0.30.0 queued a session's rows in memory and wrote them at close. A process
+killed outright (`SIGKILL`, the OOM killer, a container or agent-harness
+timeout, a dead kernel) never reached that write, so every row it had
+recorded was lost and the run stayed `running`. Agent harnesses kill runs on
+timeouts all the time.
+
+### Added
+- **Per-session recording journal** (`scitex_clew._journal`). Each queued
+  row is also appended, as it is queued, to
+  `$SCITEX_CLEW_JOURNAL_DIR` (default `~/.scitex/clew/journal`)
+  `/<host>/<session>.<pid>.jsonl` (mode 0600). Each append is one `os.write`
+  of one JSON line, with no `fsync`: the bytes are in the page cache and
+  survive the process's death. Files the `open()` capture hashed at open
+  (inputs, executed code) and files opened for writing are journaled too.
+  When the OUTERMOST store transaction that wrote rows commits, a `flushed`
+  marker is appended. A closed session deletes its journal. The owner holds
+  an `flock` on the file, and the kernel releases it whatever kills the
+  process. The header stores a SHA-256 fingerprint of the store DSN, never
+  the DSN itself.
+- **Recovery** (`scitex_clew.recover_journals()`,
+  `clew recover-journals [--dry-run]`). It also runs quietly at every session
+  start and every `clew` command. For each journal on this machine whose
+  owner is dead and whose store fingerprint matches, it:
+  - writes the rows queued after the last marker;
+  - records the captured inputs a close would have recorded (first record
+    wins);
+  - re-binds every input to its producer;
+  - closes a still-`running` run as **`killed`**, with `finished_at` set to
+    the journal's last write and `metadata["clew_recovery"]` attached;
+  - deletes the journal.
+
+  Replay is idempotent (upserts on the row identity). It skips journals of
+  live processes and journals written for other stores.
+- **SIGTERM / SIGHUP handling.** Where the handler is the default and the
+  code runs on the main thread, clew records the signal and replays the
+  session's own journal, which closes the run as `killed` with
+  `exit_code = -signum`. It then restores the default action and re-sends
+  the signal, so the process still dies of it. If the signal interrupted a
+  store write, the handler writes nothing and the next start replays the
+  journal instead.
+- **Time-bounded flush.** `SCITEX_CLEW_FLUSH_SECONDS` (default 30) is the
+  longest the oldest queued row waits before a later recording writes the
+  queue. This keeps a long run's rows visible to other processes.
+- `VerificationDB(project=...)` pins the project scope, for replaying another
+  project's journal.
+- Env vars `SCITEX_CLEW_JOURNAL` (`0` turns the journal and the signal
+  handlers off), `SCITEX_CLEW_JOURNAL_DIR`, `SCITEX_CLEW_FLUSH_SECONDS`.
+
+### Changed
+- An interpreter that exits with a session still open (the script returned
+  without closing it, `sys.exit`, an uncaught `KeyboardInterrupt`) now
+  records the capture and closes the run as **`incomplete`**. Before, it
+  flushed the rows and left the run `running` forever.
+- `killed` and `incomplete` join `failed` / `error` as failed run statuses
+  for `verify`: such a run's files are not evidence.
+
+### Not recorded for a killed run
+- The bytes of files the run only opened for writing are not recorded. A
+  clean close hashes them, but a killed run's output may be partial. They
+  are listed in `clew_recovery.unhashed_writes`. Outputs recorded through
+  `stx.io.save` / `record_output` are hashed when saved, so they are kept.
+- Modules first imported after the session started, and symlink metadata.
+
 ## [0.30.0] — 2026-11-18
 
 Performance release driven by the paper's E5 cost measurement: `clew verify`
