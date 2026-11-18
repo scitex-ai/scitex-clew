@@ -7,6 +7,42 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-11-18
+
+Minor release: non-reproducible environment requirements are flagged
+(PR #204, exit code 23 `ENV_NOT_REPRODUCIBLE`; warning by default, error
+under `--strict`). Reads scitex-session >= 0.5.0 `package_provenance`.
+
+### Added
+
+- **Non-reproducible environment requirements are flagged** (exit code
+  `23 ENV_NOT_REPRODUCIBLE`). A run's record said `name==version` for a
+  dependency the agent had patched and rebuilt locally; it looked identical
+  to the index release, and a replay with the index release failed. With
+  scitex-session >= 0.5.0 each run records `package_provenance` (PEP 610
+  install source, a content fingerprint of the installed wheel, installed
+  files edited since installation). Slices carry it
+  (`requirements()["provenance"]`, `runs_without_provenance` for older
+  records) and `ProvenanceSlice.environment_findings()` /
+  `clew slice` / `clew verify` report each requirement that is not
+  reproducible from the record:
+  - `not_from_index` — installed from a local dir, local archive, editable
+    source, VCS or remote archive;
+  - `edited_after_install` — an index install whose files were edited,
+    overwritten or deleted after installation;
+  - `content_differs` — the same version installed here has another
+    fingerprint (the E2 case: patched rebuild recorded, index release here);
+  - `edited_here` — the same build installed here, edited after install.
+  **Severity: warning by default, error under `--strict`.** Default `verify`
+  answers "do the recorded hashes and lineage still hold here?" — a locally
+  built dependency does not make any recorded hash false, so it is surfaced
+  (`warnings`, per-claim `environment`) without failing. `--strict` is the
+  reproducibility contract, so there it fails with exit 23 — unless the
+  project sets `verify.severity.env_not_reproducible` explicitly (e.g. it
+  accepts an editable sibling checkout as policy). It ranks just above
+  `NO_LINEAGE`: every integrity / lineage failure outranks it. Version drift
+  (another version, or not installed here) is not this finding.
+
 ## [0.27.0] — 2026-11-18
 
 Minor release: temp-dir files that pre-existed the process are recorded as

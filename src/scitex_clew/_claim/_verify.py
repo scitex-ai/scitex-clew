@@ -23,6 +23,7 @@ def verify_claim(
     claim_id_or_location: str,
     hash_cache: dict[str, str] | None = None,
     chain_cache: dict[str, object] | None = None,
+    env_cache: dict | None = None,
 ) -> dict:
     """Verify a specific claim by checking its source against the verification chain.
 
@@ -42,11 +43,18 @@ def verify_claim(
         multiple claims is executed at most once per :func:`verify_all_claims`
         pass. Pass ``None`` (default) to disable memoization — direct callers
         are unaffected.
+    env_cache : dict or None, optional
+        Per-pass cache of this environment's installed distributions (see
+        :func:`scitex_clew._chain._env_requirements.current_distribution`).
 
     Returns
     -------
     dict
         Verification result with claim details and chain status.
+        ``environment_findings`` lists the slice's environment requirements
+        that are not reproducible from the record (a distribution installed
+        from a local build, edited after installation, or with other content
+        here under the same version); empty when all are reproducible.
     """
     db = get_db()
     _ensure_claims_table(db)
@@ -141,6 +149,7 @@ def verify_claim(
                     f"{len(missing_external)} external input(s) missing on "
                     f"this machine: {missing_external[:5]}"
                 )
+            _check_environment(result, chain, env_cache)
             # "no_lineage": no recorded run produced the source at all.
             # Anything else that is not verified is a lineage that EXISTS but
             # no longer holds (changed upstream input, failed run, ...).
@@ -169,6 +178,20 @@ def verify_claim(
         result["claim"]["status"] = "suspect"
 
     return result
+
+
+def _check_environment(result: dict, chain, env_cache: dict | None) -> None:
+    """Record the claim slice's non-reproducible environment requirements."""
+    slice_ = getattr(chain, "slice", None)
+    if slice_ is None or not chain.runs:
+        return
+    findings = slice_.environment_findings(cache=env_cache)
+    result["environment_findings"] = findings
+    for f in findings:
+        result["details"].append(
+            f"environment: {f['distribution']}=={f['version']} {f['kind']}: "
+            f"{f['message']}"
+        )
 
 
 @with_project_root
@@ -346,10 +369,12 @@ def verify_all_claims(
         vs ``warnings`` (tolerated). See :mod:`scitex_clew._cli._exit_codes`.
     """
     from .._cli._exit_codes import (
+        ENV_NOT_REPRODUCIBLE,
         KEY_BY_CODE,
         NO_CLAIMS,
         OK,
         UNSOURCED,
+        Severity,
         classify_exit,
         name_of,
         reason_of,
@@ -399,6 +424,8 @@ def verify_all_claims(
     # each unique chain is walked at most once per pass.  A fresh dict is
     # created each call so no stale entries leak across independent passes.
     chain_cache: dict[str, object] = {}
+    # This environment's installed distributions, looked up once per pass.
+    env_cache: dict = {}
 
     per_claim: list[ClaimVerification] = []
     per_codes: list[int] = []
@@ -409,9 +436,23 @@ def verify_all_claims(
 
     for c in claims:
         result = verify_claim(
-            c.claim_id, hash_cache=hash_cache, chain_cache=chain_cache
+            c.claim_id,
+            hash_cache=hash_cache,
+            chain_cache=chain_cache,
+            env_cache=env_cache,
         )
         code = _classify_claim(result, strict=strict)
+
+        # Environment gate: an otherwise-OK claim whose runs imported a
+        # distribution that is not reproducible from the record. At ERROR
+        # severity (--strict) the claim's outcome becomes the pattern; at
+        # WARNING it stays OK and the pattern is surfaced in ``warnings``.
+        environment = result.get("environment_findings") or []
+        if code == OK and environment:
+            if severities[ENV_NOT_REPRODUCIBLE] == Severity.ERROR:
+                code = ENV_NOT_REPRODUCIBLE
+            else:
+                per_codes.append(ENV_NOT_REPRODUCIBLE)
 
         # Source gate: an otherwise-OK (link-verified) claim whose chain reaches
         # NO registered source is DEMOTED to UNSOURCED. Hash/lineage failures
@@ -443,6 +484,7 @@ def verify_all_claims(
                 outcome=cname,
                 severity=sev,
                 details=result.get("details", []),
+                environment=environment,
             )
         )
 

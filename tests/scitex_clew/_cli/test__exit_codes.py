@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Unit tests for the fail-loud exit-code core
 (:mod:`scitex_clew._cli._exit_codes`).
 
@@ -18,9 +17,7 @@ from __future__ import annotations
 import os
 
 import pytest
-
 from scitex_clew._cli import _exit_codes as codes
-
 
 # ---------------------------------------------------------------------------
 # Pure severity reducer
@@ -187,3 +184,45 @@ class TestResolveSeverity:
         # Assert
         with pytest.raises(ValueError):
             codes.resolve_severity(start=clean_scopes)
+
+
+class TestEnvNotReproducibleSeverity:
+    def test_default_is_warning(self, clean_scopes):
+        # Arrange — no config files present.
+        # Act
+        sev = codes.resolve_severity(start=clean_scopes)
+        # Assert
+        assert sev[codes.ENV_NOT_REPRODUCIBLE] == codes.Severity.WARNING
+
+    def test_strict_promotes_to_error(self, clean_scopes):
+        # Arrange — no config files present.
+        # Act
+        sev = codes.resolve_severity(start=clean_scopes, strict=True)
+        # Assert
+        assert sev[codes.ENV_NOT_REPRODUCIBLE] == codes.Severity.ERROR
+
+    def test_explicit_project_severity_survives_strict(self, clean_scopes):
+        # Arrange — the project accepts local builds as policy.
+        _project_severity(
+            clean_scopes, "verify:\n  severity:\n    env_not_reproducible: warning\n"
+        )
+        # Act
+        sev = codes.resolve_severity(start=clean_scopes, strict=True)
+        # Assert
+        assert sev[codes.ENV_NOT_REPRODUCIBLE] == codes.Severity.WARNING
+
+    def test_code_is_23(self):
+        # Arrange
+        expected = 23
+        # Act
+        code = codes.ENV_NOT_REPRODUCIBLE
+        # Assert
+        assert code == expected
+
+    def test_every_lineage_failure_outranks_it(self):
+        # Arrange
+        mixed = [codes.ENV_NOT_REPRODUCIBLE, codes.STALE_LINEAGE, codes.UNSOURCED]
+        # Act
+        worst = codes.worst_code(mixed)
+        # Assert
+        assert worst == codes.STALE_LINEAGE

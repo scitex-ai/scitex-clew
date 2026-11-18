@@ -79,6 +79,18 @@ EXTERNAL_MISSING 22  The claim's lineage depends on an input read from
                      this machine, and nothing else in the lineage failed.
                      Not stale — unverifiable here: mount/restore the data
                      at its recorded path, then verify again.
+ENV_NOT_REPRODUCIBLE 23  The claim's lineage holds, but a distribution its
+                     runs imported is not reproducible from the record: it
+                     was installed from a local directory / local archive /
+                     editable source / VCS rather than a package index, its
+                     installed files were edited after installation, or the
+                     same version installed here has other content (another
+                     fingerprint). Re-installing ``name==version`` from the
+                     index would run other code. WARNING by default (the
+                     recorded hashes still hold on this machine — nothing
+                     recorded is false); ``--strict`` makes it an ERROR
+                     unless the project config sets its severity
+                     explicitly (``env_not_reproducible``).
 CITATION_UNLINKED 16  At least one ``\\cite{}`` key present in the
                      manuscript has no clew citation node at all — never
                      registered by scholar and nothing to judge it against
@@ -133,6 +145,10 @@ VALUE_MISMATCH: int = 21
 # this machine (and nothing else failed). Distinct from STALE_LINEAGE: nothing
 # recorded changed, the dependency is simply not here.
 EXTERNAL_MISSING: int = 22
+# The lineage holds but a distribution its runs imported cannot be reinstalled
+# from the record (not from an index / edited after install / other content
+# here under the same version). Warning by default; --strict -> error.
+ENV_NOT_REPRODUCIBLE: int = 23
 
 # Human-readable name per code (for summaries / JSON payloads).
 NAMES: dict[int, str] = {
@@ -150,6 +166,7 @@ NAMES: dict[int, str] = {
     NO_CLAIMS: "NO_CLAIMS",
     VALUE_MISMATCH: "VALUE_MISMATCH",
     EXTERNAL_MISSING: "EXTERNAL_MISSING",
+    ENV_NOT_REPRODUCIBLE: "ENV_NOT_REPRODUCIBLE",
 }
 
 # One-line reason per code (printed in the human summary; embedded in JSON).
@@ -199,6 +216,12 @@ REASONS: dict[int, str] = {
         "a claim's lineage depends on a file outside the project that is "
         "missing on this machine — restore/mount it at its recorded path"
     ),
+    ENV_NOT_REPRODUCIBLE: (
+        "a distribution a claim's runs imported is not reproducible from the "
+        "record (installed from a local build / edited after install / other "
+        "content here under the same version) — install it from an index and "
+        "re-run"
+    ),
 }
 
 # Severity ranking: higher wins when several failure classes co-occur.
@@ -213,17 +236,20 @@ SEVERITY: dict[int, int] = {
     OK: 0,
     NO_CLAIMS: 1,
     NO_LINEAGE: 2,
-    UNSOURCED: 3,
-    UNVERIFIED: 4,
-    EXTERNAL_MISSING: 5,
-    STALE_LINEAGE: 6,
-    VERIFY_ERROR: 7,
-    VALUE_MISMATCH: 8,
-    SOURCE_MISSING: 9,
-    HASH_MISMATCH: 10,
-    CITATION_UNLINKED: 11,
-    CITATION_UNRESOLVED: 12,
-    CITATION_STUB: 13,
+    # The weakest failure that is not about the claim set itself: the lineage
+    # holds; only a replay elsewhere is at risk.
+    ENV_NOT_REPRODUCIBLE: 3,
+    UNSOURCED: 4,
+    UNVERIFIED: 5,
+    EXTERNAL_MISSING: 6,
+    STALE_LINEAGE: 7,
+    VERIFY_ERROR: 8,
+    VALUE_MISMATCH: 9,
+    SOURCE_MISSING: 10,
+    HASH_MISMATCH: 11,
+    CITATION_UNLINKED: 12,
+    CITATION_UNRESOLVED: 13,
+    CITATION_STUB: 14,
 }
 
 
@@ -275,6 +301,7 @@ KEY_BY_CODE: dict[int, str] = {
     VALUE_MISMATCH: "value_mismatch",
     NO_CLAIMS: "no_claims",
     EXTERNAL_MISSING: "external_missing",
+    ENV_NOT_REPRODUCIBLE: "env_not_reproducible",
 }
 CODE_BY_KEY: dict[str, int] = {key: code for code, key in KEY_BY_CODE.items()}
 
@@ -301,6 +328,8 @@ DEFAULT_SEVERITY: dict[int, Severity] = {
     NO_CLAIMS: Severity.ERROR,
     # A missing external dependency is never a silent pass.
     EXTERNAL_MISSING: Severity.ERROR,
+    # Replay risk, not a false record: reported, fails only under --strict.
+    ENV_NOT_REPRODUCIBLE: Severity.WARNING,
 }
 
 
@@ -344,8 +373,11 @@ def resolve_severity(
 ) -> dict[int, Severity]:
     """Resolve per-pattern severity: defaults < ``.scitex/clew`` config < overrides.
 
-    ``--strict`` promotes :data:`NO_LINEAGE` to ERROR regardless of config.
-    Raises on an unknown pattern key or an invalid severity value.
+    ``--strict`` promotes :data:`NO_LINEAGE` to ERROR regardless of config,
+    and :data:`ENV_NOT_REPRODUCIBLE` to ERROR unless the config or
+    ``overrides`` set its severity explicitly (a project may accept, say, an
+    editable sibling checkout as policy). Raises on an unknown pattern key or
+    an invalid severity value.
     """
     sev: dict[int, Severity] = dict(DEFAULT_SEVERITY)
 
@@ -359,6 +391,9 @@ def resolve_severity(
         sev = _apply_overrides(sev, overrides, source="argument")
     if strict:
         sev[NO_LINEAGE] = Severity.ERROR
+        explicit_keys = {str(k).strip().lower() for k in [*raw, *(overrides or {})]}
+        if KEY_BY_CODE[ENV_NOT_REPRODUCIBLE] not in explicit_keys:
+            sev[ENV_NOT_REPRODUCIBLE] = Severity.ERROR
     return sev
 
 
@@ -394,6 +429,7 @@ __all__ = [
     "CITATION_UNRESOLVED",
     "CODE_BY_KEY",
     "DEFAULT_SEVERITY",
+    "ENV_NOT_REPRODUCIBLE",
     "EXTERNAL_MISSING",
     "HASH_MISMATCH",
     "KEY_BY_CODE",
