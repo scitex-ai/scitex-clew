@@ -7,6 +7,12 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.33.0] — 2026-11-19
+
+Minor release: a new public integration surface and nothing else. clew
+becomes an evidence provider for scitex-live-paper (entry point, adapter and
+CLI verb). Store, verification and existing commands are unchanged.
+
 ### Added
 - **Evidence provider for scitex-live-paper** (`scitex_clew._evidence_provider`),
   implementing live-paper's provider-neutral contract
