@@ -66,6 +66,11 @@ def _echo_verify_all_human(result) -> None:
         val = f" = {c.claim_value}" if c.claim_value else ""
         tag = "" if c.severity in ("ok", "error") else f" [{c.severity}]"
         click.echo(f"  [{cicon}] {c.outcome:<14} {c.location}{val}{tag}")
+        for f in getattr(c, "environment", None) or []:
+            click.echo(
+                f"      environment: {f['distribution']}=={f['version']} "
+                f"[{f['kind']}] {f['message']}"
+            )
 
 
 @click.command(cls=SpecCommand, help_spec=CLI_HELP['status'])
@@ -164,6 +169,10 @@ def verify(ctx: click.Context, session_id, strict: bool, config, as_json: bool):
       20  NO_CLAIMS       no claims registered — nothing to verify
       22  EXTERNAL_MISSING lineage reads a file outside the project that is
                           absent on this machine (restore it; not stale)
+      23  ENV_NOT_REPRODUCIBLE a distribution the lineage imported is not
+                          reproducible from the record (local build / edited
+                          after install / other content here) — --strict only;
+                          a warning otherwise
 
     A solver MUST run ``clew verify [--strict]`` before signalling DONE.
     DONE is legitimate ONLY on exit 0; any nonzero code means the agent

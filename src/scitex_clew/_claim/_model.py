@@ -11,7 +11,7 @@ this module without an import cycle.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -261,6 +261,9 @@ class ClaimVerification:
     outcome: str  # exit-code NAME: "OK" / "UNVERIFIED" / "HASH_MISMATCH" / ...
     severity: str  # resolved severity for this outcome: error/warning/ignore/ok
     details: list[str]
+    #: Non-reproducible environment requirements of the claim's slice
+    #: (``{"distribution", "version", "kind", "message", "runs"}`` each).
+    environment: list[dict] = field(default_factory=list)
 
     @property
     def is_verified(self) -> bool:
@@ -279,6 +282,7 @@ class ClaimVerification:
             "outcome": self.outcome,
             "severity": self.severity,
             "details": self.details,
+            "environment": self.environment,
         }
 
 
