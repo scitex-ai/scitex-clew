@@ -63,8 +63,8 @@ recorded install provenance (scitex-session >= 0.5.0);
 :meth:`ProvenanceSlice.environment_findings` lists the requirements that are
 not reproducible from the record (see :mod:`._env_requirements`).
 
-A notebook-run kept run has the notebook as an input and a recipe in
-``reruns`` (run the notebook headless; see :mod:`scitex_clew._chain._notebook`).
+A kept notebook run has a recipe in ``reruns`` and the code it executes among
+the files (see :mod:`scitex_clew._chain._notebook`); the notebook is no input.
 
 Symlinks a kept run went THROUGH to reach a kept file (``alias -> data``, a
 chain, a symlinked directory, a link to outside the project; #192) are in
@@ -390,6 +390,7 @@ def build_slice(
             if d_out:
                 dropped_out[sid] = d_out
 
+    reruns = collect_recipes(db, order, index.inputs, file_hashes)
     return ProvenanceSlice(
         targets=resolved_targets,
         level=level,
@@ -406,7 +407,7 @@ def build_slice(
         external=external,
         environment={s: env for s in order if (env := _run_environment(db, s))},
         links=collect_links(db, order, kept_in, kept_out),
-        reruns=collect_recipes(db, order),
+        reruns=reruns,
     )
 
 

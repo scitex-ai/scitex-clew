@@ -6,11 +6,14 @@ nbconvert --execute``), with a REAL scitex-session >= 0.4.0 ``@session``
 called inside a cell or a ``%run`` project script, writing into a REAL
 PostgreSQL store (each test its own schema). No mocks. clew must:
 
-* list the notebook as a code input of the run in its slice, identified by
-  its code cells (``ipynb-code-v1:``), so re-executing the notebook (new
-  outputs saved into the file) does not stale it, while editing a code cell
-  does;
-* keep a ``%run`` script as a code input of its own;
+* record an in-cell session's notebook in ONE role — the run's ``script``,
+  exactly as a ``.py`` entry script — never also as an ``input`` (data);
+* identify it by its code cells (``ipynb-code-v1:``), so re-executing the
+  notebook (new outputs saved into the file) does not stale it, while editing
+  a code cell does;
+* record a ``%run`` script as the run's ``script`` only, and the driving
+  notebook as a code input;
+* list the code a notebook run executes in its slice;
 * carry an explicit re-execution recipe (run the notebook, not the kernel's
   argv), and replay a notebook run in a sandbox (``clew rerun``);
 * refuse a notebook replay, saying what to install, when the interpreter has
@@ -19,21 +22,26 @@ PostgreSQL store (each test its own schema). No mocks. clew must:
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import textwrap
 import venv
-import importlib.util
 from pathlib import Path
 
 import pytest
+from scitex_clew._chain._notebook import (
+    NOTEBOOK_CODE_PREFIX,
+    hash_notebook_code,
+    kernel_channel_dir,
+)
 from scitex_clew._chain._rerun_sandbox import _notebook_executor_missing
 from scitex_clew._chain._slice import build_slice
 from scitex_clew._chain._verify_ops import verify_run
 from scitex_clew._db import get_db
-from scitex_clew._chain._notebook import NOTEBOOK_CODE_PREFIX, hash_notebook_code
 from scitex_clew._rerun import verify_by_rerun
 
 nbformat = pytest.importorskip("nbformat")
@@ -45,7 +53,9 @@ pytest.importorskip("ipykernel")
 def _session_records_notebooks() -> bool:
     """scitex-session >= 0.4.0 resolves and records the kernel's notebook."""
     try:
-        return importlib.util.find_spec("scitex_session._lifecycle._notebook") is not None
+        return (
+            importlib.util.find_spec("scitex_session._lifecycle._notebook") is not None
+        )
     except ModuleNotFoundError:
         return False
 
@@ -99,14 +109,42 @@ def _notebook(path: Path, *cells: str) -> Path:
     return path
 
 
+def _env() -> dict[str, str]:
+    """Explicit allowlist — never the parent's whole environment."""
+    env = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "HOME": os.environ["HOME"],
+        "LANG": "C.UTF-8",
+        "SCITEX_CLEW_PROJECT": get_db()._runs.project,
+    }
+    for key in ("PYTHONPATH", "SCITEX_STORE_DSN", "TMPDIR",
+                "COVERAGE_PROCESS_START", "COVERAGE_FILE"):  # fmt: skip
+        if key in os.environ:
+            env[key] = os.environ[key]
+    return env
+
+
 def _nbconvert(nb: Path, cwd: Path, *extra: str) -> None:
-    env = dict(os.environ)
-    env["SCITEX_CLEW_PROJECT"] = get_db()._runs.project
-    env.pop("SCITEX_NOTEBOOK_PATH", None)
+    # The kernel's channels are Unix sockets in a private directory: with
+    # nbconvert's default tcp, ports picked here and bound later by the kernel
+    # collide with a concurrently starting kernel ("Address already in use").
+    channels = Path(kernel_channel_dir())  # short enough for socket paths
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "nbconvert", "--to", "notebook", "--execute",
+             "--KernelManager.transport=ipc", f"--KernelManager.ip={channels / 'kernel'}",
+             *extra, os.path.relpath(nb, cwd)],
+            cwd=cwd, env=_env(), capture_output=True, text=True, timeout=300,
+        )  # fmt: skip
+    finally:
+        shutil.rmtree(channels, ignore_errors=True)
+    assert proc.returncode == 0, proc.stderr[-3000:]
+
+
+def _python(script: Path, cwd: Path) -> None:
     proc = subprocess.run(
-        [sys.executable, "-m", "nbconvert", "--to", "notebook", "--execute", *extra,
-         os.path.relpath(nb, cwd)],
-        cwd=cwd, env=env, capture_output=True, text=True, timeout=300,
+        [sys.executable, str(script)],
+        cwd=cwd, env=_env(), capture_output=True, text=True, timeout=300,
     )  # fmt: skip
     assert proc.returncode == 0, proc.stderr[-3000:]
 
@@ -143,6 +181,22 @@ def run_script_run(tmp_path):
     return _only_run(), nb, project
 
 
+@pytest.fixture
+def script_run(tmp_path):
+    """The same @session code run as a plain ``.py`` entry script."""
+    project = _project(tmp_path)
+    script = project / "scripts" / "compute.py"
+    _python(script, project / "scripts")
+    return _only_run(), script, project
+
+
+def _roles(run: dict, path: Path) -> set[str]:
+    """Every role ``path`` is recorded under in ``run`` (script/input/output)."""
+    roles = {"script"} if run["script_path"] == str(path) else set()
+    records = get_db().get_file_records(run["session_id"])
+    return roles | {r["role"] for r in records if r["file_path"] == str(path)}
+
+
 def _result(run: dict) -> str:
     meta = json.loads(run["metadata"])
     return str(Path(meta["sdir_out"]) / "result.json")
@@ -162,7 +216,25 @@ def test_cell_run_script_is_the_notebook_with_its_code_hash(cell_run):
     assert recorded == (str(nb), hash_notebook_code(nb))
 
 
-def test_cell_run_slice_lists_the_notebook_as_a_code_input(cell_run):
+def test_py_script_run_records_its_script_as_script_only(script_run):
+    # Arrange
+    run, script, _project = script_run
+    # Act
+    roles = _roles(run, script)
+    # Assert
+    assert roles == {"script"}
+
+
+def test_cell_run_records_the_notebook_as_script_only_like_a_py_script(cell_run):
+    # Arrange
+    run, nb, _project = cell_run
+    # Act
+    roles = _roles(run, nb)
+    # Assert
+    assert roles == {"script"}
+
+
+def test_cell_run_slice_lists_the_notebook_with_its_code_hash(cell_run):
     # Arrange
     run, nb, _project = cell_run
     # Act
@@ -240,7 +312,25 @@ def test_cell_run_is_replayed_by_running_the_notebook_and_verifies(cell_run):
 # ---------------------------------------------------------------------------
 
 
-def test_run_script_slice_lists_notebook_and_script_as_code_inputs(run_script_run):
+def test_run_script_records_the_script_as_script_only(run_script_run):
+    # Arrange
+    run, _nb, project = run_script_run
+    # Act
+    roles = _roles(run, project / "scripts" / "compute.py")
+    # Assert
+    assert roles == {"script"}
+
+
+def test_run_script_records_the_driving_notebook_as_a_code_input(run_script_run):
+    # Arrange
+    run, nb, _project = run_script_run
+    # Act
+    roles = _roles(run, nb)
+    # Assert
+    assert roles == {"input"}
+
+
+def test_run_script_slice_lists_notebook_and_script(run_script_run):
     # Arrange
     run, nb, project = run_script_run
     # Act

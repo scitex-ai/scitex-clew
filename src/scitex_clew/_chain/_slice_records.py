@@ -57,20 +57,32 @@ def run_environment(db, sid: str) -> dict | None:
     }
 
 
-def collect_recipes(db, runs) -> dict[str, dict]:
+def collect_recipes(db, runs, input_hashes=None, files=None) -> dict[str, dict]:
     """``{sid: recipe}`` for every kept run that a notebook ran.
 
     A notebook run is re-executed by running the notebook (headless, top to
     bottom; :func:`scitex_clew._chain._notebook.rerun_recipe`), never by replaying
     the kernel's argv. Runs without a recipe replay their recorded argv.
+
+    With ``files`` (the slice's ``{path: hash}``), the code each recipe
+    executes is added to it (:func:`~scitex_clew._chain._notebook.notebook_code_files`):
+    a notebook run's notebook is its ``script``, not an input row, yet a slice
+    must carry it to re-execute the run. ``input_hashes(sid)`` gives the run's
+    input rows (the driving notebook of a ``%run`` session is one).
     """
-    from ._notebook import rerun_recipe
+    from ._notebook import notebook_code_files, rerun_recipe
 
     out: dict[str, dict] = {}
     for sid in runs:
-        recipe = rerun_recipe(db.get_run(sid))
-        if recipe is not None:
-            out[sid] = recipe
+        run = db.get_run(sid)
+        recipe = rerun_recipe(run)
+        if recipe is None:
+            continue
+        out[sid] = recipe
+        if files is not None:
+            hashes = input_hashes(sid) if input_hashes else {}
+            for path, digest in notebook_code_files(run, hashes).items():
+                files.setdefault(path, digest)
     return out
 
 
