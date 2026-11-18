@@ -82,6 +82,7 @@ class FileHashMixin(RecordViewsMixin):
         external: dict | None = None,
         defer: bool = False,
         recorded_at: str | None = None,
+        journal=None,
     ) -> None:
         """Add a file hash record.
 
@@ -126,10 +127,17 @@ class FileHashMixin(RecordViewsMixin):
             the time it was recorded, not the time it was flushed.
         recorded_at : str, optional
             ISO time the file was recorded (default: now).
+        journal : SessionJournal, optional
+            With ``defer``: the session journal the queued row is also
+            appended to, so a killed process cannot lose it
+            (:mod:`scitex_clew._journal`).
         """
         host = _resolve_host()
         write = self._file_hashes.defer_put if defer else self._file_hashes.put
-        kwargs = {} if defer else {"expected_revision": ANY_REVISION}
+        if defer:
+            kwargs = {"journal": journal} if journal is not None else {}
+        else:
+            kwargs = {"expected_revision": ANY_REVISION}
         write(
             {
                 "session_id": session_id,

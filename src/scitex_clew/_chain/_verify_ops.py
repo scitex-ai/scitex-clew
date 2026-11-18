@@ -193,8 +193,10 @@ def _resolve_target(db, target: str) -> str | None:
 
 
 #: Recorded run statuses that mean the execution did not complete. Such a
-#: run's files are not evidence, whatever their hashes say.
-FAILED_RUN_STATUSES = frozenset({"failed", "error"})
+#: run's files are not evidence, whatever their hashes say. ``killed``: the
+#: process died without closing the run (recovered from its journal, or a
+#: SIGTERM/SIGHUP); ``incomplete``: the interpreter exited with it still open.
+FAILED_RUN_STATUSES = frozenset({"failed", "error", "killed", "incomplete"})
 
 
 def run_failed(run_info: dict | None) -> bool:

@@ -257,7 +257,7 @@ class RunCapture(CodeExecCapture):
                 if real not in self.writes:
                     self._record_read(real)
             if access != os.O_RDONLY:
-                self.writes.add(real)
+                self._note_write(real)
         except Exception as exc:  # noqa: BLE001 - must never break the user's open()
             self._fail(f"open capture: {type(exc).__name__}: {exc}")
 
@@ -270,7 +270,10 @@ class RunCapture(CodeExecCapture):
                 return
             if src[0] not in self.writes and src[0] not in self._external_writes:
                 return
-            (self._external_writes if dst[1] else self.writes).add(dst[0])
+            if dst[1]:
+                self._external_writes.add(dst[0])
+            else:
+                self._note_write(dst[0])
         except Exception as exc:  # noqa: BLE001
             self._fail(f"rename capture: {type(exc).__name__}: {exc}")
 
@@ -293,15 +296,33 @@ class RunCapture(CodeExecCapture):
         _tls.busy = True
         try:
             signature = _signature(real)
-            self._pending_reads[real] = hash_file(real)
+            digest = self._pending_reads[real] = hash_file(real)
             if signature is not None and signature == _signature(real):
                 self._read_sigs[real] = signature
             if external:
                 self.external[real] = external_info(real, via)
+            self._journal_read(real, digest, signature)
         except Exception as exc:  # noqa: BLE001
             self._fail(f"hash input {real}: {type(exc).__name__}: {exc}")
         finally:
             _tls.busy = False
+
+    def _journal_read(self, real: str, digest: str, signature) -> None:
+        """Journal a captured read NOW (it is recorded at close; a kill must
+        not lose it — see :mod:`scitex_clew._journal`)."""
+        journal = getattr(self.tracker, "_journal", None)
+        if journal is not None:
+            size = signature[0] if signature is not None else None
+            journal.captured_read(real, digest, size, self.external.get(real))
+
+    def _note_write(self, real: str) -> None:
+        """Remember a write target (hashed at close); journal it once."""
+        if real in self.writes:
+            return
+        self.writes.add(real)
+        journal = getattr(self.tracker, "_journal", None)
+        if journal is not None:
+            journal.captured_write(real)
 
     def hash_at_open(self, real: str) -> str | None:
         """The hash taken when ``real`` was opened, if its bytes are unchanged.
