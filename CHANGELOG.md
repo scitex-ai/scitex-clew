@@ -7,6 +7,81 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.29.0] — 2026-11-18
+
+Minor release: claim values are checked, not only their source files, plus
+two slice/notebook fixes found by the paper's E2/E3 instruments. New exit
+code **24 `VALUE_UNCHECKED`** (warning by default, error under `--strict`):
+a value claim without `source_keys` that a search of its source cannot
+justify. A claim text that disagrees with its registered `value` is now
+`VALUE_MISMATCH` (21). Claims whose stated numbers are absent from their
+sources may newly warn (default) or fail (`--strict`).
+
+### Fixed
+- **Slice no longer chains same-bytes reruns through a read-back.** When a
+  run read a file `F` at hash `h` and rewrote `F` with the same `h` (a script
+  run twice that reads its own previous output), the second run's input edge
+  pulled the first run into the level-1/2 slice, so it held two producers of
+  `h` where one suffices (paper E2 minimality run). A demanded output is now
+  credited to its ORIGINATING producer: the slice follows such read-back
+  rewrites back to the run that first produced `h` (whose `F` input had
+  different bytes, or none), which is sufficient whatever the later
+  rewriters did internally. Applies to `clew slice` levels 1-2,
+  `chain/dag --minimal` and claim verification; a real chain (`F@h1 ->
+  F@h2`), a rewriter kept for ANOTHER output (it keeps its `F` input and that
+  input's producer), the level-0 closure and full-chain verification are
+  unchanged. New `scitex_clew._chain._readback`; the level-1/2 walk moved to
+  `_chain/_slice_walk.py`.
+- **The claim text is checked against the registered value.** A claim that
+  registered both a display string (`claim_value`, what the manuscript shows)
+  and a structured `value` was verified on `value` alone, so a manuscript
+  number that drifted from its registration passed (`claim_value="1.375"`,
+  `value=0.25`, source 0.25 -> OK; the paper's planted-fault run caught 0/27).
+  Every numeric leaf of `value` must now be written in the text, within the
+  declared tolerance or the text's own precision; otherwise `VALUE_MISMATCH`
+  (21). The parser reads `%`/`\%` (as a percent or a proportion), `1.2e-3`,
+  `1.2 × 10^-3` / `\times 10^{-3}`, `10⁻³`, thousands separators, unicode
+  minus, and treats a number after `±`/`\pm` as an uncertainty. The same
+  parser lets a text-only claim such as `"p = 0.003"` or `"45.3%"` compare
+  against its located source value (it used to be an exact string match).
+- **A value claim without a locator is never verified silently.** With no
+  `source_keys`, verify compared nothing and `--strict` passed on the source
+  file's hash alone. A claim that states a value (a `value`, or a number in a
+  `value`/`statistic` claim's text) is now searched for in its structured
+  source (JSON/YAML leaves, CSV/TSV cells, `.npy` elements up to 100k). A
+  match at exactly one location justifies it and is reported with that
+  location; no match, several matches, or an unsearchable source leave it
+  **`VALUE_UNCHECKED` (new exit 24)**: a warning by default, an error under
+  `--strict` (the posture of `NO_LINEAGE`: absent evidence, not a
+  contradiction — clew cannot prove a value wrong without a locator). The
+  claim's status is `suspect`, not `verified`. (23 is
+  `ENV_NOT_REPRODUCIBLE`, 0.28.0.)
+- **A notebook run records its notebook in ONE role, as a `.py` run records
+  its script.** An in-cell `@session` recorded the `.ipynb` as the run's
+  `script` AND as an `input` row, filing the run's own code as data it read
+  (the paper's E1 capture precision on notebook probes was 0.80 for that
+  extra row alone); a `%run script.py` session likewise recorded the script
+  as both `script` and `input`. Now the run's script — notebook or `.py` — is
+  `script` only; a `%run` session's driving notebook (code the run did not
+  start from) stays an `input` row (identity = code cells). Editing a code
+  cell still stales the run (`STALE_LINEAGE`, 18) through the script check
+  (`script_hash` is the `ipynb-code-v1:` code identity), and `clew slice`
+  still lists the code a notebook run's recipe executes among its `files`.
+  Rows recorded by 0.26.0–0.27.0 keep their extra input row.
+- **`clew execute-notebook` (and `clew rerun` of a notebook run) no longer
+  fails intermittently with `ZMQError: Address already in use`** when kernels
+  start concurrently. jupyter_client's tcp transport picks the kernel's five
+  ports in the launching process (bind to port 0, read, close) and the kernel
+  binds them later in its own process; in between another starting kernel can
+  be handed the same port (`LocalPortCache` only deduplicates within one
+  process). The kernel now talks over Unix-domain (`ipc`) sockets in a fresh
+  private directory per execution, so no two kernels can share an address
+  (tcp is kept on Windows, which has no `ipc` kernels). The directory is made
+  under the temp dir when the socket paths fit the OS limit (`sun_path`, 107
+  bytes on Linux), else under `/tmp`, so a deep `$TMPDIR` (a CI work tree)
+  still works. The notebook tests that
+  launch kernels through `nbconvert` use the same transport.
+
 ## [0.28.0] — 2026-11-18
 
 Minor release: non-reproducible environment requirements are flagged

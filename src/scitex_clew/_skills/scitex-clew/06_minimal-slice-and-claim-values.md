@@ -1,7 +1,7 @@
 ---
 description: |
   [TOPIC] Minimal provenance slice + claim value-vs-source
-  [DETAILS] clew.slice levels 0/1/2 and minimal= on chain/dag/mermaid; claim source_keys (RFC 6901 pointer, csv row+column), tolerance, native value/metadata fields, project_root=, VALUE_MISMATCH/VERIFY_ERROR.
+  [DETAILS] clew.slice levels 0/1/2 and minimal= on chain/dag/mermaid; claim source_keys (RFC 6901 pointer, csv row+column), tolerance, native value/metadata fields, project_root=, VALUE_MISMATCH/VERIFY_ERROR/VALUE_UNCHECKED; claim text must state its value.
 tags: [scitex-clew-minimal-slice-and-claim-values]
 ---
 
@@ -56,6 +56,18 @@ scitex_clew.verify_claim("auc", project_root="/abs/path/to/my-paper")
 `source_keys` is scitex-writer's shape (`{field | ".": locator}`, per-locator
 `abs_tol`/`rel_tol`). A contradicting value is `VALUE_MISMATCH` (21); an
 unreadable locator or a raising lineage walk is `VERIFY_ERROR` (19) — never
-OK. `project_root=` is also accepted by `list_claims`, `verify_all_claims`,
+OK.
+
+The display text must state the registered `value`: every number in `value`
+has to be written in `claim_value` (within the declared tolerance, else the
+text's own precision; `%`, `1.2e-3`, `1.2 × 10^-3`, `12,345`, `0.91 ± 0.02`
+parse). A drifted text is `VALUE_MISMATCH` (21). Keep `value` to the numbers
+the sentence states; other data belongs in `metadata`.
+
+No `source_keys`? A stated value (a `value`, or a number in a
+`value`/`statistic` claim's text) is searched for in a json/yaml/csv/tsv/npy
+source. Exactly one matching location justifies it (the report names it, so
+it can be pinned as `source_keys`); none, several, or an unsearchable source
+leave it `VALUE_UNCHECKED` (24): a warning, an error under `--strict`. `project_root=` is also accepted by `list_claims`, `verify_all_claims`,
 `verify_claims_dag`, `remove_claim(s_by_prefix)`, `supersede_claim(s_by_prefix)`.
 Re-adding a claim id after `remove_claim` makes it visible again.

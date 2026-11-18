@@ -109,9 +109,9 @@ the run), `warning` (reported, tolerated, exit `0`), or `ignore`, via
 `verify.severity` in `.scitex/clew/config.yaml` (user- and project-level; see
 [20_env-vars.md](20_env-vars.md#config-files-scitexclew)). Pass an explicit
 file/dir with `clew verify --config PATH`. Defaults: every pattern is `error`
-except `no_lineage` (`warning`, which `--strict` promotes to `error`) and
-`env_not_reproducible` (`warning`; `--strict` promotes it to `error` unless
-the config sets its severity explicitly).
+except `no_lineage` and `value_unchecked` (`warning`, which `--strict`
+promotes to `error`) and `env_not_reproducible` (`warning`; `--strict`
+promotes it to `error` unless the config sets its severity explicitly).
 
 | Exit | Name             | Meaning                                                          |
 |------|------------------|------------------------------------------------------------------|
@@ -124,12 +124,13 @@ the config sets its severity explicitly).
 | `19` | `VERIFY_ERROR`   | the claim could not be checked: its lineage walk raised, or a `source_keys` locator could not be read. Never reported OK |
 | `18` | `STALE_LINEAGE`  | source has recorded lineage but it no longer holds — an upstream input/output/script changed or a run in it FAILED. Fires in default AND `--strict` mode |
 | `20` | `NO_CLAIMS`      | nothing registered — nothing to verify                           |
-| `21` | `VALUE_MISMATCH` | the value at a claim's `source_keys` disagrees with the claimed value beyond tolerance |
+| `21` | `VALUE_MISMATCH` | the value at a claim's `source_keys` disagrees with the claimed value beyond tolerance, or the claim text (`claim_value`) does not state its registered `value` |
 | `22` | `EXTERNAL_MISSING` | the claim's lineage reads a file from OUTSIDE the project that is absent on this machine (nothing else failed) — restore it at its recorded path; see 16_unconscious-capture |
 | `23` | `ENV_NOT_REPRODUCIBLE` | the lineage holds, but a distribution its runs imported is not reproducible from the record: installed from a local dir / local archive / editable / VCS instead of an index, its installed files were edited after installation, or the same version installed HERE has another content fingerprint. `pip install name==version` would give other code. Warning by default (nothing recorded is false on this machine), error under `--strict`. Each finding is listed per claim (`environment` in `--json`) and by `clew slice` |
+| `24` | `VALUE_UNCHECKED` | the claim states a value but has no `source_keys`, and a search of its structured source (json/yaml/csv/tsv/npy) did not find it at exactly one location. Warning by default; error under `--strict`. Declare `source_keys` |
 
 When several `error`-severity classes co-occur, the single returned code is
-the highest-severity one (tamper/missing > value-mismatch > verify-error > stale-lineage > unverified > unsourced > env-not-reproducible > no-lineage > empty);
+the highest-severity one (tamper/missing > value-mismatch > verify-error > stale-lineage > external-missing > unverified > unsourced > env-not-reproducible > no-lineage > value-unchecked > empty);
 `warning`/`ignore` patterns never set the exit code (they surface under
 `warnings` in `--json`).
 `DONE` is legitimate **only on exit `0`**; on any nonzero exit the agent

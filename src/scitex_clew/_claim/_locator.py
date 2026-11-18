@@ -303,6 +303,29 @@ def compare(
 ) -> tuple[bool, str]:
     """``(ok, explanation)`` for one field."""
     c_num, a_num = _as_number(claimed), _as_number(actual)
+    if c_num is None and a_num is not None and isinstance(claimed, str):
+        # Display text such as "p = 0.003", "45.3%", "1.2 × 10^-3",
+        # "0.91 ± 0.02": the source value must agree with a number the text
+        # writes, within the declared tolerance or the text's own precision.
+        from ._numbers import parse_numbers, text_agrees_with
+
+        if any(not t.uncertainty for t in parse_numbers(claimed)):
+            declared = {
+                k: locator.get(k, tolerance.get(k))
+                for k in ("abs_tol", "rel_tol")
+                if locator.get(k, tolerance.get(k)) is not None
+            }
+            hit = text_agrees_with(claimed, a_num, declared)
+            how = "declared" if declared else "implied by the written precision"
+            if hit is not None:
+                return True, (
+                    f"claimed {claimed!r} (read as {hit.raw}) vs source {actual!r} "
+                    f"(tolerance {how})"
+                )
+            return False, (
+                f"claimed {claimed!r} vs source {actual!r}: no number written "
+                f"in the claim agrees (tolerance {how})"
+            )
     if c_num is None or a_num is None:
         ok = str(claimed).strip() == str(actual).strip()
         return ok, f"claimed {claimed!r} vs source {actual!r} (exact match)"
