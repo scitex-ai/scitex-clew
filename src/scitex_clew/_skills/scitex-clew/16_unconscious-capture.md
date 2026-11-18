@@ -51,11 +51,27 @@ Never recorded as external (precision): the interpreter (`sys.prefix`,
 `base_prefix`, sysconfig/site paths), `site-/dist-packages`, `__pycache__`,
 `.py/.pyc`, directories of imported packages (editable installs, package
 data), `/proc /sys /dev /etc /usr /lib* /bin /sbin /boot /run /var /snap
-/nix /opt` (+ macOS `/System /Library /private`), `tempfile.gettempdir()`,
-`$SCITEX_DIR` (`~/.scitex`), hidden dot-paths (`~/.cache`, `~/.config`, …;
+/nix /opt` (+ macOS `/System /Library /private`), temp-dir files the
+process tree made (see below), `$SCITEX_DIR` (`~/.scitex`), hidden dot-paths (`~/.cache`, `~/.config`, …;
 not a dot-dir that is an ancestor of the project), directories, non-regular
 files. Writes outside the root are not outputs (only remembered so a
 read-back is not an input).
+
+**Temp dirs (`$TMPDIR`, `/tmp`, `/var/tmp`) — by origin, not by name.** A
+regular file there is an external input iff `max(mtime, ctime)` predates THIS
+PROCESS's start (Linux: `/proc/self/stat`; elsewhere: clew import time, which
+errs towards recording). So a scratch dir / download a shell command staged
+BEFORE the run is recorded (hash, `EXTERNAL_MISSING` when gone), while files
+the run, its children or the same process earlier made (scratch round-trips,
+matplotlib's fallback config dir, a kernel's cell/runtime files) are not.
+Other precision rules still apply (bytecode, `__pycache__`, names hidden below
+the temp root). A symlink under a temp root that pre-existed the process and
+that the run went through (`/tmp/x/data -> …`) is recorded in
+`metadata["links"]` with `"external": true`: gone → `EXTERNAL_MISSING`; the
+slice lists it for recreation at its absolute path. Limit: a file an
+UNRELATED process creates in temp while the run is alive looks like the run's
+own. `SCITEX_CLEW_EXTERNAL_EXCLUDE=$TMPDIR` restores "temp is never data";
+an INCLUDE prefix under temp records everything there.
 
 ```bash
 SCITEX_CLEW_EXTERNAL_INCLUDE=/opt/lab-data:~/.cache/huggingface  # override built-in exclusions

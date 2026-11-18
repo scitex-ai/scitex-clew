@@ -10,7 +10,9 @@ only the target fails with FileNotFoundError (or silently reads nothing).
 This module records the path indirection itself: every symlink traversed while
 resolving a path the run used, whose link file lives INSIDE the project root
 (links elsewhere — ``/home -> /mnt/home`` on some hosts — are the machine's,
-not the project's). One entry per link::
+not the project's; the one exception is a link under the temp dir that
+pre-existed the process, recorded with ``"external": true`` — see
+:func:`link_entries`). One entry per link::
 
     {"link": <absolute location of the link file>,
      "target": <os.readlink() text, verbatim>,
@@ -36,6 +38,7 @@ that each link still exists and still resolves to the recorded target.
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 
 __all__ = [
     "MAX_HOPS",
@@ -111,11 +114,24 @@ def _target_location(link: str, target: str) -> str:
     return os.path.join(parent, os.path.basename(target_abs))
 
 
-def link_entries(path: str, root: str, file_real: str | None = None) -> list[dict]:
+def link_entries(
+    path: str,
+    root: str,
+    file_real: str | None = None,
+    *,
+    outside: Callable[[str], bool] | None = None,
+) -> list[dict]:
     """The in-project symlinks on ``path`` as metadata entries (see module doc).
 
     ``root`` is the RESOLVED project root; ``file_real`` the recorded file
     (default ``realpath(path)``). Empty when ``path`` traverses no link.
+
+    ``outside(link)`` opts in a link located OUTSIDE the project (a
+    pre-existing link under the temp dir, see
+    :meth:`scitex_clew._capture._external.ExternalPolicy.records_link`). Such
+    an entry carries ``"external": True``: it cannot be bundled, its
+    ``recreate`` is the absolute location it named, and ``verify`` reports it
+    gone as a missing external input.
     """
     path = absolute(path)
     real = file_real or os.path.realpath(path)
@@ -124,28 +140,32 @@ def link_entries(path: str, root: str, file_real: str | None = None) -> list[dic
     root = os.path.realpath(root)
     entries = []
     for link, target in symlink_hops(path):
-        if not _under(link, root) or link == root:
+        external = not _under(link, root) or link == root
+        if external and (outside is None or link == root or not outside(link)):
             continue
         location = _target_location(link, target)
         in_project = _under(location, root)
         resolved = os.path.realpath(link)
-        if not in_project:
+        if external:
+            recreate = location
+        elif not in_project:
             recreate = resolved
         elif os.path.isabs(target):
             recreate = os.path.relpath(location, os.path.dirname(link))
         else:
             recreate = target
-        entries.append(
-            {
-                "link": link,
-                "target": target,
-                "resolved": resolved,
-                "in_project": in_project,
-                "recreate": recreate,
-                "kind": "dir" if os.path.isdir(link) else "file",
-                "files": [real],
-            }
-        )
+        entry = {
+            "link": link,
+            "target": target,
+            "resolved": resolved,
+            "in_project": in_project,
+            "recreate": recreate,
+            "kind": "dir" if os.path.isdir(link) else "file",
+            "files": [real],
+        }
+        if external:
+            entry["external"] = True
+        entries.append(entry)
     return entries
 
 
