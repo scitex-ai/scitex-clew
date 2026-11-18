@@ -46,6 +46,12 @@ shares the one database, and a `project` identity column keeps their
 records apart — `SCITEX_CLEW_PROJECT` overrides it, defaulting to the
 project-root path. `SCITEX_CLEW_DB_PATH` is retired and has no effect.
 
+A run's package provenance (scitex-session `package_provenance`: install
+source, fingerprint and edited files per distribution) is stored ONCE per
+environment in the `environments` store, keyed by the SHA-256 of its
+canonical JSON; the run row holds `package_provenance_ref`. Reads
+(`get_run`, slices, `ENV_NOT_REPRODUCIBLE`) put it back inline. Since 0.32.0.
+
 ## Editable install (development)
 
 ```bash

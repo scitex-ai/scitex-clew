@@ -4,7 +4,9 @@
 """Store-backed database for verification tracking.
 
 This module drives ``scitex_dev.store.Store`` for the ``runs``,
-``file_hashes``, ``verification_results`` and ``session_parents`` tables.
+``file_hashes``, ``verification_results``, ``session_parents`` and
+``environments`` (package provenance once per environment,
+``_environments.py``) tables.
 The target is resolved by :func:`scitex_dev.store.host_store` — THE store
 this host uses, per ADR-0006 — and nothing here constructs a DSN or a file
 path of its own. There is exactly one switch (``SCITEX_STORE_DSN``, read by
@@ -45,6 +47,7 @@ from scitex_dev.store import ANY_REVISION, Store, WriterPolicy, host_store
 
 from ._chain import ChainMixin
 from ._content_queries import ContentQueryMixin
+from ._environments import EnvironmentStoreMixin
 from ._file_hashes import FileHashMixin
 
 #: Re-exported: several modules import these from ``._db._core``.
@@ -77,6 +80,7 @@ class VerificationDB(
     ContentQueryMixin,
     RelocationMixin,
     ChainMixin,
+    EnvironmentStoreMixin,
 ):
     """
     Store-backed database for tracking session runs and file hashes.
@@ -116,7 +120,13 @@ class VerificationDB(
         # later can never answer for a different target or project.
         targets = {
             name: host_store(pkg="scitex_clew", name=name)
-            for name in ("runs", "file_hashes", "verification_results", "session_parents")
+            for name in (
+                "runs",
+                "file_hashes",
+                "verification_results",
+                "session_parents",
+                "environments",
+            )
         }
 
         def _open(name: str, schema, project: str | None = None) -> ProjectScopedStore:
@@ -141,6 +151,7 @@ class VerificationDB(
         # verification results and rarely the parent junction.
         self._opener = _open
         self._lazy: dict[str, ProjectScopedStore] = {}
+        self._env_cache: dict[str, dict] = {}
 
     def _lazy_store(self, name: str, schema) -> ProjectScopedStore:
         if name not in self._lazy:
@@ -207,7 +218,9 @@ class VerificationDB(
             "exit_code": None,
             "parent_session": parent_session,
             "combined_hash": None,
-            "metadata": json.dumps(metadata) if metadata else None,
+            # package provenance is stored once per environment and
+            # referenced here (``_environments.py``)
+            "metadata": self._metadata_json(metadata),
             "provenance": provenance,
             "exception_reason": exception_reason,
         }
@@ -253,10 +266,11 @@ class VerificationDB(
         failures reported after the run record was opened (e.g. a
         session-close payload, or a failed clew hook).
         """
-        run = self.get_run(session_id)
-        if run is None:
+        row = self._runs.get((session_id,))
+        if row is None:
             return False
-        raw = run.get("metadata")
+        # the row as stored (a provenance reference stays a reference)
+        raw = row.values.get("metadata")
         meta = json.loads(raw) if raw else {}
         for key, value in extra.items():
             if isinstance(value, list) and isinstance(meta.get(key), list):
@@ -264,7 +278,7 @@ class VerificationDB(
             else:
                 meta[key] = value
         self._runs.put(
-            {"session_id": session_id, "metadata": json.dumps(meta, default=str)},
+            {"session_id": session_id, "metadata": self._metadata_json(meta)},
             expected_revision=ANY_REVISION,
         )
         return True
@@ -274,7 +288,13 @@ class VerificationDB(
         row = self._runs.get((session_id,))
         if row is None:
             return None
-        return {name: row.values.get(name) for name in RUNS_SCHEMA.fields}
+        return self._run_dict(row)
+
+    def _run_dict(self, row) -> dict[str, Any]:
+        """A run row as a dict, its package-provenance reference resolved."""
+        out = {name: row.values.get(name) for name in RUNS_SCHEMA.fields}
+        out["metadata"] = self._resolve_metadata(out["metadata"])
+        return out
 
     def list_runs(
         self,
@@ -306,7 +326,7 @@ class VerificationDB(
         if status:
             query = query.where(eq("status", status))
         page = self._runs.search(query.limited(limit, offset=offset))
-        return [{name: r.values.get(name) for name in RUNS_SCHEMA.fields} for r in page]
+        return [self._run_dict(r) for r in page]
 
     # -------------------------------------------------------------------------
     # File hash operations — implemented in FileHashMixin (_file_hashes.py)
