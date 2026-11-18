@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-11-18
+
 Performance release driven by the paper's E5 cost measurement: `clew verify`
 is now linear in the claim's slice and independent of the rest of the
 project, and recording no longer pays a durable commit per file. Nothing
