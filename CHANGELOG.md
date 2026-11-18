@@ -46,6 +46,31 @@ versions follow [Semantic Versioning](https://semver.org/).
   contradiction — clew cannot prove a value wrong without a locator). The
   claim's status is `suspect`, not `verified`. (23 is
   `ENV_NOT_REPRODUCIBLE`, 0.28.0.)
+- **A notebook run records its notebook in ONE role, as a `.py` run records
+  its script.** An in-cell `@session` recorded the `.ipynb` as the run's
+  `script` AND as an `input` row, filing the run's own code as data it read
+  (the paper's E1 capture precision on notebook probes was 0.80 for that
+  extra row alone); a `%run script.py` session likewise recorded the script
+  as both `script` and `input`. Now the run's script — notebook or `.py` — is
+  `script` only; a `%run` session's driving notebook (code the run did not
+  start from) stays an `input` row (identity = code cells). Editing a code
+  cell still stales the run (`STALE_LINEAGE`, 18) through the script check
+  (`script_hash` is the `ipynb-code-v1:` code identity), and `clew slice`
+  still lists the code a notebook run's recipe executes among its `files`.
+  Rows recorded by 0.26.0–0.27.0 keep their extra input row.
+- **`clew execute-notebook` (and `clew rerun` of a notebook run) no longer
+  fails intermittently with `ZMQError: Address already in use`** when kernels
+  start concurrently. jupyter_client's tcp transport picks the kernel's five
+  ports in the launching process (bind to port 0, read, close) and the kernel
+  binds them later in its own process; in between another starting kernel can
+  be handed the same port (`LocalPortCache` only deduplicates within one
+  process). The kernel now talks over Unix-domain (`ipc`) sockets in a fresh
+  private directory per execution, so no two kernels can share an address
+  (tcp is kept on Windows, which has no `ipc` kernels). The directory is made
+  under the temp dir when the socket paths fit the OS limit (`sun_path`, 107
+  bytes on Linux), else under `/tmp`, so a deep `$TMPDIR` (a CI work tree)
+  still works. The notebook tests that
+  launch kernels through `nbconvert` use the same transport.
 
 ## [0.28.0] — 2026-11-18
 
@@ -82,33 +107,6 @@ under `--strict`). Reads scitex-session >= 0.5.0 `package_provenance`.
   accepts an editable sibling checkout as policy). It ranks just above
   `NO_LINEAGE`: every integrity / lineage failure outranks it. Version drift
   (another version, or not installed here) is not this finding.
-
-### Fixed
-- **A notebook run records its notebook in ONE role, as a `.py` run records
-  its script.** An in-cell `@session` recorded the `.ipynb` as the run's
-  `script` AND as an `input` row, filing the run's own code as data it read
-  (the paper's E1 capture precision on notebook probes was 0.80 for that
-  extra row alone); a `%run script.py` session likewise recorded the script
-  as both `script` and `input`. Now the run's script — notebook or `.py` — is
-  `script` only; a `%run` session's driving notebook (code the run did not
-  start from) stays an `input` row (identity = code cells). Editing a code
-  cell still stales the run (`STALE_LINEAGE`, 18) through the script check
-  (`script_hash` is the `ipynb-code-v1:` code identity), and `clew slice`
-  still lists the code a notebook run's recipe executes among its `files`.
-  Rows recorded by 0.26.0–0.27.0 keep their extra input row.
-- **`clew execute-notebook` (and `clew rerun` of a notebook run) no longer
-  fails intermittently with `ZMQError: Address already in use`** when kernels
-  start concurrently. jupyter_client's tcp transport picks the kernel's five
-  ports in the launching process (bind to port 0, read, close) and the kernel
-  binds them later in its own process; in between another starting kernel can
-  be handed the same port (`LocalPortCache` only deduplicates within one
-  process). The kernel now talks over Unix-domain (`ipc`) sockets in a fresh
-  private directory per execution, so no two kernels can share an address
-  (tcp is kept on Windows, which has no `ipc` kernels). The directory is made
-  under the temp dir when the socket paths fit the OS limit (`sun_path`, 107
-  bytes on Linux), else under `/tmp`, so a deep `$TMPDIR` (a CI work tree)
-  still works. The notebook tests that
-  launch kernels through `nbconvert` use the same transport.
 
 ## [0.27.0] — 2026-11-18
 
