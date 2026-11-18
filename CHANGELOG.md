@@ -7,6 +7,16 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.29.0] — 2026-11-18
+
+Minor release: claim values are checked, not only their source files, plus
+two slice/notebook fixes found by the paper's E2/E3 instruments. New exit
+code **24 `VALUE_UNCHECKED`** (warning by default, error under `--strict`):
+a value claim without `source_keys` that a search of its source cannot
+justify. A claim text that disagrees with its registered `value` is now
+`VALUE_MISMATCH` (21). Claims whose stated numbers are absent from their
+sources may newly warn (default) or fail (`--strict`).
+
 ### Fixed
 - **Slice no longer chains same-bytes reruns through a read-back.** When a
   run read a file `F` at hash `h` and rewrote `F` with the same `h` (a script
