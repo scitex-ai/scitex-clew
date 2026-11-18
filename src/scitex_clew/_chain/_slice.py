@@ -58,7 +58,10 @@ The software environment travels the same way: each kept run's recorded
 scitex-session >= 0.3.6) and ``unresolved_imports`` (imported code no
 distribution owns — an explicit gap) are collected in
 :attr:`ProvenanceSlice.environment`; :meth:`ProvenanceSlice.requirements`
-merges them into what a re-run must install.
+merges them into what a re-run must install, with each distribution's
+recorded install provenance (scitex-session >= 0.5.0);
+:meth:`ProvenanceSlice.environment_findings` lists the requirements that are
+not reproducible from the record (see :mod:`._env_requirements`).
 
 A notebook-run kept run has the notebook as an input and a recipe in
 ``reruns`` (run the notebook headless; see :mod:`scitex_clew._chain._notebook`).
@@ -78,6 +81,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from ._env_requirements import environment_findings, merge_requirements
 from ._routes import (
     DEFAULT_MAX_DEPTH,
     current_hash_or_none,
@@ -144,7 +148,8 @@ class ProvenanceSlice:
     #: them — they are REQUIRED-BUT-NOT-BUNDLED (see :meth:`required_external`).
     external: dict[str, dict] = field(default_factory=dict)
     #: Per kept run: ``{"packages": {dist: version}, "unresolved_imports":
-    #: {module: location}}`` from its recorded metadata (absent = not recorded).
+    #: {module: location}, "package_provenance": {dist: {...}} | None}`` from
+    #: its recorded metadata (absent = not recorded).
     environment: dict[str, dict] = field(default_factory=dict)
     #: ``{link path: entry}`` — in-project symlinks a kept run went through to
     #: a kept file (see :mod:`scitex_clew._links`); recreate them.
@@ -161,35 +166,19 @@ class ProvenanceSlice:
         return [dict(self.links[p]) for p in sorted(self.links)]
 
     def requirements(self) -> dict:
-        """What a re-run of the slice must install, merged over its runs.
-
-        ``packages`` maps each distribution to its version (one version);
-        ``conflicts`` lists distributions whose runs recorded different
-        versions; ``unresolved_imports`` is imported code no distribution
-        owns (cannot be installed — a gap to close by hand);
-        ``runs_without_environment`` are kept runs that recorded no packages.
+        """What a re-run of the slice must install, merged over its runs:
+        ``packages``, ``conflicts``, ``unresolved_imports``,
+        ``runs_without_environment``, ``provenance`` (install source +
+        content fingerprint per distribution) and ``runs_without_provenance``
+        (see :func:`scitex_clew._chain._env_requirements.merge_requirements`).
         """
-        versions: dict[str, set[str]] = {}
-        unresolved: dict[str, str] = {}
-        missing: list[str] = []
-        for sid in self.runs:
-            env = self.environment.get(sid)
-            if not env or env.get("packages") is None:
-                missing.append(sid)
-                continue
-            for dist, version in (env.get("packages") or {}).items():
-                versions.setdefault(dist, set()).add(str(version))
-            unresolved.update(env.get("unresolved_imports") or {})
-        return {
-            "packages": {
-                d: sorted(v)[0] for d, v in sorted(versions.items()) if len(v) == 1
-            },
-            "conflicts": {
-                d: sorted(v) for d, v in sorted(versions.items()) if len(v) > 1
-            },
-            "unresolved_imports": dict(sorted(unresolved.items())),
-            "runs_without_environment": missing,
-        }
+        return merge_requirements(self.runs, self.environment)
+
+    def environment_findings(self, **kwargs) -> list[dict]:
+        """Requirements not reproducible from the record (a locally built,
+        edited or differing distribution); see
+        :func:`scitex_clew._chain._env_requirements.environment_findings`."""
+        return environment_findings(self.requirements(), **kwargs)
 
     @property
     def files(self) -> list[str]:
@@ -262,6 +251,7 @@ class ProvenanceSlice:
             "links": self.required_links(),
             "reruns": {s: dict(r) for s, r in sorted(self.reruns.items())},
             "environment": self.requirements(),
+            "environment_findings": self.environment_findings(),
             "edges": [
                 {"source": e.source, "target": e.target, "kind": e.kind}
                 for e in self.edges

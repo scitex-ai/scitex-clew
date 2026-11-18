@@ -109,7 +109,9 @@ the run), `warning` (reported, tolerated, exit `0`), or `ignore`, via
 `verify.severity` in `.scitex/clew/config.yaml` (user- and project-level; see
 [20_env-vars.md](20_env-vars.md#config-files-scitexclew)). Pass an explicit
 file/dir with `clew verify --config PATH`. Defaults: every pattern is `error`
-except `no_lineage` (`warning`, which `--strict` promotes to `error`).
+except `no_lineage` (`warning`, which `--strict` promotes to `error`) and
+`env_not_reproducible` (`warning`; `--strict` promotes it to `error` unless
+the config sets its severity explicitly).
 
 | Exit | Name             | Meaning                                                          |
 |------|------------------|------------------------------------------------------------------|
@@ -124,9 +126,10 @@ except `no_lineage` (`warning`, which `--strict` promotes to `error`).
 | `20` | `NO_CLAIMS`      | nothing registered — nothing to verify                           |
 | `21` | `VALUE_MISMATCH` | the value at a claim's `source_keys` disagrees with the claimed value beyond tolerance |
 | `22` | `EXTERNAL_MISSING` | the claim's lineage reads a file from OUTSIDE the project that is absent on this machine (nothing else failed) — restore it at its recorded path; see 16_unconscious-capture |
+| `23` | `ENV_NOT_REPRODUCIBLE` | the lineage holds, but a distribution its runs imported is not reproducible from the record: installed from a local dir / local archive / editable / VCS instead of an index, its installed files were edited after installation, or the same version installed HERE has another content fingerprint. `pip install name==version` would give other code. Warning by default (nothing recorded is false on this machine), error under `--strict`. Each finding is listed per claim (`environment` in `--json`) and by `clew slice` |
 
 When several `error`-severity classes co-occur, the single returned code is
-the highest-severity one (tamper/missing > value-mismatch > verify-error > stale-lineage > unverified > unsourced > no-lineage > empty);
+the highest-severity one (tamper/missing > value-mismatch > verify-error > stale-lineage > unverified > unsourced > env-not-reproducible > no-lineage > empty);
 `warning`/`ignore` patterns never set the exit code (they surface under
 `warnings` in `--json`).
 `DONE` is legitimate **only on exit `0`**; on any nonzero exit the agent

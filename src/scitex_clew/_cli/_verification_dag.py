@@ -328,6 +328,17 @@ def slice_cmd(ctx: click.Context, targets, level: int, compare: bool, as_json: b
             "  UNRESOLVED IMPORTS (no distribution owns them; not installable): "
             + ", ".join(f"{m} ({w})" for m, w in env["unresolved_imports"].items())
         )
+    for f in sl.environment_findings():
+        click.echo(
+            f"  NOT REPRODUCIBLE FROM THE RECORD: {f['distribution']}=="
+            f"{f['version']} [{f['kind']}] {f['message']}"
+        )
+    if env["runs_without_provenance"]:
+        click.echo(
+            f"  no install provenance for {len(env['runs_without_provenance'])} "
+            "run(s) (scitex-session < 0.5.0): their packages cannot be checked: "
+            + ", ".join(env["runs_without_provenance"])
+        )
     if env["runs_without_environment"]:
         click.echo(
             f"  no package record for {len(env['runs_without_environment'])} run(s): "
