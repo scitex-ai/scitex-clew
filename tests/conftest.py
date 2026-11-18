@@ -49,7 +49,10 @@ def _connect():
         "psycopg", reason="psycopg is not installed in this interpreter"
     )
     if not WRITABLE_DSN:
-        pytest.fail("Set SCITEX_CLEW_TEST_DSN explicitly to a disposable PostgreSQL cluster", pytrace=False)
+        pytest.fail(
+            "Set SCITEX_CLEW_TEST_DSN explicitly to a disposable PostgreSQL cluster",
+            pytrace=False,
+        )
     try:
         target = psycopg.conninfo.conninfo_to_dict(WRITABLE_DSN)
         ports = target.get("port", "").split(",")
@@ -58,12 +61,20 @@ def _connect():
         if any(int(port) in {55432, 55433, 61503} for port in ports):
             raise ValueError("managed and SAC database endpoints are forbidden")
         hosts = target.get("host", "").split(",")
-        if not all(host in {"127.0.0.1", "localhost", "::1"} or host.startswith("/") for host in hosts):
+        if not all(
+            host in {"127.0.0.1", "localhost", "::1"} or host.startswith("/")
+            for host in hosts
+        ):
             raise ValueError("an explicit loopback or Unix-socket host is required")
-        if target.get("hostaddr") and not all(address in {"127.0.0.1", "::1"} for address in target["hostaddr"].split(",")):
+        if target.get("hostaddr") and not all(
+            address in {"127.0.0.1", "::1"} for address in target["hostaddr"].split(",")
+        ):
             raise ValueError("non-loopback hostaddr is forbidden")
     except (ValueError, psycopg.ProgrammingError):
-        pytest.fail("SCITEX_CLEW_TEST_DSN must name an explicit disposable local endpoint; managed/SAC endpoints are forbidden", pytrace=False)
+        pytest.fail(
+            "SCITEX_CLEW_TEST_DSN must name an explicit disposable local endpoint; managed/SAC endpoints are forbidden",
+            pytrace=False,
+        )
     try:
         return psycopg.connect(WRITABLE_DSN, connect_timeout=10, autocommit=True)
     except Exception as exc:  # noqa: BLE001 - re-raised as an explicit failure
@@ -80,10 +91,9 @@ def _connect():
 @pytest.fixture(scope="session")
 def _writable_cluster():
     """Assert once per session that the target cluster accepts writes."""
-    with _connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT pg_is_in_recovery()")
-            (in_recovery,) = cur.fetchone()
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute("SELECT pg_is_in_recovery()")
+        (in_recovery,) = cur.fetchone()
     if in_recovery:
         pytest.fail(
             "The explicit test endpoint is a READ-ONLY STANDBY (pg_is_in_recovery() is "
@@ -112,9 +122,8 @@ def isolated_store(_writable_cluster):
     schema = f"clewtest_{uuid.uuid4().hex[:16]}"
     previous = os.environ.get("SCITEX_STORE_DSN")
 
-    with _connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(f'CREATE SCHEMA "{schema}"')
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute(f'CREATE SCHEMA "{schema}"')
 
     os.environ["SCITEX_STORE_DSN"] = (
         f"{WRITABLE_DSN}?options={quote(f'-csearch_path={schema}', safe='')}"
@@ -128,9 +137,9 @@ def isolated_store(_writable_cluster):
             os.environ.pop("SCITEX_STORE_DSN", None)
         else:
             os.environ["SCITEX_STORE_DSN"] = previous
-        with _connect() as conn:
-            with conn.cursor() as cur:
-                cur.execute(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
+        with _connect() as conn, conn.cursor() as cur:
+            cur.execute(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
+
 
 # Pin coverage data file at the repo root and point process_startup at our
 # pyproject so child interpreters configure themselves correctly. Force-set
@@ -147,8 +156,13 @@ def _ensure_subprocess_coverage_shim() -> None:
     """
     purelib = Path(sysconfig.get_paths()["purelib"])
     pth = purelib / "_scitex_clew_subprocess_coverage.pth"
+    # Guarded: an interpreter without ``coverage`` must start cleanly (an
+    # unguarded import prints a traceback from site.py in EVERY child).
     shim = (
-        "import os, coverage; coverage.process_startup() if os.environ.get('COVERAGE_PROCESS_START') else None\n"
+        "import os, importlib.util; "
+        "__import__('coverage').process_startup() "
+        "if os.environ.get('COVERAGE_PROCESS_START') "
+        "and importlib.util.find_spec('coverage') else None\n"
     )
     try:
         if not pth.exists() or pth.read_text() != shim:

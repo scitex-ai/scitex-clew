@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Any
 
 from .._core import getLogger
-from ._code import CodeExecCapture
 from .._links import absolute, link_entries, merge_link_entries
+from ._code import CodeExecCapture
 from ._external import ExternalPolicy, external_info
 
 logger = getLogger("scitex_clew._capture")
@@ -146,9 +146,7 @@ class RunCapture(CodeExecCapture):
         if not code and path.endswith(_EXCLUDED_SUFFIXES):
             return None
         lexical = os.path.normpath(path)
-        lexically_in = _under(lexical, self._root_lexical) or _under(
-            lexical, self.root
-        )
+        lexically_in = _under(lexical, self._root_lexical) or _under(lexical, self.root)
         real = os.path.realpath(path)
         if real == self.root:
             return None
@@ -209,9 +207,12 @@ class RunCapture(CodeExecCapture):
             return decision
 
     def note_links(self, path: str, real: str) -> None:
-        """Remember the in-project symlinks ``path`` went through to ``real``."""
+        """Remember the symlinks ``path`` went through to ``real``: in-project
+        ones, and pre-existing ones under the temp dir (flagged external)."""
         try:
-            entries = link_entries(path, self.root, real)
+            entries = link_entries(
+                path, self.root, real, outside=self.external_policy.records_link
+            )
         except OSError as exc:
             self._fail(f"symlink walk {path}: {type(exc).__name__}: {exc}")
             return
