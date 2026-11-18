@@ -7,6 +7,12 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-11-18
+
+Minor release: non-reproducible environment requirements are flagged
+(PR #204, exit code 23 `ENV_NOT_REPRODUCIBLE`; warning by default, error
+under `--strict`). Reads scitex-session >= 0.5.0 `package_provenance`.
+
 ### Added
 
 - **Non-reproducible environment requirements are flagged** (exit code
