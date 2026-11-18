@@ -126,7 +126,9 @@ def verify_link(entry: dict, role: str = "input") -> FileVerification:
     target; MISSING when the link itself is gone; MISMATCH when it is no
     longer a link or now resolves elsewhere. Resolution is compared, not the
     link text: a slice recreates an absolute in-project link as a relative
-    one. The target file's bytes are checked by its own file row.
+    one. The target file's bytes are checked by its own file row. A link
+    located outside the project (``entry["external"]``: a pre-existing temp-dir
+    link) is an external input: gone, it is a missing external dependency.
     """
     import os
 
@@ -150,6 +152,7 @@ def verify_link(entry: dict, role: str = "input") -> FileVerification:
         current_hash=current,
         status=status,
         link=True,
+        external=bool(entry.get("external")),
     )
 
 
