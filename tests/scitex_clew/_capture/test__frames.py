@@ -178,7 +178,7 @@ def verified_02(project):
     clew.verify_claim(f"q1_{sid}")
     clew.verify_all_claims(strict=True)
     _close()
-    return root, sid
+    yield root, sid
 
 
 @pytest.fixture
@@ -190,7 +190,7 @@ def read_back(project):
     scratch.write_text("x")
     scratch.read_text()
     _close()
-    return scratch, sid
+    yield scratch, sid
 
 
 class TestNotARunRead:
