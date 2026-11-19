@@ -32,6 +32,70 @@ _registered_io_ids: set = set()
 _registered_session_ids: set = set()
 
 
+#: ``(session_id, phase, error)`` already warned. An unreachable or
+#: unprovisioned store fails identically on every save/load, so one WARNING
+#: per distinct reason (per session) names it without flooding the log.
+_warned_io_failures: set = set()
+
+
+def _active_session_id() -> str | None:
+    """The live tracker's session id, or None (never raises)."""
+    try:
+        from scitex_clew._tracker import get_tracker
+
+        tracker = get_tracker()
+    except Exception:  # noqa: BLE001 - only used to label a failure record
+        return None
+    return getattr(tracker, "session_id", None) if tracker is not None else None
+
+
+def _record_io_failure(phase: str, path: Any, exc: BaseException) -> None:
+    """Make an io-hook failure LOUD: ``path``'s provenance was NOT recorded.
+
+    These hooks must not raise (a provenance failure must never break the
+    user's save), which is exactly why the failure cannot be a DEBUG line: a
+    store that refuses every write (unreachable host, ``StoreProvisionError``
+    under managed roles, …) would otherwise leave the run looking complete.
+    Same policy as the session hooks (:mod:`._session`): WARNING with the
+    reason, appended to :data:`HOOK_FAILURES`, and attached to the run's
+    ``metadata["hook_failures"]`` when a session is active.
+    """
+    from ._session import HOOK_FAILURES
+
+    session_id = _active_session_id()
+    error = f"{type(exc).__name__}: {exc}"
+    key = (session_id or "", phase, error)
+    if key in _warned_io_failures:
+        return
+    _warned_io_failures.add(key)
+    failure = {
+        "phase": phase,
+        "session_id": session_id or "",
+        "path": str(path),
+        "error": error,
+    }
+    HOOK_FAILURES.append(failure)
+    logger.warning(
+        "clew: %s hook failed for %s (%s) — its provenance was NOT recorded%s",
+        phase,
+        path,
+        error,
+        f"; session {session_id} is INCOMPLETE" if session_id else "",
+    )
+    if session_id:
+        try:
+            from scitex_clew._db import get_db
+
+            get_db().merge_run_metadata(session_id, {"hook_failures": [failure]})
+        except Exception as record_exc:  # noqa: BLE001 - the warning above fired
+            logger.warning(
+                "clew: could not attach the %s failure to run %s (%s)",
+                phase,
+                session_id,
+                record_exc,
+            )
+
+
 def _recording_enabled() -> bool:
     """``SCITEX_CLEW_CAPTURE`` gate (see :func:`scitex_clew._capture.recording_enabled`)."""
     from scitex_clew._capture import recording_enabled, warn_recording_off
@@ -68,7 +132,7 @@ def on_io_save(path: Path, obj: Any, kwargs: dict[str, Any]) -> None:
 
         get_db()  # Ensure DB exists
     except Exception as e:
-        logger.debug("clew: failed to initialise DB: %s", e)
+        _record_io_failure("io-save", path, e)
 
     # Citation-artifact ingestion (the scholar↔clew decoupled seam). Runs
     # BEFORE the track/session gate: citations are a manuscript-level ledger,
@@ -79,7 +143,7 @@ def on_io_save(path: Path, obj: Any, kwargs: dict[str, Any]) -> None:
 
         ingest_citations_artifact(obj)
     except Exception as e:
-        logger.debug("clew: citation-artifact ingest failed: %s", e)
+        _record_io_failure("io-save-citations", path, e)
 
     track = bool(kwargs.get("track", True)) if isinstance(kwargs, dict) else True
     if not track:
@@ -90,7 +154,7 @@ def on_io_save(path: Path, obj: Any, kwargs: dict[str, Any]) -> None:
 
         tracker = get_tracker()
     except Exception as e:
-        logger.debug("clew: failed to get tracker: %s", e)
+        _record_io_failure("io-save", path, e)
         return
 
     if tracker is None:
@@ -113,7 +177,7 @@ def on_io_save(path: Path, obj: Any, kwargs: dict[str, Any]) -> None:
     try:
         tracker.record_output(path, track=track, derived_from=derived_from)
     except Exception as e:
-        logger.debug("clew: failed to record output %s: %s", path, e)
+        _record_io_failure("io-save", path, e)
 
 
 def on_io_load(path: Path, result: Any) -> None:
@@ -136,14 +200,14 @@ def on_io_load(path: Path, result: Any) -> None:
 
         get_db()
     except Exception as e:
-        logger.debug("clew: failed to initialise DB: %s", e)
+        _record_io_failure("io-load", path, e)
 
     try:
         from scitex_clew._tracker import get_tracker
 
         tracker = get_tracker()
     except Exception as e:
-        logger.debug("clew: failed to get tracker: %s", e)
+        _record_io_failure("io-load", path, e)
         return
 
     if tracker is None:
@@ -152,7 +216,7 @@ def on_io_load(path: Path, result: Any) -> None:
     try:
         tracker.record_input(path, track=True)
     except Exception as e:
-        logger.debug("clew: failed to record input %s: %s", path, e)
+        _record_io_failure("io-load", path, e)
 
 
 _warned_peers: set = set()
