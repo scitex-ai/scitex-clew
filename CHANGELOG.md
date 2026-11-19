@@ -34,6 +34,11 @@ contract `scitex-live-paper.evidence-report` **1.2.0**.
 
 ### Fixed
 
+- The default runtime export (`.scitex/clew/runtime/claims.json`) now
+  writes a `*` `.gitignore` into `runtime/` (ecosystem rule PS-234), so that
+  regenerable state is never committed, whatever the project's own ignore
+  rules say. An existing `.gitignore` there is left alone, and an export to
+  an explicit path writes none.
 - **A bound is not a point value.** In claim text, a number written after
   a relation (`<`, `>`, `≤`, `≥`, `<=`, `>=`, or LaTeX `\lt`, `\le`,
   `\leq`, `\leqslant` and the matching `g` forms) is now read as a bound.
