@@ -37,7 +37,7 @@ __all__ = [
 
 #: Contract implemented (the vendored schema in this package pins it).
 SCHEMA_ID = "scitex-live-paper.evidence-report"
-SCHEMA_VERSION = "1.1.0"
+SCHEMA_VERSION = "1.2.0"
 PROVIDER_NAME = "clew"
 #: Slice level of the evidence graph: path-pruned (clew's default).
 SLICE_LEVEL = 1
@@ -79,6 +79,37 @@ def _claim_graph(
     )
 
 
+def _source_block(record, source_file: str | None, root: Path) -> dict:
+    """The contract's ``source``: file, locator and (1.2.0) the value read there.
+
+    ``value`` is what the source holds NOW at the claim's declared locator: a
+    scalar for a whole-value locator (``"."``), else ``{field: value}`` for
+    the fields that could be read. It is omitted when the claim declares no
+    locator or nothing could be read; the reason a read failed is already in
+    ``details`` (clew's own value check reports it).
+    """
+    locator = record.source_keys if record else None
+    block: dict[str, Any] = {
+        "file": relative_to_root(source_file, root),
+        "locator": locator,
+    }
+    if not (locator and source_file):
+        return block
+    from .._claim._locator import WHOLE_VALUE, SourceLocatorError, read_source_value
+
+    found: dict[str, Any] = {}
+    for field, spec in locator.items():
+        try:
+            found[field] = read_source_value(Path(source_file), spec)
+        except (SourceLocatorError, OSError, ValueError):
+            continue
+    if set(found) == {WHOLE_VALUE}:
+        block["value"] = found[WHOLE_VALUE]
+    elif found:
+        block["value"] = found
+    return block
+
+
 def _entry(row, record, root: Path, with_graph: bool) -> dict:
     details = [str(d) for d in (row.details or [])]
     state, reason, status = classify_outcome(row.outcome, details)
@@ -100,10 +131,7 @@ def _entry(row, record, root: Path, with_graph: bool) -> dict:
         "stated_value": record.checked_value if record else row.claim_value,
         "state": state,
         "reason": reason,
-        "source": {
-            "file": relative_to_root(source_file, root),
-            "locator": record.source_keys if record else None,
-        },
+        "source": _source_block(record, source_file, root),
         "details": details,
         "provider_status": status,
     }
