@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scitex.ai/schemas/scitex-clew/rerun-report/1.0.0",
+  "title": "scitex-clew rerun report 1.0.0",
+  "description": "The result of re-executing an evidence bundle's runs, store-free, in a temporary copy of the project ('clew bundle rerun'). Consumers MUST ignore keys they do not know.",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "bundle_sha256",
+    "executable",
+    "runs",
+    "claims"
+  ],
+  "properties": {
+    "schema": { "const": "scitex-clew.rerun-report" },
+    "schema_version": { "const": "1.0.0" },
+    "bundle_sha256": {
+      "description": "SHA-256 of the bundle file's bytes.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "executable": {
+      "description": "True iff every run was executed and exited 0.",
+      "type": "boolean"
+    },
+    "interpreter": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": ["string", "null"] }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["run_id", "exit_code", "status", "outputs", "stderr_tail"],
+        "properties": {
+          "run_id": { "type": "string", "minLength": 1 },
+          "exit_code": { "type": ["integer", "null"] },
+          "status": { "enum": ["reproduced", "differs", "failed", "skipped"] },
+          "reason": { "type": ["string", "null"] },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["path", "expected_sha256", "actual_sha256", "match"],
+              "properties": {
+                "path": { "type": "string", "minLength": 1 },
+                "expected_sha256": { "type": "string" },
+                "actual_sha256": { "type": ["string", "null"] },
+                "match": { "type": "boolean" }
+              }
+            }
+          },
+          "stderr_tail": { "type": "string" }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim_id",
+          "status",
+          "stated_value",
+          "recomputed_value",
+          "tolerance"
+        ],
+        "properties": {
+          "claim_id": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["reproduced", "differs", "not_checkable"] },
+          "stated_value": true,
+          "recomputed_value": true,
+          "tolerance": {
+            "description": "The claim's precision object from the bundle (basis, abs_tol, rel_tol[, fields]).",
+            "type": ["object", "null"]
+          },
+          "detail": { "type": "string" }
+        }
+      }
+    }
+  }
+}
