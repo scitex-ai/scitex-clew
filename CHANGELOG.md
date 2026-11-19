@@ -28,10 +28,14 @@ versions follow [Semantic Versioning](https://semver.org/).
   - `clew bundle rerun PATH --json` — STORE-FREE re-execution in a temporary
     copy (topological order, explicit child env with capture off and no
     reachable store), comparing outputs and recomputing each claim with its
-    precision; emits `scitex-clew.rerun-report` 1.0.0. It executes project
+    precision; emits `scitex-clew.rerun-report` 1.1.0. `--work-dir DIR`
+    replays into DIR and keeps it, and the report gives `work_dir`, each
+    run's `run_dir` and each output's `resolved_path`, so a verifier outside
+    the sandbox can hash the replayed files. It executes project
     code and adds no sandbox: run it in an isolated container.
   Both JSON Schemas (draft 2020-12, `$id`
-  `https://scitex.ai/schemas/scitex-clew/{evidence-bundle,rerun-report}/1.0.0`)
+  `.../evidence-bundle/1.0.0`, `.../rerun-report/1.1.0`; the 1.0.0 rerun
+  schema stays shipped)
   ship in the wheel under `scitex_clew/_exchange/`. Signing is pluggable
   (`Signer` / `Verifier`, `register_verifier`). New optional extra
   `scitex-clew[sign]` (cryptography + jsonschema); clew core stays

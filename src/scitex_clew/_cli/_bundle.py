@@ -266,6 +266,9 @@ def verify(ctx, path, project_root, expect_key_id, allow_missing, as_json) -> No
               help="Interpreter for the runs (default: the one running clew).")  # fmt: skip
 @click.option("--out", "out", default=None, type=click.Path(dir_okay=False),
               help="Also write the rerun report to this file.")  # fmt: skip
+@click.option("--work-dir", "work_dir", default=None, type=click.Path(file_okay=False),
+              help="Replay into this directory (absent or empty) and KEEP it, so the "
+                   "replayed files can be hashed afterwards (default: a temp dir, removed).")  # fmt: skip
 @click.option(
     "--dry-run",
     "dry_run",
@@ -275,7 +278,9 @@ def verify(ctx, path, project_root, expect_key_id, allow_missing, as_json) -> No
 @_YES_OPTION
 @_JSON_OPTION
 @click.pass_context
-def rerun(ctx, path, project_root, timeout, python, out, dry_run, yes, as_json) -> None:
+def rerun(
+    ctx, path, project_root, timeout, python, out, work_dir, dry_run, yes, as_json
+) -> None:
     """Re-run an evidence bundle's runs and recompute its claims; exit 0 iff all reproduce."""
     del yes
     from .._exchange import load_bundle, rerun_bundle
@@ -300,7 +305,12 @@ def rerun(ctx, path, project_root, timeout, python, out, dry_run, yes, as_json) 
                     f"DRY RUN — {step['run_id']}: (cd {step['cwd']}) python {' '.join(step['argv'] or [])}"
                 )
         return
-    report = rerun_bundle(path, project_root, timeout=timeout, python=python)
+    try:
+        report = rerun_bundle(
+            path, project_root, timeout=timeout, python=python, work_dir=work_dir
+        )
+    except FileExistsError as exc:
+        raise click.UsageError(str(exc)) from exc
     if out:
         Path(out).write_text(
             _json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"

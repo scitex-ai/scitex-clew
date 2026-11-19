@@ -184,6 +184,18 @@ def test_verify_exits_nonzero_with_json_findings_on_tamper(project):
     )
 
 
+def test_rerun_refuses_a_non_empty_work_dir(project, tmp_path):
+    # Arrange
+    work = tmp_path / "work"
+    work.mkdir()
+    (work / "leftover").write_text("x")
+    args = ("bundle", "rerun", _bundle(project), "--project-root", str(project))
+    # Act
+    result = CliRunner().invoke(main, [*args, "--work-dir", str(work)])
+    # Assert
+    assert result.exit_code == 2
+
+
 def test_rerun_dry_run_lists_the_replay_command(project):
     # Arrange
     args = ("bundle", "rerun", _bundle(project), "--project-root", str(project))

@@ -64,6 +64,13 @@ def _copy_with_changed_stats(project, dest):
     return root
 
 
+@pytest.fixture(scope="module")
+def kept(signed_bundle, bundle_project, tmp_path_factory):
+    """``(report, work dir)`` of a rerun whose work directory is KEPT."""
+    work = tmp_path_factory.mktemp("kept") / "work"
+    return rerun_bundle(signed_bundle, bundle_project, timeout=900, work_dir=work), work
+
+
 def _by_id(items, key):
     return {item[key]: item for item in items}
 
@@ -146,6 +153,78 @@ def test_bundle_hash_names_the_bundle_file(rerun, signed_bundle):
     got = rerun[0]["bundle_sha256"]
     # Assert
     assert got == expected
+
+
+def test_default_rerun_keeps_no_work_dir(rerun):
+    # Arrange
+    report = rerun[0]
+    # Act
+    work_dir = report["work_dir"]
+    # Assert
+    assert work_dir is None
+
+
+def test_kept_work_dir_is_reported_absolute(kept):
+    # Arrange
+    report, work = kept
+    # Act
+    reported = report["work_dir"]
+    # Assert
+    assert reported == str(work.resolve())
+
+
+def test_kept_work_dir_still_holds_the_replayed_tree(kept):
+    # Arrange
+    _report, work = kept
+    # Act
+    present = (work / "bundle-project" / "scripts" / "stats.py").is_file()
+    # Assert
+    assert present
+
+
+def test_kept_rerun_reproduces(kept):
+    # Arrange
+    report = kept[0]
+    # Act
+    statuses = [r["status"] for r in report["runs"]]
+    # Assert
+    assert statuses == ["reproduced", "reproduced"]
+
+
+def test_every_reported_run_dir_exists(kept):
+    # Arrange
+    report, work = kept
+    # Act
+    missing = [
+        r["run_dir"] for r in report["runs"] if not (work / r["run_dir"]).is_dir()
+    ]
+    # Assert
+    assert missing == []
+
+
+def test_hashing_resolved_paths_gives_the_reported_sha256(kept):
+    # Arrange
+    from scitex_clew._exchange import sha256_file
+
+    report, work = kept
+    outputs = [o for r in report["runs"] for o in r["outputs"]]
+    # Act
+    rehashed = [sha256_file(work / o["resolved_path"]) for o in outputs]
+    # Assert
+    assert rehashed == [o["actual_sha256"] for o in outputs]
+
+
+def test_non_empty_work_dir_is_refused(signed_bundle, bundle_project, tmp_path):
+    # Arrange
+    (tmp_path / "leftover.txt").write_text("x")
+
+    # Act
+    def act():
+        rerun_bundle(signed_bundle, bundle_project, work_dir=tmp_path)
+
+    # Assert
+    with pytest.raises(FileExistsError):
+        act()
 
 
 def test_changed_script_output_differs(changed, signed_bundle):

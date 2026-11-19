@@ -1,7 +1,7 @@
 ---
 description: |
   [TOPIC] Evidence bundle — clew's portable, signed exchange format
-  [DETAILS] `.scitex/clew/evidence-bundle.json` (scitex-clew.evidence-bundle 1.0.0) travels with the repo so a third party verifies and re-runs the evidence WITHOUT the host store; `clew bundle keygen|export|verify|rerun`; Ed25519 signature over canonical JSON; shipped JSON Schemas; store-free rerun report (scitex-clew.rerun-report 1.0.0).
+  [DETAILS] `.scitex/clew/evidence-bundle.json` (scitex-clew.evidence-bundle 1.0.0) travels with the repo so a third party verifies and re-runs the evidence WITHOUT the host store; `clew bundle keygen|export|verify|rerun`; Ed25519 signature over canonical JSON; shipped JSON Schemas; store-free rerun report (scitex-clew.rerun-report 1.1.0; `--work-dir` keeps the replay).
 tags: [scitex-clew-evidence-bundle]
 ---
 
@@ -52,7 +52,7 @@ clew bundle rerun  .scitex/clew/evidence-bundle.json --json --timeout 1800
 
 Schemas ship in the wheel: `scitex_clew/_exchange/evidence-bundle.schema.1.0.0.json`
 (`$id` `https://scitex.ai/schemas/scitex-clew/evidence-bundle/1.0.0`) and
-`rerun-report.schema.1.0.0.json` (`…/rerun-report/1.0.0`). Consumers ignore
+`rerun-report.schema.1.1.0.json` (`…/rerun-report/1.1.0`; 1.0.0 still shipped). Consumers ignore
 unknown keys; additive changes keep the major version.
 
 ## verify (store-free, read-only)
@@ -70,7 +70,10 @@ journal off, `SCITEX_STORE_DSN` pointing at no server, HOME/TMPDIR inside the
 temp dir), compares outputs' sha256 and recomputes each claim from
 `source + locator` with the same tolerance. Never writes the project root,
 never touches a store, adds **no sandbox** — run it inside an isolated
-container. Report: `schema` `scitex-clew.rerun-report` 1.0.0, `bundle_sha256`,
+container. `--work-dir DIR` (absent or empty) replays there and KEEPS it; the
+report then names `work_dir`, each run's `run_dir` and each output's
+`resolved_path` (relative to `work_dir`) so a host-side verifier can hash
+exactly the compared files. Report: `schema` `scitex-clew.rerun-report` 1.1.0, `bundle_sha256`,
 `executable`, `runs[] {run_id, exit_code, status: reproduced|differs|failed|skipped,
 outputs[], stderr_tail}`, `claims[] {claim_id, status: reproduced|differs|not_checkable,
 stated_value, recomputed_value, tolerance}`. Exit 0 iff every run reproduced

@@ -3,8 +3,9 @@
 
 * ``evidence-bundle.schema.1.0.0.json`` —
   ``$id`` https://scitex.ai/schemas/scitex-clew/evidence-bundle/1.0.0
-* ``rerun-report.schema.1.0.0.json`` —
-  ``$id`` https://scitex.ai/schemas/scitex-clew/rerun-report/1.0.0
+* ``rerun-report.schema.1.1.0.json`` —
+  ``$id`` https://scitex.ai/schemas/scitex-clew/rerun-report/1.1.0 (current;
+  ``rerun-report.schema.1.0.0.json`` stays shipped for 1.0.0 reports)
 
 Validation needs ``jsonschema`` (the ``[sign]`` extra installs it with
 ``cryptography``); clew core stays stdlib-only, so it is imported lazily and
@@ -29,11 +30,16 @@ __all__ = [
 
 _HERE = Path(__file__).resolve().parent
 BUNDLE_SCHEMA_PATH = _HERE / "evidence-bundle.schema.1.0.0.json"
-RERUN_SCHEMA_PATH = _HERE / "rerun-report.schema.1.0.0.json"
+RERUN_SCHEMA_PATH = _HERE / "rerun-report.schema.1.1.0.json"
+RERUN_SCHEMA_1_0_PATH = _HERE / "rerun-report.schema.1.0.0.json"
 BUNDLE_SCHEMA_ID = "https://scitex.ai/schemas/scitex-clew/evidence-bundle/1.0.0"
-RERUN_SCHEMA_ID = "https://scitex.ai/schemas/scitex-clew/rerun-report/1.0.0"
+RERUN_SCHEMA_ID = "https://scitex.ai/schemas/scitex-clew/rerun-report/1.1.0"
 
-_PATHS = {"evidence-bundle": BUNDLE_SCHEMA_PATH, "rerun-report": RERUN_SCHEMA_PATH}
+_PATHS = {
+    "evidence-bundle": BUNDLE_SCHEMA_PATH,
+    "rerun-report": RERUN_SCHEMA_PATH,
+    "rerun-report-1.0.0": RERUN_SCHEMA_1_0_PATH,
+}
 
 VALIDATOR_HINT = (
     "validating an evidence bundle needs the 'jsonschema' package: install it "
@@ -46,7 +52,8 @@ class SchemaValidatorMissing(RuntimeError):
 
 
 def load_schema(name: str = "evidence-bundle") -> dict:
-    """The shipped schema ``evidence-bundle`` or ``rerun-report``."""
+    """A shipped schema: ``evidence-bundle``, ``rerun-report`` (current) or
+    ``rerun-report-1.0.0``."""
     return json.loads(_PATHS[name].read_text(encoding="utf-8"))
 
 
