@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://scitex.ai/schemas/scitex-live-paper/evidence-report/1.1.0",
+  "$id": "https://scitex.ai/schemas/scitex-live-paper/evidence-report/1.2.0",
   "title": "scitex-live-paper evidence report",
   "description": "What an evidence provider supplies to scitex-live-paper: one entry per REGISTERED claim with its evidence state, a one-line reason, its source and locator, and its minimal evidence graph. Text that is not a registered claim never appears. Versioned by schema_version (semver): a MINOR bump only adds optional fields; a MAJOR bump changes or removes fields. See docs/evidence-provider-contract.md.",
   "type": "object",
@@ -46,7 +46,8 @@
           "type": "object",
           "properties": {
             "file": {"type": ["string", "null"]},
-            "locator": {"description": "Where in the source the value lives (provider-defined shape), or null."}
+            "locator": {"description": "Where in the source the value lives (provider-defined shape), or null."},
+            "value": {"description": "Added in 1.2.0. The value the provider read at the locator, any JSON type. Omit the key when the provider did not read one (a null value means the source holds null)."}
           }
         },
         "details": {"type": "array", "items": {"type": "string"}},

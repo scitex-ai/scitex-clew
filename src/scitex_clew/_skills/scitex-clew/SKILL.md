@@ -50,7 +50,7 @@ scitex_clew.status(...)
 * [03_python-api.md](03_python-api.md) — public callables
 * [04_cli-reference.md](04_cli-reference.md) — `clew` subcommands
 * [05_verify-claim-contract.md](05_verify-claim-contract.md) — `verify_claim` consumer contract: return shape, status vocabularies, palette + display collapse, DB precedence, re-verify recipe
-* [06_minimal-slice-and-claim-values.md](06_minimal-slice-and-claim-values.md) — minimal slice + claim value-vs-source; [07](07_evidence-provider.md) — live-paper evidence
+* [06_minimal-slice-and-claim-values.md](06_minimal-slice-and-claim-values.md) — minimal slice + claim value-vs-source; [07](07_evidence-provider.md) — live-paper evidence; [08](08_evidence-bundle.md) — signed bundle
 * [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — workflows + CLI detail + MCP refs
 * [13_registered-source-gate.md](13_registered-source-gate.md) — registered-source whitelist + amber `unsourced` verdict: `clew register-source`, hash-pinned manifest, grounding gate, exit `17`
 * [15_zero-dep-session.md](15_zero-dep-session.md) — the zero-dependency `clew.session()` provenance recorder: pure-stdlib `runs` + file-hash edges (fallback for `@stx.session`)
@@ -84,8 +84,8 @@ clew verify --config F   # tune per-pattern severity (.scitex/clew/config.yaml)
 clew verify <SESSION_ID> # Verify a specific run (fail-loud)
 clew register-source F   # Whitelist a trusted source (hash-pinned; human path)
 clew list-sources        # Show registered sources + OK/TAMPERED/MISSING
-clew stats               # Database statistics
-clew mermaid             # Generate Mermaid DAG diagram
+clew stats               # DB statistics
+clew mermaid             # Mermaid DAG diagram
 clew mcp start           # Start MCP server
 clew dev skills list     # List skill pages
 ```
@@ -102,6 +102,6 @@ no claims (`20`). Per-pattern severity
 
 ## Environment
 
-See [20_env-vars.md](20_env-vars.md) — SCITEX_* env vars read by scitex-clew at runtime.
+See [20_env-vars.md](20_env-vars.md) — SCITEX_* env vars.
 
 - [GUI plugin workflow](40_gui-plugin.md) — leaf-owned standalone and hosted interfaces.

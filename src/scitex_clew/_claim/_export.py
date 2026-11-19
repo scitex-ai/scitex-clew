@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Claim export — enriched claims.json + provenance-chain flag resolution."""
 
 from __future__ import annotations
@@ -7,7 +6,7 @@ from __future__ import annotations
 import importlib.metadata
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -86,7 +85,7 @@ def _resolve_chain_flags(claim) -> tuple:
     return chain_has_exception, chain_has_frozen
 
 
-def _resolve_exception_reasons(claim) -> List[tuple]:
+def _resolve_exception_reasons(claim) -> list[tuple]:
     """Return the list of exception nodes in a claim's provenance chain.
 
     Walks the SAME provenance DAG that :func:`_resolve_chain_flags` walks,
@@ -145,10 +144,23 @@ def _resolve_exception_reasons(claim) -> List[tuple]:
     return result
 
 
+def _ensure_runtime_gitignore(runtime_dir: Path) -> None:
+    """Mark ``.scitex/clew/runtime/`` as regenerable, never-committed state.
+
+    The runtime export is rebuilt from the store at any time, so the
+    directory carries its own ``*`` ``.gitignore`` (ecosystem rule PS-234),
+    whatever the enclosing project's ignore rules say. An existing file is
+    left alone.
+    """
+    ignore = runtime_dir / ".gitignore"
+    if not ignore.exists():
+        ignore.write_text("*\n", encoding="utf-8")
+
+
 def export_claims_json(
-    path: Optional[Union[str, Path]] = None,
+    path: str | Path | None = None,
     *,
-    file_path_filter: Optional[str] = None,
+    file_path_filter: str | None = None,
     read_only: bool = True,
     include_superseded: bool = False,
 ) -> Path:
@@ -198,14 +210,18 @@ def export_claims_json(
     from .._db import _core as _db_core
     from ._register import list_claims
 
+    runtime_default = False
     if path is None:
         env_path = os.environ.get("SCITEX_CLEW_CLAIMS_JSON")
         if env_path:
             path = Path(env_path)
         else:
             path = _db_core._default_claims_json_path(_db_core._find_project_root())
+            runtime_default = True
     path = Path(path).resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
+    if runtime_default:
+        _ensure_runtime_gitignore(path.parent)
 
     claims = list_claims(
         file_path=file_path_filter,
@@ -227,7 +243,7 @@ def export_claims_json(
     # streaming parsers) is unchanged.  New fields are purely additive.
     enriched_claims = []
     # Accumulate all exception nodes across all claims for top-level dedup list.
-    _all_exception_pairs: Dict[str, str] = {}  # session_id -> reason (deduped)
+    _all_exception_pairs: dict[str, str] = {}  # session_id -> reason (deduped)
     for c in claims:
         base = c.to_dict()  # all existing fields, byte-identical
         chain_has_exception, chain_has_frozen = _resolve_chain_flags(c)
@@ -322,7 +338,7 @@ def export_claims_json(
             "clew.add_claim()) or by re-running your pipeline."
         ),
         "schema_version": "1.4",
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         # Full-8 status palette (author tooling + DAG fidelity).
         "palette": dict(_CLAIM_PALETTE),
         # 4-bucket reader palette (color-only, no icons).

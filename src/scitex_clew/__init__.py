@@ -152,6 +152,9 @@ __all__ = [
     "on_session_close",
     # Kill-durable recording (replay journals of killed runs)
     "recover_journals",
+    # Project scope: which project clew uses, and a chdir-free override
+    "project_root",
+    "project_root_info",
 ]
 
 # Static binding of every lazily-exported public name (PA-102 requires each
@@ -211,6 +214,7 @@ if TYPE_CHECKING:
     )
     from ._cli._exit_codes import Severity  # noqa: F401
     from ._db import VerificationDB, get_db, reset_db  # noqa: F401
+    from ._db._paths import project_root, project_root_info
     from ._estimate import (  # noqa: F401
         HEAVY_THRESHOLD_SECONDS,
         EstimateResult,
