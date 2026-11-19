@@ -7,6 +7,45 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.35.0] — 2026-11-19
+
+Minor release: claim text that states a bound is now checked correctly, the
+project-scope resolver is public, and the evidence provider implements
+contract `scitex-live-paper.evidence-report` **1.2.0**.
+
+### Added
+
+- **Evidence report `source.value` (contract 1.2.0, backwards compatible).**
+  Each claim's `source` block now carries the value the source holds at
+  the claim's declared locator: a scalar for a `"."` locator, else
+  `{field: value}`. A VALUE_MISMATCH or HASH_MISMATCH claim therefore
+  shows the value it differs from. The key is omitted when the claim has
+  no locator, or when nothing could be read there. Clew's details give the
+  reason. The vendored schema is now `evidence-report.schema.1.2.0.json`,
+  copied verbatim from scitex-live-paper 0.5.0.
+
+- **`scitex_clew.project_root_info(start=None)` and
+  `scitex_clew.project_root(root)` are public.** A tool that works on a
+  directory inside a research project, such as scitex-writer's manuscript
+  workspace at `<project>/.scitex/writer`, can ask which project clew would
+  scope to from that directory. It gets the same answer a `chdir` there
+  would give (session root, env, git, marker), and can then pass it as
+  `project_root=` without changing the process working directory.
+
+### Fixed
+
+- **A bound is not a point value.** In claim text, a number written after
+  a relation (`<`, `>`, `≤`, `≥`, `<=`, `>=`, or LaTeX `\lt`, `\le`,
+  `\leq`, `\leqslant` and the matching `g` forms) is now read as a bound.
+  A value agrees with a bound when it satisfies it, so `p < 0.001` agrees
+  with 0.0002 and disagrees with 0.003 or 0.001. Before this, the text was
+  compared as if it said p = 0.001: every correctly reported small p-value
+  was a `VALUE_MISMATCH`, while a source holding exactly 0.001 was accepted.
+  This affects the text-vs-value check, located-value checks against display
+  text, and locator-free search. Search no longer looks for a bound as if it
+  were a point value; it records a note, and the claim stays unchecked
+  unless it states other numbers.
+
 ## [0.34.0] — 2026-11-19
 
 Minor release: the evidence provider implements contract

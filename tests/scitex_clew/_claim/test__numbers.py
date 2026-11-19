@@ -79,6 +79,71 @@ def test_declared_tolerance_overrides_written_precision():
     assert hit is None
 
 
+@pytest.mark.parametrize(
+    "text, relation",
+    [
+        ("p < 0.001", "<"),
+        ("$p < .001$", "<"),
+        ("p \\lt 0.001", "<"),
+        ("p <= 0.001", "<="),
+        ("p ≤ 0.001", "<="),
+        ("$p \\leq 0.001$", "<="),
+        ("$p \\le 0.001$", "<="),
+        ("$p \\leqslant 0.001$", "<="),
+        ("n > 100", ">"),
+        ("n ≥ 100", ">="),
+        ("$n \\geq 100$", ">="),
+        ("p = 0.001", None),
+        ("0.001", None),
+    ],
+)
+def test_number_after_a_relation_is_a_bound(text, relation):
+    # Arrange: every spelling a manuscript uses for <, <=, >, >=
+    # Act
+    (tok,) = parse_numbers(text)
+    # Assert
+    assert (tok.relation, tok.value) == (relation, tok.value)
+
+
+def test_left_delimiter_is_not_read_as_le():
+    # Arrange: \left( starts with "\le" but is not a relation
+    text = "$\\left( 0.5 \\right)$"
+    # Act
+    (tok,) = parse_numbers(text)
+    # Assert
+    assert tok.relation is None
+
+
+@pytest.mark.parametrize(
+    "text, number, agrees",
+    [
+        ("p < 0.001", 0.0002, True),  # the case every stats section writes
+        ("p < 0.001", 0.003, False),  # the bound is false
+        ("p < 0.001", 0.001, False),  # strict
+        ("p ≤ 0.001", 0.001, True),
+        ("n > 100", 120, True),
+        ("n > 100", 80, False),
+        ("$p < 10^{-3}$", 0.0004, True),
+    ],
+)
+def test_a_bound_agrees_with_a_value_that_satisfies_it(text, number, agrees):
+    # Arrange
+    no_declared_tolerance = None
+    # Act
+    hit = text_agrees_with(text, number, no_declared_tolerance)
+    # Assert
+    assert (hit is not None) == agrees
+
+
+def test_a_bound_is_not_widened_by_a_declared_tolerance():
+    # Arrange: a tolerance is about rounding a point value, not about bounds
+    declared = {"abs_tol": 0.01}
+    # Act
+    hit = text_agrees_with("p < 0.001", 0.005, declared)
+    # Assert
+    assert hit is None
+
+
 def test_numeric_leaves_keep_registered_type():
     # Arrange
     value = {"auc": 0.91, "n": 120, "ok": True, "name": "x"}
