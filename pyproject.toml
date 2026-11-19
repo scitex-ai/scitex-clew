@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-clew"
-version = "0.34.1"
+version = "0.36.0"
 description = "Verifiable knowledge graph for scientific experiments"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -121,7 +121,7 @@ scitex-clew = "scitex_clew._cli._main:main"
 clew = "scitex_clew._django.apps:ClewAppConfig"
 
 # Evidence provider for scitex-live-paper, through its provider-neutral contract
-# (scitex-live-paper.evidence-report 1.1.0, schema vendored in the package).
+# (scitex-live-paper.evidence-report 1.2.0, schema vendored in the package).
 # Neither side imports the other; live-paper finds this by entry point only.
 [project.entry-points."scitex.livepaper.renderers"]
 clew = "scitex_clew._evidence_provider:EvidenceEntry"
