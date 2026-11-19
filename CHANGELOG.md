@@ -51,6 +51,27 @@ contract `scitex-live-paper.evidence-report` **1.2.0**.
   were a point value; it records a note, and the claim stays unchecked
   unless it states other numbers.
 
+## [0.34.1] — 2026-11-19
+
+Patch release: capture precision.
+
+### Fixed
+
+- **Claim verification inside a session no longer adds upstream inputs.**
+  A script that ends with a validity gate (`add_claim` / `verify_claim` /
+  `verify_all_claims` inside its `@stx.session`) made clew re-hash every
+  file of the claim's upstream chain, and the open-capture recorded those
+  re-hashes as inputs of the verifying session. A non-code upstream file
+  (another script's raw data) became an invented edge that chained the
+  verifying session to its whole upstream closure. Any open made from
+  clew's own code is now clew's read, not the run's
+  (`scitex_clew._capture._frames`), alongside the existing `scitex_io.save`
+  self-check rule. Files the run's own code opens are recorded as before.
+- Documented (no behaviour change): a file a session writes and then reads
+  back stays an output only, with no self-edge; a second session in the
+  same process records the project modules it uses; a script read as data
+  and compiled (`ast.parse`) is an input.
+
 ## [0.34.0] — 2026-11-19
 
 Minor release: the evidence provider implements contract
