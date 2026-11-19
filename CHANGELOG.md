@@ -7,6 +7,44 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.36.0] — 2026-11-19
+
+Minor release: the evidence exchange format (`clew bundle`).
+
+### Added
+
+- **Evidence bundle: a portable, signed, versioned exchange format.** Runs
+  and claims live in the host store, which a journal, reviewer or remote CI
+  cannot reach. `clew bundle export` writes them to
+  `<root>/.scitex/clew/evidence-bundle.json` (schema
+  `scitex-clew.evidence-bundle` 1.0.0) to commit with the code; a third
+  party then checks it from a checkout alone:
+  - `clew bundle keygen --out KEY` — an Ed25519 private key file (0600);
+  - `clew bundle export [--project-root] [--out] [--sign-key KEY] [--all-runs]`
+    — runs (repo-relative script/argv/cwd, input/output sha256, external
+    inputs named without host paths), parent→child edges, and claims with
+    the evidence-provider state, reason, minimal graph, producing runs and
+    `precision` (clew's own claim-check tolerance: declared, else implied
+    by the written value);
+  - `clew bundle verify PATH --json` — schema, signature (`signed: false`
+    when absent; `--expect-key-id` pins a key) and every recorded file hash
+    against the project tree; missing files are findings, not crashes;
+  - `clew bundle rerun PATH --json` — STORE-FREE re-execution in a temporary
+    copy (topological order, explicit child env with capture off and no
+    reachable store), comparing outputs and recomputing each claim with its
+    precision; emits `scitex-clew.rerun-report` 1.1.0. `--work-dir DIR`
+    replays into DIR and keeps it, and the report gives `work_dir`, each
+    run's `run_dir` and each output's `resolved_path`, so a verifier outside
+    the sandbox can hash the replayed files. It executes project
+    code and adds no sandbox: run it in an isolated container.
+  Both JSON Schemas (draft 2020-12, `$id`
+  `.../evidence-bundle/1.0.0`, `.../rerun-report/1.1.0`; the 1.0.0 rerun
+  schema stays shipped)
+  ship in the wheel under `scitex_clew/_exchange/`. Signing is pluggable
+  (`Signer` / `Verifier`, `register_verifier`). New optional extra
+  `scitex-clew[sign]` (cryptography + jsonschema); clew core stays
+  stdlib-only and fails loudly with the install hint when it is missing.
+
 ## [0.35.0] — 2026-11-19
 
 Minor release: claim text that states a bound is now checked correctly, the
