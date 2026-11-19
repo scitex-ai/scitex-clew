@@ -92,14 +92,19 @@ def _run_entry(db, run: dict, root: Path) -> dict:
     entry = meta.get("entry") or {}
     cwd_abs = Path(meta["cwd"]) if meta.get("cwd") else root
     cwd_rel = relative_or_none(cwd_abs, root)
-    if cwd_rel is None:  # recorded outside the project: replay from the root
+    outside = cwd_rel is None
+    if outside:  # recorded outside the project: replay from the root
         cwd_rel, cwd_abs = ".", root
     command = entry.get("command") if entry.get("kind") == "command" else None
     script = None if command else relative_or_none(run.get("script_path"), root)
+    recorded = [str(a) for a in meta.get("argv") or []]
     if command is not None:
-        argv = ["-c", command, *[str(a) for a in (meta.get("argv") or [])[1:]]]
-    elif isinstance(meta.get("argv"), list) and meta["argv"]:
-        argv = relative_argv([str(a) for a in meta["argv"]], root, cwd_abs)
+        argv = ["-c", command, *recorded[1:]]
+    elif recorded and outside and script is not None:
+        # argv[0] was relative to a cwd that does not travel: name the script
+        argv = [script, *relative_argv(recorded[1:], root, cwd_abs)]
+    elif recorded:
+        argv = relative_argv(recorded, root, cwd_abs)
     elif script is not None:
         argv = relative_argv([str(root / script)], root, cwd_abs)
     else:
