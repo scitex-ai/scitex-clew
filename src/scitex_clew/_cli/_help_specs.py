@@ -132,6 +132,17 @@ CLI_HELP = {
             Example("{prog} export-hints --path build/hints.json --json", ""),
         ),
     ),
+    "export_evidence": CliHelp(
+        summary="Write the claims' evidence report (live-paper evidence-report 1.1.0).",
+        examples=(
+            Example("{prog} export-evidence --out report.json", ""),
+            Example("{prog} export-evidence --out - --claim auc", ""),
+            Example(
+                "{prog} export-evidence --project-root ../paper --out report.json --json",
+                "",
+            ),
+        ),
+    ),
     "hash_file": CliHelp(
         summary="Print the full SHA-256 hex digest of a file.",
         examples=(
@@ -143,7 +154,9 @@ CLI_HELP = {
         summary="Execute a notebook headless, top to bottom (needs nbclient).",
         examples=(
             Example("{prog} execute-notebook notebooks/analysis.ipynb", ""),
-            Example("{prog} execute-notebook notebooks/analysis.ipynb --cwd notebooks", ""),
+            Example(
+                "{prog} execute-notebook notebooks/analysis.ipynb --cwd notebooks", ""
+            ),
         ),
     ),
     "hash_directory": CliHelp(

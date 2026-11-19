@@ -108,6 +108,10 @@ The project root decides clew's capture boundary, its store scope (`<root>/.scit
 
 **Conformance:** `tests/scitex_clew/conformance/project-root-vectors.json` is byte-identical to scitex-session's `tests/scitex_session/conformance/project-root-vectors.json`, and both suites run their resolver against it. A change to the rule must update `scitex_clew/_core/_project_root.py`, `scitex_session/_lifecycle/_project_root.py` and the vector file in **both** repositories.
 
+### Evidence for scitex-live-paper
+
+clew is an evidence provider for [scitex-live-paper](https://github.com/ywatanabe1989/scitex-live-paper) and implements its provider-neutral contract `scitex-live-paper.evidence-report` **1.1.0**. Neither package imports the other. clew registers the entry point `scitex.livepaper.renderers` → `clew` (`port = "evidence"`). For each registered claim it reports the `verify --strict` outcome as `supported` / `not_supported` / `not_checkable` / `no_evidence_graph` with a plain reason, plus the claim's level-1 slice as its minimal evidence graph. `clew export-evidence --out report.json` writes the same report to a file. The schema is vendored version-pinned in `src/scitex_clew/_evidence_provider/`. Details: [Evidence provider](src/scitex_clew/_skills/scitex-clew/07_evidence-provider.md).
+
 ### Grouping for Readable DAGs
 
 Large pipelines emit many per-patient / per-fold files. The grouping API collapses related files into a single DAG node while preserving every underlying hash via a **Merkle root** — aggregate verification remains cryptographically meaningful.

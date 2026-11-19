@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scitex.ai/schemas/scitex-live-paper/evidence-report/1.1.0",
+  "title": "scitex-live-paper evidence report",
+  "description": "What an evidence provider supplies to scitex-live-paper: one entry per REGISTERED claim with its evidence state, a one-line reason, its source and locator, and its minimal evidence graph. Text that is not a registered claim never appears. Versioned by schema_version (semver): a MINOR bump only adds optional fields; a MAJOR bump changes or removes fields. See docs/evidence-provider-contract.md.",
+  "type": "object",
+  "required": ["schema", "schema_version", "provider", "claims"],
+  "properties": {
+    "schema": {"const": "scitex-live-paper.evidence-report"},
+    "schema_version": {"type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$"},
+    "provider": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "version": {"type": ["string", "null"]}
+      }
+    },
+    "project_root": {"type": ["string", "null"]},
+    "claims": {"type": "array", "items": {"$ref": "#/$defs/claim"}}
+  },
+  "$defs": {
+    "state": {
+      "enum": ["supported", "not_supported", "not_checkable", "no_evidence_graph"],
+      "description": "supported: the stated value was checked against its source and the source against its recorded computation, and both hold. not_supported: something the provider checked does not hold (reason says what). not_checkable: registered and connected, but the value itself could not be checked (e.g. no locator). no_evidence_graph: registered, but no recorded computation connects it to a source."
+    },
+    "claim": {
+      "type": "object",
+      "required": ["claim_id", "location", "state", "reason"],
+      "properties": {
+        "claim_id": {"type": "string", "minLength": 1},
+        "location": {
+          "type": "object",
+          "properties": {
+            "file": {"type": ["string", "null"], "description": "Manuscript file, relative to project_root (or absolute)."},
+            "line": {"type": ["integer", "null"], "minimum": 1},
+            "label": {"type": ["string", "null"]}
+          }
+        },
+        "claim_type": {"type": ["string", "null"]},
+        "stated_text": {"type": ["string", "null"], "description": "The claim's text as written in the manuscript."},
+        "stated_value": {"description": "The value the claim states, any JSON type."},
+        "state": {"$ref": "#/$defs/state"},
+        "reason": {"type": "string", "minLength": 1, "description": "One plain-language line a reviewer can act on."},
+        "source": {
+          "type": "object",
+          "properties": {
+            "file": {"type": ["string", "null"]},
+            "locator": {"description": "Where in the source the value lives (provider-defined shape), or null."}
+          }
+        },
+        "details": {"type": "array", "items": {"type": "string"}},
+        "provider_status": {
+          "type": ["object", "null"],
+          "description": "The provider's own raw verdict, opaque to scitex-live-paper (shown verbatim).",
+          "properties": {
+            "name": {"type": "string"},
+            "code": {"type": ["integer", "null"]}
+          }
+        },
+        "graph": {
+          "oneOf": [{"type": "null"}, {"$ref": "#/$defs/graph"}],
+          "description": "Minimal evidence graph. Omit the key to have scitex-live-paper ask the provider on demand; null means the claim has no graph."
+        },
+        "graph_error": {"type": ["string", "null"]}
+      }
+    },
+    "failure": {
+      "type": "object",
+      "description": "Added in 1.1.0. Marks a graph node where the evidence broke. kind is a short token; changed (content differs from what the recorded computation saw), missing (absent), and mismatched (holds a value other than the claim states) are the recommended ones, and a consumer shows any other token verbatim. detail is one plain-language line.",
+      "required": ["kind"],
+      "properties": {
+        "kind": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "detail": {"type": ["string", "null"]}
+      }
+    },
+    "graph": {
+      "type": "object",
+      "required": ["nodes", "edges"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "kind", "label"],
+            "properties": {
+              "id": {"type": "string"},
+              "kind": {"enum": ["claim", "process", "input", "output", "other"]},
+              "label": {"type": "string"},
+              "hash": {"type": ["string", "null"]},
+              "external": {"type": "boolean"},
+              "failure": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/failure"}]}
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "target"],
+            "properties": {
+              "source": {"type": "string"},
+              "target": {"type": "string"},
+              "kind": {"type": ["string", "null"]}
+            }
+          }
+        },
+        "summary": {"type": ["string", "null"], "description": "One line describing the graph (e.g. how it was reduced)."}
+      }
+    }
+  }
+}
