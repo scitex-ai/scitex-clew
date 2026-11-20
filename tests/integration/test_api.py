@@ -30,10 +30,12 @@ class TestPublicAPI:
         # ``HEAVY_THRESHOLD_SECONDS`` and the other plain-constant exports.
         # +1 for ``recover_journals`` (replay journals of killed runs,
         # 2026-11-18).
+        # +2 for ``project_root`` / ``project_root_info`` (chdir-free project
+        # scope for tools working inside a project, 2026-11-19).
         # Arrange
         # Act
         # Assert
-        assert len(clew.__all__) == 45
+        assert len(clew.__all__) == 47
 
     def test_all_names_set_clew_all_expected(self):
         # Arrange
@@ -84,6 +86,8 @@ class TestPublicAPI:
             "on_session_start",
             "on_session_close",
             "recover_journals",
+            "project_root",
+            "project_root_info",
         }
         # Assert
         assert set(clew.__all__) == expected

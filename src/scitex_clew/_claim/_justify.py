@@ -114,6 +114,11 @@ def claimed_numbers(claim) -> tuple[list[dict], list[str]]:
         if tok.uncertainty:
             notes.append(f"uncertainty ±{tok.raw} not checked")
             continue
+        if tok.bound:
+            # "p < 0.001" names no point value to look for: searching the
+            # source for 0.001 would test the wrong number.
+            notes.append(f"bound {tok.raw} not searched (no point value)")
+            continue
         items.append(
             {
                 "field": f"text#{i}",

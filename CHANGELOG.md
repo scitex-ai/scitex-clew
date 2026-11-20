@@ -7,6 +7,121 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.36.1] — 2026-11-20
+
+### Fixed
+
+- **A store failure in the io hooks is no longer silent.** `on_io_save` /
+  `on_io_load` logged every store failure (unreachable host,
+  `StoreProvisionError` under managed roles, a lost connection) at DEBUG, so
+  a run whose outputs were never recorded looked complete. Each failure is now
+  a WARNING naming the file and the reason, appended to `HOOK_FAILURES`, and
+  attached to the active run's `metadata["hook_failures"]` — the session
+  hooks' policy. One warning per distinct reason per session.
+
+## [0.36.0] — 2026-11-19
+
+Minor release: the evidence exchange format (`clew bundle`).
+
+### Added
+
+- **Evidence bundle: a portable, signed, versioned exchange format.** Runs
+  and claims live in the host store, which a journal, reviewer or remote CI
+  cannot reach. `clew bundle export` writes them to
+  `<root>/.scitex/clew/evidence-bundle.json` (schema
+  `scitex-clew.evidence-bundle` 1.0.0) to commit with the code; a third
+  party then checks it from a checkout alone:
+  - `clew bundle keygen --out KEY` — an Ed25519 private key file (0600);
+  - `clew bundle export [--project-root] [--out] [--sign-key KEY] [--all-runs]`
+    — runs (repo-relative script/argv/cwd, input/output sha256, external
+    inputs named without host paths), parent→child edges, and claims with
+    the evidence-provider state, reason, minimal graph, producing runs and
+    `precision` (clew's own claim-check tolerance: declared, else implied
+    by the written value);
+  - `clew bundle verify PATH --json` — schema, signature (`signed: false`
+    when absent; `--expect-key-id` pins a key) and every recorded file hash
+    against the project tree; missing files are findings, not crashes;
+  - `clew bundle rerun PATH --json` — STORE-FREE re-execution in a temporary
+    copy (topological order, explicit child env with capture off and no
+    reachable store), comparing outputs and recomputing each claim with its
+    precision; emits `scitex-clew.rerun-report` 1.1.0. `--work-dir DIR`
+    replays into DIR and keeps it, and the report gives `work_dir`, each
+    run's `run_dir` and each output's `resolved_path`, so a verifier outside
+    the sandbox can hash the replayed files. It executes project
+    code and adds no sandbox: run it in an isolated container.
+  Both JSON Schemas (draft 2020-12, `$id`
+  `.../evidence-bundle/1.0.0`, `.../rerun-report/1.1.0`; the 1.0.0 rerun
+  schema stays shipped)
+  ship in the wheel under `scitex_clew/_exchange/`. Signing is pluggable
+  (`Signer` / `Verifier`, `register_verifier`). New optional extra
+  `scitex-clew[sign]` (cryptography + jsonschema); clew core stays
+  stdlib-only and fails loudly with the install hint when it is missing.
+
+## [0.35.0] — 2026-11-19
+
+Minor release: claim text that states a bound is now checked correctly, the
+project-scope resolver is public, and the evidence provider implements
+contract `scitex-live-paper.evidence-report` **1.2.0**.
+
+### Added
+
+- **Evidence report `source.value` (contract 1.2.0, backwards compatible).**
+  Each claim's `source` block now carries the value the source holds at
+  the claim's declared locator: a scalar for a `"."` locator, else
+  `{field: value}`. A VALUE_MISMATCH or HASH_MISMATCH claim therefore
+  shows the value it differs from. The key is omitted when the claim has
+  no locator, or when nothing could be read there. Clew's details give the
+  reason. The vendored schema is now `evidence-report.schema.1.2.0.json`,
+  copied verbatim from scitex-live-paper 0.5.0.
+
+- **`scitex_clew.project_root_info(start=None)` and
+  `scitex_clew.project_root(root)` are public.** A tool that works on a
+  directory inside a research project, such as scitex-writer's manuscript
+  workspace at `<project>/.scitex/writer`, can ask which project clew would
+  scope to from that directory. It gets the same answer a `chdir` there
+  would give (session root, env, git, marker), and can then pass it as
+  `project_root=` without changing the process working directory.
+
+### Fixed
+
+- The default runtime export (`.scitex/clew/runtime/claims.json`) now
+  writes a `*` `.gitignore` into `runtime/` (ecosystem rule PS-234), so that
+  regenerable state is never committed, whatever the project's own ignore
+  rules say. An existing `.gitignore` there is left alone, and an export to
+  an explicit path writes none.
+- **A bound is not a point value.** In claim text, a number written after
+  a relation (`<`, `>`, `≤`, `≥`, `<=`, `>=`, or LaTeX `\lt`, `\le`,
+  `\leq`, `\leqslant` and the matching `g` forms) is now read as a bound.
+  A value agrees with a bound when it satisfies it, so `p < 0.001` agrees
+  with 0.0002 and disagrees with 0.003 or 0.001. Before this, the text was
+  compared as if it said p = 0.001: every correctly reported small p-value
+  was a `VALUE_MISMATCH`, while a source holding exactly 0.001 was accepted.
+  This affects the text-vs-value check, located-value checks against display
+  text, and locator-free search. Search no longer looks for a bound as if it
+  were a point value; it records a note, and the claim stays unchecked
+  unless it states other numbers.
+
+## [0.34.1] — 2026-11-19
+
+Patch release: capture precision.
+
+### Fixed
+
+- **Claim verification inside a session no longer adds upstream inputs.**
+  A script that ends with a validity gate (`add_claim` / `verify_claim` /
+  `verify_all_claims` inside its `@stx.session`) made clew re-hash every
+  file of the claim's upstream chain, and the open-capture recorded those
+  re-hashes as inputs of the verifying session. A non-code upstream file
+  (another script's raw data) became an invented edge that chained the
+  verifying session to its whole upstream closure. Any open made from
+  clew's own code is now clew's read, not the run's
+  (`scitex_clew._capture._frames`), alongside the existing `scitex_io.save`
+  self-check rule. Files the run's own code opens are recorded as before.
+- Documented (no behaviour change): a file a session writes and then reads
+  back stays an output only, with no self-edge; a second session in the
+  same process records the project modules it uses; a script read as data
+  and compiled (`ast.parse`) is an input.
+
 ## [0.34.0] — 2026-11-19
 
 Minor release: the evidence provider implements contract

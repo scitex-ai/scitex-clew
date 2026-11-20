@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scitex.ai/schemas/scitex-clew/evidence-bundle/1.0.0",
+  "title": "scitex-clew evidence bundle 1.0.0",
+  "description": "A portable, optionally signed record of a project's recorded runs and manuscript claims, committed with the repository at .scitex/clew/evidence-bundle.json. Paths are repo-relative POSIX; nothing names an absolute host path. Consumers MUST ignore keys they do not know (additive changes keep the major version). The signature covers json.dumps(document minus 'signature', sort_keys=True, separators=(',', ':'), ensure_ascii=False) encoded as UTF-8.",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "exported_at",
+    "clew_version",
+    "project",
+    "runs",
+    "edges",
+    "claims"
+  ],
+  "properties": {
+    "schema": { "const": "scitex-clew.evidence-bundle" },
+    "schema_version": { "const": "1.0.0" },
+    "exported_at": { "type": "string", "minLength": 1 },
+    "clew_version": { "type": ["string", "null"] },
+    "project": {
+      "type": "object",
+      "required": ["project_id", "root_name"],
+      "properties": {
+        "project_id": { "type": "string", "minLength": 1 },
+        "root_name": { "type": "string" }
+      }
+    },
+    "runs": { "type": "array", "items": { "$ref": "#/$defs/run" } },
+    "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } },
+    "claims": { "type": "array", "items": { "$ref": "#/$defs/claim" } },
+    "signature": { "$ref": "#/$defs/signature" }
+  },
+  "$defs": {
+    "relpath": {
+      "description": "Repo-relative POSIX path that stays inside the project root.",
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "anyOf": [
+          { "pattern": "^/" },
+          { "pattern": "^[A-Za-z]:" },
+          { "pattern": "\\\\" },
+          { "pattern": "(^|/)\\.\\.(/|$)" }
+        ]
+      }
+    },
+    "sha256": {
+      "description": "Lower-case hex SHA-256 (64 chars); 32 chars only for a legacy truncated record that no file on disk could upgrade.",
+      "type": "string",
+      "pattern": "^([0-9a-f]{64}|[0-9a-f]{32})$"
+    },
+    "hashes": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/relpath" },
+      "additionalProperties": { "$ref": "#/$defs/sha256" }
+    },
+    "run": {
+      "type": "object",
+      "required": [
+        "run_id",
+        "script",
+        "argv",
+        "interpreter",
+        "cwd",
+        "inputs",
+        "outputs",
+        "external_inputs",
+        "status",
+        "started_at",
+        "finished_at"
+      ],
+      "properties": {
+        "run_id": { "type": "string", "minLength": 1 },
+        "script": {
+          "description": "The run's script; null for a 'python -c' run (see 'command').",
+          "oneOf": [{ "$ref": "#/$defs/relpath" }, { "type": "null" }]
+        },
+        "script_sha256": {
+          "description": "Recorded identity hash of the script (a notebook's is 'ipynb-code-v1:<sha256>' of its code cells).",
+          "type": ["string", "null"]
+        },
+        "command": {
+          "description": "The 'python -c' text of a command run.",
+          "type": ["string", "null"]
+        },
+        "argv": {
+          "description": "Arguments after the interpreter, replayed from 'cwd': in-project absolute paths are rewritten relative to 'cwd'.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "interpreter": {
+          "type": "object",
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "type": "string" },
+            "version": { "type": ["string", "null"] }
+          }
+        },
+        "cwd": { "$ref": "#/$defs/relpath" },
+        "inputs": { "$ref": "#/$defs/hashes" },
+        "outputs": { "$ref": "#/$defs/hashes" },
+        "external_inputs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/external_input" }
+        },
+        "run_dir": {
+          "description": "The session's own run directory (its name differs per run); outputs under it are matched to the replay's run directory.",
+          "oneOf": [{ "$ref": "#/$defs/relpath" }, { "type": "null" }]
+        },
+        "status": { "type": "string" },
+        "started_at": { "type": ["string", "null"] },
+        "finished_at": { "type": ["string", "null"] }
+      }
+    },
+    "external_input": {
+      "description": "An input read from outside the project root. 'path' is the in-project path it was read through, else '<external>/<file name>'; never a host path.",
+      "type": "object",
+      "required": ["sha256"],
+      "properties": {
+        "uri": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": {
+          "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+        },
+        "size": { "type": ["integer", "null"] }
+      },
+      "anyOf": [{ "required": ["uri"] }, { "required": ["path"] }]
+    },
+    "edge": {
+      "type": "object",
+      "required": ["parent", "child"],
+      "properties": {
+        "parent": { "type": "string", "minLength": 1 },
+        "child": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tolerance_rule": {
+      "type": "object",
+      "required": ["basis", "abs_tol", "rel_tol"],
+      "properties": {
+        "basis": {
+          "description": "declared: abs_tol/rel_tol given at registration (claim or locator); implied: half a unit in the last written place of the stated value; exact: non-numeric, compared verbatim.",
+          "enum": ["declared", "implied", "exact"]
+        },
+        "abs_tol": { "type": ["number", "null"], "minimum": 0 },
+        "rel_tol": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "precision": {
+      "allOf": [{ "$ref": "#/$defs/tolerance_rule" }],
+      "properties": {
+        "fields": {
+          "description": "The rule per located value field (a locator may declare its own tolerance).",
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/tolerance_rule" }
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "required": [
+        "claim_id",
+        "claim_type",
+        "location",
+        "stated_text",
+        "stated_value",
+        "precision",
+        "source",
+        "state",
+        "reason",
+        "producing_runs",
+        "graph"
+      ],
+      "properties": {
+        "claim_id": { "type": "string", "minLength": 1 },
+        "claim_type": { "type": ["string", "null"] },
+        "location": {
+          "type": "object",
+          "required": ["file", "line", "label"],
+          "properties": {
+            "file": { "type": ["string", "null"] },
+            "line": { "type": ["integer", "null"] },
+            "label": { "type": ["string", "null"] }
+          }
+        },
+        "stated_text": { "type": ["string", "null"] },
+        "stated_value": true,
+        "precision": { "$ref": "#/$defs/precision" },
+        "source": {
+          "type": "object",
+          "required": ["file", "locator"],
+          "properties": {
+            "file": { "type": ["string", "null"] },
+            "locator": { "type": ["object", "null"] }
+          }
+        },
+        "state": {
+          "enum": [
+            "supported",
+            "not_supported",
+            "not_checkable",
+            "no_evidence_graph"
+          ]
+        },
+        "reason": { "type": "string" },
+        "producing_runs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "graph": {
+          "oneOf": [{ "$ref": "#/$defs/graph" }, { "type": "null" }]
+        }
+      }
+    },
+    "graph": {
+      "description": "The claim's minimal evidence graph, the shape of scitex-live-paper.evidence-report graphs.",
+      "type": "object",
+      "required": ["nodes", "edges"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "kind", "label"],
+            "properties": {
+              "id": { "type": "string" },
+              "kind": { "type": "string" },
+              "label": { "type": "string" }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "target", "kind"],
+            "properties": {
+              "source": { "type": "string" },
+              "target": { "type": "string" },
+              "kind": { "type": "string" }
+            }
+          }
+        },
+        "summary": { "type": "string" }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "required": ["alg", "key_id", "public_key", "value"],
+      "properties": {
+        "alg": { "type": "string", "minLength": 1 },
+        "key_id": {
+          "description": "First 16 hex chars of sha256(raw public key).",
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        },
+        "public_key": {
+          "description": "Base64 raw public key (32 bytes for ed25519).",
+          "type": "string",
+          "minLength": 1
+        },
+        "value": { "description": "Base64 signature.", "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

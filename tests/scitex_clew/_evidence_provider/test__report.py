@@ -1,7 +1,7 @@
 """The evidence report on a REAL clew project, validated against the contract.
 
 The report is validated against the vendored, version-pinned contract schema
-(``scitex-live-paper.evidence-report`` 1.1.0) with jsonschema; scitex-live-paper
+(``scitex-live-paper.evidence-report`` 1.2.0) with jsonschema; scitex-live-paper
 itself is never imported. No mocks: real sessions, a real PostgreSQL store
 (one schema and one built project per module, see ``conftest.py``).
 """
@@ -77,8 +77,18 @@ def test_claim_record_fields_are_relative_to_the_project(by_id):
         "source": {
             "file": "results/results.json",
             "locator": {".": {"pointer": "/n_rows"}},
+            "value": 2,
         },
     }
+
+
+def test_value_mismatch_reports_the_differing_source_value(by_id):
+    # Arrange: n_rows states 3; results.json holds 2 at /n_rows
+    claim = by_id["n_rows"]
+    # Act
+    seen = (claim["provider_status"]["name"], claim["stated_value"])
+    # Assert: contract 1.2.0 source.value = what the source holds there
+    assert (seen, claim["source"]["value"]) == (("VALUE_MISMATCH", 3), 2)
 
 
 def test_claim_without_locator_reports_a_null_locator(by_id):
@@ -88,6 +98,15 @@ def test_claim_without_locator_reports_a_null_locator(by_id):
     locator = claim["source"]["locator"]
     # Assert
     assert locator is None
+
+
+def test_claim_without_locator_omits_the_source_value(by_id):
+    # Arrange: nothing says where in the source to read
+    claim = by_id["accuracy"]
+    # Act
+    keys = set(claim["source"])
+    # Assert: omitted, not null (null would mean "the source holds null")
+    assert keys == {"file", "locator"}
 
 
 def test_every_claim_carries_clews_details_list(by_id):

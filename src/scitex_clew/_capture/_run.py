@@ -17,6 +17,7 @@ from .._core import getLogger
 from .._links import absolute, link_entries, merge_link_entries
 from ._code import CodeExecCapture
 from ._external import ExternalPolicy, external_info
+from ._frames import not_a_run_read
 
 logger = getLogger("scitex_clew._capture")
 
@@ -60,29 +61,6 @@ def _signature(path: str) -> tuple[int, int, int] | None:
 
 def _under(path: str, root: str) -> bool:
     return path == root or path.startswith(root + os.sep)
-
-
-#: Modules whose frames mean "a ``scitex_io.save`` is in progress".
-_STX_IO_SAVE_MODULES = ("scitex_io._save",)
-
-
-def _inside_stx_io_save() -> bool:
-    """True when the current open() happens inside ``scitex_io.save``.
-
-    A saver may read its own target before overwriting it (the CSV saver
-    compares with the existing file to skip identical writes). That read is
-    not a data dependency of the run — recording it would bind the run to
-    whichever earlier run produced the old bytes, an invented edge. The
-    save's real effect is reported by scitex-io's post-save hook. Only walked
-    for the first read of an in-scope path, so the cost is off the hot path.
-    """
-    frame = sys._getframe(2)
-    while frame is not None:
-        name = frame.f_globals.get("__name__", "")
-        if name.startswith(_STX_IO_SAVE_MODULES):
-            return True
-        frame = frame.f_back
-    return False
 
 
 class RunCapture(CodeExecCapture):
@@ -282,8 +260,8 @@ class RunCapture(CodeExecCapture):
     ) -> None:
         if not os.path.isfile(real):
             return  # missing (the open will fail) or not a regular file
-        if _inside_stx_io_save():
-            return  # the saver's own check of its target, not a data input
+        if not_a_run_read() is not None:
+            return  # a saver's check of its target / clew's own verification
         with self._lock:
             if real in self._read_set:
                 return

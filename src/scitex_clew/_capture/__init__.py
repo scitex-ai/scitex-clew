@@ -49,8 +49,14 @@ This module closes both, for the life of a session (activated by
   are ``linecache``/tracebacks, not data), the running interpreter's prefix
   (an in-project venv) and ``site-/dist-packages``, ``.scitex`` tool state,
   tool caches, and ``/proc`` ``/dev`` ``/sys``. A file this run wrote and then
-  read back is an intermediate, not an input; a read made INSIDE
-  ``scitex_io.save`` (a saver checking its own target) is not an input.
+  read back is an intermediate, not an input (no self-edge: the run
+  regenerates it before reading it, so a re-run needs nothing from outside);
+  a read made INSIDE ``scitex_io.save`` (a saver checking its own target) is
+  not an input; nor is a read made by clew's OWN code — ``add_claim`` /
+  ``verify_claim`` / ``verify_all_claims`` / ``verify_run`` called inside a
+  session re-hash the claim's whole upstream chain, and recording those
+  would chain the verifying session to every upstream file
+  (:mod:`scitex_clew._capture._frames`).
 
 * **Imported project-local modules** (``__file__`` under the root, not
   installed, not the entry script) are recorded as run inputs at session start

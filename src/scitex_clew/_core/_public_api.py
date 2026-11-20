@@ -113,6 +113,9 @@ _LAZY_ATTRS: dict[str, tuple[str, str | None]] = {
     "VerificationDB": ("._db", "VerificationDB"),
     "get_db": ("._db", "get_db"),
     "reset_db": ("._db", "reset_db"),
+    # _db._paths (which project clew scopes to, without chdir)
+    "project_root": ("._db._paths", "project_root"),
+    "project_root_info": ("._db._paths", "project_root_info"),
     # _examples
     "init_examples": ("._examples", "init_examples"),
     # _hash

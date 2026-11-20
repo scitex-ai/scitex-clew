@@ -13,11 +13,17 @@ precision it was written with:
   separators), ±0.5;
 * ``45.3%`` / ``45.3\\%`` -> 45.3 *percent*: it agrees with 45.3 or with
   0.453 (the two ways a proportion is stored);
-* the number right after ``±`` / ``\\pm`` / ``+/-`` is an *uncertainty*.
+* the number right after ``±`` / ``\\pm`` / ``+/-`` is an *uncertainty*;
+* the number right after ``<`` / ``>`` / ``≤`` / ``≥`` (also ``<=``, ``>=``,
+  ``\\lt``, ``\\le``, ``\\leq``, ``\\leqslant`` and the ``g`` forms) is a
+  *bound*: ``"p < 0.001"`` states that p is below 0.001, not that it equals
+  0.001.
 
-A token agrees with a value when ``|token - value| <= tolerance``. The
+A point token agrees with a value when ``|token - value| <= tolerance``. The
 tolerance is the claim's DECLARED ``abs_tol`` / ``rel_tol`` when it has one,
-else the token's implied precision — the rounding the text asserts.
+else the token's implied precision — the rounding the text asserts. A bound
+agrees with a value that satisfies it (``0.0002`` satisfies ``< 0.001``); a
+bound is exact as written, so no tolerance widens it.
 """
 
 from __future__ import annotations
@@ -34,6 +40,7 @@ __all__ = [
     "agrees",
     "numeric_leaves",
     "parse_numbers",
+    "satisfies",
     "text_agrees_with",
 ]
 
@@ -49,6 +56,13 @@ class WrittenNumber:
     percent: bool = False
     #: Written right after a ``±``: an uncertainty, not a point value.
     uncertainty: bool = False
+    #: ``"<"``, ``"<="``, ``">"`` or ``">="`` when written as a bound, else None.
+    relation: str | None = None
+
+    @property
+    def bound(self) -> bool:
+        """Written as a bound (``< 0.001``), not as a point value."""
+        return self.relation is not None
 
     def candidates(self) -> list[tuple[float, float]]:
         """``(value, implied_tol)`` readings: a percent also reads as a fraction."""
@@ -78,12 +92,31 @@ _TOKEN = re.compile(
     re.VERBOSE,
 )
 _PM = re.compile(r"(?:±|\+/-|\+-)\s*$")
+# A relation written right before the number (after _normalize: ≤ ≥ < >).
+_REL = re.compile(r"(≤|≥|<|>)\s*$")
+_RELATION = {"<": "<", ">": ">", "≤": "<=", "≥": ">="}
+# LaTeX / ASCII spellings of the relations; longest first so "\leq" is not
+# read as "\le" + "q".
+_REL_SPELLINGS = (
+    (r"\\leqslant(?![A-Za-z])", "≤"),
+    (r"\\geqslant(?![A-Za-z])", "≥"),
+    (r"\\leq(?![A-Za-z])", "≤"),
+    (r"\\geq(?![A-Za-z])", "≥"),
+    (r"\\le(?![A-Za-z])", "≤"),
+    (r"\\ge(?![A-Za-z])", "≥"),
+    (r"\\lt(?![A-Za-z])", "<"),
+    (r"\\gt(?![A-Za-z])", ">"),
+    (r"<=|=<|⩽", "≤"),
+    (r">=|=>|⩾", "≥"),
+)
 
 
 def _normalize(text: str) -> str:
     t = text.replace("−", "-").replace("–", "-").replace("\u2009", "")
     t = t.replace("\u202f", "").replace("\u00a0", " ")
     t = re.sub(r"\\num\{([^}]*)\}", r"\1", t)
+    for pattern, symbol in _REL_SPELLINGS:
+        t = re.sub(pattern, symbol, t)
     t = t.replace("\\%", "%").replace("\\pm", "±").replace("\\times", "×")
     t = t.replace("\\cdot", "×").replace("$", " ")
     t = re.sub(r"\^\{\s*([-+]?\d+)\s*\}", r"^\1", t)
@@ -121,16 +154,35 @@ def parse_numbers(text: Any) -> list[WrittenNumber]:
         scale = 10.0**exponent
         value = sign * float(dec) * scale
         implied = 0.5 * 10.0 ** (exp_digits if isinstance(exp_digits, int) else 0)
+        before = norm[: m.start()]
+        rel = _REL.search(before)
+        relation = _RELATION[rel.group(1)] if rel else None
+        raw = m.group(0).strip()
         out.append(
             WrittenNumber(
-                raw=m.group(0).strip(),
+                raw=f"{rel.group(1)} {raw}" if rel else raw,
                 value=value,
                 implied_tol=implied * scale,
                 percent=bool(m.group("pct")),
-                uncertainty=bool(_PM.search(norm[: m.start()])),
+                uncertainty=bool(_PM.search(before)),
+                relation=relation,
             )
         )
     return out
+
+
+def satisfies(number: float, bound: float, relation: str) -> bool:
+    """``number`` lies on the stated side of ``bound`` (exact; float slack only)."""
+    slack = 1e-12 * max(1.0, abs(number), abs(bound))
+    if relation == "<":
+        return number < bound - slack
+    if relation == "<=":
+        return number <= bound + slack
+    if relation == ">":
+        return number > bound + slack
+    if relation == ">=":
+        return number >= bound - slack
+    raise ValueError(f"unknown relation {relation!r}")
 
 
 def agrees(
@@ -157,15 +209,19 @@ def agrees(
 def text_agrees_with(
     text: Any, number: float, tolerance: Mapping[str, float] | None = None
 ) -> WrittenNumber | None:
-    """The first point number written in ``text`` that agrees with ``number``.
+    """The first number written in ``text`` that ``number`` agrees with.
 
-    Uncertainties (after ``±``) are not point values and never match.
+    Uncertainties (after ``±``) are not point values and never match. A bound
+    (``< 0.001``) matches a ``number`` that satisfies it.
     """
     for tok in parse_numbers(text):
         if tok.uncertainty:
             continue
         for value, implied in tok.candidates():
-            if agrees(number, value, implied, tolerance):
+            if tok.bound:
+                if satisfies(number, value, tok.relation):
+                    return tok
+            elif agrees(number, value, implied, tolerance):
                 return tok
     return None
 
