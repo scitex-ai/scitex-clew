@@ -53,7 +53,7 @@ dependencies = [
     "scitex-logging>=0.2.2",
 ]
 [project.optional-dependencies]
-gui = ["scitex-dev>=0.66.0", "scitex-sdk[gui]>=0.3.24", "django>=5.2", "scitex-logging>=0.2.2", "psycopg[binary]>=3.1"]
+gui = ["scitex-dev>=0.66.0", "scitex-sdk[gui]>=0.3.25", "django>=5.2", "scitex-logging>=0.2.2", "psycopg[binary]>=3.1"]
 # Evidence-bundle signing (Ed25519) and schema validation (`clew bundle`).
 # Optional: clew core stays stdlib-only; both are imported lazily and fail
 # loudly with this install hint when absent.
@@ -68,7 +68,7 @@ all = [
 ]
 dev = [
     # The leaf GUI is part of this package's own suite; run it unconditionally.
-    "scitex-sdk[gui]>=0.3.24",
+    "scitex-sdk[gui]>=0.3.25",
     "django>=5.2",
     "scitex-logging>=0.2.2",
     "Pillow>=10.0",

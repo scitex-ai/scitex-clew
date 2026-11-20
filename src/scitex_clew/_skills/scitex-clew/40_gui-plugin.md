@@ -46,7 +46,7 @@ Cloud PostgreSQL version/pool, filesystem sandbox and scientific workflow.
 The canonical App/UI owner is `scitex-sdk` (`scitex_sdk.app` and
 `scitex_sdk.ui`), with resource prefixes `scitex_sdk/app` and `scitex_sdk/ui`.
 Keep persisted compatibility labels and the `scitex_app_content` block.
-GUI installs require published SDK[gui] 0.3.24 or later and Dev 0.66.0 or
+GUI installs require SDK[gui] 0.3.25 or later and Dev 0.66.0 or
 later. Dev 0.66.0 supplies TenantScope, inspect_tenant_store and explicit
 provisioning; provisioning remains an operator operation outside read requests.
 A source-built wheel must disclose its exact origin and qualify separately.
