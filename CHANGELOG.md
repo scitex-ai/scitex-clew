@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.36.2] — 2026-11-20
+
 ### Fixed
 
 - Pin each GUI picker to the project displayed by its tab, including scoped
