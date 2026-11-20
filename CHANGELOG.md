@@ -9,6 +9,10 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Pin each GUI picker to the project displayed by its tab, including scoped
+  hosts with a different global selection. API and file-preview reads no longer
+  change the host's remembered navigation project.
+
 - Preserve the Cloud renderer's sanitized, resource-free SVG and literal error
   text in the leaf GUI, including standalone mounts. Rebuild the packaged
   JavaScript from a DOMPurify-pinned frontend lockfile, retaining node clicks,

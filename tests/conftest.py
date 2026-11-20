@@ -125,8 +125,11 @@ def isolated_store(_writable_cluster):
     with _connect() as conn, conn.cursor() as cur:
         cur.execute(f'CREATE SCHEMA "{schema}"')
 
+    # Socket DSNs already contain a query. Preserve the selected endpoint
+    # while adding this test's isolated schema.
+    joiner = "&" if "?" in WRITABLE_DSN else "?"
     os.environ["SCITEX_STORE_DSN"] = (
-        f"{WRITABLE_DSN}?options={quote(f'-csearch_path={schema}', safe='')}"
+        f"{WRITABLE_DSN}{joiner}options={quote(f'-csearch_path={schema}', safe='')}"
     )
     reset_db()
     try:
