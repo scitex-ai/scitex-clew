@@ -7,6 +7,16 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A store failure in the io hooks is no longer silent.** `on_io_save` /
+  `on_io_load` logged every store failure (unreachable host,
+  `StoreProvisionError` under managed roles, a lost connection) at DEBUG, so
+  a run whose outputs were never recorded looked complete. Each failure is now
+  a WARNING naming the file and the reason, appended to `HOOK_FAILURES`, and
+  attached to the active run's `metadata["hook_failures"]` — the session
+  hooks' policy. One warning per distinct reason per session.
+
 ## [0.36.0] — 2026-11-19
 
 Minor release: the evidence exchange format (`clew bundle`).

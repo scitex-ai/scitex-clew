@@ -51,11 +51,13 @@ def isolated_state():
     _obs._registered_io_ids.clear()
     _obs._registered_session_ids.clear()
     _obs._warned_peers.clear()
+    _obs._warned_io_failures.clear()
     yield
     set_tracker(None)
     _obs._registered_io_ids.clear()
     _obs._registered_session_ids.clear()
     _obs._warned_peers.clear()
+    _obs._warned_io_failures.clear()
 
 
 # --- io seam ----------------------------------------------------------------
@@ -91,6 +93,140 @@ def test_on_io_save_logs_debug_when_no_tracker(tmp_path, caplog):
     assert any(
         "no active session tracker" in r.getMessage() for r in caplog.records
     )
+
+
+# --- a store failure in the io seam is LOUD, never a DEBUG line --------------
+# A store that refuses writes (unreachable host, StoreProvisionError under
+# managed roles, a dropped connection) must not leave a run looking complete.
+
+
+@pytest.fixture
+def unreachable_store():
+    """THE store resolves to a real Postgres endpoint that refuses connections.
+
+    Port 9 (discard) on loopback: nothing listens, so libpq fails immediately
+    with a genuine connection error — no mock, no network beyond loopback.
+    """
+    from scitex_clew._db import reset_db
+
+    previous = os.environ.get("SCITEX_STORE_DSN")
+    os.environ["SCITEX_STORE_DSN"] = (
+        "postgresql://nobody@127.0.0.1:9/none?connect_timeout=2"
+    )
+    reset_db()
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("SCITEX_STORE_DSN", None)
+        else:
+            os.environ["SCITEX_STORE_DSN"] = previous
+        reset_db()
+
+
+def _io_warnings(caplog):
+    return [
+        r.getMessage()
+        for r in caplog.records
+        if r.levelno >= logging.WARNING and "provenance was NOT recorded" in r.getMessage()
+    ]
+
+
+def test_on_io_save_warns_when_store_is_unreachable(tmp_path, caplog, unreachable_store):
+    # Arrange
+    path = tmp_path / "out.csv"
+    path.write_text("x\n1\n")
+    # Act
+    with caplog.at_level(logging.WARNING, logger="scitex_clew._observers"):
+        on_io_save(path, obj=None, kwargs={"track": True})
+    # Assert
+    assert any(str(path) in m for m in _io_warnings(caplog))
+
+
+def test_on_io_save_warning_names_the_store_error(tmp_path, caplog, unreachable_store):
+    # Arrange
+    path = tmp_path / "out.csv"
+    path.write_text("x\n1\n")
+    # Act
+    with caplog.at_level(logging.WARNING, logger="scitex_clew._observers"):
+        on_io_save(path, obj=None, kwargs={"track": True})
+    # Assert
+    assert any("127.0.0.1" in m for m in _io_warnings(caplog))
+
+
+def test_repeated_identical_store_failure_warns_once(tmp_path, caplog, unreachable_store):
+    # Arrange
+    paths = [tmp_path / f"out{i}.csv" for i in range(3)]
+    for p in paths:
+        p.write_text("x\n1\n")
+    # Act
+    with caplog.at_level(logging.WARNING, logger="scitex_clew._observers"):
+        for p in paths:
+            on_io_save(p, obj=None, kwargs={"track": True})
+    # Assert
+    assert len(_io_warnings(caplog)) == 1
+
+
+def test_on_io_load_warns_when_store_is_unreachable(tmp_path, caplog, unreachable_store):
+    # Arrange
+    path = tmp_path / "in.csv"
+    path.write_text("x\n1\n")
+    # Act
+    with caplog.at_level(logging.WARNING, logger="scitex_clew._observers"):
+        on_io_load(path, result=None)
+    # Assert
+    assert any(str(path) in m for m in _io_warnings(caplog))
+
+
+@pytest.fixture
+def unreadable_output(tmp_path):
+    """A saved file clew cannot hash (mode 000): recording it really fails."""
+    path = tmp_path / "out.csv"
+    path.write_text("x\n1\n")
+    path.chmod(0)
+    if os.access(path, os.R_OK):  # root ignores the mode
+        pytest.skip("running as a user that can read a mode-000 file")
+    try:
+        yield path
+    finally:
+        path.chmod(0o644)
+
+
+def test_in_session_record_failure_is_appended_to_hook_failures(unreadable_output):
+    # Arrange — a live session; recording this output raises.
+    from scitex_clew._observers._session import HOOK_FAILURES
+
+    start_tracking("sess-io-fail-1", script_path=None)
+    before = len(HOOK_FAILURES)
+    # Act
+    on_io_save(unreadable_output, obj=None, kwargs={"track": True})
+    # Assert
+    new = HOOK_FAILURES[before:]
+    assert [(f["phase"], f["session_id"], f["path"]) for f in new] == [
+        ("io-save", "sess-io-fail-1", str(unreadable_output))
+    ]
+
+
+def test_in_session_record_failure_warns_session_incomplete(unreadable_output, caplog):
+    # Arrange
+    start_tracking("sess-io-fail-2", script_path=None)
+    # Act
+    with caplog.at_level(logging.WARNING, logger="scitex_clew._observers"):
+        on_io_save(unreadable_output, obj=None, kwargs={"track": True})
+    # Assert
+    assert any(
+        "session sess-io-fail-2 is INCOMPLETE" in m for m in _io_warnings(caplog)
+    )
+
+
+def test_in_session_record_failure_is_attached_to_the_run(unreadable_output):
+    # Arrange
+    start_tracking("sess-io-fail-3", script_path=None)
+    # Act
+    on_io_save(unreadable_output, obj=None, kwargs={"track": True})
+    # Assert
+    metadata = get_db().get_run("sess-io-fail-3")["metadata"] or ""
+    assert "io-save" in metadata and "PermissionError" in metadata
 
 
 def test_on_io_load_returns_none_without_raising(tmp_path):
