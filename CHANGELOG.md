@@ -7,6 +7,20 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.36.2] — 2026-11-20
+
+### Fixed
+
+- Pin each GUI picker to the project displayed by its tab, including scoped
+  hosts with a different global selection. API and file-preview reads no longer
+  change the host's remembered navigation project.
+
+- Preserve the Cloud renderer's sanitized, resource-free SVG and literal error
+  text in the leaf GUI, including standalone mounts. Rebuild the packaged
+  JavaScript from a DOMPurify-pinned frontend lockfile, retaining node clicks,
+  status colors and project-bound file URLs. GUI dependencies now require the
+  SDK[gui] 0.3.25 and Dev 0.66.0 tenant capability.
+
 ## [0.36.1] — 2026-11-20
 
 ### Fixed

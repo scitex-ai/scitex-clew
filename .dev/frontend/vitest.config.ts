@@ -9,6 +9,6 @@ export default defineConfig({
   root,
   cacheDir: fileURLToPath(new URL("node_modules/.vite", import.meta.url)),
   server: { fs: { allow: [root] } },
-  resolve: { alias: { mermaid: require.resolve("mermaid") } },
+  resolve: { alias: { mermaid: require.resolve("mermaid"), dompurify: require.resolve("dompurify") } },
   test: { environment: "jsdom", include: ["tests/scitex_clew/_django/**/*.test.ts"] },
 });

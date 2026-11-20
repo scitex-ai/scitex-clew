@@ -32,3 +32,24 @@ describe("Clew renders unavailable records and researcher text honestly", () => 
     expect(area.querySelector("img")).toBeNull();
   });
 });
+
+// Server errors and untrusted researcher labels share the same presentation path.
+describe("Clew displays unavailable-store details as literal text", () => {
+  it("never parses a hostile error response as markup", async () => {
+    const { showError } = await import("../../../../src/scitex_clew/_django/static/clew_app/ts/clew-rendering");
+    const area = document.createElement("div");
+    const message = '<img src="https://example.invalid/private" onerror="window.executed=1">';
+    showError(area, message);
+    expect(area.textContent).toContain(message);
+    expect(area.querySelector("img,script,[onerror]")).toBeNull();
+  });
+
+  it("keeps hostile placeholder labels and descriptions inert", async () => {
+    const { showPlaceholder } = await import("../../../../src/scitex_clew/_django/static/clew_app/ts/clew-rendering");
+    const area = document.createElement("div");
+    showPlaceholder(area, "fa-info", "<svg onload=alert(1)>", "<script>bad()</script>");
+    expect(area.querySelector("h3")?.textContent).toBe("<svg onload=alert(1)>");
+    expect(area.querySelector("p")?.textContent).toBe("<script>bad()</script>");
+    expect(area.querySelector("svg,script,[onload]")).toBeNull();
+  });
+});

@@ -4,7 +4,7 @@
 
 {% block title %}
     SciTeX Clew
-    {% if current_project %}- {{ current_project.name }}{% endif %}
+    {% if clew_project_name %}- {{ clew_project_name }}{% endif %}
 {% endblock %}
 {% block extra_css %}
     <!-- Shared shell assets are owned by scitex_sdk.ui -->
@@ -20,7 +20,11 @@
     <div data-stx-app-header
          data-app-title="Clew"
          {% if clew_version %}data-app-version="{{ clew_version }}"{% endif %}>
-        {% scitex_project_picker scope="project" current=clew_project_id %}
+        {% if clew_project_id %}
+            {% scitex_project_picker scope="project" current=clew_project_id view_scope="project" view_project=clew_project_id %}
+        {% else %}
+            {% scitex_project_picker scope="project" %}
+        {% endif %}
     </div>
     <div class="clew-toolbar">
         <form id="clew-file-form">

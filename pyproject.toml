@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-clew"
-version = "0.36.1"
+version = "0.36.2"
 description = "Verifiable knowledge graph for scientific experiments"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -53,7 +53,7 @@ dependencies = [
     "scitex-logging>=0.2.2",
 ]
 [project.optional-dependencies]
-gui = ["scitex-sdk>=0.3.0", "django>=5.2", "scitex-logging>=0.2.2", "psycopg[binary]>=3.1"]
+gui = ["scitex-dev>=0.66.0", "scitex-sdk[gui]>=0.3.25", "django>=5.2", "scitex-logging>=0.2.2", "psycopg[binary]>=3.1"]
 # Evidence-bundle signing (Ed25519) and schema validation (`clew bundle`).
 # Optional: clew core stays stdlib-only; both are imported lazily and fail
 # loudly with this install hint when absent.
@@ -68,7 +68,7 @@ all = [
 ]
 dev = [
     # The leaf GUI is part of this package's own suite; run it unconditionally.
-    "scitex-sdk>=0.3.0",
+    "scitex-sdk[gui]>=0.3.25",
     "django>=5.2",
     "scitex-logging>=0.2.2",
     "Pillow>=10.0",
@@ -78,9 +78,8 @@ dev = [
     "pytest-cov>=4.0.0",
     # pytest-timeout — CI runs pytest with --timeout=120 (test.yml).
     "pytest-timeout>=2.0",
-    # Same floor as the runtime dependency above — a dev install that cannot
-    # open a store cannot run the suite either.
-    "scitex-dev>=0.62.2",
+    # GUI tests require the published tenant-store capability.
+    "scitex-dev>=0.66.0",
     "cryptography>=41.0",
     # clew's stores are Postgres-backed and its tests run against a REAL
     # database (tests/conftest.py gives each test its own schema). Declared

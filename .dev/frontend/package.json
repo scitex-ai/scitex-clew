@@ -6,7 +6,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "mermaid": "11.16.1"
+    "mermaid": "11.16.1",
+    "dompurify": "3.4.17"
   },
   "devDependencies": {
     "esbuild": "0.25.12",

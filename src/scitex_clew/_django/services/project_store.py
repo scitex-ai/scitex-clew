@@ -28,7 +28,7 @@ except ModuleNotFoundError as exc:
 
 
 def project_context(request) -> dict:
-    project = project_access(request)
+    project = project_access(request, remember=False)
     store = store_access(request, project.id)
     return {
         "tenant_id": str(store.tenant_id),

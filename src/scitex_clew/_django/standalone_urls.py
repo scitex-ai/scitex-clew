@@ -13,7 +13,7 @@ from . import urls
 
 def project_list(request):
     provider = project_scope.host_project_provider()
-    return project_scope.project_listing_view(provider)(request)
+    return project_scope.scoped_project_listing_view(provider)(request)
 
 
 urlpatterns = [
