@@ -9,6 +9,12 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Preserve the Cloud renderer's sanitized, resource-free SVG and literal error
+  text in the leaf GUI, including standalone mounts. Rebuild the packaged
+  JavaScript from a DOMPurify-pinned frontend lockfile, retaining node clicks,
+  status colors and project-bound file URLs. GUI dependencies now require the
+  published SDK[gui] 0.3.24 and Dev 0.66.0 tenant capability.
+
 - **A store failure in the io hooks is no longer silent.** `on_io_save` /
   `on_io_load` logged every store failure (unreachable host,
   `StoreProvisionError` under managed roles, a lost connection) at DEBUG, so
