@@ -7,6 +7,13 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.36.3] — 2026-11-20
+
+### Fixed
+
+- Declare project scope support to the Hub's app-aware project provider so
+  opening a selected project renders its graphs and enables its project picker.
+
 ## [0.36.2] — 2026-11-20
 
 ### Fixed
