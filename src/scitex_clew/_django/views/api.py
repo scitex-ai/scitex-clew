@@ -187,7 +187,7 @@ def project_file(request):
         gui_dependency_error(exc)
 
     try:
-        project = project_access(request)
+        project = project_access(request, remember=False)
         value = request.GET.get("path")
         if not value:
             raise ClewRequestError("Missing required parameter: path")
