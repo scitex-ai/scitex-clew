@@ -156,6 +156,9 @@ class TestTextStatesValue:
             ("12,345 participants", 12345),
             ("AUC = 0.91 ± 0.02", 0.91),
             ("−0.5", -0.5),
+            ("$p < 0.001$", 0.0002),  # a bound the value satisfies
+            ("$p \\leq .001$", 0.001),
+            ("n > 100", 120),
         ],
     )
     def test_formats_that_agree_verify(self, tmp_path, text, value):
@@ -173,6 +176,8 @@ class TestTextStatesValue:
             ("0.26", 0.25),  # outside the text's own precision
             ("0.91 ± 0.25", 0.25),  # an uncertainty never stands for the value
             ("1.2 × 10^-4", 0.0012),
+            ("$p < 0.001$", 0.003),  # the stated bound is false
+            ("$p < 0.001$", 0.001),  # strict bound
         ],
     )
     def test_formats_that_disagree_are_value_mismatch(self, tmp_path, text, value):
@@ -296,6 +301,16 @@ class TestLocatorFreeJustification:
         result = clew.verify_all_claims(strict=True)
         # Assert
         assert result.exit_name == "OK"
+
+    def test_bound_is_not_searched_as_a_point_value(self, tmp_path):
+        # Arrange — "p < 0.001" against a source holding p = 0.001: finding
+        # 0.001 would "justify" a bound the source actually contradicts
+        src = _produce(tmp_path, "r.json", json.dumps({"p": 0.001}))
+        _claim(tmp_path, "p < 0.001", src, "c", claim_type="statistic")
+        # Act
+        result = clew.verify_all_claims(strict=True)
+        # Assert
+        assert result.exit_name == "VALUE_UNCHECKED"
 
     def test_unsearchable_source_is_unchecked(self, tmp_path):
         # Arrange — a text report is not a structured source

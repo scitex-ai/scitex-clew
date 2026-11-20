@@ -1,18 +1,18 @@
 ---
 description: |
   [TOPIC] clew as an evidence provider for scitex-live-paper
-  [DETAILS] Implements contract scitex-live-paper.evidence-report 1.1.0 (schema vendored); entry point scitex.livepaper.renderers -> clew (port "evidence"); `clew export-evidence --out report.json`; outcome -> state/reason table; level-1 slice -> graph nodes/edges.
+  [DETAILS] Implements contract scitex-live-paper.evidence-report 1.2.0 (schema vendored); entry point scitex.livepaper.renderers -> clew (port "evidence"); `clew export-evidence --out report.json`; outcome -> state/reason table; level-1 slice -> graph nodes/edges.
 tags: [scitex-clew-evidence-provider]
 ---
 
-# Evidence provider (scitex-live-paper contract 1.1.0)
+# Evidence provider (scitex-live-paper contract 1.2.0)
 
 clew supplies the per-claim evidence that scitex-live-paper renders. The two
 are coupled **only** through live-paper's published, provider-neutral
-contract `scitex-live-paper.evidence-report` **1.1.0**. clew does not import
+contract `scitex-live-paper.evidence-report` **1.2.0**. clew does not import
 live-paper, and live-paper does not import clew. The schema is vendored
 version-pinned at
-`src/scitex_clew/_evidence_provider/evidence-report.schema.1.1.0.json`, and
+`src/scitex_clew/_evidence_provider/evidence-report.schema.1.2.0.json`, and
 clew's own tests validate every report against it.
 
 ## Connecting
@@ -69,7 +69,10 @@ recorded computation behind it.
 `provider_status` is `{name, code}` and `details` is clew's per-claim
 details list. `location.file` and `source.file` are relative to
 `project_root` (absolute when outside it). `source.locator` is the claim's
-`source_keys`.
+`source_keys`. `source.value` (contract 1.2.0) is what the source holds NOW at
+that locator: a scalar for a `"."` locator, else `{field: value}`. It is
+omitted when the claim has no locator or nothing could be read there (clew's
+details say why), so a VALUE_MISMATCH shows the differing source value.
 
 **Graph:** the claim's level-1 slice is converted as follows.
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the add_claim dedup fix (:mod:`scitex_clew._claim._register`).
 
 Before the fix, ``claim_id`` was ``hash(file_path, line_number, claim_type)`` —
@@ -20,7 +19,6 @@ import warnings
 from pathlib import Path
 
 import pytest
-
 import scitex_clew as clew
 import scitex_clew._db as _db_module
 from scitex_clew._tracker import SessionTracker
@@ -54,22 +52,32 @@ class TestAddClaimDedup:
         # Arrange
         tex = _tex(tmp_path)
         # Act
-        a = clew.add_claim(file_path=tex, claim_type="value", line_number=1, claim_value="0.70")
-        b = clew.add_claim(file_path=tex, claim_type="value", line_number=1, claim_value="0.96")
+        a = clew.add_claim(
+            file_path=tex, claim_type="value", line_number=1, claim_value="0.70"
+        )
+        b = clew.add_claim(
+            file_path=tex, claim_type="value", line_number=1, claim_value="0.96"
+        )
         # Assert
         assert a.claim_id != b.claim_id
 
     def test_distinct_values_same_line_both_persist(self, isolated_db, tmp_path):
         # Arrange
         tex = _tex(tmp_path)
-        clew.add_claim(file_path=tex, claim_type="value", line_number=1, claim_value="0.70")
-        clew.add_claim(file_path=tex, claim_type="value", line_number=1, claim_value="0.96")
+        clew.add_claim(
+            file_path=tex, claim_type="value", line_number=1, claim_value="0.70"
+        )
+        clew.add_claim(
+            file_path=tex, claim_type="value", line_number=1, claim_value="0.96"
+        )
         # Act
         rows = clew.list_claims(file_path=tex)
         # Assert
         assert len(rows) == 2
 
-    def test_line_number_none_distinct_values_dont_collapse(self, isolated_db, tmp_path):
+    def test_line_number_none_distinct_values_dont_collapse(
+        self, isolated_db, tmp_path
+    ):
         # Arrange
         tex = _tex(tmp_path)
         clew.add_claim(file_path=tex, claim_type="value", claim_value="0.70")
@@ -82,8 +90,12 @@ class TestAddClaimDedup:
     def test_same_value_reregistration_is_idempotent(self, isolated_db, tmp_path):
         # Arrange
         tex = _tex(tmp_path)
-        clew.add_claim(file_path=tex, claim_type="value", line_number=1, claim_value="0.70")
-        clew.add_claim(file_path=tex, claim_type="value", line_number=1, claim_value="0.70")
+        clew.add_claim(
+            file_path=tex, claim_type="value", line_number=1, claim_value="0.70"
+        )
+        clew.add_claim(
+            file_path=tex, claim_type="value", line_number=1, claim_value="0.70"
+        )
         # Act
         rows = clew.list_claims(file_path=tex)
         # Assert
@@ -96,7 +108,9 @@ class TestAddClaimExplicitId:
         tex = _tex(tmp_path)
         # Act
         c = clew.add_claim(
-            file_path=tex, claim_type="figure", claim_value="Fig1",
+            file_path=tex,
+            claim_type="figure",
+            claim_value="Fig1",
             claim_id="figures/fig1.png",
         )
         # Assert
@@ -113,8 +127,18 @@ class TestAddClaimExplicitId:
     def test_explicit_id_reregistration_overwrites(self, isolated_db, tmp_path):
         # Arrange
         tex = _tex(tmp_path)
-        clew.add_claim(file_path=tex, claim_type="figure", claim_id="figures/fig1.png", claim_value="v1")
-        clew.add_claim(file_path=tex, claim_type="figure", claim_id="figures/fig1.png", claim_value="v2")
+        clew.add_claim(
+            file_path=tex,
+            claim_type="figure",
+            claim_id="figures/fig1.png",
+            claim_value="v1",
+        )
+        clew.add_claim(
+            file_path=tex,
+            claim_type="figure",
+            claim_id="figures/fig1.png",
+            claim_value="v2",
+        )
         # Act
         rows = clew.list_claims(file_path=tex)
         # Assert
@@ -130,7 +154,9 @@ class TestAddClaimNoLineageWarning:
         # Assert
         with pytest.warns(RuntimeWarning, match="NO_LINEAGE"):
             clew.add_claim(
-                file_path=tex, claim_type="value", claim_value="0.70",
+                file_path=tex,
+                claim_type="value",
+                claim_value="0.70",
                 source_file=src,
             )
 
@@ -140,13 +166,18 @@ class TestAddClaimNoLineageWarning:
         src = _unowned_source(tmp_path)
         isolated_db.add_run("sess-owned", str(tmp_path / "script.py"))
         isolated_db.add_file_hash(
-            "sess-owned", str(Path(src).resolve()), "deadbeef", role="output",
+            "sess-owned",
+            str(Path(src).resolve()),
+            "deadbeef",
+            role="output",
         )
         # Act
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             clew.add_claim(
-                file_path=tex, claim_type="value", claim_value="0.70",
+                file_path=tex,
+                claim_type="value",
+                claim_value="0.70",
                 source_file=src,
             )
         # Assert
@@ -163,7 +194,9 @@ class TestAddClaimNoLineageWarning:
             with warnings.catch_warnings(record=True) as caught:
                 warnings.simplefilter("always")
                 clew.add_claim(
-                    file_path=tex, claim_type="value", claim_value="0.71",
+                    file_path=tex,
+                    claim_type="value",
+                    claim_value="0.71",
                     source_file=src,
                 )
         finally:
@@ -285,6 +318,32 @@ class TestProjectRoot:
             )
         # Assert
         assert claim.source_file == str((root / "r.json").resolve())
+
+    def test_project_root_info_resolves_from_a_subdirectory(self, tmp_path):
+        # Arrange: a tool working on <root>/.scitex/writer (e.g. a manuscript
+        # workspace) must scope to the RESEARCH root, as a chdir there would
+        root = tmp_path / "proj"
+        workspace = root / ".scitex" / "writer"
+        workspace.mkdir(parents=True)
+        (root / "pyproject.toml").write_text("[project]\nname = 'p'\n")
+        # Act
+        info = clew.project_root_info(start=workspace)
+        # Assert
+        assert (info["project_root"], info["project_root_source"]) == (
+            str(root.resolve()),
+            "marker",
+        )
+
+    def test_project_root_block_is_public_and_chdir_free(self, tmp_path):
+        # Arrange
+        root = tmp_path / "proj"
+        (root / ".git").mkdir(parents=True)
+        cwd = os.getcwd()
+        # Act
+        with clew.project_root(root):
+            inside = clew.project_root_info()["project_root"]
+        # Assert
+        assert (inside, os.getcwd()) == (str(root.resolve()), cwd)
 
 
 # EOF

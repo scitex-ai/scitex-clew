@@ -26,6 +26,7 @@ from scitex_dev.ecosystem import (
     deprecated_alias,
 )
 
+from ._bundle import bundle
 from ._citation import citation, verify_citations_cmd
 from ._claim import claim
 from ._estimate import estimate
@@ -90,6 +91,7 @@ COMMAND_CATEGORIES = [
         ],
     ),
     ("Signing", ["keygen", "sign", "verify-signatures"]),
+    ("Exchange", ["bundle"]),
     ("Citations", ["verify-citations", "citation"]),
     ("Hashing", ["hash-file", "hash-directory"]),
     ("Recording", ["recover-journals"]),
@@ -287,6 +289,9 @@ main.add_command(grounding_cmd)
 main.add_command(keygen_cmd)
 main.add_command(sign_cmd)
 main.add_command(verify_signatures_cmd)
+
+# Evidence exchange format: clew bundle {keygen,export,verify,rerun}.
+main.add_command(bundle)
 
 # Citation gate: verify-citations (compiler pre-flight) + citation group.
 main.add_command(verify_citations_cmd)
