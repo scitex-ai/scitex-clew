@@ -311,11 +311,13 @@ class ExternalPolicy:
             )
         ]
         home = _real(str(Path.home()))
-        builtin = set(_interpreter_prefixes())
-        builtin.add(
-            _real(os.environ.get("SCITEX_DIR") or os.path.join(home, ".scitex"))
+        self._interpreter = sorted(
+            path for path in _interpreter_prefixes() if path not in (os.sep, home)
         )
-        builtin.add(os.path.join(home, "Library"))
+        builtin = {
+            _real(os.environ.get("SCITEX_DIR") or os.path.join(home, ".scitex")),
+            os.path.join(home, "Library"),
+        }
         builtin.update(_real(p) for p in _SYSTEM_ROOTS)
         builtin.update(p for p in _SYSTEM_ROOTS)
         # Never let a degenerate prefix ("/" or $HOME itself) swallow everything.
@@ -388,6 +390,8 @@ class ExternalPolicy:
         if real.endswith((".pyc", ".pyo")) or (not code and real.endswith(".py")):
             return True
         if any(part in _LIBRARY_DIRS for part in real.split(os.sep)):
+            return True
+        if any(is_under(real, path) for path in self._interpreter):
             return True
         temp = self.temp_root_of(real)
         if temp is None and any(is_under(real, p) for p in self._builtin):
