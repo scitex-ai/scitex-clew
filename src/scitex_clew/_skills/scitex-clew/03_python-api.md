@@ -197,12 +197,3 @@ lookup, so the cache can only ever skip the expensive L2 subprocess / L3
 registry round-trip — never the content read. Corollary: it saves nothing
 on L1 (L1 is only hashing); the shipped `frozen` flag (e) is the L1-speed
 lever instead.
-
-
-## Citation verdicts
-
-`verify_citations` returns each BibTeX key's Clew status and canonical color.
-When the registered identity agrees, the verdict also carries Scholar's
-recorded `resolver_source` and `provenance` if available. The citation ledger
-checks source identity. Use a recorded acquisition run and its response
-artifacts to trace retrieval.

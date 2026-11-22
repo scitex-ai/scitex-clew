@@ -107,4 +107,11 @@ script through its own authorized project file access.
 A graph can carry `relation: "author_interpretation"` on the result-to-claim
 edge. The relationship is declared at registration. A supported state for
 this entry attests to the recorded trace and any direct comparisons only.
-A Scholar citation verdict does not add a retrieval graph by itself.
+
+## Citation verdicts
+
+`verify_citations` returns each BibTeX key's Clew status and canonical color.
+When the registered identity agrees, the verdict also carries Scholar's
+recorded `resolver_source` and `provenance` if available. The citation ledger
+checks source identity. Use a recorded acquisition run and its response
+artifacts to trace retrieval.
