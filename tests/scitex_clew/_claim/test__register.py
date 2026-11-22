@@ -351,12 +351,16 @@ class TestProjectRoot:
 
 def test_interpretation_requires_a_source():
     # Arrange
-    sentence = "The model performs well"
+    from functools import partial
+
     # Act
-    with pytest.raises(ValueError) as failure:
-        clew.add_claim(
-            "paper.tex", "text", claim_value=sentence,
-            evidence_relation="author_interpretation",
-        )
+    register = partial(
+        clew.add_claim,
+        "paper.tex",
+        "text",
+        claim_value="The model performs well",
+        evidence_relation="author_interpretation",
+    )
     # Assert
-    assert "Author interpretation requires a source file" in str(failure.value)
+    with pytest.raises(ValueError, match="Author interpretation requires a source file"):
+        register()
