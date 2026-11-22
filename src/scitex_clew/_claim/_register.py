@@ -14,7 +14,9 @@ from scitex_dev.store import ANY_REVISION
 from .._db import get_db
 from .._db._paths import with_project_root
 from ._model import (
+    AUTHOR_INTERPRETATION,
     CLAIM_TYPES,
+    EVIDENCE_RELATIONS,
     Claim,
     _file_path_matches_prefix,
     _generate_claim_id,
@@ -37,6 +39,7 @@ def add_claim(
     tolerance: dict | None = None,
     metadata: dict | None = None,
     project_root: str | Path | None = None,
+    evidence_relation: str | None = None,
 ) -> Claim:
     """Register a claim linking a manuscript assertion to the verification chain.
 
@@ -84,6 +87,11 @@ def add_claim(
     project_root : str or Path, optional
         Register into this project's scope (and resolve relative paths
         against it) without ``chdir``. Default: resolved from the cwd.
+    evidence_relation : {"direct", "author_interpretation"}, optional
+        Independent of the claim type. An interpretation needs a recorded
+        source file. Use source_keys for any structured value that Clew
+        should compare directly. Clew verifies the source trace and any
+        declared comparisons. The interpretation remains the author's.
 
     Returns
     -------
@@ -101,6 +109,20 @@ def add_claim(
         raise ValueError("source_keys needs a source_file to locate into")
     source_keys = normalize_source_keys(source_keys) or None
     tolerance = normalize_tolerance(tolerance) or None
+    if evidence_relation is None and isinstance(metadata, dict):
+        evidence_relation = metadata.get("evidence_relation")
+    if evidence_relation is not None:
+        if evidence_relation not in EVIDENCE_RELATIONS:
+            raise ValueError(f"Invalid evidence relation: {evidence_relation!r}")
+        if evidence_relation == AUTHOR_INTERPRETATION and (
+            not source_file or (value is not None and not source_keys)
+        ):
+            raise ValueError(
+                "Author interpretation requires a source file and source keys for a structured value"
+            )
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError("An evidence relation requires metadata to be an object")
+        metadata = {**(metadata or {}), "evidence_relation": evidence_relation}
     for name, obj in (("value", value), ("metadata", metadata)):
         try:
             json.dumps(obj)

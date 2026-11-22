@@ -48,6 +48,7 @@ from typing import Dict, List, Optional, Union
 
 from ._export import _resolve_chain_flags
 from ._model import (
+    AUTHOR_INTERPRETATION,
     _CLAIM_PALETTE,
     _DISPLAY_GROUPS,
     _DISPLAY_PALETTE,
@@ -83,6 +84,8 @@ def _claim_entry(claim, grounded=None) -> Dict:
         "link": claim.source_file,
         # --- provenance (writer ignores for rendering) ---
         "raw_claim_type": claim.claim_type,
+        **({"evidence_relation": AUTHOR_INTERPRETATION}
+           if claim.evidence_relation == AUTHOR_INTERPRETATION else {}),
         "raw_status": claim.status,
         # Full-7 resolved status (author tooling / DAG fidelity).
         "resolved_status": resolved,

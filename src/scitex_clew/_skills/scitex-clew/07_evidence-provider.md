@@ -102,3 +102,9 @@ When Clew has an in-project script path and hash for a producing run, the
 process node includes `script.file` and `script.hash`. The label remains the
 recorded run ID. A reader can use the metadata to locate and verify the
 script through its own authorized project file access.
+
+
+A graph can carry `relation: "author_interpretation"` on the result-to-claim
+edge. The relationship is declared at registration. A supported state for
+this entry attests to the recorded trace and any direct comparisons only.
+A Scholar citation verdict does not add a retrieval graph by itself.

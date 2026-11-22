@@ -18,6 +18,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .._claim._model import AUTHOR_INTERPRETATION
+
 __all__ = ["relative_to_root", "slice_to_graph"]
 
 
@@ -31,7 +33,9 @@ def relative_to_root(path: str | None, root: Path) -> str | None:
         return str(path)
 
 
-def slice_to_graph(sl, claim_id: str, root: Path, *, run_lookup=None) -> dict:
+def slice_to_graph(
+    sl, claim_id: str, root: Path, *, run_lookup=None, evidence_relation: str = "direct",
+) -> dict:
     """Convert a :class:`~scitex_clew._chain._slice.ProvenanceSlice`."""
     nodes: list[dict] = []
     edges: list[dict] = []
@@ -74,7 +78,10 @@ def slice_to_graph(sl, claim_id: str, root: Path, *, run_lookup=None) -> dict:
 
     nodes.append({"id": "c", "kind": "claim", "label": claim_id})
     for target in sl.targets:
-        edges.append({"source": file_node(target), "target": "c", "kind": "supports"})
+        edge = {"source": file_node(target), "target": "c", "kind": "supports"}
+        if evidence_relation == AUTHOR_INTERPRETATION:
+            edge["relation"] = AUTHOR_INTERPRETATION
+        edges.append(edge)
 
     return {
         "nodes": nodes,

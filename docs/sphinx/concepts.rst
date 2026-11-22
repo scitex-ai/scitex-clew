@@ -31,8 +31,28 @@ Every node in the DAG is classified into one of five semantic roles:
 
 This classification turns the DAG into a navigable map of the research project.
 The key operation is **backpropagation from claims to sources**: starting from a
-manuscript assertion (claim), Clew traces backward through outputs, processing
-scripts, and inputs to the original raw data — verifying every hash along the way.
+manuscript assertion (claim), Clew traces backward through outputs, processing scripts, and inputs, checking
+the recorded hashes. The compact evidence export represents the acquisition
+run as a process and the recorded files as inputs and outputs.
+
+
+Sentences and author interpretation
+-----------------------------------
+
+A claim node can contain a value, sentence, statistic, table, or figure.
+Register sentences with ``claim_type="text"``. A sentence can be directly
+checkable, such as a statement of the ranking saved in a results file.
+Associate its structured ``value`` with the corresponding ``source_keys``.
+
+Set ``evidence_relation="author_interpretation"`` to identify the final edge
+when a sentence expresses the author's judgment about a result. The
+``source_file`` is required. Clew verifies the recorded trace and explicit
+value comparisons. The interpretation remains the author's responsibility.
+
+Scholar resolution and the Clew citation ledger can establish the recorded
+identity of a cited item. A retrieval hash chain additionally requires the
+provider response or a documented response artifact and the resulting
+bibliography metadata to be recorded through the acquisition workflow.
 
 
 Three Verification Modes

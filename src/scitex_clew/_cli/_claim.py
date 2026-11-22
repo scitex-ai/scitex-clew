@@ -78,7 +78,7 @@ def claim() -> None:
     "claim_type",
     required=True,
     type=click.Choice(["statistic", "figure", "table", "text", "value"]),
-    help="Claim type.",
+    help="Claim type. Use text for a sentence.",
 )
 @click.option(
     "--line-number",
@@ -157,6 +157,10 @@ def claim() -> None:
     type=click.Path(file_okay=False),
     help="Register into this project (relative paths resolve against it).",
 )
+@click.option(
+    "--evidence-relation", type=click.Choice(["direct", "author_interpretation"]),
+    help="Describe how the assertion is linked to the recorded result.",
+)
 @click.pass_context
 def claim_add(
     ctx: click.Context,
@@ -172,6 +176,7 @@ def claim_add(
     tolerance,
     metadata,
     project_root,
+    evidence_relation,
     dry_run: bool,
     yes: bool,
 ) -> None:
@@ -211,6 +216,7 @@ def claim_add(
             "claim_id": claim_id,
             **parsed,
             "project_root": project_root,
+            **({"evidence_relation": evidence_relation} if evidence_relation else {}),
         }
         if _json_mode(ctx):
             click.echo(_json.dumps({"dry_run": True, "claim": preview}, indent=2))
@@ -230,6 +236,7 @@ def claim_add(
             source_session=source_session,
             claim_id=claim_id,
             project_root=project_root,
+            evidence_relation=evidence_relation,
             **parsed,
         )
     except ValueError as exc:

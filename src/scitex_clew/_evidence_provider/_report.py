@@ -23,6 +23,7 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from .._claim._model import AUTHOR_INTERPRETATION
 from ._failures import mark_failures
 from ._graph import relative_to_root, slice_to_graph
 from ._states import classify_outcome
@@ -65,6 +66,7 @@ def _claim_graph(
     reason: str,
     details: list[str],
     source_file: str | None,
+    evidence_relation: str = "direct",
 ) -> dict:
     from .._chain._slice import build_slice
     from .._db import get_db
@@ -75,6 +77,7 @@ def _claim_graph(
         claim_id,
         root,
         run_lookup=db.get_run,
+        evidence_relation=evidence_relation,
     )
     return mark_failures(
         graph,
@@ -142,6 +145,10 @@ def _entry(row, record, root: Path, with_graph: bool) -> dict:
         "details": details,
         "provider_status": status,
     }
+    if record and record.evidence_relation == AUTHOR_INTERPRETATION:
+        entry["evidence_relation"] = AUTHOR_INTERPRETATION
+        if state == "supported":
+            entry["reason"] = "Recorded trace verified for the result linked to this author interpretation"
     if not with_graph:
         return entry  # key omitted: the consumer asks evidence_graph on demand
     if not source_file:
@@ -156,6 +163,7 @@ def _entry(row, record, root: Path, with_graph: bool) -> dict:
             reason=reason,
             details=details,
             source_file=source_file,
+            evidence_relation=record.evidence_relation if record else "direct",
         )
     except Exception as exc:  # noqa: BLE001 - surfaced per claim as graph_error
         entry["graph"] = None
@@ -242,6 +250,7 @@ def build_evidence_graph(
             reason=reason,
             details=details,
             source_file=record.source_file or row.source_file,
+            evidence_relation=record.evidence_relation,
         )
 
 

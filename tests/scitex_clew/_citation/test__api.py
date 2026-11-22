@@ -237,3 +237,15 @@ class TestListCitations:
 
 
 # EOF
+
+
+def test_citation_verdict_exports_clew_color_and_matching_provider():
+    clew.add_citation(
+        "Example", doi="10.1/example",
+        metadata={"resolver_source": "crossref", "provenance": "DOI matched"},
+    )
+    result = clew.verify_citations([{"key": "Example", "doi": "10.1/example"}])["Example"]
+    changed = clew.verify_citations([{"key": "Example", "doi": "10.1/different"}])["Example"]
+    assert (result["color"], result["resolver_source"], changed.get("resolver_source")) == (
+        "#2da44e", "crossref", None,
+    )

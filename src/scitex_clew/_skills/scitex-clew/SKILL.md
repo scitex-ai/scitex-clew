@@ -33,6 +33,16 @@ Claim→source provenance makes "which code produced this value" unambiguous —
 the broken twin has no registered claim. Drove ADR-0021: clew registration
 is mandatory for every manuscript value.
 
+## Manuscript claims
+
+Register sentences as `claim_type="text"`. Use `value` and `source_keys`
+for statements that can be compared with recorded results. When a sentence
+interprets a result, set `evidence_relation="author_interpretation"` and
+link its source file. Clew verifies the trace and declared comparisons.
+Scholar citation verdicts establish recorded source identity. Record a
+retrieval run and its response artifacts to provide citation lineage.
+See [10_common-workflows.md](10_common-workflows.md) for a worked example.
+
 ## Installation & import
 
 `pip install scitex-clew` provides `import scitex_clew`; installing `scitex`
