@@ -88,6 +88,7 @@ class Citation:
     url: Optional[str] = None
     registered_at: Optional[str] = None
     verified_at: Optional[str] = None
+    metadata: Optional[Dict] = None
 
     @property
     def location(self) -> str:
@@ -298,6 +299,7 @@ def row_to_citation(row) -> Citation:
         url=values.get("url"),
         registered_at=values.get("registered_at"),
         verified_at=values.get("verified_at"),
+        metadata=values.get("metadata_json"),
     )
 
 

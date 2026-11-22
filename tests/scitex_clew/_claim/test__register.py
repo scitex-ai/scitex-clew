@@ -347,3 +347,20 @@ class TestProjectRoot:
 
 
 # EOF
+
+
+def test_interpretation_requires_a_source():
+    # Arrange
+    from functools import partial
+
+    # Act
+    register = partial(
+        clew.add_claim,
+        "paper.tex",
+        "text",
+        claim_value="The model performs well",
+        evidence_relation="author_interpretation",
+    )
+    # Assert
+    with pytest.raises(ValueError, match="Author interpretation requires a source file"):
+        register()

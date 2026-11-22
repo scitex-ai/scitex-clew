@@ -2,7 +2,7 @@
 name: scitex-clew
 description: |
   [WHAT] Hash-based reproducibility verification for scientific pipelines — SHA-256 fingerprints every input/output file, builds a provenance DAG, and rechecks hashes on demand (git-status-like).
-  [WHEN] Use whenever the user asks to "verify a run", "check if results are reproducible", "did this pipeline change?", "trace where this figure came from", "audit the DAG", "rerun the whole pipeline and compare", "register a manuscript claim", "link a figure to its source session", "stamp a file's provenance", or "show the Mermaid DAG of my experiments".
+  [WHEN] Use whenever the user asks to "verify a run", "check if results are reproducible", "did this pipeline change?", "trace where this figure came from", "audit the DAG", "rerun the whole pipeline and compare", "register a sentence or claim", "link a figure to its source session", "stamp a file's provenance", or "show the Mermaid DAG of my experiments".
   [HOW] Drop-in replacement for ad-hoc `md5sum` logs, `dvc status`, Snakemake hash tracking, and manual "did I rerun this?" checks. Uses SciTeX's PostgreSQL store; auto-integrates with `@stx.session` and `stx.io.save/load`.
 tags: [scitex-clew]
 allowed-tools: mcp__scitex__clew_*
@@ -51,7 +51,7 @@ scitex_clew.status(...)
 * [04_cli-reference.md](04_cli-reference.md) — `clew` subcommands
 * [05_verify-claim-contract.md](05_verify-claim-contract.md) — `verify_claim` consumer contract: return shape, status vocabularies, palette + display collapse, DB precedence, re-verify recipe
 * [06_minimal-slice-and-claim-values.md](06_minimal-slice-and-claim-values.md) — minimal slice + claim value-vs-source; [07](07_evidence-provider.md) — live-paper evidence; [08](08_evidence-bundle.md) — signed bundle
-* [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — workflows + CLI detail + MCP refs
+* [10_common-workflows.md](10_common-workflows.md), [11_cli-commands.md](11_cli-commands.md), [12_mcp-tools-for-ai-agents.md](12_mcp-tools-for-ai-agents.md) — claims, CLI, and MCP
 * [13_registered-source-gate.md](13_registered-source-gate.md) — registered-source whitelist + amber `unsourced` verdict: `clew register-source`, hash-pinned manifest, grounding gate, exit `17`
 * [15_zero-dep-session.md](15_zero-dep-session.md) — the zero-dependency `clew.session()` provenance recorder: pure-stdlib `runs` + file-hash edges (fallback for `@stx.session`)
 * [16_unconscious-capture.md](16_unconscious-capture.md), [17_killed-runs-journal.md](17_killed-runs-journal.md) — capture, kills

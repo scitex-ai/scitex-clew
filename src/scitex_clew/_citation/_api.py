@@ -26,6 +26,14 @@ from ._model import (
 )
 
 
+_CITATION_MARKS = {
+    "verified": "verified",
+    "stub": "mismatch",
+    "unverified": "suspect",
+    "unknown": "registered",
+}
+
+
 def add_citation(
     cite_key: str,
     *,
@@ -77,7 +85,8 @@ def add_citation(
         raise ValueError("cite_key must be a non-empty string")
 
     status = derive_status(resolved=resolved, is_stub=is_stub, doi=doi)
-    meta_hash = metadata_hash(metadata)
+    hashed_metadata = {**(metadata or {}), **({"doi": doi} if doi else {})}
+    meta_hash = metadata_hash(hashed_metadata)
     verified_at = datetime.now().isoformat() if status == "verified" else None
 
     citation = Citation(
@@ -94,6 +103,7 @@ def add_citation(
         metadata_hash=meta_hash,
         url=url,
         verified_at=verified_at,
+        metadata=metadata,
     )
 
     db = get_db()
@@ -173,7 +183,13 @@ def verify_citations(entries) -> Dict[str, Dict]:
         else ``https://doi.org/<doi>``, else None). The compiler treats
         anything other than ``"verified"`` as a gate hit and renders the
         marker from ``status`` (style) + ``link`` (href) + ``reason`` (tooltip).
+    The per-key result also contains the Clew palette color. Recorded Scholar
+    provider and provenance are returned when the entry matches the ledger
+    identity. This checks the recorded citation identity.
     """
+    from .._claim._model import _CLAIM_PALETTE
+    from .._cli._exit_codes import HASH_MISMATCH
+
     coerced = coerce_entries(entries)
     db = get_db()
     ensure_citations_table(db)
@@ -189,7 +205,13 @@ def verify_citations(entries) -> Dict[str, Dict]:
             "source_id": verdict.source_id,
             "link": verdict.link,
             "reason": verdict.reason,
+            "color": "#" + _CLAIM_PALETTE[_CITATION_MARKS[verdict.status]],
         }
+        if record and verdict.code != HASH_MISMATCH and isinstance(record.metadata, dict):
+            for field in ("resolver_source", "provenance"):
+                value = record.metadata.get(field)
+                if isinstance(value, str) and value:
+                    out[key][field] = value
     return out
 
 

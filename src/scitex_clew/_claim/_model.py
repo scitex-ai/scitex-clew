@@ -22,6 +22,8 @@ from ._store import _open_store
 
 # Canonical claim types
 CLAIM_TYPES = ("statistic", "figure", "table", "text", "value")
+AUTHOR_INTERPRETATION = "author_interpretation"
+EVIDENCE_RELATIONS = ("direct", AUTHOR_INTERPRETATION)
 
 # ---------------------------------------------------------------------------
 # Canonical status-to-hex palette (source of truth for scitex-clew;
@@ -215,6 +217,12 @@ class Claim:
     metadata: dict | None = None
 
     @property
+    def evidence_relation(self) -> str:
+        """How this assertion is connected to its recorded evidence."""
+        relation = self.metadata.get("evidence_relation") if isinstance(self.metadata, dict) else None
+        return relation if relation in EVIDENCE_RELATIONS else "direct"
+
+    @property
     def checked_value(self) -> object:
         """The value the source check compares (structured, else display)."""
         return self.value if self.value is not None else self.claim_value
@@ -243,6 +251,8 @@ class Claim:
             "source_keys": self.source_keys,
             "tolerance": self.tolerance,
             "metadata": self.metadata,
+            **({"evidence_relation": self.evidence_relation}
+               if self.evidence_relation == AUTHOR_INTERPRETATION else {}),
         }
 
 
@@ -308,6 +318,7 @@ class VerificationResult:
     severities: dict[str, str]  # pattern key -> resolved severity (transparency)
     errors: list[str]  # pattern NAMES that fired at ERROR severity
     warnings: list[str]  # pattern NAMES that fired at WARNING severity
+    registered_source_hashes: dict[str, str] = field(default_factory=dict, repr=False)
 
     @property
     def ok(self) -> bool:

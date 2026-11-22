@@ -10,7 +10,7 @@ of ``verification.py``.
 from __future__ import annotations
 
 import json
-from typing import Optional
+from typing import Any, Dict, Optional
 
 try:
     from fastmcp import FastMCP
@@ -43,10 +43,18 @@ def register_tools(mcp: FastMCP) -> None:
         source_file: Optional[str] = None,
         source_session: Optional[str] = None,
         claim_id: Optional[str] = None,
+        evidence_relation: Optional[str] = None,
+        value: Optional[Any] = None,
+        source_keys: Optional[Dict] = None,
+        tolerance: Optional[Dict] = None,
+        metadata: Optional[Dict] = None,
     ) -> str:
         """Register a manuscript claim linking an assertion to its source file/session.
 
-        Mirrors ``scitex_clew.add_claim`` exactly.
+        Use claim_type="text" for a sentence. Use
+        evidence_relation="author_interpretation" when the source explains
+        the basis for the sentence and its meaning is the author's judgment.
+        Supply value and source_keys to compare any stated facts.
 
         Parameters
         ----------
@@ -78,6 +86,11 @@ def register_tools(mcp: FastMCP) -> None:
                 source_file=source_file,
                 source_session=source_session,
                 claim_id=claim_id,
+                evidence_relation=evidence_relation,
+                value=value,
+                source_keys=source_keys,
+                tolerance=tolerance,
+                metadata=metadata,
             )
         except ValueError as exc:
             return _json({"error": str(exc), "claim": None})

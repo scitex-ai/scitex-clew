@@ -428,6 +428,11 @@ def verify_all_claims(
         severities=severity_view,
         errors=errors,
         warnings=warnings,
+        registered_source_hashes=(
+            {str(entry.abspath): entry.sha256 for entry in manifest.valid_entries}
+            if manifest is not None and manifest.trusted
+            else {}
+        ),
     )
 
 

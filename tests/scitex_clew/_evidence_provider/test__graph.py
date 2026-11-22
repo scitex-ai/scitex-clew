@@ -81,3 +81,29 @@ def test_process_carries_its_recorded_project_script(by_id, clew_project):
     process = next(node for node in by_id["auc"]["graph"]["nodes"] if node["kind"] == "process")
     # Assert
     assert process["script"] == {"file": script, "hash": expected}
+
+
+def test_registered_source_badge_requires_a_matching_pin(clew_project, tmp_path, monkeypatch):
+    from scitex_clew._evidence_provider._report import build_evidence_graph
+    from scitex_clew._sources import register_source
+
+    # Arrange
+    manifest = tmp_path / "sources.json"
+    monkeypatch.setenv("SCITEX_CLEW_SOURCES", str(manifest))
+    source = clew_project / "data/input.csv"
+    original = source.read_bytes()
+    register_source(source, sources_path=manifest, root=clew_project)
+
+    # Act
+    verified = build_evidence_graph(clew_project, "auc")
+    try:
+        source.write_bytes(original + b"\n")
+        unverified = build_evidence_graph(clew_project, "auc")
+    finally:
+        source.write_bytes(original)
+
+    # Assert
+    assert [
+        [node["label"] for node in graph["nodes"] if node.get("author_registered")]
+        for graph in (verified, unverified)
+    ] == [["data/input.csv"], []]

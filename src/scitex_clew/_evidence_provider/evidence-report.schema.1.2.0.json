@@ -37,6 +37,7 @@
             "label": {"type": ["string", "null"]}
           }
         },
+        "evidence_relation": {"const": "author_interpretation"},
         "claim_type": {"type": ["string", "null"]},
         "stated_text": {"type": ["string", "null"], "description": "The claim's text as written in the manuscript."},
         "stated_value": {"description": "The value the claim states, any JSON type."},
@@ -90,6 +91,7 @@
               "label": {"type": "string"},
               "hash": {"type": ["string", "null"]},
               "external": {"type": "boolean"},
+              "author_registered": {"type": "boolean"},
               "failure": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/failure"}]}
             }
           }
@@ -101,6 +103,7 @@
             "required": ["source", "target"],
             "properties": {
               "source": {"type": "string"},
+              "relation": {"const": "author_interpretation"},
               "target": {"type": "string"},
               "kind": {"type": ["string", "null"]}
             }

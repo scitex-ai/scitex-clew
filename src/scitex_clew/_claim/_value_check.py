@@ -21,6 +21,8 @@ checks the claimed VALUE, in three steps, each recorded in
 
 from __future__ import annotations
 
+from ._model import AUTHOR_INTERPRETATION
+
 __all__ = ["check_claim_value", "text_value_checks"]
 
 
@@ -123,6 +125,9 @@ def check_claim_value(claim, result: dict) -> str | None:
             return "suspect"
         result["value_verified"] = all(c["ok"] for c in checks)
         return None if result["value_verified"] else "mismatch"
+
+    if claim.evidence_relation == AUTHOR_INTERPRETATION:
+        return None
 
     from ._justify import justify_by_search, states_a_value
 

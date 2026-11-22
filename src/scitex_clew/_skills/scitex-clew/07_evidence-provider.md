@@ -102,3 +102,16 @@ When Clew has an in-project script path and hash for a producing run, the
 process node includes `script.file` and `script.hash`. The label remains the
 recorded run ID. A reader can use the metadata to locate and verify the
 script through its own authorized project file access.
+
+
+A graph can carry `relation: "author_interpretation"` on the result-to-claim
+edge. The relationship is declared at registration. A supported state for
+this entry attests to the recorded trace and any direct comparisons only.
+
+## Citation verdicts
+
+`verify_citations` returns each BibTeX key's Clew status and canonical color.
+When the registered identity agrees, the verdict also carries Scholar's
+recorded `resolver_source` and `provenance` if available. The citation ledger
+checks source identity. Use a recorded acquisition run and its response
+artifacts to trace retrieval.

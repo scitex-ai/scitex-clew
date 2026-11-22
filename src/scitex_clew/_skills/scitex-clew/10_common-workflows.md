@@ -36,6 +36,25 @@ clew.add_claim(
 
 Claim types: `"statistic"`, `"figure"`, `"table"`, `"text"`, `"value"`
 
+## Register a sentence
+
+Use `text` for a sentence and declare how it uses the result.
+
+```python
+clew.add_claim(
+    file_path="paper.tex",
+    claim_type="text",
+    claim_value="The model recognizes digit 1 reliably",
+    source_file="results/test_metrics.json",
+    evidence_relation="author_interpretation",
+)
+```
+
+Use `value` and `source_keys` for a direct comparison, including numerical
+statements inside an interpretation. The CLI accepts
+`--type text --evidence-relation author_interpretation`. MCP accepts the same
+relation and locators.
+
 ## List and filter claims
 
 ```python
