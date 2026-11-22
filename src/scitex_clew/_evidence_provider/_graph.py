@@ -3,7 +3,8 @@
 
 Node kinds (contract ``scitex-live-paper.evidence-report`` 1.x):
 
-* each kept run -> ``process`` (label: the run's session id);
+* each kept run -> ``process`` (label: the run's session id; an optional
+  ``script`` identifies the recorded in-project script and its hash);
 * each kept file -> ``output`` when some kept run wrote it, else ``input``
   (label: the path relative to the project root, ``hash``: its recorded
   SHA-256; ``external: true`` for an input read from outside the project);
@@ -30,7 +31,7 @@ def relative_to_root(path: str | None, root: Path) -> str | None:
         return str(path)
 
 
-def slice_to_graph(sl, claim_id: str, root: Path) -> dict:
+def slice_to_graph(sl, claim_id: str, root: Path, *, run_lookup=None) -> dict:
     """Convert a :class:`~scitex_clew._chain._slice.ProvenanceSlice`."""
     nodes: list[dict] = []
     edges: list[dict] = []
@@ -53,7 +54,19 @@ def slice_to_graph(sl, claim_id: str, root: Path) -> dict:
 
     for index, sid in enumerate(sl.runs, start=1):
         pid = f"p{index}"
-        nodes.append({"id": pid, "kind": "process", "label": str(sid)})
+        process = {"id": pid, "kind": "process", "label": str(sid)}
+        run = (run_lookup(sid) or {}) if run_lookup is not None else {}
+        script_path, script_hash = run.get("script_path"), run.get("script_hash")
+        if script_path and script_hash:
+            path = Path(script_path)
+            # Paths are identified by the recorded absolute path. Resolving
+            # today could swap an original script identity for a new symlink.
+            if path.is_absolute() and path.is_relative_to(root) and ".." not in path.parts:
+                process["script"] = {
+                    "file": path.relative_to(root).as_posix(),
+                    "hash": script_hash,
+                }
+        nodes.append(process)
         for path in sl.run_inputs.get(sid, []):
             edges.append({"source": file_node(path), "target": pid, "kind": "input"})
         for path in sl.run_outputs.get(sid, []):

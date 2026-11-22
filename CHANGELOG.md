@@ -7,6 +7,10 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.36.4] — 2026-11-22
+
+- Report the recorded in-project script path and hash on claim graph process nodes.
+
 ## [0.36.3] — 2026-11-20
 
 ### Fixed

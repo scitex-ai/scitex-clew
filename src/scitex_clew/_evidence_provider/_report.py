@@ -67,8 +67,15 @@ def _claim_graph(
     source_file: str | None,
 ) -> dict:
     from .._chain._slice import build_slice
+    from .._db import get_db
 
-    graph = slice_to_graph(build_slice([claim_id], level=SLICE_LEVEL), claim_id, root)
+    db = get_db()
+    graph = slice_to_graph(
+        build_slice([claim_id], level=SLICE_LEVEL, db=db),
+        claim_id,
+        root,
+        run_lookup=db.get_run,
+    )
     return mark_failures(
         graph,
         outcome=outcome,
