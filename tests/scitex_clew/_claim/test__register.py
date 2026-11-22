@@ -350,8 +350,13 @@ class TestProjectRoot:
 
 
 def test_interpretation_requires_a_source():
-    with pytest.raises(ValueError, match="Author interpretation requires a source file"):
+    # Arrange
+    sentence = "The model performs well"
+    # Act
+    with pytest.raises(ValueError) as failure:
         clew.add_claim(
-            "paper.tex", "text", claim_value="The model performs well",
+            "paper.tex", "text", claim_value=sentence,
             evidence_relation="author_interpretation",
         )
+    # Assert
+    assert "Author interpretation requires a source file" in str(failure.value)

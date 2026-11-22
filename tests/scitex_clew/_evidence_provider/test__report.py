@@ -172,6 +172,7 @@ def test_project_root_must_be_a_directory(tmp_path):
 
 
 def test_author_interpretation_is_a_distinct_edge(clew_project):
+    # Arrange
     import scitex_clew as clew
     from scitex_clew._evidence_provider import build_evidence_graph, build_evidence_report
 
@@ -181,11 +182,13 @@ def test_author_interpretation_is_a_distinct_edge(clew_project):
             claim_value="The model performs well", source_file="results/results.json",
             evidence_relation="author_interpretation", project_root=clew_project,
         )
+    # Act
     report = build_evidence_report(clew_project, ["interpretation"])
     jsonschema.validate(report, load_schema())
     entry = report["claims"][0]
     graph = build_evidence_graph(clew_project, "interpretation")
     incoming = [edge for edge in graph["edges"] if edge["target"] == "c"]
+    # Assert
     assert (entry["state"], entry["evidence_relation"], [edge["relation"] for edge in incoming]) == (
         "supported", "author_interpretation", ["author_interpretation"],
     )
