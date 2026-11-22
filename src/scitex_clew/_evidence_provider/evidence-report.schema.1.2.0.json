@@ -91,6 +91,7 @@
               "label": {"type": "string"},
               "hash": {"type": ["string", "null"]},
               "external": {"type": "boolean"},
+              "author_registered": {"type": "boolean"},
               "failure": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/failure"}]}
             }
           }

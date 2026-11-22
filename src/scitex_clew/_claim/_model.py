@@ -318,6 +318,7 @@ class VerificationResult:
     severities: dict[str, str]  # pattern key -> resolved severity (transparency)
     errors: list[str]  # pattern NAMES that fired at ERROR severity
     warnings: list[str]  # pattern NAMES that fired at WARNING severity
+    registered_source_hashes: dict[str, str] = field(default_factory=dict, repr=False)
 
     @property
     def ok(self) -> bool:

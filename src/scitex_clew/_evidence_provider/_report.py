@@ -66,6 +66,7 @@ def _claim_graph(
     reason: str,
     details: list[str],
     source_file: str | None,
+    registered_source_hashes: Mapping[str, str],
     evidence_relation: str = "direct",
 ) -> dict:
     from .._chain._slice import build_slice
@@ -78,6 +79,7 @@ def _claim_graph(
         root,
         run_lookup=db.get_run,
         evidence_relation=evidence_relation,
+        registered_source_hashes=registered_source_hashes,
     )
     return mark_failures(
         graph,
@@ -120,7 +122,9 @@ def _source_block(record, source_file: str | None, root: Path) -> dict:
     return block
 
 
-def _entry(row, record, root: Path, with_graph: bool) -> dict:
+def _entry(
+    row, record, root: Path, with_graph: bool, registered_source_hashes: Mapping[str, str]
+) -> dict:
     details = [str(d) for d in (row.details or [])]
     state, reason, status = classify_outcome(row.outcome, details)
     manuscript = record.file_path if record else None
@@ -164,6 +168,7 @@ def _entry(row, record, root: Path, with_graph: bool) -> dict:
             details=details,
             source_file=source_file,
             evidence_relation=record.evidence_relation if record else "direct",
+            registered_source_hashes=registered_source_hashes,
         )
     except Exception as exc:  # noqa: BLE001 - surfaced per claim as graph_error
         entry["graph"] = None
@@ -203,7 +208,9 @@ def build_evidence_report(
         result = verify_all_claims(strict=True)
         records = {c.claim_id: c for c in list_claims(limit=_CLAIM_LIMIT)}
         claims = [
-            _entry(row, records.get(row.claim_id), root, with_graphs)
+            _entry(
+                row, records.get(row.claim_id), root, with_graphs, result.registered_source_hashes
+            )
             for row in result.claims
             if wanted is None or row.claim_id in wanted
         ]
@@ -251,6 +258,7 @@ def build_evidence_graph(
             details=details,
             source_file=record.source_file or row.source_file,
             evidence_relation=record.evidence_relation,
+            registered_source_hashes=result.registered_source_hashes,
         )
 
 

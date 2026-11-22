@@ -7,7 +7,9 @@ Node kinds (contract ``scitex-live-paper.evidence-report`` 1.x):
   ``script`` identifies the recorded in-project script and its hash);
 * each kept file -> ``output`` when some kept run wrote it, else ``input``
   (label: the path relative to the project root, ``hash``: its recorded
-  SHA-256; ``external: true`` for an input read from outside the project);
+  SHA-256; ``external: true`` for an input read from outside the project;
+  ``author_registered: true`` if the recorded bytes match a verified pin
+  in the project's source manifest);
 * the claim itself -> ``claim``.
 
 Edges: input file -> run (``input``), run -> output file (``output``) and
@@ -16,9 +18,11 @@ each slice target (the claim's source file) -> claim (``supports``).
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 
 from .._claim._model import AUTHOR_INTERPRETATION
+from .._hash import hashes_match
 
 __all__ = ["relative_to_root", "slice_to_graph"]
 
@@ -34,7 +38,13 @@ def relative_to_root(path: str | None, root: Path) -> str | None:
 
 
 def slice_to_graph(
-    sl, claim_id: str, root: Path, *, run_lookup=None, evidence_relation: str = "direct",
+    sl,
+    claim_id: str,
+    root: Path,
+    *,
+    run_lookup=None,
+    evidence_relation: str = "direct",
+    registered_source_hashes: Mapping[str, str] | None = None,
 ) -> dict:
     """Convert a :class:`~scitex_clew._chain._slice.ProvenanceSlice`."""
     nodes: list[dict] = []
@@ -51,6 +61,10 @@ def slice_to_graph(
                 "label": relative_to_root(path, root),
                 "hash": sl.file_hashes.get(path),
             }
+            if registered_source_hashes and hashes_match(
+                node["hash"], registered_source_hashes.get(path)
+            ):
+                node["author_registered"] = True
             if path in sl.external:
                 node["external"] = True
             nodes.append(node)
