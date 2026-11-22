@@ -97,3 +97,8 @@ marks the nodes clew's own verification failed on, as
 | VALUE_MISMATCH | source file (located value differs; detail `<src> in source vs <stated> stated`), else the claim node | `mismatched` |
 | STALE_LINEAGE / EXTERNAL_MISSING | every file the re-verified minimal chain reports MISMATCH (`changed`) or MISSING (`missing`); a run whose execution failed (`failed`). A recorded file pruned from the drawn slice is reported on its run's node, naming the file. | as listed |
 | any other | nothing (no node broke: no locator, no lineage, environment) | — |
+
+When Clew has an in-project script path and hash for a producing run, the
+process node includes `script.file` and `script.hash`. The label remains the
+recorded run ID. A reader can use the metadata to locate and verify the
+script through its own authorized project file access.
