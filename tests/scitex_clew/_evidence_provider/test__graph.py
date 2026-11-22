@@ -74,8 +74,10 @@ def test_every_sourced_claim_has_a_graph_with_its_claim_node(by_id):
 def test_process_carries_its_recorded_project_script(by_id, clew_project):
     import hashlib
 
+    # Arrange
     script = "scripts/compute.py"
     expected = hashlib.sha256((clew_project / script).read_bytes()).hexdigest()
+    # Act
     process = next(node for node in by_id["auc"]["graph"]["nodes"] if node["kind"] == "process")
-
+    # Assert
     assert process["script"] == {"file": script, "hash": expected}
