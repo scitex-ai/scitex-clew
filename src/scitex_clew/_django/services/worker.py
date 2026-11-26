@@ -89,6 +89,12 @@ def execute(payload: dict):
                 "db_path": None,
                 "backend": "postgresql",
             }
+        if operation == "dataset_readers":
+            # The dataset provenance contract (1.1): which recorded runs READ
+            # these project-relative paths, answered from this tenant store.
+            from scitex_clew._dataset_readers import records_from_db
+
+            return records_from_db(db, root, list(parameters["paths"]))
         if operation == "claims":
             claims = clew.list_claims(**parameters)
             return {

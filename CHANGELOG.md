@@ -7,6 +7,17 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The dataset provenance provider (contract `scitex-dataset.provenance-readers`)
+  now speaks 1.1.0: `readers(project_root, paths, *, store=None)`. With the
+  host's `store` routing (the `scitex_sdk.host.StoreAccess` fields) it reads the
+  project's OWN tenant store through the isolated GUI worker (new
+  `dataset_readers` operation) instead of the process's ambient store. A Hub
+  project's "used by scripts" was empty for that reason: the Dataset app read
+  the cards store while the project's runs live in its tenant store. Without
+  `store` the behaviour is unchanged. `records_from_db` is the shared query.
+
 ## [0.37.1] — 2026-11-27
 
 ### Fixed
