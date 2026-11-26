@@ -7,6 +7,18 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.37.0] — 2026-11-26
+
+### Added
+
+- Dataset provenance provider for scitex-dataset's provider-neutral contract
+  (`scitex-dataset.provenance-readers` 1.0.0; entry point
+  `scitex.dataset.provenance` → `scitex_clew._dataset_readers:ReadersEntry`,
+  schema vendored): for each project-relative dataset path, the scripts clew
+  recorded as reading it (run id, start time, status). Read-only: a project
+  clew never scoped is answered without opening the store, so no project id
+  is minted into a project the caller may only read.
+
 ## [0.36.4] — 2026-11-22
 
 - Report the recorded in-project script path and hash on claim graph process nodes.
