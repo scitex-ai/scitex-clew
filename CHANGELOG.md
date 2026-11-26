@@ -7,6 +7,16 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `clew slice` names each run's executable: the run line now reads
+  `run <session_id>  script: <path> (sha256 <12 hex>)` (project-relative
+  inside the run's project root, absolute otherwise; `script: not recorded`
+  when absent), so the text view shows the input -> executable -> output
+  triplet. `ProvenanceSlice.scripts` and a `"scripts"` key in `--json`
+  (`{sid: {path, hash, project_root}}`) carry it. The script is a run
+  attribute, not a node: slice counts are unchanged.
+
 ## [0.37.1] — 2026-11-27
 
 ### Fixed
