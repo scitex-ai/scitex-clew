@@ -7,6 +7,22 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `clew records export --out FILE.json` / `clew records import FILE.json
+  [--project-scope S] [--rebase SRC_ROOT=DST_ROOT]... [--dry-run]`: move a
+  project's records between stores through a file, so the target never
+  connects to the source. The document (`scitex-clew.project-records`
+  1.0.0) carries every row of the project scope from all eight clew stores
+  plus a SHA-256 of its canonical payload; import refuses a mismatching
+  checksum or schema, rewrites the project scope, is idempotent (identical
+  rows skipped, differing rows replaced, write-once conflicts refused before
+  any write), rebases recorded paths to the target checkout (reporting
+  external ones), and issues DML only — tested as a `provision_tenant_store`
+  tenant login read back by the Hub Clew app's worker, and as a
+  `provision_store_acl` DML-only login. Skill page
+  `09_moving-records-between-stores.md`.
+
 ## [0.37.1] — 2026-11-27
 
 ### Fixed
