@@ -141,8 +141,13 @@ The same JSON/dict schema works across Python, CLI (`--grouper`), MCP (`{"groupe
 
 ## Installation
 
-Requires Python >= 3.10. Provenance is recorded in the per-host PostgreSQL
-store, reached through `scitex_dev.store.host_store()`.
+Requires Python >= 3.10. Provenance is recorded in PostgreSQL, reached
+through `scitex_dev.store.host_store()`: `SCITEX_STORE_DSN` when set,
+otherwise a per-user local store under `~/.scitex/store/local` that is
+created and started on first use — no configuration needed. It needs the
+PostgreSQL server binaries (`initdb`, `pg_ctl`): from your OS
+(`apt install postgresql`, `brew install postgresql@16`), conda, or
+`pip install 'scitex-dev[local-store]'` (Python <= 3.12).
 
 ```bash
 pip install scitex-clew
