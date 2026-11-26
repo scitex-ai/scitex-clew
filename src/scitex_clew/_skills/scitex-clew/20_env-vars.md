@@ -9,7 +9,7 @@ tags: [scitex-clew-env-vars]
 
 | Variable | Purpose | Default | Type |
 |---|---|---|---|
-| `SCITEX_STORE_DSN` | Override for THE store this host uses. Owned by `scitex_dev.store.host_store()`, not by clew. | per-host PostgreSQL over its UNIX socket | Postgres DSN |
+| `SCITEX_STORE_DSN` | Override for THE store this host uses. Owned by `scitex_dev.store.host_store()`, not by clew. | per-user local PostgreSQL (`~/.scitex/store/local`, UNIX socket, created on first use) | Postgres DSN |
 | `SCITEX_CLEW_CAPTURE` | Whole-capture switch. `0`/`false`/`no`/`off` turns ALL automatic recording off: the `@stx.session` / `stx.io` hooks open no run, record no file, install no audit hook and never touch the store (one WARNING per process says so). Explicit API calls (`clew.session()`, `record_input`, `add_claim`, `verify`) still run. For no-recording baselines and runs you do not want recorded. See 16_unconscious-capture.md. | `1` (on) | bool |
 | `SCITEX_CLEW_AUDIT_CAPTURE` | Inside a session, record files opened under the project root by any Python code (audit hook). `0`/`false`/`no`/`off` disables it for performance-sensitive runs (a WARNING says so); imported-code capture stays on. See 16_unconscious-capture.md. | `1` (on) | bool |
 | `SCITEX_CLEW_JOURNAL` | Kill-durable recording journal. Every queued row is also appended to a per-session journal so a run killed before close (SIGKILL, OOM, harness timeout) is recovered at the next clew start; also gates the SIGTERM/SIGHUP handlers. `0`/`false`/`no`/`off` turns it off (a kill then loses the queued rows). See 17_killed-runs-journal.md. | `1` (on) | bool |
@@ -20,10 +20,11 @@ tags: [scitex-clew-env-vars]
 | `SCITEX_REGISTRY_URL` | URL of the optional SciTeX registry for cross-machine claim lookup. | unset | string (URL) |
 
 Store resolution (`scitex_dev.store.host_store()`): `SCITEX_STORE_DSN` if
-set, otherwise the per-host PostgreSQL over its UNIX socket. There are only
-those two steps, and there is deliberately no local-file fallback — a host
-whose Postgres is down must fail loudly rather than start writing to a
-private store nobody else can see.
+set, otherwise the per-user local PostgreSQL over a private UNIX socket
+(created and started on first use). There are only those two steps, and
+neither names a remote host. A set but unreachable `SCITEX_STORE_DSN` fails
+loudly rather than falling through, and a host that manages a node of a
+shared deployment (`~/.scitex/pg` exists) is refused the local default.
 
 clew has **no database file** and no clew-specific path variable.
 `SCITEX_CLEW_DB_PATH` is retired and has no effect.
