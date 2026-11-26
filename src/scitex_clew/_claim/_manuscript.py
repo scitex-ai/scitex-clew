@@ -63,17 +63,19 @@ _CITATION_STATUS_TO_GROUP: Dict[str, str] = {
 }
 
 
-def _claim_entry(claim, grounded=None) -> Dict:
+def _claim_entry(claim, grounded=None, root: Optional[Path] = None) -> Dict:
     """Map a value/figure/statistic/table/text claim to a unified render entry.
 
     ``grounded`` is the registered-source gate signal (None => gate inactive,
     identical to the pre-gate behavior; False => demote to ``unsourced``).
+    ``root`` (1.7-unified): in-project paths are written relative to it, see
+    :mod:`._portable`; ``None`` keeps them as recorded.
     """
     has_exception, has_frozen = _resolve_chain_flags(claim)
     resolved = _resolve_status(claim.status, has_exception, has_frozen, grounded)
     group = _DISPLAY_GROUPS[resolved]
     claim_type = "figure" if claim.claim_type == "figure" else "value"
-    return {
+    entry = {
         "claim_id": claim.claim_id,
         "claim_type": claim_type,
         "status": group,
@@ -93,12 +95,18 @@ def _claim_entry(claim, grounded=None) -> Dict:
         "chain_has_exception": has_exception,
         "chain_has_frozen": has_frozen,
     }
+    if root is not None:
+        from ._portable import portable_fields
+
+        portable_fields(entry, ("file_path", "source_file"), root)
+        entry["link"] = entry["source_file"]
+    return entry
 
 
-def _citation_entry(citation) -> Dict:
+def _citation_entry(citation, root: Optional[Path] = None) -> Dict:
     """Map a citation node to a unified render entry."""
     group = _CITATION_STATUS_TO_GROUP.get(citation.status, "failed")
-    return {
+    entry = {
         "claim_id": citation.cite_key,
         "claim_type": "citation",
         "status": group,
@@ -113,6 +121,11 @@ def _citation_entry(citation) -> Dict:
         "manuscript_file": citation.manuscript_file,
         "line_number": citation.line_number,
     }
+    if root is not None:
+        from ._portable import portable_fields
+
+        portable_fields(entry, ("manuscript_file",), root)
+    return entry
 
 
 def export_manuscript_claims(
@@ -167,8 +180,11 @@ def export_manuscript_claims(
             return None
         return is_grounded(claim, _manifest, _gate_db)
 
+    from ._portable import PATHS_NOTE, export_root
+
+    root = export_root()
     entries: List[Dict] = [
-        _claim_entry(c, _grounded_for(c)) for c in list_claims(limit=100_000)
+        _claim_entry(c, _grounded_for(c), root) for c in list_claims(limit=100_000)
     ]
 
     # Citations live in their own ledger; a missing citations table (e.g. no
@@ -176,7 +192,9 @@ def export_manuscript_claims(
     try:
         from .._citation import list_citations
 
-        entries.extend(_citation_entry(c) for c in list_citations(limit=100_000))
+        entries.extend(
+            _citation_entry(c, root) for c in list_citations(limit=100_000)
+        )
     except Exception:  # noqa: BLE001 — citation ledger optional
         pass
 
@@ -224,7 +242,9 @@ def export_manuscript_claims(
             "and scholar-unconfirmed citations; unverified = total - verified. "
             "Superseded claims are excluded from all entries and counts."
         ),
-        "schema_version": "1.6-unified",
+        "schema_version": "1.7-unified",
+        # Schema v1.7-unified: what the per-entry paths are relative to.
+        "paths": dict(PATHS_NOTE),
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         # 4-bucket display palette (what writer renders with).
         "palette": dict(_DISPLAY_PALETTE),

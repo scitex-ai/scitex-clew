@@ -706,7 +706,7 @@ def v11_sandbox(tmp_path, env_sandbox):
 
 
 def test_v11_schema_version_in_exported_json(v11_sandbox, env_sandbox):
-    """Exported JSON has schema_version == '1.4' (bumped from v1.3 for the registered-source gate)."""
+    """Exported JSON has schema_version == '1.5' (1.4 + project-relative paths)."""
     # Arrange
     workdir = v11_sandbox
     _seed_claim(workdir)
@@ -715,7 +715,7 @@ def test_v11_schema_version_in_exported_json(v11_sandbox, env_sandbox):
     clew.export_claims_json(path=out, read_only=False)
     payload = json.loads(out.read_text())
     # Assert
-    assert payload.get("schema_version") == "1.4"
+    assert payload.get("schema_version") == "1.5"
 
 
 def test_v11_palette_keys_in_exported_json(v11_sandbox, env_sandbox):
@@ -1451,14 +1451,14 @@ def _export_v12(tmp_path, env_sandbox, *, num_verified: int = 1, num_registered:
     return json.loads(out.read_text())
 
 
-def test_v12_schema_version_is_1_4(tmp_path, env_sandbox):
-    """schema_version field is exactly '1.4' after the registered-source-gate bump."""
+def test_v12_schema_version_is_1_5(tmp_path, env_sandbox):
+    """schema_version field is exactly '1.5' after the project-relative-paths bump."""
     # Arrange
     payload = _export_v12(tmp_path, env_sandbox)
     # Act
     version = payload["schema_version"]
-    # Assert — bumped to 1.4 in this release
-    assert version == "1.4"
+    # Assert — bumped to 1.5 (project-relative paths)
+    assert version == "1.5"
 
 
 def test_v12_attestation_text_present(tmp_path, env_sandbox):
