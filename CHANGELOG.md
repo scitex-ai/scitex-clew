@@ -7,6 +7,18 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.36.5] — 2026-11-26
+
+### Fixed
+
+- A fresh PyPI install records provenance and runs `clew verify` with no
+  store configuration: require scitex-dev >= 0.67.0, whose `host_store()`
+  resolves an unset `SCITEX_STORE_DSN` to a per-user local PostgreSQL store
+  instead of a private fleet host (scitex-dev#1111). Docs and skills describe
+  the new resolution, and `tests/integration/test_zero_config_local_store.py`
+  runs a `@session` script, a claim and `clew verify --strict` in a clean
+  environment.
+
 ## [0.36.4] — 2026-11-22
 
 - Report the recorded in-project script path and hash on claim graph process nodes.

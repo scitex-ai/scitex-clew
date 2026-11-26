@@ -13,8 +13,11 @@ tags: [scitex-clew-installation]
 pip install scitex-clew
 ```
 
-Provenance is stored in the per-host PostgreSQL instance, reached through
-`scitex_dev.store.host_store()`.
+Provenance is stored in PostgreSQL, reached through
+`scitex_dev.store.host_store()` — with no configuration, a per-user local
+store under `~/.scitex/store/local`, created and started on first use. It
+needs PostgreSQL server binaries (`initdb`, `pg_ctl`) from the OS, conda, or
+`pip install 'scitex-dev[local-store]'` (Python <= 3.12).
 
 ## Optional (auto-integration)
 
@@ -38,7 +41,7 @@ python -c "import scitex_clew; print(scitex_clew.__version__)"
 clew has **no database file**. Its four stores (`runs`, `file_hashes`,
 `claims`, `citations`, …) resolve through
 `scitex_dev.store.host_store()`: `SCITEX_STORE_DSN` if set, otherwise the
-per-host PostgreSQL over its UNIX socket. See
+per-user local PostgreSQL over a private UNIX socket (no TCP, no remote host). See
 [20_env-vars.md](20_env-vars.md) for details.
 
 Storage is per-HOST; records stay per-project. Every project on one machine

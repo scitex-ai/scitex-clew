@@ -161,9 +161,11 @@ Bare 6-hex, no `#`, no light/dark variants:
 `scitex_dev.store.host_store()` answers "which store does this host use":
 
 1. **`SCITEX_STORE_DSN`** if set — an explicit override wins outright.
-2. Otherwise the **per-host PostgreSQL** over its UNIX socket.
+2. Otherwise the **per-user local PostgreSQL** (`~/.scitex/store/local`)
+   over a private UNIX socket, created and started on first connect.
 
-There is deliberately no third step and no local-file fallback. clew has no
+There is deliberately no third step, no remote-host default and no
+local-file fallback: a set but unreachable `SCITEX_STORE_DSN` fails loudly. clew has no
 database file, no `db_path` argument anywhere, and no `SCITEX_CLEW_DB_PATH`
 (retired).
 
