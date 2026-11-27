@@ -1,7 +1,8 @@
 """clew's dataset provenance adapter on a REAL project (no mocks).
 
-Contract: ``scitex-dataset.provenance-readers`` 1.0.0 — for each requested
-project-relative path, the scripts recorded as READING it.
+Contract: ``scitex-dataset.provenance-readers`` 1.1.0 — for each requested
+project-relative path, the scripts recorded as READING it; 1.1 adds the
+host's routing to the project's own record store.
 """
 
 from __future__ import annotations
@@ -90,13 +91,53 @@ def test_the_entry_object_declares_the_contract_version():
     assert declared == ("clew", CONTRACT_VERSION)
 
 
-def test_the_vendored_schema_is_the_declared_version():
+def test_the_vendored_return_schema_is_unchanged_since_1_0_0():
     # Arrange
     schema = load_schema()
     # Act
     version = schema["$id"].rsplit("/", 1)[-1]
     # Assert
-    assert version == CONTRACT_VERSION
+    assert version == "1.0.0"
+
+
+def test_the_contract_is_1_1_with_store_routing():
+    # Arrange
+    entry = ReadersEntry()
+    # Act
+    major_minor = tuple(int(x) for x in entry.contract_version.split(".")[:2])
+    # Assert
+    assert major_minor == (1, 1)
+
+
+def test_an_incomplete_store_routing_is_refused(clew_project):
+    # Arrange
+    store = {"tenant_id": "", "dsn": "postgresql://x", "project_scope": "p"}
+    # Act
+    try:
+        readers(str(clew_project), ["data/input.csv"], store=store)
+        raised = None
+    except ValueError as exc:
+        raised = exc
+    # Assert
+    assert "tenant_id" in str(raised)
+
+
+def test_without_routing_the_entry_reads_the_configured_store(clew_project):
+    # Arrange
+    entry = ReadersEntry()
+    # Act
+    answer = entry.readers(str(clew_project), ["data/input.csv"], store=None)
+    # Assert
+    assert [r["script"] for r in answer["data/input.csv"]] == ["scripts/compute.py"]
+
+
+def test_a_never_scoped_project_is_answered_before_any_routing(tmp_path):
+    # Arrange
+    store = {"tenant_id": "t", "dsn": "d", "project_scope": "s", "owner_role": "o"}
+    # Act
+    answer = readers(str(tmp_path), ["data/a.csv"], store=store)
+    # Assert
+    assert answer == {}
 
 
 def test_the_entry_point_is_registered_for_the_dataset_group():
