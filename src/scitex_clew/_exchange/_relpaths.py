@@ -10,12 +10,14 @@ through, else its file name), never by where it lives on the authors' host.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path, PurePosixPath
 
 __all__ = [
     "external_name",
     "is_portable",
     "portable_path",
+    "portable_text",
     "relative_argv",
     "relative_or_none",
 ]
@@ -60,6 +62,48 @@ def portable_path(
     if rel is not None:
         return rel, False
     return str(path), True
+
+
+#: Characters that end a path token inside prose (whitespace, quotes,
+#: brackets, separators). ``:`` ends it too, so ``paper.tex:L10`` keeps its
+#: line suffix and ``scheme://`` URLs never start a token.
+_STOP = r"\s'\"`,;:()\[\]{}<>|"
+#: A token may not start right after a word, path or URL character: ``1/2``,
+#: ``and/or``, ``./x``, ``~/x`` and ``https://x`` are not absolute paths.
+_LEFT = r"(?<![\w/.~:\-])"
+
+
+def _path_tokens(root: Path) -> re.Pattern[str]:
+    """Absolute POSIX path tokens in prose: the root spelled verbatim (it may
+    hold spaces) or any ``/``-rooted run of non-stop characters."""
+    char = f"[^{_STOP}]"
+    return re.compile(
+        rf"{_LEFT}{re.escape(root.as_posix())}(?:/{char}*)?(?!{char})"
+        rf"|{_LEFT}/{char}+"
+    )
+
+
+def portable_text(text: str | None, root: Path) -> str | None:
+    """``text`` with each absolute in-project path token made project-relative.
+
+    The :func:`portable_path` rule applied to prose (a verify detail such as
+    ``source changed: /home/u/proj/data/a.json``): a token inside ``root``
+    becomes its repo-relative path (``data/a.json``; the root itself
+    ``.``), a token outside it is left exactly as written, and every other
+    character is untouched. A sentence-ending ``.`` is not part of a path.
+    """
+    if not text:
+        return text
+
+    def swap(match: re.Match[str]) -> str:
+        token = match.group(0)
+        core = token.rstrip(".")
+        rel, external = portable_path(core, root)
+        if external or not core:
+            return token
+        return rel + token[len(core) :]
+
+    return _path_tokens(root).sub(swap, text)
 
 
 def external_name(path: str, via: str | None, root: Path) -> str:

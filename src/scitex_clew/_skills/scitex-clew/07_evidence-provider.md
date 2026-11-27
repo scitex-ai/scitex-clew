@@ -1,18 +1,18 @@
 ---
 description: |
   [TOPIC] clew as an evidence provider for scitex-live-paper
-  [DETAILS] Implements contract scitex-live-paper.evidence-report 1.2.0 (schema vendored); entry point scitex.livepaper.renderers -> clew (port "evidence"); `clew export-evidence --out report.json`; outcome -> state/reason table; level-1 slice -> graph nodes/edges.
+  [DETAILS] Implements contract scitex-live-paper.evidence-report 1.3.0 (schema vendored; no host paths, project_name); entry point scitex.livepaper.renderers -> clew (port "evidence"); `clew export-evidence --out report.json`; outcome -> state/reason table; level-1 slice -> graph nodes/edges.
 tags: [scitex-clew-evidence-provider]
 ---
 
-# Evidence provider (scitex-live-paper contract 1.2.0)
+# Evidence provider (scitex-live-paper contract 1.3.0)
 
 clew supplies the per-claim evidence that scitex-live-paper renders. The two
 are coupled **only** through live-paper's published, provider-neutral
-contract `scitex-live-paper.evidence-report` **1.2.0**. clew does not import
+contract `scitex-live-paper.evidence-report` **1.3.0**. clew does not import
 live-paper, and live-paper does not import clew. The schema is vendored
 version-pinned at
-`src/scitex_clew/_evidence_provider/evidence-report.schema.1.2.0.json`, and
+`src/scitex_clew/_evidence_provider/evidence-report.schema.1.3.0.json`, and
 clew's own tests validate every report against it.
 
 ## Connecting
@@ -34,8 +34,11 @@ Out of process, write the report file and hand it over:
 ```bash
 clew export-evidence --out report.json                  # all registered claims of ./
 clew export-evidence --project-root ../paper --claim auc --out -   # stdout
-scitex-live-paper render bundle/ --out site/ --evidence-report report.json
+scitex-live-paper render bundle/ --out site/ --evidence-report report.json --evidence-root ../paper
 ```
+
+The report names no host path, so `--evidence-root` tells live-paper where
+the manuscript text lives.
 
 `export-evidence` exits 0 when the report was written, whatever the claims'
 states. It is an export, not a gate (`clew verify --strict` is the gate).
@@ -67,8 +70,16 @@ recorded computation behind it.
 | anything else | not_supported | clew reported `<NAME>` (never supported) |
 
 `provider_status` is `{name, code}` and `details` is clew's per-claim
-details list. `location.file` and `source.file` are relative to
-`project_root` (absolute when outside it). `source.locator` is the claim's
+details list.
+
+**Paths (contract 1.3.0).** Live Paper readers see the report, so it never
+names where the project lives on the build host. `project_root` is omitted;
+`project_name` is the root's basename. `location.file`, `source.file` and
+graph labels are relative to the project root. Every absolute path inside a
+`details` line, `reason`, `graph_error` or `failure.detail` that lies in the
+root is rewritten the same way (`source changed: data/a.json`). A path
+outside the root stays absolute. `location` and `source` then carry
+`external: true`, like a graph node. `source.locator` is the claim's
 `source_keys`. `source.value` (contract 1.2.0) is what the source holds NOW at
 that locator: a scalar for a `"."` locator, else `{field: value}`. It is
 omitted when the claim has no locator or nothing could be read there (clew's

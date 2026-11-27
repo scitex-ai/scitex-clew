@@ -1,7 +1,7 @@
 """The evidence report on a REAL clew project, validated against the contract.
 
 The report is validated against the vendored, version-pinned contract schema
-(``scitex-live-paper.evidence-report`` 1.2.0) with jsonschema; scitex-live-paper
+(``scitex-live-paper.evidence-report`` 1.3.0) with jsonschema; scitex-live-paper
 itself is never imported. No mocks: real sessions, a real PostgreSQL store
 (one schema and one built project per module, see ``conftest.py``).
 """
@@ -29,16 +29,16 @@ def test_report_validates_against_the_vendored_schema(report):
     assert errors == []
 
 
-def test_report_header_names_contract_provider_and_root(report, clew_project):
+def test_report_header_names_contract_provider_and_project(report, clew_project):
     # Arrange
-    keys = ("schema", "schema_version", "project_root")
+    keys = ("schema", "schema_version", "project_name")
     # Act
     header = {k: report[k] for k in keys} | {"provider": report["provider"]["name"]}
     # Assert
     assert header == {
         "schema": SCHEMA_ID,
         "schema_version": SCHEMA_VERSION,
-        "project_root": str(clew_project),
+        "project_name": clew_project.name,
         "provider": "clew",
     }
 

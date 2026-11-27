@@ -15,6 +15,13 @@ Per registered claim of the project at ``project_root``:
 
 Every clew call runs inside a :func:`project_root` block, so the project
 scope resolves from ``project_root`` and not from the working directory.
+
+The report is shown to Live Paper readers, so it never names where the
+project lives on the build host (contract 1.3.0): ``project_root`` is
+omitted and ``project_name`` (the root's basename) names the project; every
+path, including those inside ``details``, ``reason``, ``graph_error`` and a
+node's ``failure.detail``, is project-relative, and a path outside the root
+stays absolute and is flagged ``external``.
 """
 
 from __future__ import annotations
@@ -23,8 +30,9 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from .._exchange._relpaths import portable_text
 from ._failures import mark_failures
-from ._graph import relative_to_root, slice_to_graph
+from ._graph import is_external, relative_to_root, slice_to_graph
 from ._states import classify_outcome
 
 __all__ = [
@@ -37,7 +45,7 @@ __all__ = [
 
 #: Contract implemented (the vendored schema in this package pins it).
 SCHEMA_ID = "scitex-live-paper.evidence-report"
-SCHEMA_VERSION = "1.2.0"
+SCHEMA_VERSION = "1.3.0"
 PROVIDER_NAME = "clew"
 #: Slice level of the evidence graph: path-pruned (clew's default).
 SLICE_LEVEL = 1
@@ -76,7 +84,7 @@ def _claim_graph(
         root,
         run_lookup=db.get_run,
     )
-    return mark_failures(
+    graph = mark_failures(
         graph,
         outcome=outcome,
         reason=reason,
@@ -84,6 +92,11 @@ def _claim_graph(
         source_file=source_file,
         root=root,
     )
+    for node in graph["nodes"]:
+        failure = node.get("failure")
+        if failure and failure.get("detail"):
+            failure["detail"] = portable_text(failure["detail"], root)
+    return graph
 
 
 def _source_block(record, source_file: str | None, root: Path) -> dict:
@@ -100,6 +113,8 @@ def _source_block(record, source_file: str | None, root: Path) -> dict:
         "file": relative_to_root(source_file, root),
         "locator": locator,
     }
+    if is_external(source_file, root):
+        block["external"] = True
     if not (locator and source_file):
         return block
     from .._claim._locator import WHOLE_VALUE, SourceLocatorError, read_source_value
@@ -136,20 +151,23 @@ def _entry(row, record, root: Path, with_graph: bool) -> dict:
     if manuscript:
         label = Path(manuscript).name + (f":L{line}" if line else "")
     source_file = (record.source_file if record else None) or row.source_file
+    location: dict[str, Any] = {
+        "file": relative_to_root(manuscript, root),
+        "line": line or None,
+        "label": label or _portable_location(row.location, root),
+    }
+    if is_external(manuscript, root):
+        location["external"] = True
     entry: dict[str, Any] = {
         "claim_id": row.claim_id,
-        "location": {
-            "file": relative_to_root(manuscript, root),
-            "line": line or None,
-            "label": label or _portable_location(row.location, root),
-        },
+        "location": location,
         "claim_type": record.claim_type if record else None,
         "stated_text": (record.claim_value if record else None) or row.claim_value,
         "stated_value": record.checked_value if record else row.claim_value,
         "state": state,
-        "reason": reason,
+        "reason": portable_text(reason, root),
         "source": _source_block(record, source_file, root),
-        "details": details,
+        "details": [portable_text(d, root) for d in details],
         "provider_status": status,
     }
     if not with_graph:
@@ -169,7 +187,9 @@ def _entry(row, record, root: Path, with_graph: bool) -> dict:
         )
     except Exception as exc:  # noqa: BLE001 - surfaced per claim as graph_error
         entry["graph"] = None
-        entry["graph_error"] = f"clew could not slice the claim: {exc}"
+        entry["graph_error"] = portable_text(
+            f"clew could not slice the claim: {exc}", root
+        )
     return entry
 
 
@@ -213,7 +233,7 @@ def build_evidence_report(
         "schema": SCHEMA_ID,
         "schema_version": SCHEMA_VERSION,
         "provider": {"name": PROVIDER_NAME, "version": _version()},
-        "project_root": str(root),
+        "project_name": root.name,
         "claims": claims,
     }
 

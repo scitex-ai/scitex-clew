@@ -133,7 +133,7 @@ CLI_HELP = {
         ),
     ),
     "export_evidence": CliHelp(
-        summary="Write the claims' evidence report (live-paper evidence-report 1.2.0).",
+        summary="Write the claims' evidence report (live-paper evidence-report 1.3.0).",
         examples=(
             Example("{prog} export-evidence --out report.json", ""),
             Example("{prog} export-evidence --out - --claim auc", ""),
