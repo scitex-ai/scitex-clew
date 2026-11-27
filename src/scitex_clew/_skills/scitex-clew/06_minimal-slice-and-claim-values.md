@@ -37,6 +37,23 @@ declaration is unioned; new bytes replace it.
 `generate_dag_json` / `generate_mermaid_dag` take the same
 `minimal=`/`level=`. Claim verification always uses the level-1 slice.
 
+`clew slice` prints each kept run as its input -> executable -> output
+triplet; the run line names the script it executed (project-relative inside
+the run's project root, absolute otherwise; `sl.scripts[sid]` /
+`"scripts"` in `--json` hold `path`, full `hash`, `project_root`):
+
+```text
+slice level=1 runs=1 files=33 nodes=34 edges=33
+  run 2026Y-11M-26D-23h46m25s_Osqs  script: scripts/paper/summarise_e3_claims.py (sha256 3f9a1c0be27d)
+    <- /abs/project/config/DEV_RUNS.yaml
+    -> /abs/project/data/paper_e3_faults/e3_claim_states.csv
+```
+
+The script is a run attribute, not a file node: it adds nothing to
+`runs/files/nodes/edges` (a notebook run's notebook is the exception — it is
+carried as a slice file so the slice can re-execute it). A run without a
+recorded script prints `script: not recorded`.
+
 ## Claims: value vs source, native fields, `project_root=`
 
 ```python
