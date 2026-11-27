@@ -100,6 +100,8 @@ observer) will call the identical logic.
 * Unified render feed → `1.6-unified`: adds the `unsourced` bucket to
   `attestation.counts`; an ungrounded claim makes the badge `partial`.
 * Consumers that ignore the new fields are unaffected.
+* Later: `1.5` / `1.7-unified` make in-project paths project-relative (see
+  [05](05_verify-claim-contract.md)).
 
 ## Palette
 

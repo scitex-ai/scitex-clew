@@ -12,7 +12,13 @@ from __future__ import annotations
 import os
 from pathlib import Path, PurePosixPath
 
-__all__ = ["external_name", "is_portable", "relative_argv", "relative_or_none"]
+__all__ = [
+    "external_name",
+    "is_portable",
+    "portable_path",
+    "relative_argv",
+    "relative_or_none",
+]
 
 #: Prefix of the portable name of an external file read by absolute path.
 EXTERNAL_PREFIX = "<external>/"
@@ -36,6 +42,24 @@ def relative_or_none(path: str | os.PathLike | None, root: Path) -> str | None:
             continue
         return rel.as_posix() or "."
     return None
+
+
+def portable_path(
+    path: str | os.PathLike | None, root: Path
+) -> tuple[str | None, bool]:
+    """``(text, external)`` for a recorded path in an export a reader sees.
+
+    Inside ``root``: the repo-relative POSIX path, ``external=False``. Outside
+    it: the path exactly as recorded (absolute), ``external=True`` — a shared
+    dataset or a sibling project's file is named where it really is, never
+    disguised as part of this project. ``None`` / empty passes through.
+    """
+    if not path:
+        return (None if path is None else str(path)), False
+    rel = relative_or_none(path, root)
+    if rel is not None:
+        return rel, False
+    return str(path), True
 
 
 def external_name(path: str, via: str | None, root: Path) -> str:

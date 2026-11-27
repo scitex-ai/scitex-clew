@@ -241,6 +241,9 @@ def export_claims_json(
     # Build per-claim dicts with v1.1 enrichment fields appended AFTER all
     # existing fields so the existing field order (and thus byte-positions for
     # streaming parsers) is unchanged.  New fields are purely additive.
+    from ._portable import PATHS_NOTE, export_root, portable_fields
+
+    root = export_root()
     enriched_claims = []
     # Accumulate all exception nodes across all claims for top-level dedup list.
     _all_exception_pairs: dict[str, str] = {}  # session_id -> reason (deduped)
@@ -280,6 +283,9 @@ def export_claims_json(
                 _all_exception_pairs.setdefault(sid, reason)
         else:
             base["exception_reasons"] = []
+        # Schema v1.5: in-project paths relative to the project root; paths
+        # outside it stay absolute and are flagged ``<field>_external``.
+        portable_fields(base, ("file_path", "source_file"), root)
         enriched_claims.append(base)
     # ---------------------------------------------------------------------------
     # Schema v1.3: attestation + legend blocks (4-state, no subbadges).
@@ -337,7 +343,7 @@ def export_claims_json(
             "scitex_clew.export_claims_json() (default-on after every "
             "clew.add_claim()) or by re-running your pipeline."
         ),
-        "schema_version": "1.4",
+        "schema_version": "1.5",
         "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         # Full-8 status palette (author tooling + DAG fidelity).
         "palette": dict(_CLAIM_PALETTE),
@@ -346,6 +352,8 @@ def export_claims_json(
         # Per-status collapse map: full-7 status -> display bucket.
         "display_groups": dict(_DISPLAY_GROUPS),
         "claims_count": claims_count,
+        # Schema v1.5: what the per-claim paths are relative to.
+        "paths": dict(PATHS_NOTE),
         "attestation": {
             "text": "Provenance checked by SciTeX Clew.",
             "tool": "scitex-clew",

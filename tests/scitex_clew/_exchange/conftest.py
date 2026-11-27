@@ -79,4 +79,17 @@ def project_copy(bundle_project, signed_bundle, tmp_path) -> Path:
     return dest
 
 
+@pytest.fixture(scope="module")
+def source(_writable_cluster, tmp_path_factory):
+    """A project recorded in its OWN store and exported (``clew records export``).
+
+    Module-scoped: the project-records test modules each build one; its
+    store schema is dropped once the export is written.
+    """
+    from ._records_support import build_source
+
+    return build_source(tmp_path_factory.mktemp("records-src"))
+
+
 # EOF
+
