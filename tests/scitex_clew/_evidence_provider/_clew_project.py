@@ -184,3 +184,23 @@ def build_project(dest: Path, journal_dir: Path) -> Path:
     (root / "paper" / "edited.json").write_text('{"budget": 250}\n')
     (root / "data" / "input2.csv").write_text("x,y\n10,1\n20,1\n31,1\n")
     return root
+
+
+def add_external_claim(root: Path, journal_dir: Path) -> Path:
+    """Register claim ``ext`` whose source is a file OUTSIDE ``root``.
+
+    The source is a hand-written JSON beside the project (a shared file), so
+    the evidence report must keep its path absolute and flag it external.
+    Returns that source path.
+    """
+    shared = root.parent / "shared"
+    shared.mkdir()
+    source = shared / "external.json"
+    source.write_text('{"k": 5}\n')
+    spec = _spec(5, "ext", "k = 5", source, 5, "/k")
+    run_checked(
+        [sys.executable, "-c", _REGISTER, str(root), json.dumps([spec])],
+        root,
+        child_env(journal_dir),
+    )
+    return source

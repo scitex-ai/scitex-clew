@@ -70,7 +70,7 @@ def export_evidence(
     yes: bool,
     as_json: bool,
 ) -> None:
-    """Write the evidence report (scitex-live-paper.evidence-report 1.2.0)."""
+    """Write the evidence report (scitex-live-paper.evidence-report 1.3.0)."""
     del yes  # accepted for §2 compliance
     from scitex_clew._evidence_provider import SCHEMA_ID, SCHEMA_VERSION
 

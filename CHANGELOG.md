@@ -25,6 +25,18 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The evidence report (`clew export-evidence`, the live-paper `evidence`
+  port) speaks contract `scitex-live-paper.evidence-report` **1.3.0** and
+  names no build-host path, since Live Paper readers see it. It omits the
+  deprecated `project_root`, adds `project_name` (the root's basename), and
+  rewrites each absolute in-project path inside `details`, `reason`,
+  `graph_error` and a node's `failure.detail` to project-relative
+  (`source changed: data/a.json`) with the same rule as the path fields
+  (`portable_text`, a shared helper in `_exchange._relpaths`). Paths
+  outside the root stay absolute, and `location` / `source` then carry
+  `external: true`. The vendored schema is now
+  `evidence-report.schema.1.3.0.json` (1.2.0 removed). A consumer that read
+  `report["project_root"]` must take the root from its own input instead.
 - `clew export-claims` (`claims.json` schema `1.5`) and `--unified`
   (`1.7-unified`) name in-project files relative to the project root
   (`data/x/summary.json`, `.scitex/writer/01_manuscript/contents/abstract.tex`)

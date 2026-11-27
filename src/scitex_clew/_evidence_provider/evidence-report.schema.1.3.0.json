@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://scitex.ai/schemas/scitex-live-paper/evidence-report/1.2.0",
+  "$id": "https://scitex.ai/schemas/scitex-live-paper/evidence-report/1.3.0",
   "title": "scitex-live-paper evidence report",
-  "description": "What an evidence provider supplies to scitex-live-paper: one entry per REGISTERED claim with its evidence state, a one-line reason, its source and locator, and its minimal evidence graph. Text that is not a registered claim never appears. Versioned by schema_version (semver): a MINOR bump only adds optional fields; a MAJOR bump changes or removes fields. See docs/evidence-provider-contract.md.",
+  "description": "What an evidence provider supplies to scitex-live-paper: one entry per REGISTERED claim with its evidence state, a one-line reason, its source and locator, and its minimal evidence graph. Text that is not a registered claim never appears. Versioned by schema_version (semver): a MINOR bump only adds optional fields; a MAJOR bump changes or removes fields. Paths (location.file, source.file, graph node labels, and any path inside a details string) name an in-project file relative to the project root and a file outside the root by its absolute path (marked external: true where the field has one). The report never needs to name the project root itself. See docs/evidence-provider-contract.md.",
   "type": "object",
   "required": ["schema", "schema_version", "provider", "claims"],
   "properties": {
@@ -16,7 +16,8 @@
         "version": {"type": ["string", "null"]}
       }
     },
-    "project_root": {"type": ["string", "null"]},
+    "project_root": {"type": ["string", "null"], "deprecated": true, "description": "Deprecated in 1.3.0: providers SHOULD omit it. It is a build-host path and is shown to readers if present. Consumers never use it to locate files."},
+    "project_name": {"type": ["string", "null"], "description": "Added in 1.3.0. The project's directory or display name (e.g. the root's basename), never a path."},
     "claims": {"type": "array", "items": {"$ref": "#/$defs/claim"}}
   },
   "$defs": {
@@ -32,9 +33,10 @@
         "location": {
           "type": "object",
           "properties": {
-            "file": {"type": ["string", "null"], "description": "Manuscript file, relative to project_root (or absolute)."},
+            "file": {"type": ["string", "null"], "description": "Manuscript file, relative to the project root; absolute only when outside it."},
             "line": {"type": ["integer", "null"], "minimum": 1},
-            "label": {"type": ["string", "null"]}
+            "label": {"type": ["string", "null"]},
+            "external": {"type": "boolean", "description": "Added in 1.3.0. true when file lies outside the project root (and is therefore absolute)."}
           }
         },
         "claim_type": {"type": ["string", "null"]},
@@ -45,12 +47,13 @@
         "source": {
           "type": "object",
           "properties": {
-            "file": {"type": ["string", "null"]},
+            "file": {"type": ["string", "null"], "description": "Source file, relative to the project root; absolute only when outside it."},
+            "external": {"type": "boolean", "description": "Added in 1.3.0. true when file lies outside the project root (and is therefore absolute)."},
             "locator": {"description": "Where in the source the value lives (provider-defined shape), or null."},
             "value": {"description": "Added in 1.2.0. The value the provider read at the locator, any JSON type. Omit the key when the provider did not read one (a null value means the source holds null)."}
           }
         },
-        "details": {"type": "array", "items": {"type": "string"}},
+        "details": {"type": "array", "items": {"type": "string"}, "description": "Plain-language lines from the provider. A path inside a line follows the same rule as the path fields: relative to the project root, absolute only when outside it."},
         "provider_status": {
           "type": ["object", "null"],
           "description": "The provider's own raw verdict, opaque to scitex-live-paper (shown verbatim).",
