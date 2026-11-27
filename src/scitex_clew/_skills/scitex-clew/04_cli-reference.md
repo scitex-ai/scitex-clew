@@ -25,6 +25,7 @@ tags: [scitex-clew-cli-reference]
 | `clew print-mermaid`          | Generate a Mermaid diagram of the DAG              |
 | `clew show-stats`             | Show verification database statistics              |
 | `clew claim <add\|list\|verify\|register-intermediate>` | Manuscript-claim operations |
+| `clew records <export\|import>` | Move a project's records between stores via a JSON file ([09](09_moving-records-between-stores.md)) |
 | `clew mcp start`              | Start the MCP server (stdio) for AI agents         |
 | `clew skills <list\|get>`     | List / retrieve embedded skill pages               |
 
