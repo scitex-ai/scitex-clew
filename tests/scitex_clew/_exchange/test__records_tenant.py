@@ -13,46 +13,19 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import uuid
 from contextlib import contextmanager
 
 import pytest
 
-from tests.conftest import WRITABLE_DSN, _connect
-
-from ._records_support import TGT_SCOPE, _cli, _dsn, _env, _store, _verify_view
-
-TENANT_OWNER = "scitex_cloud_owner"
-
-
-@contextmanager
-def _tenant_store():
-    """A tenant namespace provisioned by the operator API; yields its login DSN."""
-    from scitex_dev.store import StoreTarget, TenantScope, provision_tenant_store
-
-    from scitex_clew._exchange._records import _schemas
-
-    tenant = uuid.uuid4()
-    scope, password = TenantScope(tenant), uuid.uuid4().hex
-    created_owner = False
-    with _connect() as conn:
-        found = conn.execute("SELECT 1 FROM pg_roles WHERE rolname=%s", (TENANT_OWNER,))
-        if found.fetchone() is None:
-            conn.execute(f"CREATE ROLE {TENANT_OWNER} NOLOGIN NOBYPASSRLS")
-            created_owner = True
-        conn.execute(f"CREATE ROLE {scope.principal} LOGIN PASSWORD '{password}'")
-    admin = StoreTarget.postgres(WRITABLE_DSN, pkg="scitex_clew")
-    try:
-        for schema in _schemas().values():
-            provision_tenant_store(admin, schema, scope, owner_role=TENANT_OWNER)
-        yield tenant, _dsn(scope.namespace, scope.principal, password)
-    finally:
-        with _connect() as conn:
-            conn.execute(f'DROP SCHEMA IF EXISTS "{scope.namespace}" CASCADE')
-            roles = [scope.principal] + ([TENANT_OWNER] if created_owner else [])
-            for role in roles:
-                conn.execute(f"DROP OWNED BY {role}")
-                conn.execute(f"DROP ROLE {role}")
+from ._records_support import (
+    TENANT_OWNER,
+    TGT_SCOPE,
+    _cli,
+    _env,
+    _store,
+    _tenant_store,
+    _verify_view,
+)
 
 
 def _worker(tenant, dsn, root, operation):

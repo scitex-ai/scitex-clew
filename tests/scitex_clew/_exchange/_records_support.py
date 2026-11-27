@@ -160,3 +160,42 @@ def build_source(root):
         result = _cli("records", "export", "--out", str(out), "--json")
     return {"out": out, "claims": claims, "verify": verify,
             "result": result, "doc": json.loads(out.read_text())}  # fmt: skip
+
+
+TENANT_OWNER = "scitex_cloud_owner"
+
+
+@contextmanager
+def _tenant_store(names=None):
+    """A tenant namespace provisioned by the operator API; yields its login DSN.
+
+    ``names`` limits provisioning to those clew stores (default: all eight),
+    as the Hub provisions only the schemas its Clew app reads.
+    """
+    from scitex_dev.store import StoreTarget, TenantScope, provision_tenant_store
+
+    from scitex_clew._exchange._records import _schemas
+
+    tenant = uuid.uuid4()
+    scope, password = TenantScope(tenant), uuid.uuid4().hex
+    created_owner = False
+    with _connect() as conn:
+        found = conn.execute("SELECT 1 FROM pg_roles WHERE rolname=%s", (TENANT_OWNER,))
+        if found.fetchone() is None:
+            conn.execute(f"CREATE ROLE {TENANT_OWNER} NOLOGIN NOBYPASSRLS")
+            created_owner = True
+        conn.execute(f"CREATE ROLE {scope.principal} LOGIN PASSWORD '{password}'")
+    admin = StoreTarget.postgres(WRITABLE_DSN, pkg="scitex_clew")
+    try:
+        for name, schema in _schemas().items():
+            if names is not None and name not in names:
+                continue
+            provision_tenant_store(admin, schema, scope, owner_role=TENANT_OWNER)
+        yield tenant, _dsn(scope.namespace, scope.principal, password)
+    finally:
+        with _connect() as conn:
+            conn.execute(f'DROP SCHEMA IF EXISTS "{scope.namespace}" CASCADE')
+            roles = [scope.principal] + ([TENANT_OWNER] if created_owner else [])
+            for role in roles:
+                conn.execute(f"DROP OWNED BY {role}")
+                conn.execute(f"DROP ROLE {role}")

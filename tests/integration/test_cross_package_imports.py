@@ -46,6 +46,8 @@ CROSS_PACKAGE_IMPORTS = [
     'scitex_dev.ecosystem',
     'scitex_dev.gate',
     'scitex_dev.store',
+    'scitex_dev.store._dialect',
+    'scitex_dev.store._provision',
     'scitex_io',
     'scitex_logging',
     'scitex_sdk.app',
