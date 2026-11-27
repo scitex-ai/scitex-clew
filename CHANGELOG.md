@@ -7,6 +7,22 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.37.4] — 2026-11-27
+
+### Fixed
+
+- `clew records import` into a store provisioned for only some clew stores
+  (a Hub tenant has the five its Clew app reads) failed mid-import with
+  `permission denied for schema` when it opened a store whose tables did not
+  exist (e.g. `citations`): `Store()` tried `CREATE TABLE` as the tenant
+  login. Import now preflights the catalogue read-only before writing
+  anything: a table with no rows is skipped without a connection; a missing
+  table the login may not create refuses the WHOLE import, naming every such
+  table and its row count, unless omitted on purpose with the new
+  `--skip-table NAME` (repeatable); `--dry-run` never issues DDL. The report
+  gains `skipped` (`{table: {rows, reason}}`). Tested against a tenant
+  provisioned with exactly the Hub's five stores.
+
 ## [0.37.3] — 2026-11-27
 
 ### Changed

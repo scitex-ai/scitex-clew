@@ -67,6 +67,7 @@ __all__ = [
     "RECORD_TABLES",
     "RecordsDocumentError",
     "RecordsImportConflict",
+    "RecordsImportRefused",
     "build_records",
     "import_records",
     "load_records",
@@ -85,6 +86,10 @@ class RecordsDocumentError(ValueError):
 
 class RecordsImportConflict(RuntimeError):
     """A write-once field differs between the document and the target store."""
+
+
+class RecordsImportRefused(RuntimeError):
+    """A table with rows to import is not provisioned and may not be created."""
 
 
 def _schemas() -> dict:
@@ -347,39 +352,97 @@ def _apply(name: str, store, plan: list) -> None:
                 verb(key, expected_revision=ANY_REVISION)
 
 
+def _preflight(tables: Mapping[str, Any], schemas: dict, skip: set, dry_run: bool):
+    """Decide, read-only, how each table is handled — before anything is written.
+
+    Returns ``(work, skipped)``: ``work`` lists ``(name, open_store)`` for the
+    tables to import (``open_store`` False = a dry run against a table this
+    login could create but that does not exist yet: planned without opening,
+    so no DDL); ``skipped`` maps a table to ``{"rows", "reason"}``. A table
+    with no rows is skipped without a connection. A table with rows whose
+    store objects are missing and may not be created (tenant / managed store)
+    refuses the WHOLE import, naming every such table.
+    """
+    from ._records_probe import probe_store
+
+    work: list[tuple[str, bool]] = []
+    skipped: dict[str, dict] = {}
+    blocked: dict[str, tuple[int, tuple[str, ...]]] = {}
+    for name, table in tables.items():
+        rows = len(table["rows"])
+        if name in skip:
+            skipped[name] = {"rows": rows, "reason": "--skip-table"}
+            continue
+        if rows == 0:
+            skipped[name] = {"rows": 0, "reason": "empty"}
+            continue
+        probe = probe_store(_target(name), schemas[name])
+        if probe.ready:
+            work.append((name, True))
+        elif probe.may_create:
+            work.append((name, not dry_run))
+        else:
+            blocked[name] = (rows, probe.missing)
+    if blocked:
+        detail = "; ".join(
+            f"{name} ({rows} row(s); missing {', '.join(missing[:4])}"
+            + (", ..." if len(missing) > 4 else "")
+            + ")"
+            for name, (rows, missing) in sorted(blocked.items())
+        )
+        flags = " ".join(f"--skip-table {name}" for name in sorted(blocked))
+        raise RecordsImportRefused(
+            f"the target store is not provisioned for table(s) {sorted(blocked)} "
+            f"and this login may not create them: {detail}. Nothing was "
+            "imported. Ask the store's admin to provision those schemas, or "
+            f"omit them explicitly with: {flags}"
+        )
+    return work, skipped
+
+
 def import_records(
     document: Mapping[str, Any],
     *,
     project: str | None = None,
     dry_run: bool = False,
     rebase: list[tuple[str, str]] | None = None,
+    skip_tables: list[str] | tuple[str, ...] = (),
 ) -> dict:
     """Write a validated document's records into the current store.
 
     ``project`` is the TARGET scope (default: the current resolved scope);
     every record is filed under it. Returns per-table counts. Every table is
-    planned (and checked for write-once conflicts) before any is written.
+    preflighted (read-only, :func:`_preflight`) and planned (checked for
+    write-once conflicts) before any is written; a dry run never issues DDL.
 
     ``rebase`` (from :func:`._rebase.parse_rebase`) moves the source
     checkout's paths to the target's before anything is planned; the report's
-    ``paths`` says how many moved and which stayed external.
+    ``paths`` says how many moved and which stayed external. ``skip_tables``
+    omits those tables on purpose; the report's ``skipped`` lists them (and
+    every empty table) with their row counts.
     """
     from .._db._scope import resolve_project_scope
     from ._rebase import rebase_tables
 
     _validate(document)
+    unknown = sorted(set(skip_tables) - set(RECORD_TABLES))
+    if unknown:
+        raise ValueError(
+            f"--skip-table {unknown}: not a clew table (one of {list(RECORD_TABLES)})"
+        )
     scope = project or resolve_project_scope()
     schemas = _schemas()
     tables, paths = rebase_tables(document["tables"], list(rebase or []))
+    work, skipped = _preflight(tables, schemas, set(skip_tables), dry_run)
     planned = []
     try:
-        for name, table in tables.items():
-            planned.append(
-                (
-                    name,
-                    *_plan_table(name, schemas[name], table["rows"], scope),
-                )
-            )
+        for name, open_store in work:
+            rows = tables[name]["rows"]
+            if open_store:
+                planned.append((name, *_plan_table(name, schemas[name], rows, scope)))
+            else:
+                plan = [("created", *_incoming(schemas[name], r), None) for r in rows]
+                planned.append((name, None, plan))
         report = {}
         for name, store, plan in planned:
             counts = {"rows": len(plan), "created": 0, "updated": 0, "unchanged": 0}
@@ -390,7 +453,8 @@ def import_records(
                 _apply(name, store, plan)
     finally:
         for _name, store, _plan in planned:
-            store.close()
+            if store is not None:
+                store.close()
     return {
         "schema": RECORDS_SCHEMA,
         "schema_version": RECORDS_SCHEMA_VERSION,
@@ -398,6 +462,7 @@ def import_records(
         "target_project": scope,
         "dry_run": dry_run,
         "tables": report,
+        "skipped": skipped,
         "paths": paths,
     }
 

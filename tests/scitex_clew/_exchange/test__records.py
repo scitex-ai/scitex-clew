@@ -175,7 +175,7 @@ def _owners(admin, schemas):
 
 @pytest.fixture(scope="module")
 def managed(source):
-    from scitex_dev.store import StoreProvisionError, provision_store_acl
+    from scitex_dev.store import provision_store_acl
 
     from scitex_clew._exchange._records import _schemas
 
@@ -185,11 +185,7 @@ def managed(source):
         _managed_schema() as (name, login_dsn, admin, login),
     ):
         with _store(login_dsn, TGT_SCOPE):
-            try:
-                _cli("records", "import", str(source["out"]))
-                unprovisioned = None
-            except StoreProvisionError as exc:
-                unprovisioned = exc
+            unprovisioned = _cli("records", "import", str(source["out"]), catch=True)
         for schema in schemas:
             provision_store_acl(admin, schema)
         before = _owners(admin, schemas)
@@ -488,12 +484,11 @@ def test_write_once_conflict_writes_nothing_else(conflict, source):
 # ---------------------------------------------------------------------------
 def test_unprovisioned_managed_store_refuses_instead_of_ddl(managed):
     # Arrange
-    from scitex_dev.store import StoreProvisionError
-
+    result = managed["unprovisioned"]
     # Act
-    error = managed["unprovisioned"]
+    refused = (result.exit_code, "not provisioned" in result.output)
     # Assert
-    assert isinstance(error, StoreProvisionError)
+    assert refused == (1, True), result.output
 
 
 def test_managed_login_has_no_create_privilege(managed):
