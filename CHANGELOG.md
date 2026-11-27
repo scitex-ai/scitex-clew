@@ -37,6 +37,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   in-project name), marks every out-of-root graph file node `external`, and
   makes the `location.label` fallback project-relative — all within the
   evidence-report 1.2.0 contract, which already allows both forms.
+- Subprocess coverage is now configured declaratively via `patch =
+    ["subprocess"]` in `[tool.coverage.run]`; `tests/conftest.py` no longer
+    writes a `.pth` shim into site-packages or overwrites `COVERAGE_PROCESS_START`
+    / `COVERAGE_FILE`.
 
 ### Fixed
 
