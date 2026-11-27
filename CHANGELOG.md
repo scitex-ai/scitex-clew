@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.37.2] — 2026-11-27
+
 ### Added
 
 - `clew records export --out FILE.json` / `clew records import FILE.json
