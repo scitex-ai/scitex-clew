@@ -6,6 +6,7 @@ import pytest
 from scitex_clew._exchange._relpaths import (
     external_name,
     is_portable,
+    portable_path,
     relative_argv,
     relative_or_none,
 )
@@ -75,3 +76,32 @@ def test_portable_paths_stay_inside_the_root(rel, ok):
 
 
 # EOF
+
+
+def test_portable_path_inside_root_is_relative_and_internal(tmp_path):
+    # Arrange
+    path = tmp_path / "data" / "x.json"
+    # Act
+    result = portable_path(str(path), tmp_path)
+    # Assert
+    assert result == ("data/x.json", False)
+
+
+def test_portable_path_outside_root_stays_absolute_and_external(tmp_path):
+    # Arrange
+    root = tmp_path / "proj"
+    outside = str(tmp_path / "shared" / "atlas.nii")
+    # Act
+    result = portable_path(outside, root)
+    # Assert
+    assert result == (outside, True)
+
+
+def test_portable_path_passes_none_through(tmp_path):
+    # Arrange
+    path = None
+    # Act
+    result = portable_path(path, tmp_path)
+    # Assert
+    assert result == (None, False)
+

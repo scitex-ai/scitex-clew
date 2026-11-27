@@ -125,10 +125,11 @@ each claim with:
   `verified` / `suspect` / `failed` / `exception`.
 - `display_color` — bare hex for the display group.
 - `exception_reasons` — reasons for exception nodes in the chain.
+- (1.5) `file_path` / `source_file`: project-relative inside the root, else absolute with `<field>_external: true`.
 
-Top-level: `schema_version` (`"1.3"`), `palette` (full-7),
-`display_palette`, `display_groups` (collapse map), `attestation`,
-`legend`, `exceptions`, `claims`.
+Top-level: `schema_version` (`"1.5"`), `palette` (full-7),
+`display_palette`, `display_groups` (collapse map), `paths`, `attestation`, `legend`, `exceptions`,
+`claims`. `1.7-unified` applies the same rule (+ `link`, citation `manuscript_file`).
 
 ## 5. Canonical palette (v1.3 full-7) — supersedes all older tables
 

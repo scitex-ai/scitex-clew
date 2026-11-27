@@ -152,13 +152,13 @@ class TestUnifiedExportTopLevel:
         # Assert
         assert payload["attestation"]["total"] == 2
 
-    def test_schema_version_is_16_unified(self, isolated_db, tmp_path):
+    def test_schema_version_is_17_unified(self, isolated_db, tmp_path):
         # Arrange
         clew.add_citation("Berens2009", doi="10.1/x")
         # Act
         payload = _export(tmp_path)
-        # Assert — v1.6-unified: adds the registered-source gate (unsourced)
-        assert payload["schema_version"] == "1.6-unified"
+        # Assert — v1.7-unified: project-relative paths (+ *_external flags)
+        assert payload["schema_version"] == "1.7-unified"
 
     def test_toplevel_palette_has_failed_bucket(self, isolated_db, tmp_path):
         # Arrange

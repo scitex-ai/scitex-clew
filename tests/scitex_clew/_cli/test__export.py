@@ -48,7 +48,7 @@ def test_unified_export_writes_unified_schema(runner, tmp_path):
         ["export-claims", "--unified", "--path", str(out), "--no-read-only"],
     )
     # Assert
-    assert json.loads(out.read_text())["schema_version"] == "1.6-unified"
+    assert json.loads(out.read_text())["schema_version"] == "1.7-unified"
 
 
 def test_unified_export_exits_zero(runner, tmp_path):
@@ -63,16 +63,16 @@ def test_unified_export_exits_zero(runner, tmp_path):
     assert result.exit_code == 0
 
 
-def test_default_export_is_per_claim_v14(runner, tmp_path):
+def test_default_export_is_per_claim_v15(runner, tmp_path):
     # Arrange
-    out = tmp_path / "v14.json"
+    out = tmp_path / "v15.json"
     # Act
     result = runner.invoke(
         main,
         ["export-claims", "--path", str(out), "--no-read-only"],
     )
     # Assert
-    assert json.loads(out.read_text())["schema_version"] == "1.4"
+    assert json.loads(out.read_text())["schema_version"] == "1.5"
 
 
 def test_json_flag_emits_path(runner, tmp_path):

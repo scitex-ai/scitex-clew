@@ -117,6 +117,16 @@ def _source_block(record, source_file: str | None, root: Path) -> dict:
     return block
 
 
+def _portable_location(location: str | None, root: Path) -> str | None:
+    """``/abs/paper.tex:L10`` -> ``paper.tex:L10`` when the file is in ``root``."""
+    if not location:
+        return location
+    path, sep, line = location.rpartition(":L")
+    if not (sep and line.isdigit()):
+        path, sep, line = location, "", ""
+    return f"{relative_to_root(path, root)}{sep}{line}"
+
+
 def _entry(row, record, root: Path, with_graph: bool) -> dict:
     details = [str(d) for d in (row.details or [])]
     state, reason, status = classify_outcome(row.outcome, details)
@@ -131,7 +141,7 @@ def _entry(row, record, root: Path, with_graph: bool) -> dict:
         "location": {
             "file": relative_to_root(manuscript, root),
             "line": line or None,
-            "label": label or row.location,
+            "label": label or _portable_location(row.location, root),
         },
         "claim_type": record.claim_type if record else None,
         "stated_text": (record.claim_value if record else None) or row.claim_value,

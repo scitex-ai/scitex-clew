@@ -18,17 +18,25 @@ from __future__ import annotations
 
 from pathlib import Path
 
-__all__ = ["relative_to_root", "slice_to_graph"]
+__all__ = ["is_external", "relative_to_root", "slice_to_graph"]
 
 
 def relative_to_root(path: str | None, root: Path) -> str | None:
-    """``path`` relative to ``root`` when inside it, else unchanged."""
-    if not path:
-        return path
-    try:
-        return Path(path).resolve().relative_to(root).as_posix()
-    except ValueError:
-        return str(path)
+    """``path`` relative to ``root`` when inside it, else unchanged.
+
+    The shared export rule (:func:`.._exchange._relpaths.portable_path`):
+    lexical first, so an in-project symlink keeps its in-project name.
+    """
+    from .._exchange._relpaths import portable_path
+
+    return portable_path(path, root)[0] if path else path
+
+
+def is_external(path: str | None, root: Path) -> bool:
+    """Whether a recorded path lies outside ``root`` (kept absolute)."""
+    from .._exchange._relpaths import portable_path
+
+    return bool(path) and portable_path(path, root)[1]
 
 
 def slice_to_graph(sl, claim_id: str, root: Path, *, run_lookup=None) -> dict:
@@ -47,7 +55,7 @@ def slice_to_graph(sl, claim_id: str, root: Path, *, run_lookup=None) -> dict:
                 "label": relative_to_root(path, root),
                 "hash": sl.file_hashes.get(path),
             }
-            if path in sl.external:
+            if path in sl.external or is_external(path, root):
                 node["external"] = True
             nodes.append(node)
         return file_ids[path]

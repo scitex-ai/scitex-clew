@@ -23,6 +23,21 @@ versions follow [Semantic Versioning](https://semver.org/).
   `provision_store_acl` DML-only login. Skill page
   `09_moving-records-between-stores.md`.
 
+### Changed
+
+- `clew export-claims` (`claims.json` schema `1.5`) and `--unified`
+  (`1.7-unified`) name in-project files relative to the project root
+  (`data/x/summary.json`, `.scitex/writer/01_manuscript/contents/abstract.tex`)
+  instead of the build machine's absolute paths; a path outside the root
+  stays absolute and is flagged `<field>_external: true`. A top-level
+  `paths` block states the convention. Applies to `file_path`,
+  `source_file`, the unified feed's `link` and a citation's
+  `manuscript_file`; the store is unchanged. `clew export-evidence` uses the
+  same rule (lexical before resolved, so an in-project symlink keeps its
+  in-project name), marks every out-of-root graph file node `external`, and
+  makes the `location.label` fallback project-relative — all within the
+  evidence-report 1.2.0 contract, which already allows both forms.
+
 ### Fixed
 
 - The dataset provenance provider (contract `scitex-dataset.provenance-readers`)
