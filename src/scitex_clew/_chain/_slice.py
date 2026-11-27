@@ -89,7 +89,7 @@ from ._routes import (
     resolve_lineage,
     resolve_producer,
 )
-from ._slice_records import collect_links, collect_recipes
+from ._slice_records import collect_links, collect_recipes, run_script
 from ._slice_records import run_environment as _run_environment
 from ._slice_walk import LEVEL_PATH_PRUNED, RunIndex, walk_demanded
 
@@ -157,6 +157,10 @@ class ProvenanceSlice:
     #: ``{sid: recipe}`` — how to re-execute a kept NOTEBOOK run (run the
     #: notebook; see :mod:`scitex_clew._chain._notebook`). Other runs replay argv.
     reruns: dict[str, dict] = field(default_factory=dict)
+    #: ``{sid: {"path", "hash", "project_root"}}`` — the script each kept run
+    #: executed (the triplet's executable). A run attribute, not a file node:
+    #: it adds nothing to :meth:`counts`.
+    scripts: dict[str, dict] = field(default_factory=dict)
 
     def required_links(self) -> list[dict]:
         """Symlinks a materialized slice must recreate, in path order:
@@ -250,6 +254,9 @@ class ProvenanceSlice:
             "required_not_bundled": self.required_external(),
             "links": self.required_links(),
             "reruns": {s: dict(r) for s, r in sorted(self.reruns.items())},
+            "scripts": {
+                s: dict(self.scripts[s]) for s in self.runs if s in self.scripts
+            },
             "environment": self.requirements(),
             "environment_findings": self.environment_findings(),
             "edges": [
@@ -408,6 +415,7 @@ def build_slice(
         environment={s: env for s in order if (env := _run_environment(db, s))},
         links=collect_links(db, order, kept_in, kept_out),
         reruns=reruns,
+        scripts={s: script for s in order if (script := run_script(db, s))},
     )
 
 

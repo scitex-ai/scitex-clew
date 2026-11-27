@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Per-run METADATA records a slice carries: software environment + symlinks.
+"""Per-run METADATA records a slice carries: environment, symlinks, script.
 
 Split out of :mod:`._slice` (512-line limit). Both come from the kept runs'
 recorded metadata rather than from ``file_hashes`` rows:
@@ -10,14 +10,26 @@ recorded metadata rather than from ``file_hashes`` rows:
 * ``links`` (#192, :mod:`scitex_clew._links`) — the in-project symlinks the run
   went through to reach its files. A slice keeps a link when it reaches a
   kept file; materializing the slice must recreate it, or a re-run that opens
-  the link path finds nothing.
+  the link path finds nothing;
+* ``script_path`` / ``script_hash`` — the run's EXECUTABLE, the middle of the
+  input -> executable -> output triplet. It is a run attribute, not a file
+  node, so it changes no slice count (a notebook run's code files are the
+  exception: :func:`collect_recipes` adds them as files).
 """
 
 from __future__ import annotations
 
 import json
+from pathlib import PurePath
 
-__all__ = ["collect_links", "run_environment", "run_links", "run_metadata_of"]
+__all__ = [
+    "collect_links",
+    "describe_script",
+    "run_environment",
+    "run_links",
+    "run_metadata_of",
+    "run_script",
+]
 
 
 def _run_metadata(db, sid: str) -> dict | None:
@@ -55,6 +67,49 @@ def run_environment(db, sid: str) -> dict | None:
             dict(provenance) if isinstance(provenance, dict) else None
         ),
     }
+
+
+def run_script(db, sid: str) -> dict | None:
+    """``{"path", "hash", "project_root"}`` of the script run ``sid`` executed.
+
+    ``project_root`` is the run's own recorded root (scitex-session's
+    ``project_root``, else the ``clew_project_root`` the tracker recorded),
+    None when neither was recorded. Returns None when the run has no script.
+    """
+    run = db.get_run(sid) or {}
+    path = run.get("script_path")
+    if not path:
+        return None
+    meta = run_metadata_of(run)
+    clew_root = meta.get("clew_project_root")
+    root = meta.get("project_root") or (
+        clew_root.get("project_root") if isinstance(clew_root, dict) else None
+    )
+    return {
+        "path": str(path),
+        "hash": run.get("script_hash"),
+        "project_root": str(root) if root else None,
+    }
+
+
+def describe_script(entry: dict | None) -> str:
+    """``script: <path> (sha256 <12 hex>)`` for the text view of a slice.
+
+    The path is project-relative when it lies inside the run's project root,
+    absolute otherwise. A hash with a scheme prefix (a notebook's
+    ``ipynb-code-v1:<hex>``) is labelled by that scheme.
+    """
+    if not entry:
+        return "script: not recorded"
+    path = PurePath(entry["path"])
+    root = entry.get("project_root")
+    if root and path.is_absolute() and path.is_relative_to(root):
+        path = path.relative_to(root)
+    digest = entry.get("hash")
+    if not digest:
+        return f"script: {path} (hash not recorded)"
+    scheme, _, hexpart = str(digest).rpartition(":")
+    return f"script: {path} ({scheme or 'sha256'} {hexpart[:12]})"
 
 
 def collect_recipes(db, runs, input_hashes=None, files=None) -> dict[str, dict]:

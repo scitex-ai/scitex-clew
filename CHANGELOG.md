@@ -17,6 +17,13 @@ versions follow [Semantic Versioning](https://semver.org/).
   project's "used by scripts" was empty for that reason: the Dataset app read
   the cards store while the project's runs live in its tenant store. Without
   `store` the behaviour is unchanged. `records_from_db` is the shared query.
+- `clew slice` names each run's executable: the run line now reads
+  `run <session_id>  script: <path> (sha256 <12 hex>)` (project-relative
+  inside the run's project root, absolute otherwise; `script: not recorded`
+  when absent), so the text view shows the input -> executable -> output
+  triplet. `ProvenanceSlice.scripts` and a `"scripts"` key in `--json`
+  (`{sid: {path, hash, project_root}}`) carry it. The script is a run
+  attribute, not a node: slice counts are unchanged.
 
 ## [0.37.1] — 2026-11-27
 
