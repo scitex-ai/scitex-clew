@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 
 import click
-from scitex_dev.ecosystem import SpecCommand, SpecGroup
+from scitex_dev.ecosystem import SpecCommand
 
 from ._claim import _json_mode
 from ._help_specs import CLI_HELP
@@ -302,8 +302,10 @@ def slice_cmd(ctx: click.Context, targets, level: int, compare: bool, as_json: b
         f"slice level={sl.level} runs={c['runs']} files={c['files']} "
         f"nodes={c['nodes']} edges={c['edges']}"
     )
+    from scitex_clew._chain._slice_records import describe_script
+
     for sid in sl.runs:
-        click.echo(f"  run {sid}")
+        click.echo(f"  run {sid}  {describe_script(sl.scripts.get(sid))}")
         for p in sl.run_inputs.get(sid, []):
             tag = "  [EXTERNAL: outside the project, not bundled]"
             click.echo(f"    <- {p}{tag if p in sl.external else ''}")

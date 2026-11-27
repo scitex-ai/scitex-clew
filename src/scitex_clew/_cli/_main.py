@@ -38,6 +38,7 @@ from ._help_specs import CLI_HELP
 from ._introspect import list_python_apis
 from ._mcp import mcp
 from ._notebook import execute_notebook_cmd
+from ._records import records
 from ._recover import recover_journals, recover_quietly
 from ._signing import keygen_cmd, sign_cmd, verify_signatures_cmd
 from ._sources import (
@@ -91,7 +92,7 @@ COMMAND_CATEGORIES = [
         ],
     ),
     ("Signing", ["keygen", "sign", "verify-signatures"]),
-    ("Exchange", ["bundle"]),
+    ("Exchange", ["bundle", "records"]),
     ("Citations", ["verify-citations", "citation"]),
     ("Hashing", ["hash-file", "hash-directory"]),
     ("Recording", ["recover-journals"]),
@@ -292,6 +293,9 @@ main.add_command(verify_signatures_cmd)
 
 # Evidence exchange format: clew bundle {keygen,export,verify,rerun}.
 main.add_command(bundle)
+
+# Project-records transfer between stores: clew records {export,import}.
+main.add_command(records)
 
 # Citation gate: verify-citations (compiler pre-flight) + citation group.
 main.add_command(verify_citations_cmd)

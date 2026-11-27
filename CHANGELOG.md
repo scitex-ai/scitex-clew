@@ -7,6 +7,22 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `clew records export --out FILE.json` / `clew records import FILE.json
+  [--project-scope S] [--rebase SRC_ROOT=DST_ROOT]... [--dry-run]`: move a
+  project's records between stores through a file, so the target never
+  connects to the source. The document (`scitex-clew.project-records`
+  1.0.0) carries every row of the project scope from all eight clew stores
+  plus a SHA-256 of its canonical payload; import refuses a mismatching
+  checksum or schema, rewrites the project scope, is idempotent (identical
+  rows skipped, differing rows replaced, write-once conflicts refused before
+  any write), rebases recorded paths to the target checkout (reporting
+  external ones), and issues DML only — tested as a `provision_tenant_store`
+  tenant login read back by the Hub Clew app's worker, and as a
+  `provision_store_acl` DML-only login. Skill page
+  `09_moving-records-between-stores.md`.
+
 ### Changed
 
 - `clew export-claims` (`claims.json` schema `1.5`) and `--unified`
@@ -21,6 +37,16 @@ versions follow [Semantic Versioning](https://semver.org/).
   in-project name), marks every out-of-root graph file node `external`, and
   makes the `location.label` fallback project-relative — all within the
   evidence-report 1.2.0 contract, which already allows both forms.
+
+### Fixed
+
+- `clew slice` names each run's executable: the run line now reads
+  `run <session_id>  script: <path> (sha256 <12 hex>)` (project-relative
+  inside the run's project root, absolute otherwise; `script: not recorded`
+  when absent), so the text view shows the input -> executable -> output
+  triplet. `ProvenanceSlice.scripts` and a `"scripts"` key in `--json`
+  (`{sid: {path, hash, project_root}}`) carry it. The script is a run
+  attribute, not a node: slice counts are unchanged.
 
 ## [0.37.1] — 2026-11-27
 
