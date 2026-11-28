@@ -156,11 +156,21 @@ def export(
 @click.option("--rebase", "rebase", multiple=True, metavar="SRC_ROOT=DST_ROOT",
               help="Rewrite recorded paths under SRC_ROOT to DST_ROOT (repeatable). "
                    "Paths under no SRC_ROOT are kept and reported as external.")  # fmt: skip
+@click.option("--skip-table", "skip_tables", multiple=True, metavar="NAME",
+              help="Omit this table on purpose (repeatable), e.g. one the target store "
+                   "is not provisioned for. Skipped tables are reported with their rows.")  # fmt: skip
 @_YES_OPTION
 @_JSON_OPTION
 @click.pass_context
 def import_(
-    ctx, path: str, project_scope, dry_run: bool, rebase, yes: bool, as_json: bool
+    ctx,
+    path: str,
+    project_scope,
+    dry_run: bool,
+    rebase,
+    skip_tables,
+    yes: bool,
+    as_json: bool,
 ) -> None:
     """Import a project-records document into the current store."""
     del yes
@@ -168,6 +178,7 @@ def import_(
     from .._exchange._records import (
         RecordsDocumentError,
         RecordsImportConflict,
+        RecordsImportRefused,
         import_records,
         load_records,
     )
@@ -179,11 +190,18 @@ def import_(
     try:
         document = load_records(path)
         report = import_records(
-            document, project=project_scope or None, dry_run=dry_run, rebase=rules
+            document,
+            project=project_scope or None,
+            dry_run=dry_run,
+            rebase=rules,
+            skip_tables=tuple(skip_tables),
         )
-    except RecordsDocumentError as exc:
+    except ValueError as exc:
+        if isinstance(exc, RecordsDocumentError):
+            raise click.ClickException(f"refused {path}: {exc}") from exc
+        raise click.BadParameter(str(exc), param_hint="--skip-table") from exc
         raise click.ClickException(f"refused {path}: {exc}") from exc
-    except RecordsImportConflict as exc:
+    except (RecordsImportConflict, RecordsImportRefused) as exc:
         raise click.ClickException(str(exc)) from exc
     if _json_mode(ctx, as_json):
         _echo_json(report)
@@ -196,6 +214,10 @@ def import_(
         click.echo(
             f"  {name}: {c['rows']} row(s) — {c['created']} created, "
             f"{c['updated']} updated, {c['unchanged']} unchanged"
+        )
+    for name, info in report["skipped"].items():
+        click.echo(
+            f"  {name}: skipped ({info['reason']}), {info['rows']} row(s) not imported"
         )
     moved = report["paths"]
     if moved["rules"]:

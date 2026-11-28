@@ -1,7 +1,7 @@
 ---
 description: |
   [TOPIC] Moving a project's clew records between stores
-  [DETAILS] `clew records export --out F.json` / `clew records import F.json [--project-scope S] [--rebase SRC_ROOT=DST_ROOT]... [--dry-run]` — every row of the current project scope from all eight clew stores (runs, file_hashes, verification_results, session_parents, environments, claims, citations, stamps) in a checksummed `scitex-clew.project-records` 1.0.0 document; the target never connects to the source; idempotent import that rewrites the project scope and (with --rebase) the recorded paths, reporting external ones; DML only — works as a tenant login on a provision_tenant_store store (the Hub Clew app's target) or a provision_store_acl store.
+  [DETAILS] `clew records export --out F.json` / `clew records import F.json [--project-scope S] [--rebase SRC_ROOT=DST_ROOT]... [--skip-table NAME]... [--dry-run]` — every row of the current project scope from all eight clew stores (runs, file_hashes, verification_results, session_parents, environments, claims, citations, stamps) in a checksummed `scitex-clew.project-records` 1.0.0 document; the target never connects to the source; idempotent import that rewrites the project scope and (with --rebase) the recorded paths, reporting external ones; DML only — works as a tenant login on a provision_tenant_store store (the Hub Clew app's target) or a provision_store_acl store.
 tags: [scitex-clew-moving-records-between-stores]
 ---
 
@@ -110,9 +110,22 @@ tested:
   `scitex_store_owner` owns the tables; the login is a DML-only `scitex_rw`
   member.
 
-When the tables exist, import issues only DML. When one is missing,
-`Store()` refuses (`StoreProvisionError` on a managed store) — the admin
-provisions all eight schemas; import never attempts DDL itself.
+Import checks the catalogue first, read-only, before it opens any store or
+writes anything:
+
+* a table with **no rows** in the file is skipped without a connection;
+* a table whose store objects exist is imported with DML only;
+* a missing table on a self-managed store (the login may CREATE) is created,
+  as any clew command does — except under `--dry-run`, which never issues DDL;
+* a missing table on a tenant / managed store **refuses the whole import**,
+  naming every such table and its row count, unless you omit it on purpose:
+  `--skip-table citations --skip-table stamps`. The report's `skipped` lists
+  every skipped table with its rows and reason (`empty` / `--skip-table`).
+
+A Hub tenant is provisioned with the five stores its Clew app reads (runs,
+file_hashes, verification_results, session_parents, claims); citations,
+stamps and environments rows need `--skip-table` there (or the admin
+provisions those schemas too).
 
 ## Limitations
 

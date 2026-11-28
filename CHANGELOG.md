@@ -7,6 +7,38 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.38.0] — 2026-11-28
+
+### Added
+
+- `scitex_clew.tenant`, the public surface a Cloud host uses to give a
+  project its private Clew store without re-typing Clew internals:
+  `tenant_schemas()` (the five stores the hosted app's worker checks; the
+  worker now reads this tuple), `provision_tenant(migration_target,
+  tenant_dsn, scope, owner_role=...)` (creates them through a separate
+  administration connection; idempotent, a repeat call creates nothing and a
+  store that fails the worker's catalogue check raises
+  `TenantProvisionError`), and `project_scope_for(root)` (the project's
+  persisted `.scitex/clew/project-id`, minted once if absent, so records
+  written later by runs inside the project share the host's scope). Creating
+  the tenant login stays the host's job.
+
+## [0.37.4] — 2026-11-27
+
+### Fixed
+
+- `clew records import` into a store provisioned for only some clew stores
+  (a Hub tenant has the five its Clew app reads) failed mid-import with
+  `permission denied for schema` when it opened a store whose tables did not
+  exist (e.g. `citations`): `Store()` tried `CREATE TABLE` as the tenant
+  login. Import now preflights the catalogue read-only before writing
+  anything: a table with no rows is skipped without a connection; a missing
+  table the login may not create refuses the WHOLE import, naming every such
+  table and its row count, unless omitted on purpose with the new
+  `--skip-table NAME` (repeatable); `--dry-run` never issues DDL. The report
+  gains `skipped` (`{table: {rows, reason}}`). Tested against a tenant
+  provisioned with exactly the Hub's five stores.
+
 ## [0.37.3] — 2026-11-27
 
 ### Changed
@@ -59,6 +91,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   in-project name), marks every out-of-root graph file node `external`, and
   makes the `location.label` fallback project-relative — all within the
   evidence-report 1.2.0 contract, which already allows both forms.
+- Subprocess coverage is now configured declaratively via `patch =
+    ["subprocess"]` in `[tool.coverage.run]`; `tests/conftest.py` no longer
+    writes a `.pth` shim into site-packages or overwrites `COVERAGE_PROCESS_START`
+    / `COVERAGE_FILE`.
 
 ### Fixed
 
