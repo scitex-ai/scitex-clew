@@ -7,6 +7,20 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `scitex_clew.tenant`, the public surface a Cloud host uses to give a
+  project its private Clew store without re-typing Clew internals:
+  `tenant_schemas()` (the five stores the hosted app's worker checks; the
+  worker now reads this tuple), `provision_tenant(migration_target,
+  tenant_dsn, scope, owner_role=...)` (creates them through a separate
+  administration connection; idempotent, a repeat call creates nothing and a
+  store that fails the worker's catalogue check raises
+  `TenantProvisionError`), and `project_scope_for(root)` (the project's
+  persisted `.scitex/clew/project-id`, minted once if absent, so records
+  written later by runs inside the project share the host's scope). Creating
+  the tenant login stays the host's job.
+
 ## [0.37.4] — 2026-11-27
 
 ### Fixed
