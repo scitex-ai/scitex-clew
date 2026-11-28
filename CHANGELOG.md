@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.37.5] — 2026-11-28
+
 ### Added
 
 - `scitex_clew.tenant`, the public surface a Cloud host uses to give a
@@ -20,6 +22,27 @@ versions follow [Semantic Versioning](https://semver.org/).
   persisted `.scitex/clew/project-id`, minted once if absent, so records
   written later by runs inside the project share the host's scope). Creating
   the tenant login stays the host's job.
+
+### Fixed
+
+- **False OK in `clew bundle verify`.** Without `--project-root` the tree
+  checked was the working directory (`.`), whatever the bundle's location.
+  Verifying a STALE bundle committed in a linked git worktree
+  (`clew bundle verify <worktree>/.scitex/clew/evidence-bundle.json`) from a
+  shell sitting in the MAIN checkout hashed the main checkout's files — the
+  old outputs the stale bundle pinned — and printed `[OK] 69/69 match`, while a
+  fresh clone of the same commit correctly failed. The tree is now the
+  bundle's own project (`<root>/.scitex/clew/<file>` → `<root>`, else the git
+  work tree holding the file via `rev-parse --show-toplevel`, never the git
+  common dir), which must agree with the working directory's project; when
+  they differ the command exits 2 (`ambiguous project root`, naming both trees)
+  instead of picking one. `clew bundle rerun` had the same default and gets the
+  same rule; `clew bundle export` now defaults to the working directory's
+  project (git top level, not a subdirectory) and refuses an `--out` inside a
+  different project. Every bundle verb prints `project root: <path> (<rule>)`;
+  `verify --json` adds `project_root_source` and `bundle_home`.
+  `verify_bundle(path, project_root=None)` resolves the same way
+  (new `resolve_bundle_root`, `bundle_home`, `ProjectRootAmbiguous`).
 
 ## [0.37.4] — 2026-11-27
 

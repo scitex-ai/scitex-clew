@@ -2,7 +2,10 @@
 """`clew bundle {keygen,export,verify,rerun}` — the evidence exchange format.
 
 See :mod:`scitex_clew._exchange`. ``verify`` and ``rerun`` are store-free:
-they read only the bundle file and the checkout. ``rerun`` EXECUTES the
+they read only the bundle file and the checkout. Which checkout is decided by
+:mod:`scitex_clew._exchange._root` (the bundle's own project, which must agree
+with the working directory's) and is printed by every verb; an ambiguous
+choice is a usage error (exit 2), never a guess. ``rerun`` EXECUTES the
 project's code — run it inside an isolated container.
 
 Exit codes: ``0`` = ok; ``1`` = the bundle did not verify / reproduce (the
@@ -21,10 +24,14 @@ from scitex_dev.ecosystem import CliHelp, Example, SpecCommand, SpecGroup
 _ROOT_OPTION = click.option(
     "--project-root",
     "project_root",
-    default=".",
-    show_default=True,
+    default=None,
     type=click.Path(file_okay=False, exists=True),
-    help="The project checkout (its root directory).",
+    help=(
+        "The project checkout (its root directory). Default: the bundle's own "
+        "project (<root>/.scitex/clew/..., else its git work tree), which must "
+        "be the working directory's project; if they differ the command fails "
+        "rather than guess."
+    ),
 )
 _JSON_OPTION = click.option(
     "--json", "as_json", is_flag=True, help="Emit JSON (also accepted at top level)."
@@ -48,6 +55,27 @@ def _json_mode(ctx: click.Context, as_json: bool) -> bool:
 
 def _echo_json(payload) -> None:
     click.echo(_json.dumps(payload, indent=2, ensure_ascii=False, default=str))
+
+
+def _resolve_root(bundle_path, project_root) -> dict:
+    """The tree to check / export, or a usage error (exit 2) when ambiguous."""
+    from .._exchange import ProjectRootAmbiguous, resolve_bundle_root
+
+    try:
+        return resolve_bundle_root(bundle_path, project_root)
+    except ProjectRootAmbiguous as exc:
+        raise click.UsageError(str(exc)) from exc
+    except ValueError as exc:
+        raise click.BadParameter(str(exc), param_hint="--project-root") from exc
+
+
+def _root_line(where: dict) -> str:
+    """``project root: <path> (<rule>)`` — printed by every bundle verb."""
+    line = f"project root: {where['project_root']} ({where['project_root_source']})"
+    home = where.get("bundle_home")
+    if home and home != where["project_root"]:
+        line += f"; NOTE the bundle itself lives in {home}"
+    return line
 
 
 @click.group(
@@ -159,14 +187,31 @@ def export(ctx, project_root, out, sign_key, all_runs, dry_run, yes, as_json) ->
     from .._exchange._signing import SigningUnavailable, load_signer
 
     json_mode = _json_mode(ctx, as_json)
-    root = Path(project_root).resolve()
+    if out not in (None, "-"):
+        where = _resolve_root(out, project_root)
+    elif project_root is not None:
+        where = {"project_root": str(Path(project_root).resolve()),
+                 "project_root_source": "argument", "bundle_home": None}  # fmt: skip
+    else:
+        from .._core._project_root import resolve_project_root
+
+        try:
+            found = resolve_project_root(None)
+        except ValueError as exc:
+            raise click.UsageError(str(exc)) from exc
+        where = {"project_root": found["project_root"],
+                 "project_root_source": found["project_root_source"],
+                 "bundle_home": None}  # fmt: skip
+    root = Path(where["project_root"])
     target = None if out == "-" else Path(out or default_bundle_path(root)).resolve()
     if dry_run:
         payload = {"dry_run": True, "project_root": str(root),
+                   "project_root_source": where["project_root_source"],
                    "out": str(target) if target else "-", "signed": bool(sign_key),
                    "schema": BUNDLE_SCHEMA, "schema_version": BUNDLE_SCHEMA_VERSION}  # fmt: skip
         _echo_json(payload) if json_mode else click.echo(
-            f"DRY RUN — would write {BUNDLE_SCHEMA} {BUNDLE_SCHEMA_VERSION} -> {payload['out']}"
+            f"DRY RUN — would write {BUNDLE_SCHEMA} {BUNDLE_SCHEMA_VERSION} -> "
+            f"{payload['out']}\n  {_root_line(where)}"
         )
         return
     try:
@@ -178,10 +223,13 @@ def export(ctx, project_root, out, sign_key, all_runs, dry_run, yes, as_json) ->
         document = sign_document(document, signer)
     if target is None:
         click.echo(_json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False))
+        click.echo(f"clew bundle export: {_root_line(where)}", err=True)
         return
     write_bundle(document, target)
     payload = {
         "path": str(target),
+        "project_root": str(root),
+        "project_root_source": where["project_root_source"],
         "runs": len(document["runs"]),
         "claims": len(document["claims"]),
         "signed": "signature" in document,
@@ -194,6 +242,7 @@ def export(ctx, project_root, out, sign_key, all_runs, dry_run, yes, as_json) ->
         click.echo(
             f"[EXPORTED] {payload['runs']} run(s), {payload['claims']} claim(s){sig} -> {target}"
         )
+        click.echo(f"  {_root_line(where)}")
 
 
 @bundle.command(
@@ -221,14 +270,18 @@ def verify(ctx, path, project_root, expect_key_id, allow_missing, as_json) -> No
     """Verify an evidence bundle (store-free); exit 0 iff it checks out."""
     from .._exchange import verify_bundle
 
-    result = verify_bundle(path, project_root, expected_key_id=expect_key_id,
+    where = _resolve_root(path, project_root)
+    result = verify_bundle(path, where["project_root"], expected_key_id=expect_key_id,
                            allow_missing=allow_missing)  # fmt: skip
+    result["project_root_source"] = where["project_root_source"]
+    result["bundle_home"] = where["bundle_home"]
     if _json_mode(ctx, as_json):
         _echo_json(result)
     else:
         files = result["files"]
         sig = result["signature"] or {}
         click.echo(f"[{'OK' if result['ok'] else 'FAIL'}] {path}")
+        click.echo(f"  {_root_line(where)}")
         click.echo(f"  schema: {'valid' if result['schema_valid'] else 'INVALID'}")
         click.echo(f"  signature: {sig.get('reason', 'n/a')}")
         click.echo(f"  files: {files['matched']}/{files['checked']} match, "
@@ -287,6 +340,7 @@ def rerun(
     from .._exchange._rerun import topological_runs
 
     json_mode = _json_mode(ctx, as_json)
+    where = _resolve_root(path, project_root)
     if dry_run:
         doc, _raw = load_bundle(path)
         runs = [r for r in doc.get("runs") or [] if isinstance(r, dict)]
@@ -294,12 +348,15 @@ def rerun(
                 for r in topological_runs(runs, doc.get("edges") or [])]  # fmt: skip
         payload = {
             "dry_run": True,
+            "project_root": where["project_root"],
+            "project_root_source": where["project_root_source"],
             "runs": plan,
             "claims": len(doc.get("claims") or []),
         }
         if json_mode:
             _echo_json(payload)
         else:
+            click.echo(f"DRY RUN — {_root_line(where)}")
             for step in plan:
                 click.echo(
                     f"DRY RUN — {step['run_id']}: (cd {step['cwd']}) python {' '.join(step['argv'] or [])}"
@@ -307,7 +364,11 @@ def rerun(
         return
     try:
         report = rerun_bundle(
-            path, project_root, timeout=timeout, python=python, work_dir=work_dir
+            path,
+            where["project_root"],
+            timeout=timeout,
+            python=python,
+            work_dir=work_dir,
         )
     except FileExistsError as exc:
         raise click.UsageError(str(exc)) from exc
@@ -321,9 +382,13 @@ def rerun(
         and not any(c["status"] == "differs" for c in report["claims"])
     )
     if json_mode:
+        # The report's schema (rerun-report 1.x) has no root field: name the
+        # replayed tree on stderr so it is never left implicit.
+        click.echo(f"clew bundle rerun: {_root_line(where)}", err=True)
         _echo_json(report)
     else:
         click.echo(f"[{'REPRODUCED' if ok else 'NOT REPRODUCED'}] {path}")
+        click.echo(f"  {_root_line(where)}")
         for run in report["runs"]:
             click.echo(f"  run {run['run_id']}: {run['status']}"
                        + (f" ({run['reason']})" if run.get("reason") else ""))  # fmt: skip
