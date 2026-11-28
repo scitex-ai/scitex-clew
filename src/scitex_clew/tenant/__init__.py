@@ -43,8 +43,8 @@ class TenantProvisionError(RuntimeError):
 
 def tenant_schemas() -> tuple[Schema, ...]:
     """The stores the hosted Clew app reads, in the order it checks them."""
-    from ._claim._store import _CLAIMS_SCHEMA
-    from ._db._schema import (
+    from .._claim._store import _CLAIMS_SCHEMA
+    from .._db._schema import (
         FILE_HASHES_SCHEMA,
         RUNS_SCHEMA,
         SESSION_PARENTS_SCHEMA,
@@ -62,7 +62,12 @@ def tenant_schemas() -> tuple[Schema, ...]:
 
 def _ready(tenant_dsn: str, schema: Schema, scope: TenantScope, owner_role: str):
     """The worker's own check, run as the tenant login."""
-    import psycopg
+    try:
+        import psycopg
+    except ModuleNotFoundError as exc:
+        from .._django._optional import gui_dependency_error
+
+        gui_dependency_error(exc)
     from scitex_dev.store import inspect_tenant_store
 
     with psycopg.connect(tenant_dsn) as connection:
@@ -147,7 +152,7 @@ def project_scope_for(project_root: str | Path, *, create: bool = True) -> str |
         The id could not be persisted. A host must not fall back to a
         path-derived scope: it would silently split the project's records.
     """
-    from ._db._scope import _mint_project_id, _read_project_id, project_id_path
+    from .._db._scope import _mint_project_id, _read_project_id, project_id_path
 
     path = project_id_path(Path(project_root))
     persisted = _read_project_id(path)
