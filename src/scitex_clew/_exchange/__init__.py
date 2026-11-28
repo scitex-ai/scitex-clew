@@ -28,6 +28,7 @@ from pathlib import Path
 from ._canonical import canonical_bytes, sha256_file
 from ._export import BUNDLE_SCHEMA, BUNDLE_SCHEMA_VERSION, build_bundle
 from ._rerun import RERUN_SCHEMA, RERUN_SCHEMA_VERSION, rerun_bundle
+from ._root import ProjectRootAmbiguous, bundle_home, resolve_bundle_root
 from ._schema import (
     BUNDLE_SCHEMA_ID,
     BUNDLE_SCHEMA_PATH,
@@ -61,10 +62,12 @@ __all__ = [
     "RERUN_SCHEMA_PATH",
     "RERUN_SCHEMA_VERSION",
     "Ed25519Signer",
+    "ProjectRootAmbiguous",
     "Ed25519Verifier",
     "Signer",
     "Verifier",
     "build_bundle",
+    "bundle_home",
     "canonical_bytes",
     "default_bundle_path",
     "export_bundle",
@@ -75,6 +78,7 @@ __all__ = [
     "load_signer",
     "register_verifier",
     "rerun_bundle",
+    "resolve_bundle_root",
     "schema_errors",
     "sha256_file",
     "sign_document",
