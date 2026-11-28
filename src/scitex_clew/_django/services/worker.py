@@ -45,23 +45,11 @@ def execute(payload: dict):
     os.environ["SCITEX_CLEW_PROJECT"] = payload["project_scope"]
     root = Path(payload["root"]).resolve()
     os.chdir(root)
-    from scitex_clew._claim._store import _CLAIMS_SCHEMA
-    from scitex_clew._db._schema import (
-        FILE_HASHES_SCHEMA,
-        RUNS_SCHEMA,
-        SESSION_PARENTS_SCHEMA,
-        VERIFICATION_RESULTS_SCHEMA,
-    )
+    from scitex_clew.tenant import tenant_schemas
 
     scope = TenantScope(UUID(payload["tenant_id"]))
     with psycopg.connect(payload["dsn"]) as connection:
-        for schema in (
-            RUNS_SCHEMA,
-            FILE_HASHES_SCHEMA,
-            VERIFICATION_RESULTS_SCHEMA,
-            SESSION_PARENTS_SCHEMA,
-            _CLAIMS_SCHEMA,
-        ):
+        for schema in tenant_schemas():
             status = inspect_tenant_store(
                 connection, schema, scope, owner_role=payload["owner_role"]
             )
