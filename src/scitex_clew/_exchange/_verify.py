@@ -7,7 +7,8 @@ exception — a malformed bundle, a missing file and a bad signature are all
 answers, not crashes. ``ok`` is True only when the bundle validates, a
 present signature verifies, and every recorded input/output/script hash
 matches the file in the project root (a missing file fails too, unless
-``allow_missing``).
+``allow_missing``). Which tree is "the project root" is decided by
+:mod:`._root` and reported — an ambiguous choice raises, it is never guessed.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from typing import Any
 
 from ._canonical import sha256_bytes
 from ._relpaths import is_portable
+from ._root import resolve_bundle_root
 from ._schema import SchemaValidatorMissing, schema_errors
 from ._signing import SigningUnavailable, verify_document
 
@@ -65,19 +67,29 @@ def _check_file(item: dict, root: Path) -> dict:
 
 def verify_bundle(
     bundle_path: str | Path,
-    project_root: str | Path,
+    project_root: str | Path | None = None,
     *,
     expected_key_id: str | None = None,
     allow_missing: bool = False,
 ) -> dict:
-    """Verify the bundle at ``bundle_path`` against ``project_root`` (see module doc)."""
-    root = Path(project_root).expanduser().resolve()
+    """Verify the bundle at ``bundle_path`` against ``project_root`` (see module doc).
+
+    ``project_root=None`` resolves the tree with
+    :func:`._root.resolve_bundle_root` (the bundle's own project, which must
+    agree with the working directory's; else :class:`ProjectRootAmbiguous`).
+    The result always names the tree checked (``project_root``) and the rule
+    that chose it (``project_root_source``).
+    """
+    where = resolve_bundle_root(bundle_path, project_root)
+    root = Path(where["project_root"])
     findings: list[dict] = []
     result: dict[str, Any] = {
         "ok": False,
         "bundle": str(bundle_path),
         "bundle_sha256": None,
         "project_root": str(root),
+        "project_root_source": where["project_root_source"],
+        "bundle_home": where["bundle_home"],
         "schema_valid": False,
         "schema_errors": [],
         "signed": False,

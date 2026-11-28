@@ -62,6 +62,16 @@ input/output/script hash against the files under `--project-root`. Missing
 files are findings, not crashes (`--allow-missing` makes them warnings).
 Exit 0 ok, 1 findings (JSON `findings[]` with `code`).
 
+**Which tree is checked.** Without `--project-root`, the tree is the bundle's
+OWN project (`<root>/.scitex/clew/<file>` → `<root>`, else the git work tree
+holding the file; a linked worktree is its own tree, never the shared git dir).
+It must be the working directory's project too; if the two differ the command
+exits 2 (`ambiguous project root`) instead of guessing. A loose bundle file in
+no project is checked against the working directory's project. `verify`,
+`rerun` and `export` always print `project root: <path> (<rule>)` (JSON:
+`project_root`, `project_root_source`; `rerun --json` prints it on stderr).
+Read that line: it is the tree the verdict is about.
+
 ## rerun (store-free; EXECUTES PROJECT CODE)
 
 Copies the tree (minus `.git`) to a temp dir, deletes every recorded output,
